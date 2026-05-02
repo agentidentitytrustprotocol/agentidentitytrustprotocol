@@ -1,0 +1,220 @@
+{
+  "_comment": "Full Mutual Handshake between Agent A (initiator) and Agent B (target). Four messages, two round trips. Both agents use OIDC identity from issuers that appear in each other's accepted_trust_anchors. Each agent self-issues a TCT for the other; there is no third-party verifier.",
+  "preconditions": {
+    "agent_a_aid": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+    "agent_b_aid": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+    "agent_a_identity_issuer": "https://auth.anthropic.com",
+    "agent_b_identity_issuer": "https://auth.openai.com",
+    "agent_a_accepted_trust_anchors": [
+      "https://auth.openai.com",
+      "https://auth.anthropic.com"
+    ],
+    "agent_b_accepted_trust_anchors": [
+      "https://auth.openai.com",
+      "https://auth.anthropic.com"
+    ],
+    "trust_anchor_overlap": [
+      "https://auth.openai.com",
+      "https://auth.anthropic.com"
+    ]
+  },
+  "round_1": {
+    "_comment": "Credential and nonce exchange. A sends MUTUAL_HELLO; B responds with MUTUAL_HELLO_ACK.",
+    "message_1_mutual_hello": {
+      "version": "aitp/0.1",
+      "message_type": "mutual_hello",
+      "message_id": "550e8400-e29b-41d4-a716-446655440010",
+      "timestamp": 1711900100,
+      "sender": {
+        "agent_id": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA"
+      },
+      "payload": {
+        "identity": {
+          "type": "oidc",
+          "issuer": "https://auth.anthropic.com",
+          "subject": "coordinator-agent-1",
+          "proof": "eyJhbGciOiJFZERTQSJ9.eyJpc3MiOiJodHRwczovL2F1dGguYW50aHJvcGljLmNvbSIsInN1YiI6ImNvb3JkaW5hdG9yLWFnZW50LTEifQ.placeholder_jwt_sig"
+        },
+        "manifest": {
+          "version": "aitp/0.1",
+          "aid": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+          "display_name": "CoordinatorAgent-1",
+          "handshake_endpoint": "https://coordinator.agents.example.com/aitp/handshake",
+          "accepted_trust_anchors": [
+            "https://auth.openai.com",
+            "https://auth.anthropic.com"
+          ],
+          "offered_capabilities": [
+            "macp.mode.task.v1",
+            "macp.session.start",
+            "read_data"
+          ],
+          "required_peer_capabilities": [],
+          "proof_of_possession": {
+            "challenge": "nonce_A_chal_v01_aaann",
+            "signature": "sig_A_pop_chal_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          },
+          "published_at": 1711899000,
+          "expires_at": 1711985400,
+          "signature": "sig_A_manifest_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "identity_hint": {
+            "type": "oidc",
+            "issuer": "https://auth.anthropic.com",
+            "subject": "coordinator-agent-1"
+          }
+        },
+        "requested_grants": [
+          "macp.mode.task.v1",
+          "read_data"
+        ],
+        "pop_nonce": "nonce_A_pop_v01_aaannn"
+      },
+      "signature": "sig_A_envelope_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    },
+    "message_2_mutual_hello_ack": {
+      "_comment": "B verifies A's manifest and identity, then responds with B's credentials, B's pop_nonce, and an echo of A's pop_nonce.",
+      "version": "aitp/0.1",
+      "message_type": "mutual_hello_ack",
+      "message_id": "550e8400-e29b-41d4-a716-446655440011",
+      "timestamp": 1711900150,
+      "sender": {
+        "agent_id": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB"
+      },
+      "payload": {
+        "identity": {
+          "type": "oidc",
+          "issuer": "https://auth.openai.com",
+          "subject": "worker-agent-7",
+          "proof": "eyJhbGciOiJFZERTQSJ9.eyJpc3MiOiJodHRwczovL2F1dGgub3BlbmFpLmNvbSIsInN1YiI6Indvcmtlci1hZ2VudC03In0.placeholder_jwt_sig"
+        },
+        "manifest": {
+          "version": "aitp/0.1",
+          "aid": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+          "display_name": "WorkerAgent-7",
+          "handshake_endpoint": "https://worker-7.agents.example.com/aitp/handshake",
+          "accepted_trust_anchors": [
+            "https://auth.openai.com",
+            "https://auth.anthropic.com"
+          ],
+          "offered_capabilities": [
+            "macp.mode.task.v1",
+            "read_data"
+          ],
+          "required_peer_capabilities": [],
+          "proof_of_possession": {
+            "challenge": "nonce_B_chal_v01_aaann",
+            "signature": "sig_B_pop_chal_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          },
+          "published_at": 1711900000,
+          "expires_at": 1711986400,
+          "signature": "sig_B_manifest_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "identity_hint": {
+            "type": "oidc",
+            "issuer": "https://auth.openai.com",
+            "subject": "worker-agent-7"
+          }
+        },
+        "requested_grants": [
+          "macp.mode.task.v1"
+        ],
+        "pop_nonce": "nonce_B_pop_v01_aaannn",
+        "pop_nonce_echo": "nonce_A_pop_v01_aaannn"
+      },
+      "signature": "sig_B_envelope_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    }
+  },
+  "round_2": {
+    "_comment": "TCT and PoP exchange. A sends MUTUAL_COMMIT containing the TCT for B and A's PoP. B responds with the TCT for A and B's PoP.",
+    "message_3_mutual_commit": {
+      "_comment": "A has verified B's manifest and identity. A constructs TCT_B (grants B 'macp.mode.task.v1') and signs the PoP over B's nonce.",
+      "version": "aitp/0.1",
+      "message_type": "mutual_commit",
+      "message_id": "550e8400-e29b-41d4-a716-446655440012",
+      "timestamp": 1711900200,
+      "sender": {
+        "agent_id": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA"
+      },
+      "payload": {
+        "tct_for_peer": {
+          "tct": {
+            "version": "aitp/0.1",
+            "jti": "550e8400-e29b-41d4-a716-446655440100",
+            "issuer": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+            "subject": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+            "audience": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+            "issued_at": 1711900200,
+            "expires_at": 1711903800,
+            "grants": [
+              "macp.mode.task.v1"
+            ],
+            "binding": {
+              "cnf": "agentB_pubkey_AID_v01_placeholder_BBBBBBBBB"
+            },
+            "signature": "sig_A_tct_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          }
+        },
+        "pop_signature": "sig_A_pop_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "pop_nonce_echo": "nonce_B_pop_v01_aaannn"
+      },
+      "signature": "sig_A_envelope_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    },
+    "message_4_mutual_commit_ack": {
+      "_comment": "B has verified A's PoP and TCT_B. B constructs TCT_A (grants A 'macp.mode.task.v1' and 'read_data') and signs the PoP over A's nonce. Handshake complete.",
+      "version": "aitp/0.1",
+      "message_type": "mutual_commit_ack",
+      "message_id": "550e8400-e29b-41d4-a716-446655440013",
+      "timestamp": 1711900250,
+      "sender": {
+        "agent_id": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB"
+      },
+      "payload": {
+        "tct_for_peer": {
+          "tct": {
+            "version": "aitp/0.1",
+            "jti": "550e8400-e29b-41d4-a716-446655440101",
+            "issuer": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+            "subject": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+            "audience": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+            "issued_at": 1711900250,
+            "expires_at": 1711903850,
+            "grants": [
+              "macp.mode.task.v1",
+              "read_data"
+            ],
+            "binding": {
+              "cnf": "agentA_pubkey_AID_v01_placeholder_AAAAAAAAA"
+            },
+            "signature": "sig_B_tct_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          }
+        },
+        "pop_signature": "sig_B_pop_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "pop_nonce_echo": "nonce_A_pop_v01_aaannn"
+      },
+      "signature": "sig_B_envelope_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    }
+  },
+  "outcome": {
+    "_comment": "Handshake complete. Each agent holds a peer-issued TCT.",
+    "agent_a_holds": {
+      "tct_issuer": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+      "tct_subject": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+      "tct_audience": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+      "grants": [
+        "macp.mode.task.v1",
+        "read_data"
+      ],
+      "expires_at": 1711903850,
+      "verify_sig_against": "B's AID public key (from B's manifest)"
+    },
+    "agent_b_holds": {
+      "tct_issuer": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+      "tct_subject": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+      "tct_audience": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+      "grants": [
+        "macp.mode.task.v1"
+      ],
+      "expires_at": 1711903800,
+      "verify_sig_against": "A's AID public key (from A's manifest)"
+    }
+  }
+}

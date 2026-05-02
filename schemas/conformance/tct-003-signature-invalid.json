@@ -1,0 +1,21 @@
+{
+  "id": "tct-003",
+  "description": "TCT signature does not validate under the issuing peer's resolved public key (e.g. tampered grant, swapped audience, or wrong key). Receivers MUST reject with TCT_SIGNATURE_INVALID (RFC-AITP-0005). The check is local.",
+  "tags": ["security", "tct", "signature"],
+  "input": {
+    "tct_token": {
+      "version": "aitp/0.1",
+      "jti": "550e8400-e29b-41d4-a716-446655443003",
+      "issuer": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+      "subject": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+      "audience": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+      "issued_at": 1711800000,
+      "expires_at": 9999999999,
+      "grants": ["macp.mode.task.v1"],
+      "signature": "__TAMPERED_SIG__"
+    },
+    "expected_audience": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+    "issuer_pubkey": "agentB_pubkey_AID_v01_placeholder_BBBBBBBBB"
+  },
+  "expected": { "outcome": "failure", "error_code": "TCT_SIGNATURE_INVALID" }
+}

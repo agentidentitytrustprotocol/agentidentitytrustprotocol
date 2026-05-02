@@ -1,0 +1,19 @@
+{
+  "tct": {
+    "version": "aitp/0.1",
+    "jti": "550e8400-e29b-41d4-a716-446655440101",
+    "issuer": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+    "subject": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+    "audience": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+    "issued_at": 1711900250,
+    "expires_at": 1711903850,
+    "grants": [
+      "macp.mode.task.v1",
+      "macp.session.start"
+    ],
+    "binding": {
+      "cnf": "agentA_pubkey_AID_v01_placeholder_AAAAAAAAA"
+    },
+    "signature": "sig_B_tct_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+  }
+}

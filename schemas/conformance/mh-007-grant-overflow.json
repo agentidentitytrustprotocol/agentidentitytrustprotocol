@@ -1,0 +1,36 @@
+{
+  "id": "mh-007",
+  "description": "Peer-issued TCT carries grants that exceed the issuing peer's offered_capabilities (declared in its Manifest). The receiving peer MUST reject with GRANT_OVERFLOW — a peer cannot grant capabilities it did not publicly offer.",
+  "tags": ["security", "mutual-handshake", "tct", "policy"],
+  "input": {
+    "step": "initiator received MUTUAL_COMMIT_ACK",
+    "issuer_offered_capabilities": ["macp.mode.task.v1"],
+    "envelope": {
+      "version": "aitp/0.1",
+      "message_type": "mutual_commit_ack",
+      "message_id": "660e8400-e29b-41d4-a716-446655440107",
+      "timestamp": "__NOW__",
+      "sender": { "agent_id": "aid:pubkey:peerB_pubkey_AID_v01_placeholder_bbbbbbbbbb" },
+      "payload": {
+        "tct_for_peer": {
+          "tct": {
+            "version": "aitp/0.1",
+            "jti": "660e8400-e29b-41d4-a716-446655440108",
+            "issuer": "aid:pubkey:peerB_pubkey_AID_v01_placeholder_bbbbbbbbbb",
+            "subject": "aid:pubkey:initiator_pubkey_AID_v01_placeholder_iiiiii",
+            "audience": "aid:pubkey:initiator_pubkey_AID_v01_placeholder_iiiiii",
+            "issued_at": 1711900250,
+            "expires_at": 1711903850,
+            "grants": ["macp.mode.task.v1", "macp.session.start", "admin.privileged"],
+            "binding": { "cnf": "initiator_pubkey_AID_v01_placeholder_iiiiii" },
+            "signature": "__VALID_TCT_SIG__"
+          }
+        },
+        "pop_signature": "__VALID_POP_SIG__",
+        "pop_nonce_echo": "__VALID_NONCE_ECHO__"
+      },
+      "signature": "__VALID_ENVELOPE_SIG__"
+    }
+  },
+  "expected": { "outcome": "failure", "error_code": "GRANT_OVERFLOW" }
+}

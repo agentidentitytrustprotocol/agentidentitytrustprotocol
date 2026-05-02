@@ -1,0 +1,20 @@
+{
+  "id": "tct-002",
+  "description": "Expired peer-issued TCT MUST be rejected regardless of signature validity.",
+  "tags": ["failure", "tct", "expiry"],
+  "input": {
+    "tct_token": {
+      "version": "aitp/0.1",
+      "jti": "550e8400-e29b-41d4-a716-446655440099",
+      "issuer": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+      "subject": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+      "audience": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+      "issued_at": 1711800000,
+      "expires_at": 1711803600,
+      "grants": ["macp.mode.task.v1"],
+      "signature": "__VALID_SIG__"
+    },
+    "expected_audience": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA"
+  },
+  "expected": { "outcome": "failure", "error_code": "TCT_EXPIRED" }
+}

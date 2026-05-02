@@ -1,0 +1,65 @@
+{
+  "id": "mh-004",
+  "description": "Peer's identity issuer is not present in the receiving peer's trust_anchors. The handshake MUST fail with INCOMPATIBLE_TRUST_ANCHORS \u2014 there is no shared verifier in v0.1.",
+  "tags": [
+    "mutual-handshake",
+    "trust-anchors",
+    "policy"
+  ],
+  "input": {
+    "step": "received MUTUAL_HELLO from peer",
+    "self_trust_anchors": [
+      "https://auth.anthropic.com"
+    ],
+    "envelope": {
+      "version": "aitp/0.1",
+      "message_type": "mutual_hello",
+      "message_id": "660e8400-e29b-41d4-a716-446655440103",
+      "timestamp": "__NOW__",
+      "sender": {
+        "agent_id": "aid:pubkey:peerA_pubkey_AID_v01_placeholder_aaaaaaaaaa"
+      },
+      "payload": {
+        "identity": {
+          "type": "oidc",
+          "issuer": "https://auth.unknown-vendor.example",
+          "subject": "agent-A",
+          "proof": "__VALID_JWT_FROM_UNKNOWN_ISSUER__"
+        },
+        "manifest": {
+          "version": "aitp/0.1",
+          "aid": "aid:pubkey:peerA_pubkey_AID_v01_placeholder_aaaaaaaaaa",
+          "handshake_endpoint": "https://a.agents.example.com/aitp/handshake",
+          "accepted_trust_anchors": [
+            "https://auth.unknown-vendor.example"
+          ],
+          "offered_capabilities": [
+            "macp.mode.task.v1"
+          ],
+          "required_peer_capabilities": [],
+          "proof_of_possession": {
+            "challenge": "Y2hhbGxlbmdlX2Jhc2U2NHVybF8xMjhiaXQ",
+            "signature": "__VALID_POP_SIG__"
+          },
+          "published_at": 1711899000,
+          "expires_at": 1711985400,
+          "signature": "__VALID_MANIFEST_SIG__",
+          "identity_hint": {
+            "type": "oidc",
+            "issuer": "https://auth.unknown-vendor.example",
+            "subject": "agent-A"
+          }
+        },
+        "requested_grants": [
+          "macp.mode.task.v1"
+        ],
+        "pop_nonce": "__VALID_NONCE__"
+      },
+      "signature": "__VALID_ENVELOPE_SIG__"
+    }
+  },
+  "expected": {
+    "outcome": "failure",
+    "error_code": "INCOMPATIBLE_TRUST_ANCHORS"
+  }
+}

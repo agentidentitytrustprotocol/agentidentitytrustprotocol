@@ -1,0 +1,44 @@
+{
+  "id": "mh-success-001",
+  "description": "Happy-path Mutual Handshake. Both peers present valid OIDC identity proofs bound to the per-handshake nonces, exchange Manifests with valid signatures and PoP, and emit two valid peer-issued TCTs. Each peer's `requested_grants` is contained in the other peer's `offered_capabilities`. Both peers MUST accept and store the inbound TCT.",
+  "tags": ["happy-path", "mutual-handshake", "tct-issuance"],
+  "input": {
+    "step": "MUTUAL_COMMIT received by both peers",
+    "peer_a": {
+      "self_aid": "aid:pubkey:peerA_pubkey_AID_v01_placeholder_aaaaaaaaaa",
+      "received_envelope_message_type": "mutual_commit",
+      "inbound_tct": {
+        "version": "aitp/0.1",
+        "jti": "550e8400-e29b-41d4-a716-446655445001",
+        "issuer": "aid:pubkey:peerB_pubkey_AID_v01_placeholder_bbbbbbbbbb",
+        "subject": "aid:pubkey:peerA_pubkey_AID_v01_placeholder_aaaaaaaaaa",
+        "audience": "aid:pubkey:peerA_pubkey_AID_v01_placeholder_aaaaaaaaaa",
+        "issued_at": 1711899000,
+        "expires_at": 1711902600,
+        "grants": ["macp.mode.task.v1"],
+        "binding": { "cnf": "peerA_pubkey_AID_v01_placeholder_aaaaaaaaaa" },
+        "signature": "__VALID_B_SIG__"
+      }
+    },
+    "peer_b": {
+      "self_aid": "aid:pubkey:peerB_pubkey_AID_v01_placeholder_bbbbbbbbbb",
+      "received_envelope_message_type": "mutual_commit",
+      "inbound_tct": {
+        "version": "aitp/0.1",
+        "jti": "550e8400-e29b-41d4-a716-446655445002",
+        "issuer": "aid:pubkey:peerA_pubkey_AID_v01_placeholder_aaaaaaaaaa",
+        "subject": "aid:pubkey:peerB_pubkey_AID_v01_placeholder_bbbbbbbbbb",
+        "audience": "aid:pubkey:peerB_pubkey_AID_v01_placeholder_bbbbbbbbbb",
+        "issued_at": 1711899000,
+        "expires_at": 1711902600,
+        "grants": ["macp.mode.task.v1"],
+        "binding": { "cnf": "peerB_pubkey_AID_v01_placeholder_bbbbbbbbbb" },
+        "signature": "__VALID_A_SIG__"
+      }
+    }
+  },
+  "expected": {
+    "outcome": "success",
+    "grants": ["macp.mode.task.v1"]
+  }
+}

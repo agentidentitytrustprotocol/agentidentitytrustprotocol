@@ -1,0 +1,64 @@
+{
+  "id": "id-003",
+  "description": "Peer's OIDC identity JWT is otherwise valid but is missing the `cnf.jkt` claim. Without `cnf.jkt` the verifier cannot bind the JWT to the AID's public key \u2014 anyone could replay the JWT against a different AID. The receiving peer MUST reject with IDENTITY_FAILED (RFC-AITP-0002 \u00a72.3).",
+  "tags": [
+    "security",
+    "identity",
+    "oidc",
+    "key-binding"
+  ],
+  "input": {
+    "step": "received MUTUAL_HELLO from peer",
+    "self_aid": "aid:pubkey:verifier_pubkey_AID_v01_placeholder_vvvvvvv",
+    "envelope": {
+      "version": "aitp/0.1",
+      "message_type": "mutual_hello",
+      "message_id": "770e8400-e29b-41d4-a716-446655440203",
+      "timestamp": "__NOW__",
+      "sender": {
+        "agent_id": "aid:pubkey:peerA_pubkey_AID_v01_placeholder_aaaaaaaaaa"
+      },
+      "payload": {
+        "identity": {
+          "type": "oidc",
+          "issuer": "https://auth.openai.com",
+          "subject": "agent-A",
+          "proof": "__JWT_MISSING_CNF_JKT_CLAIM__"
+        },
+        "manifest": {
+          "version": "aitp/0.1",
+          "aid": "aid:pubkey:peerA_pubkey_AID_v01_placeholder_aaaaaaaaaa",
+          "handshake_endpoint": "https://a.agents.example.com/aitp/handshake",
+          "accepted_trust_anchors": [
+            "https://auth.openai.com"
+          ],
+          "offered_capabilities": [
+            "macp.mode.task.v1"
+          ],
+          "required_peer_capabilities": [],
+          "proof_of_possession": {
+            "challenge": "Y2hhbGxlbmdlX2Jhc2U2NHVybF8xMjhiaXQ",
+            "signature": "__VALID_POP_SIG__"
+          },
+          "published_at": 1711899000,
+          "expires_at": 1711985400,
+          "signature": "__VALID_MANIFEST_SIG__",
+          "identity_hint": {
+            "type": "oidc",
+            "issuer": "https://auth.openai.com",
+            "subject": "agent-A"
+          }
+        },
+        "requested_grants": [
+          "macp.mode.task.v1"
+        ],
+        "pop_nonce": "__VALID_NONCE__"
+      },
+      "signature": "__VALID_ENVELOPE_SIG__"
+    }
+  },
+  "expected": {
+    "outcome": "failure",
+    "error_code": "IDENTITY_FAILED"
+  }
+}

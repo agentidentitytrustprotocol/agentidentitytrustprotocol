@@ -1,0 +1,63 @@
+{
+  "id": "mh-003",
+  "description": "Peer's Manifest signature validates but its proof_of_possession.signature does not validate against manifest.aid. The receiving peer MUST reject the handshake \u2014 the Manifest could be a replay across agents.",
+  "tags": [
+    "security",
+    "mutual-handshake",
+    "manifest",
+    "pop"
+  ],
+  "input": {
+    "step": "received MUTUAL_HELLO from peer",
+    "envelope": {
+      "version": "aitp/0.1",
+      "message_type": "mutual_hello",
+      "message_id": "660e8400-e29b-41d4-a716-446655440102",
+      "timestamp": "__NOW__",
+      "sender": {
+        "agent_id": "aid:pubkey:peerA_pubkey_AID_v01_placeholder_aaaaaaaaaa"
+      },
+      "payload": {
+        "identity": {
+          "type": "oidc",
+          "issuer": "https://auth.openai.com",
+          "subject": "agent-A",
+          "proof": "__VALID_JWT__"
+        },
+        "manifest": {
+          "version": "aitp/0.1",
+          "aid": "aid:pubkey:peerA_pubkey_AID_v01_placeholder_aaaaaaaaaa",
+          "handshake_endpoint": "https://a.agents.example.com/aitp/handshake",
+          "accepted_trust_anchors": [
+            "https://auth.openai.com"
+          ],
+          "offered_capabilities": [
+            "macp.mode.task.v1"
+          ],
+          "required_peer_capabilities": [],
+          "proof_of_possession": {
+            "challenge": "Y2hhbGxlbmdlX2Jhc2U2NHVybF8xMjhiaXQ",
+            "signature": "__INVALID_POP_SIG__"
+          },
+          "published_at": 1711899000,
+          "expires_at": 1711985400,
+          "signature": "__VALID_MANIFEST_SIG__",
+          "identity_hint": {
+            "type": "oidc",
+            "issuer": "https://auth.openai.com",
+            "subject": "agent-A"
+          }
+        },
+        "requested_grants": [
+          "macp.mode.task.v1"
+        ],
+        "pop_nonce": "__VALID_NONCE__"
+      },
+      "signature": "__VALID_ENVELOPE_SIG__"
+    }
+  },
+  "expected": {
+    "outcome": "failure",
+    "error_code": "MANIFEST_POP_FAILED"
+  }
+}

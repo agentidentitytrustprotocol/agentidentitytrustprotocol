@@ -1,0 +1,54 @@
+name: AITP CI
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  validate:
+    name: Validate Schemas, Examples, and Conformance Fixtures
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install ajv-cli
+        run: npm install -g ajv-cli ajv-formats
+
+      - name: Validate JSON Schemas (meta)
+        run: |
+          chmod +x scripts/validate-json-schema.sh
+          ./scripts/validate-json-schema.sh
+
+      - name: Validate JSON examples and conformance fixtures
+        run: |
+          chmod +x scripts/validate-json.sh
+          ./scripts/validate-json.sh
+
+      - name: Check for release junk (.DS_Store, __MACOSX)
+        run: |
+          set -e
+          junk_files=$(find . -name .DS_Store -not -path './.git/*' || true)
+          junk_dirs=$(find . -name __MACOSX -type d -not -path './.git/*' || true)
+          if [ -n "$junk_files" ] || [ -n "$junk_dirs" ]; then
+            echo "::error::Release junk found in repository:"
+            [ -n "$junk_files" ] && echo "$junk_files"
+            [ -n "$junk_dirs" ] && echo "$junk_dirs"
+            exit 1
+          fi
+          echo "✓ No .DS_Store or __MACOSX entries found"
+
+      - name: Summary
+        run: |
+          echo "✓ All AITP v0.1 validations passed"
+          echo "  - JSON Schemas valid"
+          echo "  - JSON examples valid"
+          echo "  - Conformance fixtures valid"
+          echo "  - No release junk in tree"

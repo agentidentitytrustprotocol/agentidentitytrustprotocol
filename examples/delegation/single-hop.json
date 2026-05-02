@@ -1,0 +1,25 @@
+{
+  "delegation": {
+    "delegator": "aid:pubkey:issuingPeer_pubkey_AID_v01_placeholderPPPPP",
+    "delegatee": "aid:pubkey:agentC_pubkey_AID_v01_placeholder_CCCCCCCCC",
+    "issued_by": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+    "audience": "aid:pubkey:issuingPeer_pubkey_AID_v01_placeholderPPPPP",
+    "scope": [
+      "read_data"
+    ],
+    "expires_at": 1711903600,
+    "cnf": "agentC_pubkey_AID_v01_placeholder_CCCCCCCCC",
+    "grant_proof": {
+      "issuer": "aid:pubkey:issuingPeer_pubkey_AID_v01_placeholderPPPPP",
+      "subject": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+      "capabilities": [
+        "read_data",
+        "write_data"
+      ],
+      "expires_at": 1711907200,
+      "source_tct_jti": "550e8400-e29b-41d4-a716-446655440101",
+      "signature": "sig_issuingPeer_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    },
+    "signature": "sig_delegator_b_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+  }
+}

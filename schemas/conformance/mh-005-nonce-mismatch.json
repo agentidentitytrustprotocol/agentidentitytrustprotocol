@@ -1,0 +1,65 @@
+{
+  "id": "mh-005",
+  "description": "MUTUAL_HELLO_ACK carries a pop_nonce_echo that does not match the pop_nonce the initiator sent in MUTUAL_HELLO. The initiator MUST reject the handshake with NONCE_MISMATCH \u2014 without echo binding, an attacker could inject a fabricated ACK referencing different nonces.",
+  "tags": [
+    "security",
+    "mutual-handshake",
+    "nonce-binding"
+  ],
+  "input": {
+    "step": "initiator received MUTUAL_HELLO_ACK",
+    "sent_pop_nonce": "QWdlbnRBUG9wTm9uY2VFeHBlY3RlZA",
+    "envelope": {
+      "version": "aitp/0.1",
+      "message_type": "mutual_hello_ack",
+      "message_id": "660e8400-e29b-41d4-a716-446655440104",
+      "timestamp": "__NOW__",
+      "sender": {
+        "agent_id": "aid:pubkey:peerB_pubkey_AID_v01_placeholder_bbbbbbbbbb"
+      },
+      "payload": {
+        "identity": {
+          "type": "oidc",
+          "issuer": "https://auth.openai.com",
+          "subject": "agent-B",
+          "proof": "__VALID_JWT__"
+        },
+        "manifest": {
+          "version": "aitp/0.1",
+          "aid": "aid:pubkey:peerB_pubkey_AID_v01_placeholder_bbbbbbbbbb",
+          "handshake_endpoint": "https://b.agents.example.com/aitp/handshake",
+          "accepted_trust_anchors": [
+            "https://auth.openai.com",
+            "https://auth.anthropic.com"
+          ],
+          "offered_capabilities": [
+            "macp.mode.task.v1"
+          ],
+          "required_peer_capabilities": [],
+          "proof_of_possession": {
+            "challenge": "Yl9tYW5pZmVzdF9jaGFsbGVuZ2VfYmFzZTY0",
+            "signature": "__VALID_POP_SIG__"
+          },
+          "published_at": 1711900000,
+          "expires_at": 1711986400,
+          "signature": "__VALID_MANIFEST_SIG__",
+          "identity_hint": {
+            "type": "oidc",
+            "issuer": "https://auth.openai.com",
+            "subject": "agent-B"
+          }
+        },
+        "requested_grants": [
+          "macp.mode.task.v1"
+        ],
+        "pop_nonce": "QWdlbnRCUG9wTm9uY2VOZXcxMjhiaXQ",
+        "pop_nonce_echo": "QXR0YWNrZXJTd2FwcGVkTm9uY2VWYWx1ZQ"
+      },
+      "signature": "__VALID_ENVELOPE_SIG__"
+    }
+  },
+  "expected": {
+    "outcome": "failure",
+    "error_code": "NONCE_MISMATCH"
+  }
+}

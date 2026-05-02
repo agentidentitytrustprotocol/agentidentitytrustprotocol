@@ -1,0 +1,30 @@
+{
+  "id": "man-001",
+  "description": "Manifest `expires_at` is in the past at fetch time. Receivers MUST reject with MANIFEST_EXPIRED (RFC-AITP-0003 §5) and MUST NOT initiate a Mutual Handshake against the stale Manifest.",
+  "tags": ["failure", "manifest", "expiry"],
+  "input": {
+    "self_aid": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+    "now": 1711990000,
+    "manifest": {
+      "version": "aitp/0.1",
+      "aid": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+      "handshake_endpoint": "https://b.agents.example.com/aitp/handshake",
+      "accepted_trust_anchors": ["https://auth.example.com"],
+      "offered_capabilities": ["macp.mode.task.v1"],
+      "required_peer_capabilities": [],
+      "proof_of_possession": {
+        "challenge": "Y2hhbGxlbmdlX2Jhc2U2NHVybF8xMjhiaXQ",
+        "signature": "__VALID_POP_SIG__"
+      },
+      "published_at": 1711800000,
+      "expires_at": 1711899000,
+      "signature": "__VALID_MANIFEST_SIG__",
+      "identity_hint": {
+        "type": "oidc",
+        "issuer": "https://auth.example.com",
+        "subject": "agent-B"
+      }
+    }
+  },
+  "expected": { "outcome": "failure", "error_code": "MANIFEST_EXPIRED" }
+}

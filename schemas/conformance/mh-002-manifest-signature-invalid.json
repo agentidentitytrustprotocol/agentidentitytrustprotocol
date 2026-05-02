@@ -1,0 +1,62 @@
+{
+  "id": "mh-002",
+  "description": "Peer's inline Manifest carries an invalid signature. The receiving peer MUST reject the handshake before any further processing.",
+  "tags": [
+    "security",
+    "mutual-handshake",
+    "manifest"
+  ],
+  "input": {
+    "step": "received MUTUAL_HELLO from peer",
+    "envelope": {
+      "version": "aitp/0.1",
+      "message_type": "mutual_hello",
+      "message_id": "660e8400-e29b-41d4-a716-446655440101",
+      "timestamp": "__NOW__",
+      "sender": {
+        "agent_id": "aid:pubkey:attacker_pubkey_AID_v01_placeholder_XXXXXXX"
+      },
+      "payload": {
+        "identity": {
+          "type": "oidc",
+          "issuer": "https://auth.openai.com",
+          "subject": "agent-attacker",
+          "proof": "__VALID_JWT__"
+        },
+        "manifest": {
+          "version": "aitp/0.1",
+          "aid": "aid:pubkey:attacker_pubkey_AID_v01_placeholder_XXXXXXX",
+          "handshake_endpoint": "https://attacker.example.com/aitp/handshake",
+          "accepted_trust_anchors": [
+            "https://auth.openai.com"
+          ],
+          "offered_capabilities": [
+            "macp.mode.task.v1"
+          ],
+          "required_peer_capabilities": [],
+          "proof_of_possession": {
+            "challenge": "dGFtcGVyZWRfY2hhbGxlbmdlX2Jhc2U2NHVybA",
+            "signature": "__VALID_POP_SIG__"
+          },
+          "published_at": 1711899000,
+          "expires_at": 1711985400,
+          "signature": "__TAMPERED_SIGNATURE__",
+          "identity_hint": {
+            "type": "oidc",
+            "issuer": "https://auth.openai.com",
+            "subject": "agent-attacker"
+          }
+        },
+        "requested_grants": [
+          "macp.mode.task.v1"
+        ],
+        "pop_nonce": "__VALID_NONCE__"
+      },
+      "signature": "__VALID_ENVELOPE_SIG__"
+    }
+  },
+  "expected": {
+    "outcome": "failure",
+    "error_code": "MANIFEST_SIGNATURE_INVALID"
+  }
+}

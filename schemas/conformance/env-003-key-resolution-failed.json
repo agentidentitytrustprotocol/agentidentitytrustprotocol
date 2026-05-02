@@ -1,0 +1,14 @@
+{
+  "id": "env-003",
+  "description": "Verifier cannot resolve the issuing peer's signing key (Manifest unreachable, OIDC discovery offline, or no entry in pinned/well-known fallbacks). Receivers MUST reject with KEY_RESOLUTION_FAILED (RFC-AITP-0007). Retryable.",
+  "tags": ["failure", "key-resolution", "operational"],
+  "input": {
+    "self_aid": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+    "needed_key_for": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+    "manifest_fetch": { "status": "network_error" },
+    "oidc_discovery": { "status": "offline" },
+    "pinned_keys": [],
+    "well_known_keys": []
+  },
+  "expected": { "outcome": "failure", "error_code": "KEY_RESOLUTION_FAILED" }
+}

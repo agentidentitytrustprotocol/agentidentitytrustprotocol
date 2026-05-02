@@ -1,0 +1,66 @@
+{
+  "id": "id-002",
+  "description": "Peer's OIDC identity JWT carries an `aud` claim that targets a different peer's AID, not the receiving peer's. The receiving peer MUST reject with IDENTITY_FAILED \u2014 accepting a JWT minted for someone else would allow the holder to impersonate the subject across audiences (RFC-AITP-0002 \u00a72.2).",
+  "tags": [
+    "security",
+    "identity",
+    "oidc",
+    "audience",
+    "confused-deputy"
+  ],
+  "input": {
+    "step": "received MUTUAL_HELLO from peer",
+    "self_aid": "aid:pubkey:verifier_pubkey_AID_v01_placeholder_vvvvvvv",
+    "jwt_aud_claim": "aid:pubkey:someOtherAgent_pubkey_AID_v01_placeholderoo",
+    "envelope": {
+      "version": "aitp/0.1",
+      "message_type": "mutual_hello",
+      "message_id": "770e8400-e29b-41d4-a716-446655440202",
+      "timestamp": "__NOW__",
+      "sender": {
+        "agent_id": "aid:pubkey:peerA_pubkey_AID_v01_placeholder_aaaaaaaaaa"
+      },
+      "payload": {
+        "identity": {
+          "type": "oidc",
+          "issuer": "https://auth.openai.com",
+          "subject": "agent-A",
+          "proof": "__JWT_AUD_TARGETS_DIFFERENT_PEER__"
+        },
+        "manifest": {
+          "version": "aitp/0.1",
+          "aid": "aid:pubkey:peerA_pubkey_AID_v01_placeholder_aaaaaaaaaa",
+          "handshake_endpoint": "https://a.agents.example.com/aitp/handshake",
+          "accepted_trust_anchors": [
+            "https://auth.openai.com"
+          ],
+          "offered_capabilities": [
+            "macp.mode.task.v1"
+          ],
+          "required_peer_capabilities": [],
+          "proof_of_possession": {
+            "challenge": "Y2hhbGxlbmdlX2Jhc2U2NHVybF8xMjhiaXQ",
+            "signature": "__VALID_POP_SIG__"
+          },
+          "published_at": 1711899000,
+          "expires_at": 1711985400,
+          "signature": "__VALID_MANIFEST_SIG__",
+          "identity_hint": {
+            "type": "oidc",
+            "issuer": "https://auth.openai.com",
+            "subject": "agent-A"
+          }
+        },
+        "requested_grants": [
+          "macp.mode.task.v1"
+        ],
+        "pop_nonce": "__VALID_NONCE__"
+      },
+      "signature": "__VALID_ENVELOPE_SIG__"
+    }
+  },
+  "expected": {
+    "outcome": "failure",
+    "error_code": "IDENTITY_FAILED"
+  }
+}

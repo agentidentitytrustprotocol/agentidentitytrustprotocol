@@ -1,0 +1,29 @@
+{
+  "manifest": {
+    "version": "aitp/0.1",
+    "aid": "aid:pubkey:worker_pubkey_AID_v01_placeholder_wwwwwwwww",
+    "display_name": "WorkerAgent-7",
+    "handshake_endpoint": "https://worker-7.agents.example.com/aitp/handshake",
+    "accepted_trust_anchors": [
+      "https://auth.openai.com",
+      "https://auth.anthropic.com"
+    ],
+    "offered_capabilities": [
+      "macp.mode.task.v1",
+      "read_data"
+    ],
+    "required_peer_capabilities": [],
+    "proof_of_possession": {
+      "challenge": "nonce_A_chal_v01_aaann",
+      "signature": "sig_A_pop_chal_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    },
+    "published_at": 1711900000,
+    "expires_at": 1711986400,
+    "signature": "sig_B_manifest_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "identity_hint": {
+      "type": "oidc",
+      "issuer": "https://auth.openai.com",
+      "subject": "worker-agent-7"
+    }
+  }
+}
