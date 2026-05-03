@@ -12,7 +12,7 @@
       "audience": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
       "grants": ["macp.mode.task.v1"],
       "expires_at": 9999999999,
-      "signature": "__VALID_SIG__"
+      "signature": "__VALID_TCT_SIG__"
     },
     "requested_capability": "macp.mode.admin.v1"
   },

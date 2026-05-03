@@ -12,7 +12,7 @@
       "issued_at": 1711800000,
       "expires_at": 9999999999,
       "grants": ["macp.mode.task.v1"],
-      "signature": "__VALID_SIG__"
+      "signature": "__VALID_TCT_SIG__"
     },
     "issuer_revocation_list": {
       "issuer": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
