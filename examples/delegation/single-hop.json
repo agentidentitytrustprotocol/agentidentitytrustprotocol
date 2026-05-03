@@ -16,6 +16,7 @@
         "read_data",
         "write_data"
       ],
+      "issued_at": 1711900000,
       "expires_at": 1711907200,
       "source_tct_jti": "550e8400-e29b-41d4-a716-446655440101",
       "signature": "sig_issuingPeer_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"

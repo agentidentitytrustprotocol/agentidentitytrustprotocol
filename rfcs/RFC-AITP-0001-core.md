@@ -165,6 +165,8 @@ v0.1 supported methods:
 
 v0.1 supports Ed25519 only. The AID identifier component is the unpadded base64url (RFC 4648 §5) encoding of the 32-byte raw Ed25519 public key — exactly **43 characters** drawn from the alphabet `[A-Za-z0-9_-]`. Implementations MUST NOT use SPKI DER encoding, PEM wrappers, or any other encoding. AIDs MUST be exactly 43 characters in the identifier component; verifiers MUST reject AIDs of any other length.
 
+> **Known-answer test.** Pinned (seed → public key → AID) vectors live at [`schemas/conformance/known-answer/keypairs.json`](../schemas/conformance/known-answer/keypairs.json). For example, the all-zero 32-byte seed produces public key `O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik` and AID `aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik`. Implementations MUST reproduce these values byte-for-byte.
+
 An AID is not trusted by itself. It MUST be bound to an identity via an [Identity Binding](RFC-AITP-0002-identity.md) before any trust decision is made. The relationship between an AID, its identity binding, and its Manifest is defined in RFC-AITP-0003.
 
 ### 5.4 Signature
@@ -197,6 +199,8 @@ All AITP v0.1 signatures (envelope, Manifest, TCT, delegation token, revocation 
 Implementations MAY transport AITP messages over any binary or text frame (raw JSON over HTTP, JSON inside a gRPC `bytes` field, MessagePack, CBOR, etc.) but MUST convert to canonical JSON before signing or verifying. Non-JSON transports are not part of the v0.1 conformance profile; their use is a deployment choice that does not affect the trust contract.
 
 A signed object that round-trips through any transport MUST produce identical canonical JSON when verified. If a transport adds wrappers or renames fields, the implementation MUST strip them before reconstructing the canonical form.
+
+> **Known-answer test.** Pinned (object → JCS canonical bytes → SHA-256 digest) vectors for the four signed AITP artifacts (TCT, Manifest, delegation token, revocation snapshot) live at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json). Implementations MUST reproduce both the canonical byte sequence and the digest byte-for-byte. Mismatches typically indicate JCS sort-order, number-formatting, or Unicode-escaping bugs.
 
 ### 5.5 Replay Protection
 

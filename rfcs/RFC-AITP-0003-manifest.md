@@ -181,7 +181,7 @@ sig_input  = sha256(canonical_json(manifest_without_signature))
 signature  = base64url(sign(agent_private_key, sig_input))
 ```
 
-Canonical JSON MUST be produced per [RFC 8785 (JCS)](https://datatracker.ietf.org/doc/html/rfc8785). See [RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature) for the unified canonicalization and base64url encoding rules.
+Canonical JSON MUST be produced per [RFC 8785 (JCS)](https://datatracker.ietf.org/doc/html/rfc8785). See [RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature) for the unified canonicalization and base64url encoding rules. A worked example (`kat-manifest-001`) showing the canonical bytes and SHA-256 digest of a fixed Manifest body lives at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json); implementations MUST reproduce it byte-for-byte.
 
 ### 6.2 Signing algorithm
 

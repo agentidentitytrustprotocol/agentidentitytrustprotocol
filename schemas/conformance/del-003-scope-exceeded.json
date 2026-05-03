@@ -15,6 +15,7 @@
         "issuer": "aid:pubkey:issuingPeer_pubkey_AID_v01_placeholderPPPPP",
         "subject": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
         "capabilities": ["read_data"],
+        "issued_at": 1711900000,
         "expires_at": 9999999999,
         "source_tct_jti": "550e8400-e29b-41d4-a716-446655440099",
         "signature": "__VALID_ISSUING_PEER_SIG__"

@@ -70,6 +70,7 @@
             "issuer",
             "subject",
             "capabilities",
+            "issued_at",
             "expires_at",
             "source_tct_jti",
             "signature"
@@ -93,6 +94,11 @@
               },
               "minItems": 1,
               "uniqueItems": true
+            },
+            "issued_at": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Unix timestamp; copied verbatim from the source TCT's issued_at so the source TCT signing input can be reconstructed byte-for-byte. See RFC-AITP-0006 §3.1."
             },
             "expires_at": {
               "type": "integer",

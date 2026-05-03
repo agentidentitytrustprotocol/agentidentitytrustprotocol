@@ -52,6 +52,7 @@ A verifies → peer-issues TCT for C with grants: ["read_data"]
       "issuer": "aid:pubkey:<A-pubkey>",
       "subject": "aid:pubkey:<B-pubkey>",
       "capabilities": ["read_data", "write_data"],
+      "issued_at": 1711900000,
       "expires_at": 1711907200,
       "source_tct_jti": "<jti of A's TCT to B>",
       "signature": "<A-signature>"
@@ -78,11 +79,14 @@ When B receives a TCT from A in `MUTUAL_COMMIT_ACK`, B MAY use that TCT directly
 | `issuer` | `tct.issuer` |
 | `subject` | `tct.subject` |
 | `capabilities` | `tct.grants` |
+| `issued_at` | `tct.issued_at` |
 | `expires_at` | `tct.expires_at` |
 | `source_tct_jti` | `tct.jti` |
 | `signature` | `tct.signature` |
 
 No separate issuance flow is required — every TCT is a valid `grant_proof` source. Because `grant_proof.signature` is reused verbatim from the source TCT's signature, A's original signature continues to authenticate the grant without re-signing. B's outer `delegation.signature` then authenticates the per-delegation fields (`scope`, `delegatee`, `cnf`, `expires_at`, `audience`).
+
+> **Why `issued_at` is carried explicitly.** Earlier drafts allowed verifiers to reconstruct `issued_at` as `expires_at − default_TTL` (e.g. 3600 s). That works only when A used the default TTL; tokens minted with non-default TTL fail cross-implementation verification because A's signature covers `tct.issued_at` byte-exactly. v0.1 carries `issued_at` directly so the `grant_proof` byte sequence A signed can be reconstructed without guessing the TTL.
 
 
 
@@ -96,6 +100,7 @@ No separate issuance flow is required — every TCT is a valid `grant_proof` sou
 | `expires_at` | integer | REQUIRED | MUST be ≤ `grant_proof.expires_at`. |
 | `cnf` | string | REQUIRED | C's public key for proof-of-possession. |
 | `grant_proof` | object | REQUIRED | A's original signed grant to B (constructed from B's source TCT — see §3.1). |
+| `grant_proof.issued_at` | integer | REQUIRED | Unix seconds; copied verbatim from the source TCT's `issued_at`. Required so the source TCT's signing input can be reconstructed byte-for-byte without guessing the issuer's chosen TTL. |
 | `grant_proof.source_tct_jti` | string | REQUIRED | The `jti` of A's original TCT to B. Used for revocation lookup against A's deny list. If the source TCT has been revoked, all derived delegation tokens MUST be rejected. |
 | `grant_proof.signature` | string | REQUIRED | A's signature over the source TCT (reused verbatim). |
 | `signature` | string | REQUIRED | B's signature over the delegation token. |
@@ -115,7 +120,7 @@ When C presents a delegation token to A, A MUST verify all of the following:
 ### 4.2 Grant-proof validity (stateless)
 
 4. `grant_proof.issuer` MUST equal A's own AID.
-5. Verify `grant_proof.signature` against A's own public key. The signature input is the canonical JSON of the source TCT body (issuer, subject, audience, jti, issued_at, expires_at, grants, binding) — i.e. the same bytes A signed when issuing the original TCT. Failure ⇒ `INVALID_GRANT_PROOF`.
+5. Verify `grant_proof.signature` against A's own public key. The signature input is the canonical JSON of the source TCT body (issuer, subject, audience, jti, issued_at, expires_at, grants, binding) — i.e. the same bytes A signed when issuing the original TCT. The `issued_at` value used in the reconstruction MUST be `grant_proof.issued_at` (carried explicitly per §3.1); reconstructing as `expires_at − default_TTL` is not permitted in v0.1. Failure ⇒ `INVALID_GRANT_PROOF`.
 6. `grant_proof.subject` MUST equal `delegation.issued_by`. Mismatch ⇒ `INVALID_GRANT_PROOF` — without this check, B could attach C's grant proof and claim to be delegating C's authority.
 7. `grant_proof.expires_at` MUST be in the future.
 
@@ -173,7 +178,7 @@ sig_input  = sha256(canonical_json(delegation_without_signature))
 signature  = base64url(sign(B_private_key, sig_input))
 ```
 
-Canonical JSON MUST be produced per [RFC 8785 (JCS)](https://datatracker.ietf.org/doc/html/rfc8785). See [RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature) for the unified canonicalization and base64url encoding rules.
+Canonical JSON MUST be produced per [RFC 8785 (JCS)](https://datatracker.ietf.org/doc/html/rfc8785). See [RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature) for the unified canonicalization and base64url encoding rules. A worked example (`kat-delegation-001`) showing the canonical bytes and SHA-256 digest of a fixed delegation token body lives at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json); implementations MUST reproduce it byte-for-byte.
 
 The same JCS rule applies to `grant_proof` when A originally signs it: A produces canonical JSON over the `grant_proof` object excluding its `signature` field, hashes with SHA-256, and signs with A's private key.
 

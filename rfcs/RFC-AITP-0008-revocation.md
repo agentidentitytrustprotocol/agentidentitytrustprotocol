@@ -70,7 +70,7 @@ Distribution is pull-based in v0.1. A consuming peer SHOULD poll the issuing pee
 | `published_at` | REQUIRED | Unix timestamp when this list snapshot was signed. |
 | `expires_at` | REQUIRED | Unix timestamp after which this snapshot MUST NOT be cached. |
 | `entries` | REQUIRED | Array of revoked-entry records (may be empty). |
-| `signature` | REQUIRED | base64url signature over canonical `revocation_list` JSON (excluding `signature`), signed by the issuing peer's private key. Canonical JSON MUST be produced per [RFC 8785 (JCS)](https://datatracker.ietf.org/doc/html/rfc8785); see [RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature). |
+| `signature` | REQUIRED | base64url signature over canonical `revocation_list` JSON (excluding `signature`), signed by the issuing peer's private key. Canonical JSON MUST be produced per [RFC 8785 (JCS)](https://datatracker.ietf.org/doc/html/rfc8785); see [RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature). A worked example (`kat-revocation-001`) showing the canonical bytes and SHA-256 digest of a fixed revocation snapshot body lives at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json); implementations MUST reproduce it byte-for-byte. |
 
 **Verification.** A consuming peer MUST verify the signature against the issuing peer's public key (resolved from the issuing peer's Manifest, RFC-AITP-0003). A snapshot whose `expires_at` is in the past, or whose signature does not validate, MUST be discarded; the peer SHOULD treat the absence of a fresh snapshot per its configured `revocation_policy.mode` (§3).
 

@@ -176,11 +176,13 @@ The `tct_jti` field disambiguates which TCT the challenge refers to (a holder ma
   "payload": {
     "tct_jti":       "<same jti>",
     "nonce_echo":    "<challenge nonce>",
-    "pop_signature": "<base64url(sign(holder_private_key, sha256(nonce)))>"
+    "pop_signature": "<base64url(sign(holder_private_key, sha256(nonce_decoded_bytes)))>"
   },
   "signature": "<holder envelope signature>"
 }
 ```
+
+> **Signing input.** `nonce_decoded_bytes` is the raw bytes obtained by base64url-decoding the challenge `nonce` (NOT the base64url ASCII string). This is the same convention used by the pinned-key proof input (RFC-AITP-0002 §3.1). Implementations MUST hash the decoded bytes; hashing the ASCII form of the base64url string is non-conformant.
 
 ### 6.2 Verification
 
@@ -189,7 +191,8 @@ The consuming peer MUST:
 1. Verify the response envelope signature.
 2. Verify `nonce_echo` matches the nonce sent in the challenge.
 3. Verify `pop_signature` against `binding.cnf` from the TCT identified by `tct_jti`:
-   `verify(binding.cnf, sha256(nonce), pop_signature)`.
+   `verify(binding.cnf, sha256(base64url_decode(nonce)), pop_signature)`.
+   The hash input MUST be the raw decoded bytes of the challenge nonce, not the base64url string.
 4. Confirm `binding.cnf` corresponds to the public key encoded in the TCT's `subject` AID.
 
 A failure at any step MUST return `POP_RESPONSE_INVALID`. A malformed or stale challenge MUST return `POP_CHALLENGE_INVALID`. Replay protection on `pop_challenge` follows RFC-AITP-0001 §5.5; nonces from an expired challenge MUST NOT be accepted.
@@ -215,7 +218,7 @@ sig_input = sha256(canonical_json(tct_without_signature))
 signature = base64url(sign(issuer_private_key, sig_input))
 ```
 
-Canonical JSON MUST be produced per [RFC 8785 (JCS)](https://datatracker.ietf.org/doc/html/rfc8785). See [RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature) for the unified canonicalization and base64url encoding rules.
+Canonical JSON MUST be produced per [RFC 8785 (JCS)](https://datatracker.ietf.org/doc/html/rfc8785). See [RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature) for the unified canonicalization and base64url encoding rules. A worked example (`kat-tct-001`) showing the canonical bytes and SHA-256 digest of a fixed TCT body lives at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json); implementations MUST reproduce it byte-for-byte.
 
 ### 7.2 Issuer key resolution
 
