@@ -21,12 +21,68 @@ unambiguous against any base64url, hex, or UUID alphabet.
 
 | Token | Meaning | Substitution |
 |---|---|---|
-| `__NOW__` | The runner's reference clock at execution time. | Current Unix seconds (integer). |
+| `__NOW__` | The runner's reference clock at execution time. | Unix seconds (integer). |
 | `__NOW_MINUS_3600__` | One hour before `__NOW__`. | `__NOW__ - 3600` (integer). |
 
 Additional `__NOW_MINUS_<seconds>__` tokens MAY be introduced as new
 fixtures need them; minting tools MUST parse the trailing integer
-literally. Negative offsets (`__NOW_PLUS_<seconds>__`) are reserved.
+literally. Positive offsets (`__NOW_PLUS_<seconds>__`) are reserved.
+
+### Reference clock for byte-stable minting
+
+Minting tools MUST anchor `__NOW__` to **`1711900000`** (the same
+clock used by the rc.2 known-answer test vectors in
+[`known-answer/jcs-sha256.json`](known-answer/jcs-sha256.json)).
+Using the wall clock would produce different canonical bytes on every
+mint; pinning `__NOW__` lets a re-mint be byte-stable across runs and
+across implementations. Runners that consume already-minted fixtures
+MUST treat the integer in the fixture as authoritative; they do not
+compare it to wall time.
+
+## AID role mapping
+
+Most fixtures use placeholder AIDs of the form
+`aid:pubkey:agent<X>_pubkey_AID_v01_placeholder_<X>...`. The minting
+tool MUST replace these with the real AIDs derived from the pinned
+known-answer keypairs. The mapping is normative for v0.1:
+
+| Fixture role | KAT keypair | AID |
+|---|---|---|
+| `agentA` (initiator / TCT issuer in most fixtures) | [`kat-keypair-001`](known-answer/keypairs.json) | `aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik` |
+| `agentB` (target / TCT subject) | [`kat-keypair-002`](known-answer/keypairs.json) | `aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg` |
+| `agentC` (delegatee, where present) | [`kat-keypair-003`](known-answer/keypairs.json) | `aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU` |
+| `issuingPeer` (alias of `agentA` in delegation fixtures) | `kat-keypair-001` | same as `agentA` |
+| `worker_pubkey_AID_v01_placeholder_wwwwwwwww` (Manifest example) | `kat-keypair-002` | same as `agentB` |
+| `verifier_pubkey_AID_v01_placeholder_vvvvvvv` / `victim_pubkey_AID_v01_placeholder_vvvvvvvvv` (verifier in `id-*`) | `kat-keypair-001` | same as `agentA` |
+| `attacker_pubkey_AID_v01_placeholder_XXXXXXX` (`mh-002`) | A separate one-shot keypair NOT in `keypairs.json`. Generated deterministically from a fixture-only seed (e.g. `0xff` × 32) and inlined where needed. Tests trust-anchor + signature checks against an unknown peer. | n/a |
+
+Identity-issuer keys (the OIDC issuers used by `__VALID_JWT__` and
+`__VALID_JWT_FROM_UNKNOWN_ISSUER__`) are NOT drawn from
+`keypairs.json` — they are minted at runtime by the tool and the
+public key is inlined into the fixture's `accepted_trust_anchors` /
+local `trust_anchors` so the verifier accepts (or rejects) the JWT
+based on issuer-list membership alone.
+
+## Operation key
+
+Every fixture carries a top-level `input.operation` string telling
+the conformance runner which conformance op to invoke against the
+implementation under test. The operation registry for v0.1:
+
+| Fixture id prefix | `input.operation` | Notes |
+|---|---|---|
+| `env-*` | `verify_envelope` | Single envelope verification. |
+| `man-*` | `verify_manifest` | Standalone Manifest verification (RFC-AITP-0003 §5). |
+| `tct-*` | `verify_tct` | Standalone TCT verification (RFC-AITP-0005 §9). |
+| `del-*` | `verify_delegation_token` | Single-hop delegation verification (RFC-AITP-0006 §4). |
+| `id-*` | `verify_handshake_payload` | Verify a single inline-handshake `payload` (i.e. the result of step 6 in RFC-AITP-0004 §5.1). |
+| `mh-*` (single-message) | `verify_handshake_payload` | Same as above. |
+| `mh-*` (multi-step `sequence`) | per-step in the sequence | Each `sequence[i]` carries its own `operation`; typical values are `start_handshake` and `process_handshake_message`. |
+
+A runner that encounters an unknown `operation` MUST return SKIP
+rather than FAIL — that lets an implementation under test
+self-document which conformance ops it does and does not support
+without breaking the rest of the run.
 
 ## Signature placeholders
 
@@ -59,8 +115,12 @@ property should be broken.
 
 | Token | What's broken | Expected error path |
 |---|---|---|
-| `__TAMPERED_SIGNATURE__` | Bytes flipped after signing. | `MANIFEST_SIGNATURE_INVALID` (manifest), `INVALID_SIGNATURE` (envelope). |
-| `__TAMPERED_SIG__` | Same; shorter alias used by older fixtures. | `TCT_SIGNATURE_INVALID`. |
+| `__TAMPERED_SIGNATURE__` | Sign properly, then flip the **least-significant bit of the last raw signature byte** before base64url-encoding. | `MANIFEST_SIGNATURE_INVALID` (manifest), `INVALID_SIGNATURE` (envelope). |
+| `__TAMPERED_SIG__` | Same recipe; shorter alias used by older fixtures. | `TCT_SIGNATURE_INVALID`. |
+
+The tamper recipe is pinned so re-mints reproduce byte-for-byte. Any
+implementation that mutates a different bit will produce a different
+signature string and break cross-mint determinism.
 | `__INVALID_POP_SIG__` | PoP signature over the wrong input (e.g. the wrong challenge). | `MANIFEST_POP_FAILED`. |
 | `__INVALID_POP_SIG_OVER_WRONG_NONCE__` | PoP signature whose input used a different `pop_nonce` than the receiving peer expects. | `POP_VERIFICATION_FAILED`. |
 | `__JWT_MISSING_AUD_CLAIM__` | Otherwise-valid OIDC JWT with the `aud` claim removed. | `IDENTITY_FAILED`. |

@@ -1,0 +1,10 @@
+{
+  "revocation_list": {
+    "version": "aitp/0.1",
+    "issuer": "aid:pubkey:issuingPeer_pubkey_AID_v01_placeholderPPPPP",
+    "published_at": 1711900000,
+    "expires_at": 1711903600,
+    "entries": []
+  },
+  "signature": "sig_issuer_revocation_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+}

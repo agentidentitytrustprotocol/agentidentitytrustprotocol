@@ -147,7 +147,17 @@ Many fixtures contain string tokens of the form `__UPPER_SNAKE__`
 positions where a minting tool must substitute real data
 (signatures, timestamps, JWTs, captured-proof bytes) before the
 fixture is fed to a conformance runner. Every placeholder used in this
-directory is defined normatively in [`PLACEHOLDERS.md`](PLACEHOLDERS.md).
+directory is defined normatively in [`PLACEHOLDERS.md`](PLACEHOLDERS.md),
+which also pins:
+
+- The mapping from fixture role names (`agentA`, `agentB`, `agentC`,
+  …) to the [pinned KAT keypairs](known-answer/keypairs.json).
+- The reference clock for `__NOW__` (`1711900000`) so re-mints are
+  byte-stable.
+- The runner-facing `input.operation` registry per fixture id prefix.
+- The pinned tamper recipe for `__TAMPERED_*__` (sign-then-flip-LSB
+  of the last raw signature byte) so failure-injection placeholders
+  reproduce.
 
 Minted (real-signature) versions of these fixtures will live alongside
 the placeholder originals once an implementation produces them. See

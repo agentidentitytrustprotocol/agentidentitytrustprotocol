@@ -86,6 +86,7 @@ agentidentitytrustprotocol/
       aitp-mutual-handshake.schema.json
       aitp-tct.schema.json
       aitp-delegation.schema.json
+      aitp-revocation-list.schema.json
       aitp-trust-anchors.schema.json
     conformance/
       README.md
@@ -97,6 +98,7 @@ agentidentitytrustprotocol/
     manifest/        agent-b-manifest.json
     tct/             tct-peer-issued.json
     delegation/      single-hop.json
+    revocation/      empty-list.json, with-entry.json
     non-normative/   peer-signed-full-flow.json   (transcript, not schema-valid)
 
   governance/

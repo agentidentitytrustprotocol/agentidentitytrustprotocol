@@ -1,0 +1,45 @@
+{
+  "_kat_input": {
+    "delegator_seed_id": "kat-keypair-002",
+    "delegatee_seed_id": "kat-keypair-003",
+    "source_tct": {
+      "issuer_seed_id": "kat-keypair-001",
+      "jti": "550e8400-e29b-41d4-a716-446655440000",
+      "issued_at": 1711900000,
+      "ttl_secs": 3600,
+      "grants": [
+        "macp.mode.task.v1",
+        "macp.mode.respond.v1"
+      ]
+    },
+    "issued_at": 1711900000,
+    "ttl_secs": 1800,
+    "scope": [
+      "macp.mode.task.v1"
+    ]
+  },
+  "delegation": {
+    "delegator": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "delegatee": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+    "issued_by": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+    "audience": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "scope": [
+      "macp.mode.task.v1"
+    ],
+    "expires_at": 1711901800,
+    "cnf": "dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+    "grant_proof": {
+      "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+      "subject": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+      "capabilities": [
+        "macp.mode.task.v1",
+        "macp.mode.respond.v1"
+      ],
+      "issued_at": 1711900000,
+      "expires_at": 1711903600,
+      "source_tct_jti": "550e8400-e29b-41d4-a716-446655440000",
+      "signature": "Qa3tmY6IBsgZxjkYvue9sCK_Z_ARVRnSKzoDAssxfcVfJ6p1hPVhJsbKmOxKuO074lnzacTON4-JdvXQUCnVCA"
+    },
+    "signature": "Pv-wYaBl3neFkX4lqiIdMI1zvpfhgVSTKXkscPWQ2L--k75kEFhSSeC0zm9pla0lOcZo99e_x9SzwLwAldCeAQ"
+  }
+}

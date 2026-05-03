@@ -11,6 +11,7 @@ examples/
 ├── manifest/        Agent Manifest examples (RFC-AITP-0003)
 ├── tct/             Peer-issued Trust Context Tokens (RFC-AITP-0005)
 ├── delegation/      Single-hop delegation tokens (RFC-AITP-0006)
+├── revocation/      Signed revocation snapshots (RFC-AITP-0008)
 └── non-normative/   Multi-message flow transcripts (NOT individually schema-valid)
 ```
 
@@ -21,6 +22,7 @@ These examples are validated by `scripts/validate-json.sh` against:
 - `schemas/json/aitp-manifest.schema.json` — manifest examples
 - `schemas/json/aitp-tct.schema.json` — TCT examples
 - `schemas/json/aitp-delegation.schema.json` — delegation tokens
+- `schemas/json/aitp-revocation-list.schema.json` — revocation snapshots
 
 `non-normative/` contains multi-message narratives (e.g. a full
 Mutual Handshake transcript). These are validated for JSON syntax

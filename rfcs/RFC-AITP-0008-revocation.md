@@ -63,6 +63,8 @@ Distribution is pull-based in v0.1. A consuming peer SHOULD poll the issuing pee
 }
 ```
 
+The canonical schema is [`schemas/json/aitp-revocation-list.schema.json`](../schemas/json/aitp-revocation-list.schema.json).
+
 | Field | Required | Description |
 |---|---|---|
 | `version` | REQUIRED | MUST be `"aitp/0.1"`. |

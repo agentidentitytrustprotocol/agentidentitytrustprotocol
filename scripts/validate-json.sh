@@ -13,6 +13,7 @@ IDENTITY_SCHEMA="${PROJECT_ROOT}/schemas/json/aitp-identity.schema.json"
 DELEGATION_SCHEMA="${PROJECT_ROOT}/schemas/json/aitp-delegation.schema.json"
 TRUST_ANCHORS_SCHEMA="${PROJECT_ROOT}/schemas/json/aitp-trust-anchors.schema.json"
 MANIFEST_SCHEMA="${PROJECT_ROOT}/schemas/json/aitp-manifest.schema.json"
+REVOCATION_LIST_SCHEMA="${PROJECT_ROOT}/schemas/json/aitp-revocation-list.schema.json"
 NON_NORMATIVE_DIR="${PROJECT_ROOT}/examples/non-normative"
 
 CONFORMANCE_DIR="${PROJECT_ROOT}/schemas/conformance"
@@ -87,9 +88,10 @@ validate_dir_against() {
     echo
 }
 
-validate_dir_against "${EXAMPLES_DIR}/manifest"   "${MANIFEST_SCHEMA}"   "manifest"
-validate_dir_against "${EXAMPLES_DIR}/tct"        "${TCT_SCHEMA}"        "tct"
-validate_dir_against "${EXAMPLES_DIR}/delegation" "${DELEGATION_SCHEMA}" "delegation"
+validate_dir_against "${EXAMPLES_DIR}/manifest"   "${MANIFEST_SCHEMA}"        "manifest"
+validate_dir_against "${EXAMPLES_DIR}/tct"        "${TCT_SCHEMA}"             "tct"
+validate_dir_against "${EXAMPLES_DIR}/delegation" "${DELEGATION_SCHEMA}"      "delegation"
+validate_dir_against "${EXAMPLES_DIR}/revocation" "${REVOCATION_LIST_SCHEMA}" "revocation"
 
 # Non-normative examples are multi-message narratives, not single payloads.
 # Validate JSON syntax only (their inner messages are validated separately

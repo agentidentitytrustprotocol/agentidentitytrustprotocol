@@ -1,0 +1,28 @@
+{
+  "_kat_input": {
+    "issuer_seed_id": "kat-keypair-001",
+    "subject_seed_id": "kat-keypair-002",
+    "jti": "550e8400-e29b-41d4-a716-446655440000",
+    "issued_at": 1711900000,
+    "ttl_secs": 3600,
+    "grants": [
+      "macp.mode.task.v1"
+    ]
+  },
+  "tct": {
+    "version": "aitp/0.1",
+    "jti": "550e8400-e29b-41d4-a716-446655440000",
+    "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "subject": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+    "audience": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+    "issued_at": 1711900000,
+    "expires_at": 1711903600,
+    "grants": [
+      "macp.mode.task.v1"
+    ],
+    "binding": {
+      "cnf": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+    },
+    "signature": "R85088JOPI77bRmuUKMjQu8CqBKuXSYbs1B106OiyxVVXMAA-7YtwIX8jpkQLDCXf9-NPTfkkqVDg466iphcCQ"
+  }
+}
