@@ -64,7 +64,7 @@ A verifies → peer-issues TCT for C with grants: ["read_data"]
 
 The canonical schema is [`schemas/json/aitp-delegation.schema.json`](../schemas/json/aitp-delegation.schema.json).
 
-**Why `grant_proof` is not the full TCT.** A TCT contains all grants the issuer gave to B, which may be a superset of what B is delegating. Embedding the full TCT would expose B's complete capability profile to C and to any peer that inspects the delegation token. The minimized `grant_proof` contains only the fields needed for scope-subset verification (`capabilities`, `expires_at`, `source_tct_jti`, `signature`), which limits information disclosure while preserving stateless verifiability.
+**Why `grant_proof` is not the full TCT.** A TCT contains all grants the issuer gave to B, which may be a superset of what B is delegating. Embedding the full TCT would expose B's complete capability profile to C and to any peer that inspects the delegation token. The minimized `grant_proof` contains only the fields needed for scope-subset verification and to reconstruct A's signing input (`issuer`, `subject`, `capabilities`, `issued_at`, `expires_at`, `source_tct_jti`, `signature`), which limits information disclosure while preserving stateless verifiability.
 
 ---
 

@@ -12,6 +12,7 @@ JWK thumbprint serialization, and Ed25519 seed-to-AID derivation.
 | [`keypairs.json`](keypairs.json) | Ed25519 seed → raw public key → `aid:pubkey:` identifier | RFC-AITP-0001 §5.3 |
 | [`jwk-thumbprints.json`](jwk-thumbprints.json) | RFC 7638 thumbprint of the canonical OKP/Ed25519 JWK form | RFC-AITP-0002 §2.2.1 |
 | [`jcs-sha256.json`](jcs-sha256.json) | JCS canonical bytes (RFC 8785) and SHA-256 digest of the four signed AITP artifacts (TCT, Manifest, delegation token, revocation snapshot) | RFC-AITP-0001 §5.4.1 |
+| [`signed-examples/`](signed-examples/) | Reserved location for real-signature artifacts minted from the pinned keypairs (currently empty — populated when an implementation mints them) | RFC-AITP-0003 §6 (Manifest), RFC-AITP-0005 §7 (TCT), RFC-AITP-0006 §6 (Delegation), RFC-AITP-0008 §1.5 (Revocation snapshot) |
 
 ## How to use
 

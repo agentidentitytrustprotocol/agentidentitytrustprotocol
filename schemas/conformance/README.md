@@ -136,3 +136,20 @@ Earlier drafts of AITP used `hs-*` (handshake) fixture IDs. The Mutual Handshake
 | `hs-004-replay-rejected` | `mh-001` | Replayed `MUTUAL_HELLO` rejected via `REPLAY_DETECTED`. |
 
 No `hs-*` IDs are reserved for v0.1 or later.
+
+---
+
+## Placeholder convention
+
+Many fixtures contain string tokens of the form `__UPPER_SNAKE__`
+(e.g. `__VALID_ENVELOPE_SIG__`, `__NOW__`,
+`__JWT_MISSING_AUD_CLAIM__`). These are not literal values: they mark
+positions where a minting tool must substitute real data
+(signatures, timestamps, JWTs, captured-proof bytes) before the
+fixture is fed to a conformance runner. Every placeholder used in this
+directory is defined normatively in [`PLACEHOLDERS.md`](PLACEHOLDERS.md).
+
+Minted (real-signature) versions of these fixtures will live alongside
+the placeholder originals once an implementation produces them. See
+[`known-answer/signed-examples/`](known-answer/signed-examples/) for
+the reserved location.
