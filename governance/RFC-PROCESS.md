@@ -93,6 +93,40 @@ What does NOT require an RFC:
 
 ---
 
+## RFC Acceptance Criteria
+
+### KAT requirement
+
+Any RFC that introduces a new signing input, hash construction, or
+canonicalization step MUST include at least one known-answer test
+(KAT) vector. The vector MUST pin:
+
+- A pinned preimage (using one of the pinned keypairs in
+  [`schemas/conformance/known-answer/keypairs.json`](../schemas/conformance/known-answer/keypairs.json)
+  where applicable).
+- The hex of the SHA-256 digest (or other hash output if the RFC
+  introduces a new hash).
+- The base64url-encoded signature, if the construction terminates in
+  a signature.
+
+KAT vectors live in
+[`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json)
+or a sibling file under the same `known-answer/` directory and are
+the primary cross-implementation interop check for the RFC. An RFC
+that introduces a new signing/hashing surface without a KAT will be
+held in Review — there is no deterministic way for two
+implementations to verify they agree on the construction, and history
+shows that "looks right by reading" is not sufficient (see the
+alpha.4 PoP nonce bug and the beta.1 Manifest PoP bug — both were
+input-shape mismatches that a KAT would have caught immediately).
+
+A KAT is not required for RFCs that only adjust process, governance,
+documentation, or non-normative narrative text. It IS required for
+any RFC that lands in `rfcs/RFC-AITP-*.md` and changes what bytes are
+fed to a signing or hashing primitive.
+
+---
+
 ## Core Team
 
 The core team is responsible for shepherding RFCs and voting on acceptance.

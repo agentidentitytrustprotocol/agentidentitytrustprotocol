@@ -213,6 +213,25 @@ A signed object that round-trips through any transport MUST produce identical ca
 
 > **Known-answer test.** Pinned (object → JCS canonical bytes → SHA-256 digest) vectors for the four signed AITP artifacts (TCT, Manifest, delegation token, revocation snapshot) live at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json). Implementations MUST reproduce both the canonical byte sequence and the digest byte-for-byte. Mismatches typically indicate JCS sort-order, number-formatting, or Unicode-escaping bugs.
 
+#### 5.4.2 PoP signing input convention
+
+All AITP v0.1 proof-of-possession signing inputs follow a single rule:
+
+```
+hash_input = sha256(base64url_decode(nonce_or_challenge))
+```
+
+The hash input is always the raw bytes obtained by base64url-decoding the nonce or challenge — never the ASCII bytes of the encoded form. The rule applies uniformly to:
+
+- **Manifest PoP** — [RFC-AITP-0003 §3](RFC-AITP-0003-manifest.md) (`proof_of_possession.challenge`, 16 raw bytes / 22 base64url chars).
+- **Handshake round-2 PoP** — [RFC-AITP-0004 §3](RFC-AITP-0004-mutual-handshake.md) (`pop_nonce`, 16 raw bytes / 22 base64url chars).
+- **Downstream TCT PoP** — [RFC-AITP-0005 §6.1](RFC-AITP-0005-tct.md) (`nonce` in the `pop_challenge` / `pop_response` exchange).
+- **Pinned-key identity proof input** — [RFC-AITP-0002 §3.1](RFC-AITP-0002-identity.md) (via `pop_nonce_decoded_bytes`).
+
+Implementations MUST hash the decoded bytes; hashing the ASCII form is non-conformant. An implementation that consistently hashes the encoded string will be internally self-consistent but will fail cross-implementation verification — this is the most common interop bug observed in early AITP implementations.
+
+> **Known-answer test.** A pinned PoP signing-input vector (`kat-manifest-pop-001`) lives at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json). It pins (challenge → decoded bytes → SHA-256 digest → Ed25519 signature with `kat-keypair-001`). Implementations MUST add a KAT cross-check that runs the same input through every PoP code path and confirms each produces the pinned signature byte-for-byte.
+
 ### 5.5 Replay Protection
 
 Verifiers MUST enforce both controls:

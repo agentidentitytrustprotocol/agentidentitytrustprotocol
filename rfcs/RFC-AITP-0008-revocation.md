@@ -141,6 +141,20 @@ For long-running peer interactions, the issuing peer MAY signal revocation by ad
 
 Re-verification interval: RECOMMENDED every 5 minutes for sessions lasting more than 1 hour.
 
+### 4.1 Session invalidation model (v0.1)
+
+In v0.1, "session invalidation" — terminating every active interaction with a specific subject peer — is achieved by revoking every TCT the issuer has ever issued to that subject. There is no separate session-level revocation surface. The deny list (§1) is the single source of truth.
+
+An issuer wishing to terminate all active sessions with peer B MUST:
+
+1. Add every TCT JTI ever issued to B (within their unexpired window) to its deny list.
+2. Publish a new signed revocation snapshot (§1.5) reflecting the additions. Empty-snapshot signing rules apply if the issuer had nothing else revoked.
+3. OPTIONALLY publish a short-TTL Manifest ([RFC-AITP-0003 §8](RFC-AITP-0003-manifest.md#8-manifest-rotation)) to accelerate consuming peers' cache expiry — useful when revocations propagate slower than the issuer wants.
+
+A "session-level revoke-all" API (one operation that covers a subject without enumerating individual JTIs) is reserved for a future RFC. v0.1 implementations SHOULD surface per-JTI revocation as the primary admin API; bulk-revocation-by-subject is a quality-of-life concern, not a protocol requirement.
+
+**Limitation (issuer JTI history).** An issuer that does not maintain a complete history of issued JTIs cannot guarantee total session revocation — it can only revoke the JTIs it remembers. Issuers MUST persist issued JTIs at least until `max(issued_tct.expires_at)` for the relevant subject. After that point all unrevoked TCTs are guaranteed expired, so the JTI is no longer needed for session-revocation completeness; it MAY be garbage-collected from the issuer-side history table.
+
 ---
 
 ## 5. Security Considerations

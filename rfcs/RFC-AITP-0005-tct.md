@@ -199,6 +199,8 @@ The consuming peer MUST:
 
 A failure at any step MUST return `POP_RESPONSE_INVALID`. A malformed or stale challenge MUST return `POP_CHALLENGE_INVALID`. Replay protection on `pop_challenge` follows RFC-AITP-0001 §5.5; nonces from an expired challenge MUST NOT be accepted.
 
+> **Conformance note.** An AITP v0.1 implementation MUST implement the PoP exchange — it MUST be capable of issuing `pop_challenge` envelopes, producing `pop_response` envelopes, and verifying both ends. Whether the implementation *enforces* PoP for non-marked grants is deployment-configurable (see the `SHOULD` in §6 above). Implementations MUST document their default PoP policy and MUST expose a configuration surface to enable PoP enforcement for all grants. Claiming AITP v0.1 conformance while silently skipping PoP for all grants without equivalent channel binding is non-conformant; the implementation has the capability but is operating outside the SHOULD baseline. The conformance fixture [`tct-006-pop-challenge-response.json`](../schemas/conformance/tct-006-pop-challenge-response.json) verifies the implementation can produce and verify a PoP exchange end-to-end.
+
 ### 6.3 Where this exchange happens
 
 Downstream PoP is **transport-flexible**. It can be carried in:

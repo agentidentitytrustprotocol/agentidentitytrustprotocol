@@ -57,9 +57,35 @@ context so you don't end up reading them backwards.
     review what you've learned. The threat model is the integration
     test for whether you understood the protocol.
 
-**Skip RFC-AITP-0010, 0011, and 0012** until v0.2. They are reserved;
-no normative text is published. Implementations MUST NOT depend on
-their contents.
+**Skip RFC-AITP-0010, 0011, and 0012** until v0.2. RFCs 0010 and 0011
+have Draft normative text but are NOT part of v0.1 conformance — they
+target v0.2. RFC-AITP-0012 is fully reserved with no normative text.
+v0.1 implementations MUST NOT depend on the post-v0.1 drafts.
+
+---
+
+## Implementation gotcha: always decode before hashing
+
+> Every PoP signing input in AITP v0.1 hashes the *decoded raw bytes*, never the
+> base64url string. This applies to:
+>
+> - Manifest PoP challenges ([RFC-AITP-0003 §3](../rfcs/RFC-AITP-0003-manifest.md))
+> - Handshake PoP nonces ([RFC-AITP-0004 §3](../rfcs/RFC-AITP-0004-mutual-handshake.md))
+> - Downstream TCT PoP nonces ([RFC-AITP-0005 §6.1](../rfcs/RFC-AITP-0005-tct.md))
+> - Pinned-key identity proof input ([RFC-AITP-0002 §3.1](../rfcs/RFC-AITP-0002-identity.md))
+>
+> The unified rule lives in [RFC-AITP-0001 §5.4.2](../rfcs/RFC-AITP-0001-core.md#542-pop-signing-input-convention):
+>
+> ```
+> hash_input = sha256(base64url_decode(nonce_or_challenge))
+> ```
+>
+> Implementations that hash the ASCII form will be internally consistent but will
+> fail cross-implementation verification — the exact pattern that caused the
+> alpha.4 PoP nonce bug and the beta.1 Manifest PoP bug in the reference
+> implementation. Add a KAT cross-check for all four code paths against
+> `kat-manifest-pop-001` in
+> [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json).
 
 ---
 

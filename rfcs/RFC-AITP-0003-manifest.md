@@ -88,7 +88,7 @@ The canonical schema is [`schemas/json/aitp-manifest.schema.json`](../schemas/js
 | `offered_capabilities` | array of string | Capabilities this agent is willing to grant to authenticated peers. |
 | `proof_of_possession` | object | Demonstrates the publisher holds the private key for `aid`. |
 | `proof_of_possession.challenge` | string | Random 128-bit value chosen at publish time, encoded as exactly 22 chars of unpadded base64url (RFC-AITP-0001 §5.4). |
-| `proof_of_possession.signature` | string | `base64url(sign(agent_private_key, sha256(challenge)))`. Exactly 86 chars unpadded base64url. The hash input is the raw bytes obtained by base64url-decoding `challenge`, not the ASCII bytes of the encoded form (matching the convention used by the Mutual Handshake PoP signatures, RFC-AITP-0004 §3). |
+| `proof_of_possession.signature` | string | `base64url(sign(agent_private_key, sha256(base64url_decode(challenge))))`. Exactly 86 chars unpadded base64url. The hash input MUST be the 16 raw bytes obtained by base64url-decoding `challenge` (not the base64url string itself). This follows the same convention as RFC-AITP-0004 §3 and RFC-AITP-0005 §6.1: every PoP signing input in AITP v0.1 hashes decoded bytes, never encoded strings. See the unified PoP signing-input convention in [RFC-AITP-0001 §5.4.2](RFC-AITP-0001-core.md#542-pop-signing-input-convention). |
 | `published_at` | integer | Unix timestamp (seconds) when this Manifest was signed. |
 | `expires_at` | integer | Unix timestamp (seconds) after which this Manifest MUST NOT be used. |
 | `signature` | string | Agent's signature over the canonical Manifest (see §6). |
@@ -99,7 +99,7 @@ The canonical schema is [`schemas/json/aitp-manifest.schema.json`](../schemas/js
 |---|---|---|
 | `display_name` | string | Human-readable agent name. Not used in trust decisions. |
 | `required_peer_capabilities` | array of string | Capabilities the peer MUST hold for this agent to accept a handshake. |
-| `accepted_identity_types` | array of string | Identity binding types this agent accepts from peers (RFC-AITP-0002). Allowed values: `"oidc"`, `"pinned_key"`. If absent, defaults to `["oidc"]`. Used at discovery time to screen for compatibility when the peer's identity is not OIDC-based. |
+| `accepted_identity_types` | array of string | Identity binding types this agent accepts from peers (RFC-AITP-0002). Allowed values: `"oidc"`, `"pinned_key"`. **Default semantics:** an *absent* `accepted_identity_types` field (omitted from the wire format entirely) is treated as `["oidc"]`. An *explicitly empty* array `[]` means no identity type is accepted and will cause `INCOMPATIBLE_TRUST_ANCHORS` for every peer. Publishers that want the `["oidc"]` default behavior SHOULD omit the field rather than publishing `["oidc"]` explicitly — this keeps the canonical JSON shorter and avoids confusion about whether an empty array is intentional. Used at discovery time to screen for compatibility when the peer's identity is not OIDC-based. |
 | `extensions` | object | Reserved for future extension fields. Unknown extensions MUST be ignored. |
 
 ---
@@ -147,6 +147,8 @@ Before a peer uses a Manifest to initiate a handshake, it MUST verify the follow
    ```
 
    The hash input is the 16 raw bytes obtained by base64url-decoding `challenge` (not the ASCII bytes of the encoded form). Verification uses the public key encoded in `manifest.aid`.
+
+   > **Note.** The pattern `sha256(base64url_decode(x))` appears in every PoP signing input in v0.1: Manifest PoP (here), handshake PoP (RFC-AITP-0004 §3), downstream TCT PoP (RFC-AITP-0005 §6.1), and the pinned-key identity proof input (RFC-AITP-0002 §3.1). Implementations that hash the ASCII string form instead of the decoded bytes will be internally consistent but will fail cross-implementation verification. Implementations SHOULD add a KAT cross-check that verifies a given (challenge → decoded → sha256 → signature) vector against all PoP code paths; the pinned `kat-manifest-pop-001` vector at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json) provides the reference inputs and outputs.
 4. **Manifest signature** — Verify `manifest.signature` using the public key from `manifest.aid` (see §6).
 5. **Identity-type and trust-anchor compatibility** — The fetching peer MUST screen the published Manifest against its own identity. Two cases:
    - If the fetching peer's identity is `oidc`, the published Manifest's `accepted_trust_anchors` MUST contain at least one issuer that matches an issuer in the fetching peer's own `trust_anchors` configuration.
@@ -229,6 +231,18 @@ Agents SHOULD rotate their Manifest (re-sign with a fresh `published_at` and `pr
 
 When the signing key is rotated, the Manifest MUST be re-signed immediately. Peers SHOULD NOT cache Manifests beyond their `expires_at` field.
 
+### 8.1 Emergency rotation (key compromise)
+
+Rotation on the schedule above is advisory. Rotation on **key compromise** is normative. A peer that discovers (or has reasonable suspicion) that its signing key is compromised MUST:
+
+1. Immediately generate a new signing key and re-publish its Manifest under the new AID derived from the new key.
+2. Revoke every TCT it has issued under the old AID by publishing a signed revocation snapshot ([RFC-AITP-0008 §1.5](RFC-AITP-0008-revocation.md#15-signed-revocation-response)) covering all known JTIs.
+3. Notify known peer agents of the new AID through out-of-band channels (the protocol does not provide a normative push mechanism in v0.1; see [RFC-AITP-0009 §1.10](RFC-AITP-0009-security.md#110-key-compromise)).
+
+The old AID MUST be treated as untrusted by the compromised peer immediately. If the compromised peer can still publish (e.g. the host is intact but the signing key was leaked), it SHOULD set a short `expires_at` on the old Manifest before rekeying (e.g. `expires_at = now + 300`) so cached copies expire quickly. Peers that hold a cached old Manifest MUST re-fetch when its `expires_at` passes; until then, the cached Manifest is the authoritative key for the old AID.
+
+There is no AID-level revocation mechanism in v0.1. The AID is derived from the public key, so a new key produces a new AID; trust in the old AID is terminated by setting the old Manifest's `expires_at` to a value in the past (or letting it expire naturally) and by revoking every TCT issued under it. Peers that learn of a key compromise out-of-band MUST NOT continue to trust the old AID even if its cached Manifest has not yet expired.
+
 ---
 
 ## 9. Manifest delivery in v0.1
@@ -285,6 +299,6 @@ The PoP signature over `challenge` prevents Manifests from being replayed across
 - [RFC-AITP-0002 Identity](RFC-AITP-0002-identity.md)
 - [RFC-AITP-0004 Mutual Handshake](RFC-AITP-0004-mutual-handshake.md)
 - [RFC-AITP-0005 Trust Context Token](RFC-AITP-0005-tct.md)
-- [RFC-AITP-0010 Session Trust Bundle](RFC-AITP-0010-session-trust-bundle.md) *(reserved)*
+- [RFC-AITP-0010 Session Trust Bundle](RFC-AITP-0010-session-trust-bundle.md) *(Draft, post-v0.1)*
 - [RFC 5785 — Well-Known URIs](https://datatracker.ietf.org/doc/html/rfc5785)
 - [RFC 7517 — JSON Web Key](https://datatracker.ietf.org/doc/html/rfc7517)

@@ -59,8 +59,8 @@ agentidentitytrustprotocol/
     RFC-AITP-0007-key-resolution.md
     RFC-AITP-0008-revocation.md
     RFC-AITP-0009-security.md
-    RFC-AITP-0010-session-trust-bundle.md   # Reserved
-    RFC-AITP-0011-multihop-delegation.md    # Reserved
+    RFC-AITP-0010-session-trust-bundle.md   # Draft (post-v0.1)
+    RFC-AITP-0011-multihop-delegation.md    # Draft (post-v0.1)
     RFC-AITP-0012-extensions.md             # Reserved
 
   docs/
@@ -138,9 +138,9 @@ If you are new to AITP, read in this order:
 
 | Profile | Required RFCs | Description |
 |---|---|---|
-| `aitp-a2a-peer` *(default)* | 0001–0009 | Every AITP agent. Implements Manifest, Mutual Handshake, peer-issued TCTs, delegation. |
-| `aitp-session-participant` | 0001–0010 | *Forthcoming. No implementations possible until RFC-AITP-0010 reaches Draft status. Currently reserved.* |
-| `aitp-full` | 0001–0011 | Adds multi-hop delegation (when 0011 is finalized). |
+| `aitp-a2a-peer` *(default)* | 0001–0009 | Every AITP v0.1 agent. Implements Manifest, Mutual Handshake, peer-issued TCTs, single-hop delegation. |
+| `aitp-session-participant` | 0001–0010 | Adds Session Trust Bundle issuance/verification (post-v0.1; RFC-AITP-0010 Draft). Not part of v0.1 conformance. |
+| `aitp-full` | 0001–0011 | Adds multi-hop delegation (post-v0.1; RFC-AITP-0011 Draft). Not part of v0.1 conformance. |
 
 There is no service-consumer profile. AITP is peer-to-peer.
 
@@ -157,8 +157,8 @@ There is no service-consumer profile. AITP is peer-to-peer.
 - **RFC-AITP-0007 Key Resolution** — peer key from Manifest; issuer key cache → pinned → well-known.
 - **RFC-AITP-0008 Revocation** — JTI deny lists, key revocation, fail modes.
 - **RFC-AITP-0009 Security** — A2A threat model and required defenses.
-- **RFC-AITP-0010 Session Trust Bundle** *(reserved)* — multi-agent session scaling.
-- **RFC-AITP-0011 Multi-hop Delegation** *(reserved)* — chains beyond a single hop.
+- **RFC-AITP-0010 Session Trust Bundle** *(Draft, post-v0.1)* — multi-agent session scaling.
+- **RFC-AITP-0011 Multi-hop Delegation** *(Draft, post-v0.1)* — chains beyond a single hop.
 - **RFC-AITP-0012 Extensions** *(reserved)* — `extensions.zk` and `extensions.tee` namespaces.
 
 ---

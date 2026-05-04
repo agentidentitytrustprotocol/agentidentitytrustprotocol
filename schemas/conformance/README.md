@@ -115,6 +115,8 @@ The runner interface is implementation-defined.
 | `tct-002` | Expired peer-issued TCT rejected | failure: TCT_EXPIRED |
 | `tct-003` | TCT signature does not validate under the issuer's key | failure: TCT_SIGNATURE_INVALID |
 | `tct-004` | TCT `jti` listed in the issuing peer's revocation list | failure: TCT_REVOKED |
+| `tct-005` | TCT `expires_at` is after the issuing peer's Manifest `expires_at` | failure: TCT_EXPIRED |
+| `tct-006` | Downstream PoP `pop_challenge` / `pop_response` exchange round-trips successfully | success |
 
 ### Delegation (RFC-AITP-0006)
 

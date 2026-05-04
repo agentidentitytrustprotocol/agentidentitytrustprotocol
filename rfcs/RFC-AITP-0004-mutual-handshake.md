@@ -522,5 +522,5 @@ The `handshake_endpoint` in the Manifest is a public-facing surface. Implementat
 - [RFC-AITP-0003 Agent Manifest](RFC-AITP-0003-manifest.md)
 - [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md)
 - [RFC-AITP-0009 Security](RFC-AITP-0009-security.md)
-- [RFC-AITP-0010 Session Trust Bundle](RFC-AITP-0010-session-trust-bundle.md) *(reserved)*
+- [RFC-AITP-0010 Session Trust Bundle](RFC-AITP-0010-session-trust-bundle.md) *(Draft, post-v0.1)*
 - [RFC 2119 — Key words for use in RFCs](https://datatracker.ietf.org/doc/html/rfc2119)

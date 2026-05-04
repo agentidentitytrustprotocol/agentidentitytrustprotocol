@@ -58,9 +58,11 @@ docs:
 	@echo "  16. docs/implementer-quickstart.md"
 	@echo "  17. docs/operational-guidance.md"
 	@echo
-	@echo "Reserved (no normative content in v0.1):"
+	@echo "Post-v0.1 drafts (Draft normative text; NOT part of v0.1 conformance):"
 	@echo "   - rfcs/RFC-AITP-0010-session-trust-bundle.md"
 	@echo "   - rfcs/RFC-AITP-0011-multihop-delegation.md"
+	@echo
+	@echo "Reserved (no normative content):"
 	@echo "   - rfcs/RFC-AITP-0012-extensions.md"
 
 # ── Clean ────────────────────────────────────────────────────────────────────

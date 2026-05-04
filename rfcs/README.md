@@ -13,8 +13,8 @@ This directory contains the normative RFCs that define the Agent Identity & Trus
 | [RFC-AITP-0007](RFC-AITP-0007-key-resolution.md) | Key Resolution | Draft |
 | [RFC-AITP-0008](RFC-AITP-0008-revocation.md) | Revocation | Draft |
 | [RFC-AITP-0009](RFC-AITP-0009-security.md) | Security & Threat Model | Draft |
-| [RFC-AITP-0010](RFC-AITP-0010-session-trust-bundle.md) | Session Trust Bundle | Reserved |
-| [RFC-AITP-0011](RFC-AITP-0011-multihop-delegation.md) | Multi-hop Delegation | Reserved |
+| [RFC-AITP-0010](RFC-AITP-0010-session-trust-bundle.md) | Session Trust Bundle | Draft (post-v0.1) |
+| [RFC-AITP-0011](RFC-AITP-0011-multihop-delegation.md) | Multi-hop Delegation | Draft (post-v0.1) |
 | [RFC-AITP-0012](RFC-AITP-0012-extensions.md) | Extensions (ZK, TEE) — reserved | Reserved |
 
 ## Reading order
@@ -31,10 +31,13 @@ The numbering matches dependency order. Read top-to-bottom:
 8. **[RFC-AITP-0008 Revocation](RFC-AITP-0008-revocation.md)** — JTI deny lists per issuing peer, key revocation.
 9. **[RFC-AITP-0009 Security](RFC-AITP-0009-security.md)** — threat model and required defenses.
 
-Reserved (no normative text, numbering pinned for future work):
+Post-v0.1 (Draft normative text published, NOT part of v0.1 conformance):
 
 - **[RFC-AITP-0010 Session Trust Bundle](RFC-AITP-0010-session-trust-bundle.md)** — multi-agent session scaling.
 - **[RFC-AITP-0011 Multi-hop Delegation](RFC-AITP-0011-multihop-delegation.md)** — chains beyond a single hop.
+
+Reserved (no normative text, numbering pinned for future work):
+
 - **[RFC-AITP-0012 Extensions](RFC-AITP-0012-extensions.md)** — ZK and TEE namespaces.
 
 ## RFC lifecycle

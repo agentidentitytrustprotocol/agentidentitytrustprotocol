@@ -115,6 +115,17 @@ This RFC enumerates the threats AITP defends against in the agent-to-agent setti
 
 **Known limitation:** AITP v0.1 does not provide real-time key-compromise detection. Operators MUST establish out-of-band key-rotation procedures.
 
+### 1.11 Manifest PoP Bypass
+
+**Threat:** An attacker forges a Manifest proof-of-possession signature for an AID they do not control — for example, by exploiting an implementation that hashes the wrong input (the base64url ASCII string instead of the decoded raw bytes) or that fails to verify the PoP at all. A forged Manifest can redirect every subsequent handshake to a man-in-the-middle.
+
+**Defense:**
+- The PoP is `sign(sha256(base64url_decode(challenge)))` — the unified signing-input convention defined in [RFC-AITP-0001 §5.4.2](RFC-AITP-0001-core.md#542-pop-signing-input-convention).
+- The `challenge` is chosen randomly at Manifest publication time by the legitimate publisher; an attacker cannot choose `challenge` to produce a weaker signing input without controlling the Manifest publication itself.
+- Implementations MUST hash the 16 raw decoded bytes (NOT the ASCII string) and MUST verify the PoP against the public key encoded in `manifest.aid` *before* trusting any other Manifest field — including the handshake endpoint, accepted trust anchors, and offered capabilities.
+- Implementations MUST cross-check their PoP code path against the pinned KAT vector `kat-manifest-pop-001` ([`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json)) so a "wrong-input" bug is detected at test time rather than at first cross-implementation contact.
+- Conformance fixtures `man-001`/`mh-003` exercise the rejection path; `kat-manifest-pop-001` exercises the construction path. Both MUST pass.
+
 ---
 
 ## 2. Known Limitations (v0.1)
@@ -126,8 +137,8 @@ This RFC enumerates the threats AITP defends against in the agent-to-agent setti
 | Zero-knowledge compliance proofs | Requires ZK extension — reserved in [RFC-AITP-0012](RFC-AITP-0012-extensions.md). |
 | Real-time key-revocation propagation | Out-of-band in v0.1 (pull-based). |
 | Cross-domain trust federation | Future specification. |
-| Multi-hop delegation chains | Reserved in [RFC-AITP-0011](RFC-AITP-0011-multihop-delegation.md). |
-| Multi-agent session scaling (O(N²) handshakes) | Reserved in [RFC-AITP-0010](RFC-AITP-0010-session-trust-bundle.md). |
+| Multi-hop delegation chains | Specified in [RFC-AITP-0011](RFC-AITP-0011-multihop-delegation.md) (Draft; post-v0.1). |
+| Multi-agent session scaling (O(N²) handshakes) | Specified in [RFC-AITP-0010](RFC-AITP-0010-session-trust-bundle.md) (Draft; post-v0.1). |
 
 ---
 
@@ -147,8 +158,31 @@ Implementations **SHOULD**:
 
 - Rotate signing keys on a schedule (recommended: 90 days).
 - Pin TLS certificates of frequently-contacted peers in production.
-- Implement rate limiting on the handshake endpoint (recommended default: 10 initiations per minute per source AID).
+- Implement rate limiting on the handshake endpoint per §3.3 below.
 - Re-verify long-lived peer TCTs every 5 minutes by checking the issuer's `ListRevoked` feed.
+
+### 3.3 Rate limiting (RECOMMENDED)
+
+A malicious agent can flood the handshake endpoint with syntactically valid envelopes, each forcing a JWK fetch and signature verification. Rate limiting is a defense-in-depth measure for resource exhaustion; protocol-level replay is handled by the deny list (RFC-AITP-0001 §5.5), which runs before the rate-limit check.
+
+Implementations SHOULD enforce per-source-IP and per-AID limits at the handshake endpoint. Recommended defaults:
+
+| Limit | Default |
+|---|---|
+| Handshake requests per source IP, per 60 s | 30 |
+| Handshake requests per initiator AID, per 60 s | 10 |
+| Maximum concurrent in-flight handshake sessions | 1000 |
+| Maximum `MUTUAL_HELLO` payload size | 64 KB |
+
+Rate limiting is a deployment concern; these defaults are RECOMMENDED, not REQUIRED. Deployments handling high-volume agent swarms SHOULD tune limits to match expected traffic. Responses to rate-limited requests SHOULD use HTTP 429 with no AITP `error` envelope payload (the request never reached the protocol layer).
+
+The order of checks at the handshake endpoint SHOULD be:
+
+1. Replay deny list and timestamp window (RFC-AITP-0001 §5.5) — protocol-level replay rejection.
+2. Rate-limit counters — resource-exhaustion defense.
+3. Schema validation and signature verification.
+
+This ordering ensures a captured-and-replayed envelope is rejected without consuming a rate-limit slot, while a flood of distinct fresh envelopes is shed before they reach the cryptographic verification path.
 
 ---
 
@@ -171,7 +205,7 @@ The following are explicitly out of scope for AITP v0.1:
 | Sybil resistance | Belongs in identity providers, not a trust evaluation protocol. |
 | Identity issuance | AITP is a trust evaluation/expression layer, not an identity system. |
 | Real-time key-revocation push | Adds significant complexity; bounded by `max_staleness_secs` in v0.1. |
-| Multi-hop delegation chains | Reserved in RFC-AITP-0011. |
+| Multi-hop delegation chains | Specified in [RFC-AITP-0011](RFC-AITP-0011-multihop-delegation.md) (Draft; post-v0.1). |
 | ZK proof verification (core) | Tooling still maturing; reserved as an extension. |
 | TEE attestation (core) | Hardware dependency; reserved as an extension. |
 | Cross-domain trust federation | Ecosystem problem, analogous to SAML/OIDC federation. |
@@ -225,6 +259,6 @@ See [`docs/non-goals.md`](../docs/non-goals.md) for the full rationale on each i
 - [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md)
 - [RFC-AITP-0006 Single-Hop Delegation](RFC-AITP-0006-delegation.md)
 - [RFC-AITP-0008 Revocation](RFC-AITP-0008-revocation.md)
-- [RFC-AITP-0010 Session Trust Bundle](RFC-AITP-0010-session-trust-bundle.md) *(reserved)*
-- [RFC-AITP-0011 Multi-hop Delegation](RFC-AITP-0011-multihop-delegation.md) *(reserved)*
+- [RFC-AITP-0010 Session Trust Bundle](RFC-AITP-0010-session-trust-bundle.md) *(Draft, post-v0.1)*
+- [RFC-AITP-0011 Multi-hop Delegation](RFC-AITP-0011-multihop-delegation.md) *(Draft, post-v0.1)*
 - [RFC-AITP-0012 Extensions](RFC-AITP-0012-extensions.md)

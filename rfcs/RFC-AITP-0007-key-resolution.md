@@ -99,6 +99,14 @@ with response format:
 
 When both endpoints are present, OIDC discovery (`openid-configuration` → `jwks_uri`) MUST be tried first; the AITP-native endpoint is a fallback for non-OIDC issuers only. All fetches MUST use HTTPS. Plain HTTP MUST be rejected.
 
+**Resolution decision logic.** The endpoint-selection rule is a branch on whether the issuer is an OIDC issuer, NOT a linear priority list:
+
+1. If the issuer exposes `/.well-known/openid-configuration` (HTTP 2xx and a parseable discovery document), it is an OIDC issuer. The implementation MUST follow the OIDC discovery flow above and MUST NOT consult `/.well-known/aitp-keys` for that issuer in the same resolution attempt.
+2. If the issuer does NOT expose `/.well-known/openid-configuration` (non-2xx response, network error, or invalid discovery document), the implementation MAY fall back to `/.well-known/aitp-keys`.
+3. If neither endpoint produces a usable key, resolution fails and the configured `key_resolution.fail_mode` (§3) applies.
+
+This branch structure prevents an attacker who controls a non-OIDC AITP-keys endpoint at an OIDC issuer's host from substituting their keys when OIDC discovery is reachable. Implementations that describe their resolution order as a flat list of sources (cache → pinned → aitp-keys → OIDC JWKS) MUST instead split the network step into the OIDC-vs-non-OIDC branch above.
+
 ---
 
 ## 3. Failure Handling

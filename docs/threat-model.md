@@ -10,6 +10,7 @@ The full normative threat model is [RFC-AITP-0009 Security](../rfcs/RFC-AITP-000
 | Replay | `message_id` deduplication + timestamp window + nonce echoes. |
 | Manifest tampering | Manifest signature + PoP over a publish-time challenge. |
 | Manifest replay across agents | PoP signature is bound to the Manifest's own challenge. |
+| Manifest PoP bypass (wrong signing input) | Unified `sha256(base64url_decode(challenge))` rule + pinned KAT vector `kat-manifest-pop-001`. |
 | Confused deputy | `audience` field on TCTs (peer AID) and delegation tokens (delegator AID); no wildcards. |
 | Token theft | Proof-of-possession (`binding.cnf`). |
 | Delegation scope escalation | `scope ⊆ grant_proof.capabilities` (stateless). |

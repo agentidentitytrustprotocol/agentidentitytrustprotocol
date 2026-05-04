@@ -1,5 +1,87 @@
 # Changelog
 
+## Unreleased
+
+RFC improvement pass driven by `plans/aitp-rfc-improvement-plan.md`. Tightens
+ambiguous PoP language in three places, adds the missing rate-limit /
+emergency-rotation / session-revocation normative surfaces, promotes RFCs
+0010 and 0011 from Reserved to Draft (post-v0.1), and adds a KAT vector and
+fixture for the unified PoP signing-input convention.
+
+### Spec bug fixes
+
+- **RFC-AITP-0003 §3 / §5 (Manifest PoP).** Field-table description now
+  reads `sha256(base64url_decode(challenge))` explicitly. §5 step 3 gains a
+  normative note pointing at the unified PoP signing-input convention and
+  the new KAT vector.
+- **RFC-AITP-0007 §2.3 (Resolution decision logic).** OIDC vs `aitp-keys`
+  selection is now a branch on whether the issuer exposes
+  `/.well-known/openid-configuration`, not a flat priority list.
+- **RFC-AITP-0003 §3.2 (`accepted_identity_types` default).** Distinguishes
+  *absent* (defaults to `["oidc"]`) from *empty array* (rejects every peer)
+  and recommends omitting the field when the default is desired.
+
+### New normative surface
+
+- **RFC-AITP-0001 §5.4.2.** New "PoP signing input convention" subsection
+  unifies `sha256(base64url_decode(x))` across Manifest PoP, handshake PoP,
+  downstream TCT PoP, and the pinned-key identity proof input. All four
+  call-sites cross-reference it.
+- **RFC-AITP-0009 §3.3 (Rate limiting, RECOMMENDED).** Per-IP / per-AID
+  defaults, payload-size cap, and the protocol-vs-rate-limit ordering
+  rule.
+- **RFC-AITP-0009 §1.11 (Manifest PoP bypass).** New threat entry tied
+  to the unified signing-input rule and the new KAT vector.
+- **RFC-AITP-0003 §8.1 (Emergency rotation).** Normative steps for key
+  compromise: rekey + revoke all issued JTIs + out-of-band peer
+  notification + short-TTL Manifest to accelerate cache expiry.
+- **RFC-AITP-0008 §4.1 (Session invalidation model).** Per-subject JTI
+  enumeration is the v0.1 mechanism; bulk-revoke API is reserved for a
+  future RFC. Issuer JTI-history persistence requirement.
+- **RFC-AITP-0005 §6.2 (Downstream PoP conformance note).** PoP exchange
+  capability is mandatory; *enforcement* for non-marked grants stays
+  deployment-configurable. Implementations must document the default and
+  expose a config surface.
+
+### Drafts promoted from Reserved
+
+- **RFC-AITP-0010 Session Trust Bundle** is now Draft. Schema, trust
+  model (coordinator-attested membership), per-pair revocation, expiry
+  bound to `min(participant.tct.expires_at)`, conformance ops
+  (`issue_session_bundle` / `verify_session_bundle`).
+- **RFC-AITP-0011 Multi-hop Delegation** is now Draft. `chain` array,
+  `chain_hash` truncation defense, `max_delegation_hops = 3` default,
+  transitive `scope ⊆ ... ⊆ chain[0].capabilities`, per-hop revocation
+  lookup. v0.1 implementations still reject multi-hop tokens.
+
+### Conformance fixtures and KAT vectors
+
+- New KAT vector `kat-manifest-pop-001` in
+  `schemas/conformance/known-answer/jcs-sha256.json` pinning
+  (challenge → decoded bytes → SHA-256 → Ed25519 signature with
+  `kat-keypair-001`). Implementations cross-check this against every PoP
+  code path.
+- New conformance fixture
+  `schemas/conformance/tct-006-pop-challenge-response.json` exercises a
+  happy-path downstream PoP exchange end-to-end.
+- New placeholders registered in `schemas/conformance/PLACEHOLDERS.md`:
+  `__VALID_DOWNSTREAM_POP_SIG__`, `__NOW_PLUS_3600__`, plus the
+  `tct-*` multi-step `sequence` operations
+  (`issue_pop_challenge` / `produce_pop_response` / `verify_pop_response`).
+
+### Documentation and process
+
+- `docs/implementer-quickstart.md` gains a "decode-before-hash" gotcha
+  box pointing at the unified §5.4.2 rule and the new KAT vector.
+- `docs/threat-model.md` lists the Manifest PoP bypass row.
+- `governance/RFC-PROCESS.md` adds a "KAT requirement" acceptance
+  criterion: any RFC introducing a new signing input, hash construction,
+  or canonicalization MUST ship a pinned KAT vector.
+- README, `rfcs/README.md`, and `Makefile docs` reflect the new
+  Draft-but-post-v0.1 status of RFCs 0010 and 0011 (was Reserved).
+
+---
+
 ## v0.1.0-rc.3
 
 Conformance suite expansion and tooling hardening. No protocol architecture

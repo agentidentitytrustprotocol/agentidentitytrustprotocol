@@ -1,0 +1,80 @@
+{
+  "id": "tct-006",
+  "description": "Happy-path downstream PoP exchange (RFC-AITP-0005 §6.1, §6.2). A consuming peer (agentA) issues a `pop_challenge` for a TCT it holds against subject agentB; agentB returns a `pop_response` whose `nonce_echo` matches the challenge nonce and whose `pop_signature` is `sign(agentB_priv, sha256(base64url_decode(nonce)))`. The runner MUST execute both steps and assert that the verifier (agentA) accepts the response. This fixture proves the implementation can produce AND verify a downstream PoP exchange end-to-end (the §6.2 conformance-note requirement). Whether an implementation *enforces* PoP for every grant is deployment-configurable; the *capability* tested here is mandatory.",
+  "tags": [
+    "success",
+    "tct",
+    "pop",
+    "conformance"
+  ],
+  "input": {
+    "tct_token": {
+      "version": "aitp/0.1",
+      "jti": "550e8400-e29b-41d4-a716-446655440106",
+      "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+      "subject": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+      "audience": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+      "issued_at": "__NOW_MINUS_3600__",
+      "expires_at": "__NOW_PLUS_3600__",
+      "grants": [
+        "macp.mode.task.v1"
+      ],
+      "binding": {
+        "cnf": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+      },
+      "signature": "__VALID_TCT_SIG__"
+    },
+    "sequence": [
+      {
+        "step": 1,
+        "operation": "issue_pop_challenge",
+        "envelope": {
+          "version": "aitp/0.1",
+          "message_type": "pop_challenge",
+          "message_id": "11111111-1111-4111-8111-111111111111",
+          "timestamp": "__NOW__",
+          "sender": {
+            "agent_id": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik"
+          },
+          "payload": {
+            "tct_jti": "550e8400-e29b-41d4-a716-446655440106",
+            "nonce": "__VALID_NONCE__"
+          },
+          "signature": "__VALID_ENVELOPE_SIG__"
+        },
+        "expected": {
+          "outcome": "success"
+        }
+      },
+      {
+        "step": 2,
+        "operation": "produce_pop_response",
+        "envelope": {
+          "version": "aitp/0.1",
+          "message_type": "pop_response",
+          "message_id": "22222222-2222-4222-8222-222222222222",
+          "timestamp": "__NOW__",
+          "sender": {
+            "agent_id": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+          },
+          "payload": {
+            "tct_jti": "550e8400-e29b-41d4-a716-446655440106",
+            "nonce_echo": "__VALID_NONCE_ECHO__",
+            "pop_signature": "__VALID_DOWNSTREAM_POP_SIG__"
+          },
+          "signature": "__VALID_ENVELOPE_SIG__"
+        },
+        "expected": {
+          "outcome": "success"
+        }
+      },
+      {
+        "step": 3,
+        "operation": "verify_pop_response",
+        "expected": {
+          "outcome": "success"
+        }
+      }
+    ]
+  }
+}

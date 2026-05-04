@@ -250,4 +250,4 @@ Until specified, implementations MUST reject any token whose `grant_proof` is it
 - [RFC-AITP-0001 Core](RFC-AITP-0001-core.md)
 - [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md)
 - [RFC-AITP-0009 Security](RFC-AITP-0009-security.md)
-- [RFC-AITP-0011 Multi-hop Delegation](RFC-AITP-0011-multihop-delegation.md) *(reserved)*
+- [RFC-AITP-0011 Multi-hop Delegation](RFC-AITP-0011-multihop-delegation.md) *(Draft, post-v0.1)*

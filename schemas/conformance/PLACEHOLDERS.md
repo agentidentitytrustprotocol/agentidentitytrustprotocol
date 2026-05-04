@@ -23,10 +23,12 @@ unambiguous against any base64url, hex, or UUID alphabet.
 |---|---|---|
 | `__NOW__` | The runner's reference clock at execution time. | Unix seconds (integer). |
 | `__NOW_MINUS_3600__` | One hour before `__NOW__`. | `__NOW__ - 3600` (integer). |
+| `__NOW_PLUS_3600__` | One hour after `__NOW__`. | `__NOW__ + 3600` (integer). |
 
-Additional `__NOW_MINUS_<seconds>__` tokens MAY be introduced as new
-fixtures need them; minting tools MUST parse the trailing integer
-literally. Positive offsets (`__NOW_PLUS_<seconds>__`) are reserved.
+Additional `__NOW_MINUS_<seconds>__` and `__NOW_PLUS_<seconds>__`
+tokens MAY be introduced as new fixtures need them; minting tools MUST
+parse the trailing integer literally and substitute `__NOW__ ±
+<seconds>`.
 
 ### Reference clock for byte-stable minting
 
@@ -78,6 +80,7 @@ implementation under test. The operation registry for v0.1:
 | `id-*` | `verify_handshake_payload` | Verify a single inline-handshake `payload` (i.e. the result of step 6 in RFC-AITP-0004 §5.1). |
 | `mh-*` (single-message) | `verify_handshake_payload` | Same as above. |
 | `mh-*` (multi-step `sequence`) | per-step in the sequence | Each `sequence[i]` carries its own `operation`; typical values are `start_handshake` and `process_handshake_message`. |
+| `tct-*` (multi-step `sequence`) | per-step in the sequence | Used by `tct-006` (downstream PoP exchange). Operations: `issue_pop_challenge` (verifier produces a `pop_challenge` envelope), `produce_pop_response` (holder signs `sha256(base64url_decode(nonce))` with `binding.cnf`'s private key and emits a `pop_response` envelope), `verify_pop_response` (verifier checks envelope signature, `nonce_echo`, and `pop_signature` per RFC-AITP-0005 §6.2). |
 
 A runner that encounters an unknown `operation` MUST return SKIP
 rather than FAIL — that lets an implementation under test
@@ -105,6 +108,7 @@ encoding of the signature over the appropriate canonical input
 | `__VALID_JWT_FROM_UNKNOWN_ISSUER__` | Untrusted issuer's key | Same shape as `__VALID_JWT__` but signed by an issuer NOT in the verifier's `trust_anchors`. The signature is cryptographically valid; the policy check is what fails. |
 | `__VALID_NONCE__` | n/a | Random 128-bit base64url string (22 chars, unpadded). The minting tool MAY use a per-fixture deterministic seed for reproducibility. |
 | `__VALID_NONCE_ECHO__` | n/a | The exact `__VALID_NONCE__` value from the corresponding earlier message in the same handshake. |
+| `__VALID_DOWNSTREAM_POP_SIG__` | TCT subject's signing key (the holder; AID encoded in `binding.cnf`) | `sha256(base64url_decode(nonce))` where `nonce` is the `__VALID_NONCE__` issued by the verifier in the matching `pop_challenge` (RFC-AITP-0005 §6.1). Same convention as `__VALID_POP_SIG__`; named separately to disambiguate the downstream PoP exchange from Manifest PoP in fixtures that include both. |
 
 ## Failure-injection placeholders
 
