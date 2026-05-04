@@ -58,13 +58,15 @@ The canonical schema is [`schemas/json/aitp-tct.schema.json`](../schemas/json/ai
 | `grants` | array of string | Capability strings the subject is granted. |
 | `signature` | string | base64url signature by the issuing peer. |
 
-## 3. Required Fields (v0.1 peer-issued TCT profile)
+## 3. Required PoP Binding (v0.1 peer-issued TCT profile)
 
 | Field | Type | Description |
 |---|---|---|
-| `binding.cnf` | string | Subject's public key (base64url) for proof-of-possession. |
+| `binding.cnf` | string | Subject's public key, encoded as the same 43-char unpadded base64url AID-identifier form defined in RFC-AITP-0001 §5.3. Used for proof-of-possession. |
 
 Every v0.1 peer-issued TCT MUST include `binding.cnf`. There is no bearer-TCT profile in v0.1. `binding.cnf` is what distinguishes a peer-issued TCT from a credential that can be freely transferred — it binds the grant to the subject's live private key and enables downstream PoP verification by any consumer without replaying the handshake.
+
+`binding.cnf` MUST equal the AID-identifier component of the TCT's `subject` field (i.e. the bytes after `aid:pubkey:`). Issuers MUST NOT issue TCTs where `cnf` and `subject` reference different keys, and consumers MUST reject such TCTs.
 
 ---
 

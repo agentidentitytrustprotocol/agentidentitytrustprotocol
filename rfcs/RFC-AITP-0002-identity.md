@@ -61,9 +61,10 @@ The canonical JSON Schema is [`schemas/json/aitp-identity.schema.json`](../schem
 | `aud` | MUST equal the verifying peer's AID (`aid:<method>:<identifier>`). Prevents replay of a JWT from one peer to another. |
 | `exp` | MUST be in the future. |
 | `iat` | MUST be within ±300 s of current time. |
+| `nonce` | MUST equal the `pop_nonce` value carried on the same handshake message (`MUTUAL_HELLO` for the initiator's identity, `MUTUAL_HELLO_ACK` for the target's identity, per RFC-AITP-0004 §3). Binds the JWT to a specific handshake instance and prevents replay of the same JWT in a different session, even between the same `iss`/`sub`/`aud` triple. The `pop_nonce` is a 128-bit base64url string; the JWT carries it byte-identically (no decoding, no re-encoding). |
 | `cnf.jkt` | MUST equal the [RFC 7638](https://datatracker.ietf.org/doc/html/rfc7638) JWK thumbprint of the public key encoded in the agent's `aid` (the same key that signed the agent's Manifest). Binds the JWT to the AID's signing key, preventing reuse with a different key pair (DPoP-style binding, per [RFC 9449 §6](https://datatracker.ietf.org/doc/html/rfc9449)). The thumbprint input is pinned in §2.2.1 below. |
 
-The `aud` and `cnf.jkt` requirements are AITP-specific reuses of standard JWT claims. They impose **no protocol changes on the identity provider** — any OIDC IdP that supports the standard `aud` claim and a `cnf` confirmation method (RFC 7800) can issue conformant JWTs.
+The `aud`, `nonce`, and `cnf.jkt` requirements are AITP-specific reuses of standard JWT claims. They impose **no protocol changes on the identity provider** — any OIDC IdP that supports the standard `aud` and `nonce` claims and a `cnf` confirmation method (RFC 7800) can issue conformant JWTs.
 
 #### 2.2.1 Canonical JWK form for `cnf.jkt`
 
@@ -89,27 +90,31 @@ A peer verifying an identity binding MUST:
 4. Validate `exp` is in the future.
 5. Validate `iat` is within the timestamp tolerance.
 6. **Validate `aud` equals the verifying peer's own AID.** Reject otherwise. This defeats cross-peer JWT replay.
-7. **Validate `cnf.jkt`.** Compute the JWK thumbprint (RFC 7638) of the public key encoded in the agent's AID; the JWT's `cnf.jkt` MUST equal that thumbprint. Reject otherwise. This binds the identity proof to the AID's signing key.
-8. Confirm `issuer` appears in the local `trust_anchors` configuration (or in the peer's Manifest `accepted_trust_anchors` for the converse direction).
+7. **Validate `nonce` equals the `pop_nonce` from the surrounding handshake message** (`MUTUAL_HELLO` or `MUTUAL_HELLO_ACK`, whichever carried this identity). Reject otherwise. This defeats same-peer JWT replay across handshakes.
+8. **Validate `cnf.jkt`.** Compute the JWK thumbprint (RFC 7638) of the public key encoded in the agent's AID; the JWT's `cnf.jkt` MUST equal that thumbprint. Reject otherwise. This binds the identity proof to the AID's signing key.
+9. Confirm `issuer` appears in the local `trust_anchors` configuration (or in the peer's Manifest `accepted_trust_anchors` for the converse direction).
 
-Peers MUST NOT accept JWTs from issuers not present in `trust_anchors`. Peers MUST NOT accept JWTs missing `aud` or `cnf.jkt`.
+Peers MUST NOT accept JWTs from issuers not present in `trust_anchors`. Peers MUST NOT accept JWTs missing `aud`, `nonce`, or `cnf.jkt`.
 
 ### 2.4 Example
 
-A decoded JWT payload (claims) for an OIDC identity binding presented by Agent A to Agent B:
+A decoded JWT payload (claims) for an OIDC identity binding presented by Agent A to Agent B (using the `kat-keypair-002` AID from [`schemas/conformance/known-answer/keypairs.json`](../schemas/conformance/known-answer/keypairs.json) for B):
 
 ```json
 {
   "iss": "https://auth.openai.com",
   "sub": "agent-gpt4-instance-xyz",
-  "aud": "aid:pubkey:MCowBQYDK2VdAyEA_agentBPub",
+  "aud": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
   "iat": 1711900000,
   "exp": 1711903600,
+  "nonce": "Tm9uY2VfRnJlc2hfRm9yX1RoaXNfSGFuZHNoYWtl",
   "cnf": {
-    "jkt": "NzbLsXh8uDCcd-6MNwXF4W_7noWXFZAfHkxZsRGC9Xs"
+    "jkt": "9ZP03Nu8GrXPAUkbKNxHOKBzxPX83SShgFkRNK-f2lw"
   }
 }
 ```
+
+The `aud` is exactly `aid:pubkey:` followed by 43 unpadded-base64url characters (RFC-AITP-0001 §5.3). The `nonce` is the byte-identical `pop_nonce` from the corresponding `MUTUAL_HELLO` payload. The `cnf.jkt` is the RFC 7638 thumbprint of A's AID public key, computed per §2.2.1.
 
 Wrapped in the identity descriptor:
 
@@ -119,7 +124,7 @@ Wrapped in the identity descriptor:
     "type": "oidc",
     "issuer": "https://auth.openai.com",
     "subject": "agent-gpt4-instance-xyz",
-    "proof": "eyJhbGciOiJFZERTQSJ9.eyJpc3MiOiJodHRwczovL2F1dGgub3BlbmFpLmNvbSIsImF1ZCI6ImFpZDpwdWJrZXk6TUNvd0JRWURLMlZkQXlFQV9hZ2VudEJQdWIifQ.<sig>"
+    "proof": "<compact-serialized JWT carrying the claims above>"
   }
 }
 ```
@@ -166,13 +171,15 @@ Peers MUST NOT accept pinned-key identities for public keys not present in the l
 
 ### 3.3 Example
 
+The `public_key` MUST be the same 43-char unpadded-base64url AID-identifier form defined in RFC-AITP-0001 §5.3. SPKI-DER and PEM forms are not permitted.
+
 ```json
 {
   "identity": {
     "type": "pinned_key",
     "subject": "internal-worker-agent-1",
-    "public_key": "MCowBQYDK2VdAyEA4Cg2IISRfTdQnPH8a9Q5yJpIBHn5yPxvz8YlNj9KqLs=",
-    "proof": "<base64url signature>"
+    "public_key": "dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+    "proof": "<base64url signature, 86 chars unpadded, computed per §3.1>"
   }
 }
 ```
@@ -229,8 +236,9 @@ Peers receiving an unknown `type` MUST respond with `IDENTITY_FAILED`. New types
 
 - The `iss` check for OIDC defends against issuer-confusion attacks.
 - The `aud` claim binds the JWT to a specific verifying peer; without it, a JWT issued for one peer can be replayed against any other peer that trusts the same issuer.
+- The `nonce` claim binds the JWT to a specific handshake instance. Without it, a JWT minted for one handshake against the right `aud` could be captured and replayed in a later handshake to the same peer (e.g. if the captured JWT has not yet expired). The `nonce` is bound to the same `pop_nonce` that drives the Mutual Handshake's PoP exchange, so identity-proof freshness and key-possession freshness share the same defense.
 - The `cnf.jkt` claim binds the JWT to the AID's signing key. A stolen JWT cannot be paired with a different key pair to impersonate a different agent, and an agent cannot prove identity without also controlling the private key that signs its Manifest and envelopes.
-- Together, `aud` and `cnf.jkt` make the OIDC identity binding **non-transferable** in the same way TCTs are non-transferable.
+- Together, `aud`, `nonce`, and `cnf.jkt` make the OIDC identity binding **non-transferable across peers, handshakes, and key pairs** in the same way TCTs are non-transferable.
 - The pinned-key proof input (§3.1) MUST bind sender AID, receiver AID, `message_id`, `timestamp`, AND the handshake `pop_nonce`. Earlier drafts that signed only `message_id|timestamp` did not bind sender or receiver and admitted cross-peer replay; the v0.1 proof input is the minimum that prevents it. Implementations MUST NOT accept the legacy two-field input.
 - A peer MUST NOT relax issuer-list checks based on `reason` strings or any client-supplied hint.
 

@@ -22,19 +22,19 @@ The primary revocation mechanism for v0.1 is a JTI deny list **per issuing peer*
 
 The peer that issued a TCT (its `issuer` AID) is the only party that can revoke it. Revocation adds the TCT's `jti` to the issuing peer's deny list. The deny list is consulted by other peers via the issuing peer's `ListRevoked` HTTPS endpoint (RFC-AITP-0005 §10) or a per-token `Verify` call.
 
-### 1.2 Deny-list format
+### 1.2 Deny-list entries
+
+The deny list is internally a set of entry records. Each entry has the shape below; the canonical wire format that wraps these entries (with `version`, `issuer`, `published_at`, `expires_at`, and a signature) is defined in §1.5 and is the only form peers consume over the network.
 
 ```json
 {
-  "revoked": [
-    {
-      "jti": "550e8400-e29b-41d4-a716-446655440000",
-      "revoked_at": 1711900000,
-      "reason": "key_compromised"
-    }
-  ]
+  "jti": "550e8400-e29b-41d4-a716-446655440000",
+  "revoked_at": 1711900000,
+  "reason": "key_compromised"
 }
 ```
+
+The `reason` field is OPTIONAL informational metadata. Implementations MUST NOT use `reason` strings in automated decision-making; revocation is a binary state determined solely by the presence of a `jti` in the signed list.
 
 ### 1.3 Persistence
 

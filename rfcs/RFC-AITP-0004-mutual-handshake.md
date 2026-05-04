@@ -134,10 +134,10 @@ Sent by the initiating agent (A) to the target agent (B).
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `identity` | object | REQUIRED | A fresh, handshake-bound identity proof for this exchange. MUST be the same `type` and `subject` as `manifest.identity`. For `oidc`, the JWT MUST include the `pop_nonce` value from this message as the JWT `nonce` claim, binding the proof to this specific handshake and preventing replay of the same JWT in a different session. |
+| `identity` | object | REQUIRED | A fresh, handshake-bound identity proof for this exchange. MUST be the same `type` and `subject` as `manifest.identity_hint`. For `oidc`, the JWT MUST include the `pop_nonce` value from this message as the JWT `nonce` claim, binding the proof to this specific handshake and preventing replay of the same JWT in a different session. For `pinned_key`, `identity.public_key` MUST equal `manifest.identity_hint.public_key`. |
 | `manifest` | object | REQUIRED | A's Agent Manifest (RFC-AITP-0003), inline. |
 | `requested_grants` | array of string | REQUIRED | Capabilities A is requesting from B. |
-| `pop_nonce` | string | REQUIRED | Random 128-bit base64url. B MUST sign over this in MUTUAL_COMMIT_ACK to prove key possession. |
+| `pop_nonce` | string | REQUIRED | Random 128-bit value, encoded as exactly 22 chars of unpadded base64url (RFC-AITP-0001 §5.4). B MUST sign over this in MUTUAL_COMMIT_ACK to prove key possession. |
 
 ### 3.2 MUTUAL_HELLO_ACK
 
@@ -166,7 +166,7 @@ Sent by the target agent (B) in response to MUTUAL_HELLO.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `identity` | object | REQUIRED | A fresh, handshake-bound identity proof for this exchange. MUST be the same `type` and `subject` as `manifest.identity`. For `oidc`, the JWT MUST include the `pop_nonce` value from this message as the JWT `nonce` claim, binding the proof to this specific handshake and preventing replay of the same JWT in a different session. |
+| `identity` | object | REQUIRED | A fresh, handshake-bound identity proof for this exchange. MUST be the same `type` and `subject` as `manifest.identity_hint`. For `oidc`, the JWT MUST include the `pop_nonce` value from this message as the JWT `nonce` claim, binding the proof to this specific handshake and preventing replay of the same JWT in a different session. For `pinned_key`, `identity.public_key` MUST equal `manifest.identity_hint.public_key`. |
 | `manifest` | object | REQUIRED | B's Agent Manifest, inline. |
 | `requested_grants` | array of string | REQUIRED | Capabilities B is requesting from A. |
 | `pop_nonce` | string | REQUIRED | B's nonce. A MUST sign over this in MUTUAL_COMMIT. |
@@ -324,14 +324,20 @@ B MUST:
    sender controls the private key matching `manifest.aid`.
 6. **Verify the fresh identity proof** in `payload.identity` per
    [RFC-AITP-0002](RFC-AITP-0002-identity.md) — including the `aud`,
-   `cnf.jkt`, and (for OIDC) `nonce` requirements (RFC-AITP-0002 §2.2/§2.3).
+   `nonce`, and `cnf.jkt` requirements (RFC-AITP-0002 §2.2/§2.3).
    The Manifest itself carries only `identity_hint` (no JWT); the verifiable
    proof always lives in `payload.identity` so it can be bound to this
    handshake's `pop_nonce`. Implementations MUST verify that
    `payload.identity.subject` equals `payload.manifest.identity_hint.subject`
    and `payload.identity.type` equals `payload.manifest.identity_hint.type`.
    For OIDC, `payload.identity.issuer` MUST equal
-   `payload.manifest.identity_hint.issuer`. Any mismatch ⇒ `IDENTITY_FAILED`.
+   `payload.manifest.identity_hint.issuer`. For `pinned_key`,
+   `payload.identity.public_key` MUST equal
+   `payload.manifest.identity_hint.public_key` AND MUST equal the
+   AID-identifier component of `payload.manifest.aid` (the same key
+   already authenticated in steps 4–5; this check forecloses substitution
+   of an unrelated pinned key into the descriptor). Any mismatch ⇒
+   `IDENTITY_FAILED`.
 7. **Verify the envelope signature** using the now-trusted public key
    from `manifest.aid`. Failure ⇒ `INVALID_SIGNATURE`. From this point
    forward, the envelope's contents are authenticated.

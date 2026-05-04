@@ -1,6 +1,6 @@
 # Capability Registry
 
-Capability strings appear in `requested_capabilities` (HELLO), `grants` (TCT), and `scope` (Delegation). They are opaque to AITP — consumers define their meaning. This registry tracks well-known prefixes so identifiers do not collide.
+Capability strings appear in `requested_grants` (`MUTUAL_HELLO` / `MUTUAL_HELLO_ACK`, RFC-AITP-0004 §3), `offered_capabilities` and `required_peer_capabilities` (Manifest, RFC-AITP-0003 §3), `grants` (TCT, RFC-AITP-0005 §4), and `scope` (Delegation, RFC-AITP-0006 §2). They are opaque to AITP — consumers define their meaning. This registry tracks well-known prefixes so identifiers do not collide.
 
 > **Stability:** The reserved namespaces in this registry are stable for v0.1. New entries can be added without an RFC; renaming or removing an existing entry is a breaking change and requires the RFC process. Vendor capabilities under reverse-domain prefixes evolve independently of this registry.
 

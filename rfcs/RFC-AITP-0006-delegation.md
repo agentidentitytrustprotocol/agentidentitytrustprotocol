@@ -84,7 +84,7 @@ When B receives a TCT from A in `MUTUAL_COMMIT_ACK`, B MAY use that TCT directly
 | `source_tct_jti` | `tct.jti` |
 | `signature` | `tct.signature` |
 
-No separate issuance flow is required — every TCT is a valid `grant_proof` source. Because `grant_proof.signature` is reused verbatim from the source TCT's signature, A's original signature continues to authenticate the grant without re-signing. B's outer `delegation.signature` then authenticates the per-delegation fields (`scope`, `delegatee`, `cnf`, `expires_at`, `audience`).
+No separate issuance flow is required — every TCT is a valid `grant_proof` source. Because `grant_proof.signature` is reused verbatim from the source TCT's signature, A's original signature continues to authenticate the grant without re-signing. B's outer `delegation.signature` covers the entire delegation token (excluding the outer `signature` field itself), so the per-delegation fields B chose (`scope`, `delegatee`, `cnf`, `expires_at`, `audience`, `delegator`, `issued_by`) are bound to the embedded `grant_proof` and cannot be substituted independently.
 
 > **Why `issued_at` is carried explicitly.** Earlier drafts allowed verifiers to reconstruct `issued_at` as `expires_at − default_TTL` (e.g. 3600 s). That works only when A used the default TTL; tokens minted with non-default TTL fail cross-implementation verification because A's signature covers `tct.issued_at` byte-exactly. v0.1 carries `issued_at` directly so the `grant_proof` byte sequence A signed can be reconstructed without guessing the TTL.
 
@@ -113,20 +113,35 @@ When C presents a delegation token to A, A MUST verify all of the following:
 
 ### 4.1 Structural validity
 
-1. `audience` MUST equal A's own AID.
-2. `delegator` MUST equal A's own AID.
-3. `expires_at` MUST be in the future.
+1. `audience` MUST equal A's own AID. Mismatch ⇒ `DELEGATION_AUDIENCE_MISMATCH`.
+2. `delegator` MUST equal A's own AID. Mismatch ⇒ `DELEGATION_INVALID_GRANT_PROOF` (the token is not addressed to this issuer).
+3. `expires_at` MUST be in the future AND `delegation.expires_at` MUST be ≤ `grant_proof.expires_at` (a delegated grant cannot outlive the source TCT). Failure ⇒ `DELEGATION_EXPIRED`.
 
 ### 4.2 Grant-proof validity (stateless)
 
-4. `grant_proof.issuer` MUST equal A's own AID.
-5. Verify `grant_proof.signature` against A's own public key. The signature input is the canonical JSON of the source TCT body (issuer, subject, audience, jti, issued_at, expires_at, grants, binding) — i.e. the same bytes A signed when issuing the original TCT. The `issued_at` value used in the reconstruction MUST be `grant_proof.issued_at` (carried explicitly per §3.1); reconstructing as `expires_at − default_TTL` is not permitted in v0.1. Failure ⇒ `INVALID_GRANT_PROOF`.
-6. `grant_proof.subject` MUST equal `delegation.issued_by`. Mismatch ⇒ `INVALID_GRANT_PROOF` — without this check, B could attach C's grant proof and claim to be delegating C's authority.
-7. `grant_proof.expires_at` MUST be in the future.
+4. `grant_proof.issuer` MUST equal A's own AID. Mismatch ⇒ `DELEGATION_INVALID_GRANT_PROOF`.
+5. Verify `grant_proof.signature` against A's own public key. The signature input is the canonical JSON of the **reconstructed source TCT body**, with the following fields. Failure ⇒ `DELEGATION_INVALID_GRANT_PROOF`.
+
+   | Reconstructed TCT field | Source |
+   |---|---|
+   | `version` | constant `"aitp/0.1"` (the only TCT version in v0.1; reject if the source TCT was minted under a future version this verifier does not support) |
+   | `jti` | `grant_proof.source_tct_jti` |
+   | `issuer` | `grant_proof.issuer` |
+   | `subject` | `grant_proof.subject` |
+   | `audience` | `grant_proof.subject` (peer-issued TCTs always set `audience = subject` per RFC-AITP-0005 §5.1) |
+   | `issued_at` | `grant_proof.issued_at` (carried verbatim per §3.1; reconstructing as `expires_at − default_TTL` is not permitted in v0.1) |
+   | `expires_at` | `grant_proof.expires_at` |
+   | `grants` | `grant_proof.capabilities` |
+   | `binding.cnf` | the 43-char AID-identifier component of `grant_proof.subject` (peer-issued TCTs always bind `cnf` to the subject's public key per RFC-AITP-0004 §4.4) |
+
+   The verifier produces canonical JSON over this reconstructed object excluding the `signature` field per RFC 8785 (JCS), hashes with SHA-256, and verifies `grant_proof.signature` under A's public key. The reconstructed bytes MUST match the bytes A signed when issuing the original TCT; any divergence (extra fields, different encoding) MUST cause verification to fail.
+
+6. `grant_proof.subject` MUST equal `delegation.issued_by`. Mismatch ⇒ `DELEGATION_INVALID_GRANT_PROOF` — without this check, B could attach C's grant proof and claim to be delegating C's authority.
+7. `grant_proof.expires_at` MUST be in the future. Failure ⇒ `DELEGATION_EXPIRED`.
 
 ### 4.2.1 Source TCT revocation check
 
-8. The verifier MUST look up `grant_proof.source_tct_jti` in its own (or a fresh fetched) deny list for the issuing peer. If the source TCT has been revoked, the delegation token MUST be rejected with `SOURCE_TCT_REVOKED`. This is the only stateful check in delegation verification; it requires a revocation lookup, not a full session lookup.
+8. The verifier MUST look up `grant_proof.source_tct_jti` in its own (or a fresh fetched) deny list for the issuing peer. If the source TCT has been revoked, the delegation token MUST be rejected with `DELEGATION_SOURCE_TCT_REVOKED`. This is the only stateful check in delegation verification; it requires a revocation lookup, not a full session lookup.
 
 ### 4.3 Scope constraint
 
@@ -140,16 +155,16 @@ When C presents a delegation token to A, A MUST verify all of the following:
 
 ### 4.4 Chain limits
 
-10. `issued_by` MUST NOT equal `delegatee` (self-delegation is rejected).
-11. No chain validation is required — only single-hop is supported. Implementations MUST reject delegation tokens where `issued_by` is itself a delegatee of another delegation; only direct peer-issued grants from A to B are valid as `grant_proof`.
+10. `issued_by` MUST NOT equal `delegatee` (self-delegation is rejected). Failure ⇒ `DELEGATION_INVALID_SIGNATURE`.
+11. No chain validation is required — only single-hop is supported. Implementations MUST reject delegation tokens where `issued_by` is itself a delegatee of another delegation (i.e. where the `grant_proof` is not a direct peer-issued TCT from A to B); only direct peer-issued grants from A to B are valid as `grant_proof`. Failure ⇒ `DELEGATION_MULTIHOP_NOT_SUPPORTED`.
 
 ### 4.5 Proof of possession
 
-12. Verify that the presenting agent holds the key matching `cnf`.
+12. Verify that the presenting agent holds the private key matching `cnf` by running the downstream PoP exchange defined in [RFC-AITP-0005 §6.1](RFC-AITP-0005-tct.md#61-downstream-pop-exchange) against C, with `binding.cnf` taken from `delegation.cnf` (rather than from a TCT). The verifier MUST issue a fresh `pop_challenge` with a per-verification 128-bit nonce and verify C's `pop_response` per RFC-AITP-0005 §6.2. PoP failure ⇒ `DELEGATION_POP_FAILED`. Implementations MAY skip the exchange only when an equivalent channel binding to C's key is already in place (e.g. mTLS with a client certificate matching `cnf`); they MUST document that posture.
 
 ### 4.6 Issuer signature
 
-13. Verify `signature` against B's public key (resolved from `issued_by` AID via B's Manifest, RFC-AITP-0003).
+13. Verify `signature` against B's public key (resolved from `issued_by` AID via B's Manifest, RFC-AITP-0003). Failure ⇒ `DELEGATION_INVALID_SIGNATURE`.
 
 ---
 

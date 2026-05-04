@@ -87,8 +87,8 @@ The canonical schema is [`schemas/json/aitp-manifest.schema.json`](../schemas/js
 | `accepted_trust_anchors` | array of string | OIDC issuer URIs this agent accepts from peers. MUST be consistent with the agent's internal verification configuration (see §5.1). |
 | `offered_capabilities` | array of string | Capabilities this agent is willing to grant to authenticated peers. |
 | `proof_of_possession` | object | Demonstrates the publisher holds the private key for `aid`. |
-| `proof_of_possession.challenge` | string | Random 128-bit base64url chosen at publish time. |
-| `proof_of_possession.signature` | string | `base64url(sign(agent_private_key, sha256(challenge)))`. |
+| `proof_of_possession.challenge` | string | Random 128-bit value chosen at publish time, encoded as exactly 22 chars of unpadded base64url (RFC-AITP-0001 §5.4). |
+| `proof_of_possession.signature` | string | `base64url(sign(agent_private_key, sha256(challenge)))`. Exactly 86 chars unpadded base64url. The hash input is the raw bytes obtained by base64url-decoding `challenge`, not the ASCII bytes of the encoded form (matching the convention used by the Mutual Handshake PoP signatures, RFC-AITP-0004 §3). |
 | `published_at` | integer | Unix timestamp (seconds) when this Manifest was signed. |
 | `expires_at` | integer | Unix timestamp (seconds) after which this Manifest MUST NOT be used. |
 | `signature` | string | Agent's signature over the canonical Manifest (see §6). |
@@ -143,10 +143,10 @@ Before a peer uses a Manifest to initiate a handshake, it MUST verify the follow
 3. **Proof-of-possession** — Verify `proof_of_possession.signature`:
 
    ```
-   expected_sig = base64url(sign(agent_private_key, sha256(challenge)))
+   expected_sig = base64url(sign(agent_private_key, sha256(base64url_decode(challenge))))
    ```
 
-   Verification uses the public key encoded in `manifest.aid`.
+   The hash input is the 16 raw bytes obtained by base64url-decoding `challenge` (not the ASCII bytes of the encoded form). Verification uses the public key encoded in `manifest.aid`.
 4. **Manifest signature** — Verify `manifest.signature` using the public key from `manifest.aid` (see §6).
 5. **Identity-type and trust-anchor compatibility** — The fetching peer MUST screen the published Manifest against its own identity. Two cases:
    - If the fetching peer's identity is `oidc`, the published Manifest's `accepted_trust_anchors` MUST contain at least one issuer that matches an issuer in the fetching peer's own `trust_anchors` configuration.
@@ -160,7 +160,7 @@ Manifest verification does NOT include identity-proof verification. The Manifest
 
 ### 5.1 Trust-anchor consistency requirement
 
-`accepted_trust_anchors` is a public commitment about which identity issuers this agent will verify peer identities against. The fetching peer uses it to pre-screen for compatibility (step 6 above) before initiating a handshake.
+`accepted_trust_anchors` is a public commitment about which identity issuers this agent will verify peer identities against. The fetching peer uses it to pre-screen for compatibility (step 5 above) before initiating a handshake.
 
 **Implementations MUST keep `accepted_trust_anchors` consistent with the agent's internal verification configuration.** If the published Manifest claims to accept `https://auth.example.com` but the agent's runtime `trust_anchors` config does not include `https://auth.example.com`, the discovery-time check will pass and the handshake will fail — wasting both peers' resources and obscuring the misconfiguration.
 
@@ -200,11 +200,13 @@ Initiating Peer (A)              Target Peer (B)
        |-------------------------------->|
        |<------- Manifest (JSON) --------|
        |                                 |
-       | 1. Verify manifest.signature    |
-       | 2. Check manifest.expires_at    |
-       | 3. Verify PoP signature         |
-       | 4. Check identity_hint shape    |
-       | 5. Check trust-anchor overlap   |
+       | Apply §5 verification, in order:|
+       | 1. Version check                |
+       | 2. expires_at in the future     |
+       | 3. proof_of_possession.signature|
+       | 4. manifest.signature           |
+       | 5. identity-type / trust-anchor |
+       |    compatibility                |
        |                                 |
        |  [compatible] → proceed to      |
        |  RFC-AITP-0004 Mutual Handshake |

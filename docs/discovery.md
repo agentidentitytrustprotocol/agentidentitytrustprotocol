@@ -25,10 +25,10 @@ The simplest, most secure pattern for closed deployments.
 peers:
   worker-7:
     manifest_url: https://worker-7.agents.example.com/.well-known/aitp-manifest
-    expected_aid: aid:pubkey:MCowBQYDK2VdAyEA_workerExamplePub
+    expected_aid: aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik
   coordinator-1:
     manifest_url: https://coordinator.agents.example.com/.well-known/aitp-manifest
-    expected_aid: aid:pubkey:MCowBQYDK2VdAyEA_coordExamplePub
+    expected_aid: aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg
 ```
 
 **Trust posture.** A operator-curated allowlist. The `expected_aid` field is optional but RECOMMENDED — it lets A reject a Manifest that has been served from the right hostname but with the wrong key (key-substitution under a compromised host).

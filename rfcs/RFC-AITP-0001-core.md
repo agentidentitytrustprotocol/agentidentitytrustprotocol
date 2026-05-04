@@ -182,6 +182,17 @@ The `payload` object MUST be canonicalized per **[RFC 8785 — JSON Canonicaliza
 
 All `signature`, `pop_signature`, `cnf`, `proof`, and the AID identifier component (`aid:<method>:<identifier>`) are encoded as **unpadded base64url** per [RFC 4648 §5](https://datatracker.ietf.org/doc/html/rfc4648#section-5). Implementations MUST NOT emit `=` padding. Implementations SHOULD reject input that contains `=` padding; if they choose to accept it for compatibility with non-conformant senders, they MUST normalize to unpadded form before any signature verification.
 
+For the v0.1 Ed25519 profile, the unpadded base64url encoding length is fixed:
+
+| Field | Raw bytes | Unpadded base64url length |
+|---|---|---|
+| AID identifier (`aid:pubkey:<id>`) | 32 (Ed25519 public key) | 43 chars |
+| `binding.cnf` (TCT) and `cnf` (delegation) | 32 (Ed25519 public key) | 43 chars |
+| `signature`, `pop_signature` | 64 (Ed25519 signature) | 86 chars |
+| `pop_nonce`, Manifest `proof_of_possession.challenge` | 16 (128-bit nonce) | 22 chars |
+
+Verifiers MUST reject any field whose encoded length differs from the table above. The canonical JSON Schemas under [`schemas/json/`](../schemas/json/) carry these constraints as `pattern` regexes; implementations MUST validate against the schema before attempting cryptographic verification.
+
 Implementations MUST use:
 
 | Algorithm | Identifier |
