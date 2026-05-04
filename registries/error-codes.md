@@ -99,7 +99,26 @@ Delegation-layer codes carry the `DELEGATION_` prefix so they cannot be confused
 | `DELEGATION_INVALID_SIGNATURE` | `delegation.signature` invalid. |
 | `DELEGATION_EXPIRED` | Token or grant proof expired. |
 | `DELEGATION_POP_FAILED` | Proof-of-possession failed. |
-| `DELEGATION_MULTIHOP_NOT_SUPPORTED` | Multi-hop attempt detected. |
+| `DELEGATION_MULTIHOP_NOT_SUPPORTED` | Multi-hop attempt detected (v0.1 implementations reject multi-hop tokens). |
+
+## Multi-hop delegation codes (RFC-AITP-0011, post-v0.1)
+
+These codes are reserved for v0.2 multi-hop delegation (RFC-AITP-0011 is currently Draft and not part of v0.1 conformance). Implementations targeting only v0.1 will not emit them.
+
+| Code | Meaning |
+|---|---|
+| `DELEGATION_HOP_LIMIT_EXCEEDED` | Chain length exceeds `max_delegation_hops` (default 3). |
+| `DELEGATION_CHAIN_HASH_MISMATCH` | `chain_hash` does not match the `chain` array contents (truncation or tampering detected). |
+
+## Session Trust Bundle codes (RFC-AITP-0010, post-v0.1)
+
+These codes are reserved for v0.2 Session Trust Bundles (RFC-AITP-0010 is currently Draft and not part of v0.1 conformance).
+
+| Code | Meaning |
+|---|---|
+| `SESSION_BUNDLE_INVALID` | Bundle signature, expiry, or per-participant TCT verification failed. |
+| `SESSION_BUNDLE_NOT_MEMBER` | Receiver's AID is not in `participants[*].aid`. |
+| `SESSION_BUNDLE_EXPIRED` | Bundle `expires_at` is in the past. |
 
 ## Adding a code
 

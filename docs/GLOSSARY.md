@@ -63,7 +63,7 @@ A one-line "what is X / where is it defined" lookup for the core AITP concepts. 
 
 ## D
 
-**Delegation.** v0.1 single-hop: a peer that holds a TCT can issue a delegation token granting a strict subset of its capabilities to a third peer. The grant is verified against a `grant_proof` minimized projection of the source TCT. Multi-hop is reserved for [RFC-AITP-0011](../rfcs/RFC-AITP-0011-multihop-delegation.md).
+**Delegation.** v0.1 single-hop: a peer that holds a TCT can issue a delegation token granting a strict subset of its capabilities to a third peer. The grant is verified against a `grant_proof` minimized projection of the source TCT. Multi-hop chains are specified in [RFC-AITP-0011](../rfcs/RFC-AITP-0011-multihop-delegation.md) (Draft, post-v0.1) and are not part of v0.1 conformance.
 
 ---
 

@@ -40,8 +40,9 @@ context so you don't end up reading them backwards.
    current time.
 
 7. **[RFC-AITP-0006 Delegation](../rfcs/RFC-AITP-0006-delegation.md)** —
-   single-hop. Multi-hop is reserved for RFC-AITP-0011 and is NOT in
-   v0.1. Verify scope ⊆ grant_proof.capabilities at every hop.
+   single-hop. Multi-hop is specified in RFC-AITP-0011 (Draft,
+   post-v0.1) and is NOT part of v0.1 conformance. Verify
+   scope ⊆ grant_proof.capabilities.
 
 8. **[RFC-AITP-0007 Key Resolution](../rfcs/RFC-AITP-0007-key-resolution.md)**
    — operational. Manifest-first for peer keys; cache → pinned →

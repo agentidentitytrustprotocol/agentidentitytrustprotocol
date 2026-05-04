@@ -14,7 +14,7 @@
 
 ## Abstract
 
-[RFC-AITP-0006](RFC-AITP-0006-delegation.md) defines single-hop delegation: A peer-issues to B; B delegates a subset of grants to C; A verifies and peer-issues to C. Multi-hop extends the same model to chains longer than one hop (A → B → C → D → …) by carrying a `chain` of `GrantProof` records inside the `DelegationToken`.
+[RFC-AITP-0006](RFC-AITP-0006-delegation.md) defines single-hop delegation: A peer-issues to B; B delegates a subset of grants to C; A verifies and peer-issues to C. Multi-hop extends the same model to chains longer than one hop (A → B → C → D → …) by carrying a `chain` of `DelegationStep` records inside the `DelegationToken`.
 
 The design preserves single-hop's stateless verifiability: any peer in the chain can verify the full chain locally using only Manifest-resolved public keys for each hop.
 
@@ -22,7 +22,7 @@ The design preserves single-hop's stateless verifiability: any peer in the chain
 
 ## 1. Chain Encoding
 
-The `DelegationToken` (RFC-AITP-0006 §2) gains an OPTIONAL `chain` field:
+The `DelegationToken` (RFC-AITP-0006 §2) gains two OPTIONAL fields, `chain` and `chain_hash`:
 
 ```json
 {
@@ -35,25 +35,73 @@ The `DelegationToken` (RFC-AITP-0006 §2) gains an OPTIONAL `chain` field:
     "expires_at": 1711903600,
     "cnf": "<D-public-key>",
     "grant_proof": {
-      "...": "C's grant proof, derived from C's source TCT (the one C received as a delegated TCT from A via B)"
+      "issuer":          "aid:pubkey:<B>",
+      "subject":         "aid:pubkey:<C>",
+      "capabilities":    ["read_data"],
+      "issued_at":       1711901000,
+      "expires_at":      1711903600,
+      "source_tct_jti":  "<JTI of the chain[0] step that authorized B→C>",
+      "signature":       "<B's signature over the canonical step body>"
     },
     "chain": [
       {
-        "...": "GrantProof: A → B (B's source TCT, in the standard grant_proof shape)"
+        "issuer":          "aid:pubkey:<A>",
+        "subject":         "aid:pubkey:<B>",
+        "capabilities":    ["read_data", "write_data"],
+        "issued_at":       1711900000,
+        "expires_at":      1711903600,
+        "source_tct_jti":  "<JTI of A's peer-issued TCT to B>",
+        "signature":       "<A's signature on its peer-issued TCT to B (= the source TCT's signature)>"
       }
     ],
-    "chain_hash": "<base64url sha256(canonical_json([chain[0].source_tct_jti, chain[1].source_tct_jti, ...]))>",
+    "chain_hash": "<base64url sha256(canonical_json([chain[0].source_tct_jti, ..., chain[n-2].source_tct_jti]))>",
     "signature": "<C-signature>"
   }
 }
 ```
 
+### 1.1 DelegationStep — what each chain entry represents
+
+Each `chain[i]` is a **DelegationStep**: a signed record proving that `chain[i].issuer` granted `chain[i].capabilities` to `chain[i].subject` by `chain[i].expires_at`. The fields are the same as the `grant_proof` shape defined in [RFC-AITP-0006 §3.1](RFC-AITP-0006-delegation.md#3-fields):
+
+| Field | Type | Description |
+|---|---|---|
+| `issuer` | AID | The delegator at this hop. |
+| `subject` | AID | The delegatee at this hop. |
+| `capabilities` | array | Capabilities granted at this hop. MUST be a subset of the prior hop's `capabilities`. |
+| `issued_at` | integer | Unix timestamp when this step was signed. |
+| `expires_at` | integer | Unix timestamp of step expiry. MUST be ≤ the prior hop's `expires_at`. |
+| `source_tct_jti` | UUIDv4 | At hop 0: the JTI of the original peer-issued TCT. At hop i>0: a fresh UUIDv4 the issuer assigned when minting this step. Used by `chain_hash` (§5) and per-hop revocation (§6). |
+| `signature` | base64url | Signature by `chain[i].issuer`'s key over the canonical JSON of the step body, excluding `signature`. JCS rules per RFC-AITP-0001 §5.4.1. |
+
+A DelegationStep is signed by the issuer's AID-derived key — there is no requirement that the issuer also peer-issue a TCT to themselves before signing. The `signature` field is interpreted as follows:
+
+- **Hop 0 (i.e. `chain[0]`).** The step IS a projection of A's peer-issued TCT to B (the same shape as the `grant_proof` in single-hop, RFC-AITP-0006 §3.1). The `signature` is reused verbatim from that source TCT's signature. The reconstruction recipe in [RFC-AITP-0006 §4.2](RFC-AITP-0006-delegation.md#42-grant-proof-validity-stateless) (table) applies.
+- **Hop i > 0.** The step is signed by the prior intermediate's AID-derived key over the canonical JSON of the step body excluding `signature`. There is no separate "source TCT" to reconstruct; the body itself is what was signed.
+
+### 1.2 Worked example — three hops (A → B → C → D)
+
+Concretely, for D presenting a delegation it received from C (which C is allowed to issue because of B's prior delegation to C, which B was allowed to issue because of A's original peer-issued TCT to B):
+
+| Position | Issuer → Subject | Capabilities | Signature key | `signature` body |
+|---|---|---|---|---|
+| `chain[0]` | A → B | `["read_data", "write_data"]` | A | A's peer-issued TCT body (reused verbatim per RFC-AITP-0006 §3.1) |
+| `chain[1]` | B → C | `["read_data"]` | B | Canonical JSON of the step body excluding `signature` |
+| `delegation.grant_proof` | C → D's effective scope source (= the most-recent step before D) | `["read_data"]` | C | Canonical JSON of the step body excluding `signature` |
+| `delegation.signature` | C signs the outer delegation (selecting D, scope, audience, cnf, expires_at) | n/a | C | Canonical JSON of the delegation body excluding outer `signature` |
+
+D presents this delegation to A. A verifies every step, the chain hash, and C's outer signature, and (if all pass) peer-issues a fresh TCT to D for the requested scope.
+
 | Field | Required | Description |
 |---|---|---|
-| `chain` | OPTIONAL | Array of `GrantProof` records, ordered from oldest hop to most recent. Absent (or empty) for single-hop delegations (this is the v0.1 case). For an n-hop delegation the chain contains the first n-1 grant proofs; the n-th (most recent) grant proof remains in the top-level `grant_proof` field. |
-| `chain_hash` | REQUIRED if `chain` is present | `base64url(sha256(canonical_json([chain[0].source_tct_jti, ..., chain[n-2].source_tct_jti])))`. Bound into the outer signature so a hop cannot be removed without invalidating the signature. See §5. |
+| `chain` | OPTIONAL | Array of DelegationStep records, ordered from oldest hop (chain[0]) to most recent (chain[n-2]). Absent (or empty) for single-hop tokens — this is the v0.1 case. For an n-hop delegation the chain contains the first n-1 steps; the n-th (most recent) step remains in the top-level `grant_proof` field. |
+| `chain_hash` | REQUIRED if `chain` is non-empty | `base64url(sha256(canonical_json([chain[0].source_tct_jti, ..., chain[n-2].source_tct_jti])))`. Bound into the outer signature so a hop cannot be removed without invalidating the signature. See §5. |
 
-A delegation token without `chain` (or with `chain == []`) is a single-hop delegation and follows RFC-AITP-0006 verification verbatim. The fields below apply only when `chain` is present.
+A delegation token without `chain` (or with `chain == []`) is a single-hop delegation and follows RFC-AITP-0006 verification verbatim. The fields below apply only when `chain` is non-empty.
+
+### 1.3 Relationship to RFC-AITP-0006 §9
+
+[RFC-AITP-0006 §9](RFC-AITP-0006-delegation.md#9-multi-hop-future) requires v0.1 implementations to reject any token whose `grant_proof` is itself a delegation — because in single-hop a `grant_proof` is always a peer-issued TCT projection. Multi-hop relaxes this: when a token also carries a non-empty `chain` per this RFC, `grant_proof` is the most-recent DelegationStep (not necessarily a peer-issued TCT projection) and is verified per §3 below. v0.2 implementations that opt into RFC-AITP-0011 MUST allow the relaxation; v0.1 implementations and v0.2 implementations that opt out MUST reject any token with a non-empty `chain` using `DELEGATION_MULTIHOP_NOT_SUPPORTED` (RFC-AITP-0006 §8).
 
 ---
 
@@ -75,15 +123,21 @@ If `total_hops > max_delegation_hops`, the verifier MUST reject with `DELEGATION
 
 ## 3. Per-Hop Verification
 
-For an n-hop delegation, a verifier MUST verify every hop. Indexing convention: `chain[0]` is the oldest hop (A → B), `chain[n-2]` is the second-most-recent (e.g. A → … → C in a 3-hop chain), and the top-level `grant_proof` is the most recent hop (e.g. C's grant proof produced from C's delegated TCT received via B).
+For an n-hop delegation, a verifier MUST verify every hop. Indexing convention for an n-hop token (where `n = chain.length + 1`):
 
-For each hop `i ∈ [0, n-1]`:
+- `chain[0]` is the oldest hop (A → B in the worked example).
+- `chain[n-2]` is the second-most-recent (e.g. B → C in a 3-hop chain).
+- The top-level `grant_proof` is the most recent hop (e.g. C → ... in a 3-hop chain — i.e., the step that authorized `delegation.issued_by` to issue the outer delegation).
 
-1. **Reconstruct the source TCT** — using the recipe in [RFC-AITP-0006 §4.2](RFC-AITP-0006-delegation.md#42-grant-proof-validity-stateless) (table). The reconstructed body MUST match what `chain[i].issuer` (or `grant_proof.issuer` for the top hop) signed byte-for-byte.
-2. **Verify `chain[i].signature`** under `chain[i].issuer`'s public key (resolved from that peer's Manifest).
-3. **Audience continuity** — `chain[i].subject` MUST equal `chain[i+1].issuer` (the subject of one hop is the issuer of the next). For the last `chain` entry, `chain[n-2].subject` MUST equal `grant_proof.issuer`. For the top-level grant_proof, `grant_proof.subject` MUST equal `delegation.issued_by` (same rule as RFC-AITP-0006).
-4. **Issuer-of-first-hop matches `delegator`** — `chain[0].issuer` MUST equal `delegation.delegator`. (This is what makes the entire chain root in A.)
-5. **Per-hop expiry** — every hop's `expires_at` MUST be in the future, and `chain[i+1].expires_at` MUST be ≤ `chain[i].expires_at`. Expiry is monotonically non-increasing along the chain.
+For each hop `i ∈ [0, n-1]` (where `chain[n-1]` is shorthand for the top-level `grant_proof`):
+
+1. **Reconstruct the signed body and verify the signature**, dispatching on hop position:
+   - **At hop 0** — the body is a projection of the original peer-issued TCT. Apply the reconstruction recipe in [RFC-AITP-0006 §4.2](RFC-AITP-0006-delegation.md#42-grant-proof-validity-stateless) (table) to produce the reconstructed source TCT body and verify `chain[0].signature` against `chain[0].issuer`'s public key (resolved from `chain[0].issuer`'s Manifest, RFC-AITP-0003).
+   - **At hops i > 0 (including the top-level `grant_proof`)** — the body is the DelegationStep itself (§1.1). The verifier produces canonical JSON over the step body excluding `signature` (per RFC 8785 / JCS), hashes with SHA-256, and verifies `signature` against the step's `issuer` public key. There is NO separate source TCT to reconstruct.
+2. **Audience continuity** — `chain[i].subject` MUST equal `chain[i+1].issuer` for `i < n-2`. The last chain entry's `chain[n-2].subject` MUST equal `grant_proof.issuer`. The top-level `grant_proof.subject` MUST equal `delegation.issued_by` (same rule as RFC-AITP-0006).
+3. **Issuer-of-first-hop matches `delegator`** — `chain[0].issuer` MUST equal `delegation.delegator`. This is what roots the entire chain in A.
+4. **Per-hop expiry** — every hop's `expires_at` MUST be in the future, and successor `expires_at` MUST be ≤ predecessor `expires_at`. Expiry is monotonically non-increasing along the chain.
+5. **JTI continuity for `chain_hash` (§5)** — `chain[i].source_tct_jti` (for `i ∈ [0, n-2]`) MUST be unique within the chain so the hash collision space cannot be probed by an attacker minting overlapping JTIs.
 
 Failure at any hop MUST result in `DELEGATION_INVALID_GRANT_PROOF`.
 
@@ -172,6 +226,8 @@ Multi-hop is **opt-in** for v0.2. A v0.1 implementation that opts out MUST rejec
 4. Implement §6 per-hop revocation lookup.
 
 Conformance fixtures for multi-hop will live under `schemas/conformance/del-mh-*.json` and follow the placeholder convention defined in [`schemas/conformance/PLACEHOLDERS.md`](../schemas/conformance/PLACEHOLDERS.md).
+
+> **Draft-stage deferral.** This RFC is Draft. KAT vectors covering the per-hop signature reconstruction and the `chain_hash` truncation defense are deferred to RC promotion per the Draft-stage carve-out in [`governance/RFC-PROCESS.md`](../governance/RFC-PROCESS.md). They are blockers for moving this RFC out of Review.
 
 ---
 

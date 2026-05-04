@@ -64,6 +64,10 @@ docs:
 	@echo
 	@echo "Reserved (no normative content):"
 	@echo "   - rfcs/RFC-AITP-0012-extensions.md"
+	@echo
+	@echo "Conformance (read after the RFCs):"
+	@echo "   - schemas/conformance/README.md"
+	@echo "   - schemas/conformance/PLACEHOLDERS.md"
 
 # ── Clean ────────────────────────────────────────────────────────────────────
 

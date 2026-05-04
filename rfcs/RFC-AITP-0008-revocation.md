@@ -153,7 +153,9 @@ An issuer wishing to terminate all active sessions with peer B MUST:
 
 A "session-level revoke-all" API (one operation that covers a subject without enumerating individual JTIs) is reserved for a future RFC. v0.1 implementations SHOULD surface per-JTI revocation as the primary admin API; bulk-revocation-by-subject is a quality-of-life concern, not a protocol requirement.
 
-**Limitation (issuer JTI history).** An issuer that does not maintain a complete history of issued JTIs cannot guarantee total session revocation — it can only revoke the JTIs it remembers. Issuers MUST persist issued JTIs at least until `max(issued_tct.expires_at)` for the relevant subject. After that point all unrevoked TCTs are guaranteed expired, so the JTI is no longer needed for session-revocation completeness; it MAY be garbage-collected from the issuer-side history table.
+**Limitation (issuer JTI history).** An issuer that does not maintain a complete history of issued JTIs cannot guarantee total session revocation — it can only revoke the JTIs it remembers. Issuers SHOULD persist issued JTIs at least until `max(issued_tct.expires_at)` for the relevant subject so the bulk-revocation operation above is complete. After that point all unrevoked TCTs are guaranteed expired, so the JTI is no longer needed for session-revocation completeness; it MAY be garbage-collected from the issuer-side history table.
+
+This is an **issuer-side persistence** requirement and is not visible on the wire. It is a SHOULD (not a MUST) because the deficiency manifests as an *issuer's inability to enumerate its own subject TCTs* rather than as a protocol-level error a peer can observe; an issuer that fails to enumerate is silently providing weaker session-revocation guarantees than its consuming peers will assume. See [§1.3](#13-persistence) for the related deny-list persistence guidance — the deny list and the issued-JTI history are two distinct issuer-side structures with the same persistence motivation.
 
 ---
 

@@ -91,7 +91,7 @@ The handshake is **four messages over two round trips**. The first round trip ex
 
 All messages use the standard AITP envelope from RFC-AITP-0001 §5. New `message_type` values: `mutual_hello`, `mutual_hello_ack`, `mutual_commit`, `mutual_commit_ack`.
 
-> **PoP signing input (§§3.3, 3.4, 5.3, 5.4).** Throughout this RFC, `sha256(<nonce>)` denotes the SHA-256 hash of the **raw bytes obtained by base64url-decoding the nonce string** — never the ASCII bytes of the base64url form. This matches the convention used by the pinned-key proof input (RFC-AITP-0002 §3.1) and downstream PoP (RFC-AITP-0005 §6.2). Implementations that hash the base64url string itself are non-conformant.
+> **PoP signing input (§§3.3, 3.4, 5.3, 5.4).** Throughout this RFC, `sha256(<nonce>)` denotes the SHA-256 hash of the **raw bytes obtained by base64url-decoding the nonce string** — never the ASCII bytes of the base64url form. This matches the convention used by the pinned-key proof input (RFC-AITP-0002 §3.1) and downstream PoP (RFC-AITP-0005 §6.1). The unified rule covering all four PoP sites lives in [RFC-AITP-0001 §5.4.2](RFC-AITP-0001-core.md#542-pop-signing-input-convention). Implementations that hash the base64url string itself are non-conformant.
 
 ### 3.1 MUTUAL_HELLO
 

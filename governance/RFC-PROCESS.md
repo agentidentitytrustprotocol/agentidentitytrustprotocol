@@ -125,6 +125,17 @@ documentation, or non-normative narrative text. It IS required for
 any RFC that lands in `rfcs/RFC-AITP-*.md` and changes what bytes are
 fed to a signing or hashing primitive.
 
+**Draft-stage carve-out.** Draft RFCs (status `Draft` and not yet
+RC) MAY publish without a KAT vector if the RFC explicitly notes the
+deferral and lists the KAT vector as a blocker for promotion to
+Release Candidate. RFCs are NOT permitted to leave Review for FCP
+without a KAT vector when one is required by the rule above; the
+carve-out is an editorial convenience, not an exemption. The
+implementation work that produces the KAT — choosing pinned keypair,
+canonicalizing the body, computing the digest, and signing — is
+itself part of the cross-implementation interop check that promotion
+to RC depends on.
+
 ---
 
 ## Core Team

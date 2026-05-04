@@ -26,8 +26,8 @@ The full normative threat model is [RFC-AITP-0009 Security](../rfcs/RFC-AITP-000
 | No Sybil resistance | Delegated to identity providers. |
 | No runtime integrity attestation | TEE extension reserved in [RFC-AITP-0012](../rfcs/RFC-AITP-0012-extensions.md). |
 | No ZK compliance proofs | ZK extension reserved in RFC-AITP-0012. |
-| No multi-hop delegation | Reserved in [RFC-AITP-0011](../rfcs/RFC-AITP-0011-multihop-delegation.md). |
-| No multi-agent session scaling | Reserved in [RFC-AITP-0010](../rfcs/RFC-AITP-0010-session-trust-bundle.md). |
+| No multi-hop delegation in v0.1 | Specified in [RFC-AITP-0011](../rfcs/RFC-AITP-0011-multihop-delegation.md) (Draft, post-v0.1). |
+| No multi-agent session scaling in v0.1 | Specified in [RFC-AITP-0010](../rfcs/RFC-AITP-0010-session-trust-bundle.md) (Draft, post-v0.1). |
 | No cross-domain trust federation | Future specification. |
 
 ## Attack scenarios

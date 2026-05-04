@@ -233,15 +233,17 @@ Defined error codes:
 
 ## 9. Multi-hop (Future)
 
-Multi-hop delegation (A → B → C → D) is reserved for [RFC-AITP-0011](RFC-AITP-0011-multihop-delegation.md). Future work covers:
+Multi-hop delegation (A → B → C → D) is specified in [RFC-AITP-0011](RFC-AITP-0011-multihop-delegation.md) (Draft; not part of v0.1 conformance). RFC-AITP-0011 covers:
 
-- chain format
-- per-hop signature verification
-- hop limits
-- defense against chain insertion attacks
-- trust-penalty / TTL-decay formulas
+- chain format and `DelegationStep` per-entry shape
+- per-hop signature verification (with dispatch between hop 0 — peer-issued TCT projection — and hops i > 0 — intermediate-signed steps)
+- hop limits (default `max_delegation_hops = 3`)
+- defense against chain insertion (audience continuity), truncation (`chain_hash`), and scope inflation (transitive subsetting)
+- per-hop revocation (deny-list lookup at every hop's issuer)
 
-Until specified, implementations MUST reject any token whose `grant_proof` is itself a delegation rather than a direct peer-issued grant.
+**v0.1 conformance.** Until an implementation explicitly opts into RFC-AITP-0011, it MUST reject any token whose `grant_proof` is itself a delegation rather than a direct peer-issued grant, AND it MUST reject any token carrying a non-empty `chain` field with `DELEGATION_MULTIHOP_NOT_SUPPORTED` (the `chain` field is RFC-AITP-0011's opt-in marker).
+
+**v0.2-and-up carve-out.** Implementations that opt into RFC-AITP-0011 follow that RFC's verification rules instead. In a multi-hop token (with non-empty `chain`), the top-level `grant_proof` is permitted to be a DelegationStep rather than a peer-issued TCT projection — see RFC-AITP-0011 §1.3.
 
 ---
 

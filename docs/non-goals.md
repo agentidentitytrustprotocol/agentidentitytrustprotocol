@@ -48,7 +48,7 @@ This document is non-normative. It explains what AITP intentionally does not add
 
 **Rationale.** Multi-hop requires chain verification, hop limits, trust-penalty formulas, and defenses against chain insertion. These add significant complexity. Most real agent interactions are single-hop. Shipping v0.1 without multi-hop reduces adoption friction while preserving the extension path.
 
-**What AITP does instead.** Specifies single-hop with full security properties (audience binding, PoP, stateless grant verification). Multi-hop is reserved in [RFC-AITP-0011](../rfcs/RFC-AITP-0011-multihop-delegation.md).
+**What AITP does instead.** v0.1 specifies single-hop only, with full security properties (audience binding, PoP, stateless grant verification). Multi-hop is specified in [RFC-AITP-0011](../rfcs/RFC-AITP-0011-multihop-delegation.md) (Draft, post-v0.1) and is not part of v0.1 conformance.
 
 ## 7. Multi-agent session scaling (v0.1)
 
@@ -56,7 +56,7 @@ This document is non-normative. It explains what AITP intentionally does not add
 
 **Rationale.** Bilateral handshakes are O(N²) in a full mesh. A coordinator-distributed Session Trust Bundle would solve this but introduces its own design questions (revocation in flight, membership changes mid-session, etc.).
 
-**What AITP does instead.** Defines bilateral Mutual Handshakes as the building block. The Session Trust Bundle is reserved in [RFC-AITP-0010](../rfcs/RFC-AITP-0010-session-trust-bundle.md).
+**What AITP does instead.** v0.1 defines bilateral Mutual Handshakes as the building block. The Session Trust Bundle is specified in [RFC-AITP-0010](../rfcs/RFC-AITP-0010-session-trust-bundle.md) (Draft, post-v0.1) and is not part of v0.1 conformance.
 
 ## 8. ZK proof verification (v0.1 core)
 

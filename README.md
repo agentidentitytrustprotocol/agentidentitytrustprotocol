@@ -67,8 +67,10 @@ agentidentitytrustprotocol/
     architecture.md
     discovery.md
     GLOSSARY.md
+    implementer-quickstart.md
     integration-guide.md
     non-goals.md
+    operational-guidance.md
     threat-model.md
 
   registries/

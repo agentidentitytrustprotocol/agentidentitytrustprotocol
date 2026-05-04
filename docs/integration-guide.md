@@ -106,19 +106,26 @@ deployment provides equivalent channel binding (mTLS with bound client
 certs, an authenticated message bus, etc.).
 
 To verify PoP, send a fresh challenge nonce (via `pop_challenge` envelope),
-ask the peer to sign `sha256(nonce)`, and verify the response signature
-against `binding.cnf` using the same strict base64url + JCS rules as the
-TCT signature itself. The Mutual Handshake's round-2 PoP exchange already
-binds the TCT to a live key — downstream PoP is the same proof, repeated
-when a TCT is presented after the handshake.
+ask the peer to sign `sha256(base64url_decode(nonce))` — the holder MUST
+hash the **decoded raw bytes** of the nonce, never the base64url ASCII
+string (the unified PoP signing-input convention is in
+[RFC-AITP-0001 §5.4.2](../rfcs/RFC-AITP-0001-core.md#542-pop-signing-input-convention))
+— and verify the response signature against `binding.cnf` using the same
+strict base64url + JCS rules as the TCT signature itself. The Mutual
+Handshake's round-2 PoP exchange already binds the TCT to a live key —
+downstream PoP is the same proof, repeated when a TCT is presented after
+the handshake.
 
 ---
 
 ## Delegating verification to the issuing peer
 
 If you prefer to delegate verification to the issuing peer instead of
-verifying locally, POST a `tct_verify` envelope to the issuing peer's
-verify endpoint (advertised in its Manifest):
+verifying locally, you can POST to the issuing peer's `Verify` endpoint
+(RFC-AITP-0005 §10). The endpoint's URL path and request/response shape
+are **deployment-defined in v0.1** — the RFC names the operation but does
+not pin a wire format. The example below is non-normative; consult the
+issuing peer's published API contract:
 
 ```json
 {
@@ -128,9 +135,9 @@ verify endpoint (advertised in its Manifest):
 }
 ```
 
-On success, the response carries the verified grants list. The issuing
-peer is authoritative for revocation, so this also serves as a freshness
-check.
+On success, the response typically carries the verified grants list. The
+issuing peer is authoritative for revocation, so this also serves as a
+freshness check.
 
 ---
 

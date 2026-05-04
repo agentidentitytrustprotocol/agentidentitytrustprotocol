@@ -10,6 +10,7 @@
     "sequence": [
       {
         "step": 1,
+        "operation": "process_handshake_message",
         "message_id": "550e8400-e29b-41d4-a716-446655440099",
         "expected": {
           "outcome": "success"
@@ -17,6 +18,7 @@
       },
       {
         "step": 2,
+        "operation": "process_handshake_message",
         "message_id": "550e8400-e29b-41d4-a716-446655440099",
         "expected": {
           "outcome": "failure",

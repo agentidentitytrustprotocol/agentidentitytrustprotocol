@@ -117,7 +117,7 @@ This applies to TCT signature, expiry, audience, grant, and PoP validation. Revo
 
 ## 5. Message Envelope
 
-Every AITP protocol message — `mutual_hello`, `mutual_hello_ack`, `mutual_commit`, `mutual_commit_ack`, `tct`, `error` — is wrapped in a standard envelope.
+Every AITP protocol message — `mutual_hello`, `mutual_hello_ack`, `mutual_commit`, `mutual_commit_ack`, `tct`, `pop_challenge`, `pop_response`, `error` — is wrapped in a standard envelope. (`pop_challenge` and `pop_response` are introduced by [RFC-AITP-0005 §6.1](RFC-AITP-0005-tct.md#61-downstream-pop-exchange) and are part of v0.1 conformance for any peer that issues TCTs.)
 
 ### 5.1 Schema
 
@@ -140,7 +140,7 @@ Every AITP protocol message — `mutual_hello`, `mutual_hello_ack`, `mutual_comm
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `version` | string | REQUIRED | MUST be `"aitp/0.1"` for this RFC. |
-| `message_type` | string | REQUIRED | One of: `mutual_hello`, `mutual_hello_ack`, `mutual_commit`, `mutual_commit_ack`, `tct`, `error`. |
+| `message_type` | string | REQUIRED | One of: `mutual_hello`, `mutual_hello_ack`, `mutual_commit`, `mutual_commit_ack`, `tct`, `pop_challenge`, `pop_response`, `error`. |
 | `message_id` | string | REQUIRED | UUID v4, hyphenated lowercase. |
 | `timestamp` | integer | REQUIRED | Unix timestamp (seconds). |
 | `sender.agent_id` | string | REQUIRED | AID of the sending agent. |
@@ -273,6 +273,8 @@ Verifiers MUST NOT reveal which specific policy check failed beyond the error co
 | `MANIFEST_VERSION_UNKNOWN` | Peer's Manifest `version` not supported | false |
 | `INCOMPATIBLE_TRUST_ANCHORS` | No trust-anchor overlap | false |
 | `POP_VERIFICATION_FAILED` | Mutual-handshake PoP signature failed | false |
+| `POP_CHALLENGE_INVALID` | Downstream `pop_challenge` envelope malformed, replayed, or expired | false |
+| `POP_RESPONSE_INVALID` | Downstream `pop_response` envelope or `pop_signature` failed verification | false |
 | `NONCE_MISMATCH` | `pop_nonce_echo` did not match the sent nonce | false |
 | `AUDIENCE_MISMATCH` | TCT audience ≠ self AID | false |
 
@@ -344,7 +346,8 @@ A conformant AITP v0.1 implementation MUST:
 5. Implement the Mutual Handshake defined in [RFC-AITP-0004](RFC-AITP-0004-mutual-handshake.md).
 6. Issue and verify peer-issued TCTs as defined in [RFC-AITP-0005](RFC-AITP-0005-tct.md).
 7. Reject expired, mismatched-audience, or revoked TCTs.
-8. Pass the conformance fixtures in [`schemas/conformance/`](../schemas/conformance/).
+8. Reproduce the canonical-bytes and digest pins in [`schemas/conformance/known-answer/`](../schemas/conformance/known-answer/) byte-for-byte. This includes the four JCS canonicalization vectors (`kat-tct-001`, `kat-manifest-001`, `kat-delegation-001`, `kat-revocation-001`) AND the unified PoP signing-input vector `kat-manifest-pop-001`. Implementations MUST run `kat-manifest-pop-001` through every PoP code path (Manifest PoP, handshake PoP, downstream TCT PoP, pinned-key identity proof) and confirm each produces the pinned signature — see §5.4.2.
+9. Pass the conformance fixtures in [`schemas/conformance/`](../schemas/conformance/).
 
 ---
 

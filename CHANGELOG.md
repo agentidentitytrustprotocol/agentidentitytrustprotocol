@@ -2,11 +2,82 @@
 
 ## Unreleased
 
-RFC improvement pass driven by `plans/aitp-rfc-improvement-plan.md`. Tightens
-ambiguous PoP language in three places, adds the missing rate-limit /
-emergency-rotation / session-revocation normative surfaces, promotes RFCs
-0010 and 0011 from Reserved to Draft (post-v0.1), and adds a KAT vector and
-fixture for the unified PoP signing-input convention.
+RFC improvement pass driven by `plans/aitp-rfc-improvement-plan.md`,
+followed by a deep audit pass that fixed cross-RFC contradictions, schema
+drift, and stale-Reserved wording across docs. Tightens ambiguous PoP
+language in three places, adds the missing rate-limit / emergency-rotation
+/ session-revocation normative surfaces, promotes RFCs 0010 and 0011 from
+Reserved to Draft (post-v0.1), adds a KAT vector and fixture for the
+unified PoP signing-input convention, and lands the audit follow-ups
+below.
+
+### Audit follow-ups (correctness fixes)
+
+- **RFC-AITP-0011 multi-hop chain model.** Replaced the ambiguous chain
+  example with an explicit `DelegationStep` schema and a 3-hop worked
+  example (A→B→C→D). Hop 0 of the chain is a peer-issued TCT projection
+  (RFC-0006 §3.1 GrantProof shape); hops i>0 are intermediate-signed
+  step bodies. RFC-0006 §9 gained the carve-out so multi-hop tokens
+  with a non-empty `chain` are not auto-rejected by v0.2 implementations
+  that opt in.
+- **Schema `extensions` slot.** TCT, delegation, revocation-list,
+  envelope, identity, and all four mutual-handshake payload schemas
+  gained an `extensions` property so v0.2 extension data isn't rejected
+  by v0.1 verifiers (RFC-0001 §7).
+- **Envelope `message_type` enum sync.** RFC-0001 §5 prose and §5 field
+  table now list `pop_challenge` and `pop_response` (already in the
+  envelope schema). New §5.7 entries `POP_CHALLENGE_INVALID` and
+  `POP_RESPONSE_INVALID`.
+- **Cross-reference fix.** RFC-0004 §3 PoP-signing-input note now cites
+  RFC-0005 §6.1 (was §6.2).
+- **Error-code registry.** Added `DELEGATION_HOP_LIMIT_EXCEEDED`,
+  `DELEGATION_CHAIN_HASH_MISMATCH`, `SESSION_BUNDLE_INVALID`,
+  `SESSION_BUNDLE_NOT_MEMBER`, `SESSION_BUNDLE_EXPIRED` (post-v0.1).
+- **discovery.md verification list.** Rewrote to match RFC-0003 §5
+  step order; replaced the stale `manifest.identity` field name with
+  `identity_hint`; removed the (incorrect) identity-proof verification
+  step.
+- **integration-guide.md downstream PoP signing input.** `sha256(nonce)`
+  → `sha256(base64url_decode(nonce))` with cross-link to RFC-0001
+  §5.4.2; the verify-endpoint example is now explicitly non-normative.
+- **Stale "Reserved" wording sweep.** docs/architecture.md,
+  docs/threat-model.md, docs/non-goals.md, docs/GLOSSARY.md, and
+  docs/implementer-quickstart.md no longer describe RFCs 0010 and 0011
+  as "Reserved" — they are Draft (post-v0.1).
+- **Conformance README fixture index.** Added the rc.3 fixtures that
+  were already on disk: `man-003`, `mh-009`, `env-004`, `id-005`/`006`/
+  `007`, `rev-001`/`002`. Documented the `tct_token`+`sequence`
+  context-fields shape (used by `tct-006`).
+- **`mh-001` per-step `operation`.** Added explicit `operation:
+  "process_handshake_message"` to each sequence step so the placeholder
+  convention is satisfied.
+- **KAT placeholder length.** `kat-manifest-001`'s
+  `proof_of_possession.signature` was 88 chars; pattern is 86. Trimmed
+  and recomputed `jcs_canonical_hex`, length, and SHA-256 (vector now
+  re-validates byte-for-byte). Same fix in
+  `aitp-revocation-list.schema.json` example.
+- **Schema vs RFC `accepted_identity_types`.** Dropped
+  `minItems: 1` from `aitp-manifest.schema.json` so the explicit `[]`
+  case described normatively in RFC-0003 §3.2 is schema-valid.
+- **RFC-0008 §4.1.** Issuer JTI history persistence downgraded to
+  SHOULD with explicit cross-reference to §1.3 and explanation of the
+  issuer-side untestable nature.
+- **RFC-PROCESS Draft-stage carve-out.** Added explicit Draft-stage
+  carve-out so RFC-0010 and RFC-0011 can publish without KAT vectors
+  and gain them as RC-promotion blockers; both RFCs now flag the
+  deferral.
+- **RFC-0001 §10 conformance step.** Conformance checklist now
+  explicitly requires the `kat-manifest-pop-001` cross-check across
+  every PoP code path.
+- **RFC-0007 §1 ambiguity.** The cache/inline/well-known list is now
+  explicitly described as sources, not strict priority — the
+  `published_at` override rule below is authoritative.
+- **RFC-0009 §3.3 → §3.1.** The rate-limiting subsection was the only
+  one in §3; renumbered to §3.1 and updated the inline cross-reference.
+- **README repo structure.** docs/ listing now includes
+  `implementer-quickstart.md` and `operational-guidance.md`.
+- **Makefile `make docs`.** Now also lists the conformance README and
+  PLACEHOLDERS.md.
 
 ### Spec bug fixes
 
@@ -27,7 +98,7 @@ fixture for the unified PoP signing-input convention.
   unifies `sha256(base64url_decode(x))` across Manifest PoP, handshake PoP,
   downstream TCT PoP, and the pinned-key identity proof input. All four
   call-sites cross-reference it.
-- **RFC-AITP-0009 §3.3 (Rate limiting, RECOMMENDED).** Per-IP / per-AID
+- **RFC-AITP-0009 §3.1 (Rate limiting, RECOMMENDED).** Per-IP / per-AID
   defaults, payload-size cap, and the protocol-vs-rate-limit ordering
   rule.
 - **RFC-AITP-0009 §1.11 (Manifest PoP bypass).** New threat entry tied

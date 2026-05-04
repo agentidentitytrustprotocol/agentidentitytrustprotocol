@@ -158,10 +158,10 @@ Implementations **SHOULD**:
 
 - Rotate signing keys on a schedule (recommended: 90 days).
 - Pin TLS certificates of frequently-contacted peers in production.
-- Implement rate limiting on the handshake endpoint per §3.3 below.
+- Implement rate limiting on the handshake endpoint per §3.1 below.
 - Re-verify long-lived peer TCTs every 5 minutes by checking the issuer's `ListRevoked` feed.
 
-### 3.3 Rate limiting (RECOMMENDED)
+### 3.1 Rate limiting (RECOMMENDED)
 
 A malicious agent can flood the handshake endpoint with syntactically valid envelopes, each forcing a JWK fetch and signature verification. Rate limiting is a defense-in-depth measure for resource exhaustion; protocol-level replay is handled by the deny list (RFC-AITP-0001 §5.5), which runs before the rate-limit check.
 

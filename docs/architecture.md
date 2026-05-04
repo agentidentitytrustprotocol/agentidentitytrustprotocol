@@ -171,10 +171,13 @@ much. AITP exists to keep that invariant true.
 | **0008 Revocation** | JTI deny list per issuing peer. Each agent revokes what it issued. |
 | **0009 Security** | A2A threat model and required defenses. |
 
-Reserved (numbering pinned, no normative text yet):
+Post-v0.1 (Draft normative text published, NOT part of v0.1 conformance):
 
 - **0010 Session Trust Bundle** — coordinator-mediated trust for N-agent sessions.
 - **0011 Multi-hop Delegation** — chains beyond a single hop.
+
+Reserved (numbering pinned, no normative text yet):
+
 - **0012 Extensions** — `extensions.zk` and `extensions.tee` namespaces.
 
 ---

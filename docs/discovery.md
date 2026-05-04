@@ -71,16 +71,18 @@ A directory service maintained by the ecosystem (or by an organization for its o
 
 ## What does not change across patterns
 
-In all three patterns, the moment A has a candidate `manifest_url`, the AITP normative flow takes over (RFC-AITP-0003 §5):
+In all three patterns, the moment A has a candidate `manifest_url`, the AITP normative flow takes over. The verification order is fixed by [RFC-AITP-0003 §5](../rfcs/RFC-AITP-0003-manifest.md#5-manifest-verification) — perform every step, and stop at the first failure:
 
-1. Fetch the Manifest over HTTPS (validate the TLS certificate).
-2. Verify `manifest.signature` against the public key in `manifest.aid`.
-3. Verify `proof_of_possession.signature` against the same key.
-4. Verify `manifest.identity` per RFC-AITP-0002.
-5. Check `manifest.expires_at` is in the future.
-6. Check trust-anchor compatibility before initiating a handshake.
+1. Fetch the Manifest over HTTPS (validate the TLS certificate). Plain HTTP MUST be rejected.
+2. **Version check** — `manifest.version` MUST be `"aitp/0.1"` (or a later version this implementation supports).
+3. **Expiry check** — `manifest.expires_at` MUST be in the future.
+4. **Proof-of-possession** — verify `proof_of_possession.signature` against the public key in `manifest.aid`. The signing input is `sha256(base64url_decode(challenge))` — the decoded raw bytes, not the ASCII string ([RFC-AITP-0001 §5.4.2](../rfcs/RFC-AITP-0001-core.md#542-pop-signing-input-convention)).
+5. **Manifest signature** — verify `manifest.signature` against the same key.
+6. **Identity-type / trust-anchor compatibility** — screen the published Manifest's `accepted_trust_anchors` (for OIDC peers) or `accepted_identity_types` (for non-OIDC peers) against the fetching peer's own identity, before initiating the handshake.
 
-If any of these fail, the candidate is rejected — regardless of how it was discovered. **Cryptographic verification is the trust boundary.**
+Manifest verification does NOT include identity-proof verification. The Manifest carries `identity_hint` — static metadata declaring which identity provider the agent uses — not a verifiable JWT. Fresh identity proof is exchanged inline during the Mutual Handshake (RFC-AITP-0004 §5.1 step 6).
+
+If any step fails, the candidate is rejected — regardless of how it was discovered. **Cryptographic verification is the trust boundary.**
 
 ---
 

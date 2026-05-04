@@ -151,6 +151,8 @@ A conformant v0.1 implementation that opts into RFC-AITP-0010 MUST expose both o
 
 KAT vectors live in [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json) (`kat-session-bundle-001`, to be added) and pin (coordinator key + N participant TCTs → canonical bundle body → signature). The vector follows the same convention as `kat-tct-001`.
 
+> **Draft-stage deferral.** This RFC is Draft. The KAT vector is deferred to RC promotion per the Draft-stage carve-out in [`governance/RFC-PROCESS.md`](../governance/RFC-PROCESS.md). It is a blocker for moving this RFC out of Review.
+
 ---
 
 ## 10. Security Considerations

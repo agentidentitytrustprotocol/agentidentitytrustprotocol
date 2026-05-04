@@ -21,13 +21,15 @@ This RFC defines both flows.
 
 ## 1. Peer Key Resolution
 
-The peer's public key is encoded in `manifest.aid` (specifically, the AID's `<identifier>` portion). Resolution order:
+The peer's public key is encoded in `manifest.aid` (specifically, the AID's `<identifier>` portion). Resolution sources:
 
 ```
 1. Manifest cache       (in-memory, TTL-backed by manifest.expires_at)
 2. Inline manifest      (received during the Mutual Handshake)
 3. Well-known endpoint  (https://<peer-host>/.well-known/aitp-manifest)
 ```
+
+> **Note.** The numbering above lists the *sources*, not a strict priority order. The decision rules below override the linear list — in particular, an inline Manifest with a newer `published_at` overrides a cached one even when the cached Manifest is unexpired.
 
 Implementations MUST:
 
