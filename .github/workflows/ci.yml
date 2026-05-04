@@ -45,10 +45,30 @@ jobs:
           fi
           echo "✓ No .DS_Store or __MACOSX entries found"
 
+      - name: Release dry-run (verify archive contents)
+        run: |
+          set -e
+          make release RELEASE_VERSION=ci-dryrun
+          archive="../agentidentitytrustprotocol-ci-dryrun.zip"
+          if [ ! -f "$archive" ]; then
+            echo "::error::Release archive not produced at $archive"
+            exit 1
+          fi
+          echo "── Archive contents ──"
+          unzip -l "$archive"
+          echo "── Verifying excluded paths are absent ──"
+          if unzip -l "$archive" | grep -E '(\.git/|\.DS_Store|__MACOSX|/temp/|/\.claude/|/CLAUDE\.md|/plans/|/node_modules/)'; then
+            echo "::error::Release archive contains excluded paths"
+            exit 1
+          fi
+          echo "✓ Archive excludes all sanctioned-exclusion paths"
+          rm -f "$archive"
+
       - name: Summary
         run: |
           echo "✓ All AITP v0.1 validations passed"
           echo "  - JSON Schemas valid"
           echo "  - JSON examples valid"
-          echo "  - Conformance fixtures valid"
+          echo "  - Conformance fixtures + KAT vectors valid"
           echo "  - No release junk in tree"
+          echo "  - Release archive dry-run clean"

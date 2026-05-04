@@ -13,7 +13,7 @@ start; there is no earlier service-consumer version to migrate from.
 | JSON Schema namespace | `$id` URI on each canonical schema | `https://aitp.dev/schema/v0.1/...` | Breaking changes bump the path segment to `v0.2/`. |
 | TCT version | `version` inside the TCT | `aitp/0.1` | Mirrors the protocol version. Consumers MUST reject unknown versions. |
 | Manifest version | `version` inside the Manifest | `aitp/0.1` | Mirrors the protocol version. |
-| RFC version | RFC document `Version:` header | `0.1.0-draft` | Tracks status (`-draft`, `-rc`, `-final`). |
+| RFC version | RFC document `Version:` header | `0.1.0-rc.3` | Tracks status (`-draft`, `-rc.N`, `-final`). |
 
 ## Change classes
 

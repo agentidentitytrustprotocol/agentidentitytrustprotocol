@@ -2,8 +2,8 @@
 # Agent Identity & Trust Protocol (AITP) — Core
 
 **Document:** RFC-AITP-0001
-**Version:** 0.1.0-draft
-**Status:** Community Standards Track (Draft)
+**Version:** 0.1.0-rc.3
+**Status:** Community Standards Track (Release Candidate)
 **Canonical wire format:** JSON
 **Normative transport:** HTTPS (any HTTP/1.1+ runtime)
 **Canonical signing input:** RFC 8785 (JCS) canonical JSON

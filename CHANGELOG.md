@@ -1,5 +1,52 @@
 # Changelog
 
+## v0.1.0-rc.3
+
+Conformance suite expansion and tooling hardening. No protocol architecture
+changes. Spec bumped to `rc.3` across all RFC headers, README, VERSIONING,
+and the Makefile release default.
+
+### Conformance fixtures
+
+- Added 9 negative-case conformance fixtures covering replay
+  (`env-004-replay-message-id-rejected`), pinned-key proof scenarios
+  (`id-005`/`id-006`/`id-007`), manifest cache expiry
+  (`man-003-cache-expired-rejected`), identity-type mismatch
+  (`mh-009-identity-type-mismatch-rejected`), revocation freshness
+  (`rev-001-stale-snapshot-fail-closed`, `rev-002-soft-fail-safe-subset`),
+  and TCT lifetime overrun (`tct-005-expires-after-manifest-rejected`).
+- Re-signed `kat-keypair-001-manifest.json` against the latest pinned-key
+  proof binding (cross-checked against `aitp-rs` minting output).
+
+### Tooling
+
+- **Format constraints now enforced.** `scripts/validate-json-schema.sh` and
+  `scripts/validate-json.sh` load `ajv-formats` (`-c ajv-formats`); `format:
+  uri` and `format: uuid` constraints in the schemas are no longer silently
+  ignored.
+- **Known-answer vectors now validated in CI.** `validate-json.sh` recurses
+  into `schemas/conformance/known-answer/` and `schemas/conformance/known-
+  answer/signed-examples/`. Signed-example artifacts are validated against
+  their canonical schemas after stripping the top-level `_kat_input`
+  companion. Total artifacts now validated: 44 (was 28 in the rc.1 entry).
+
+### Documentation
+
+- README §Reading order now lists `docs/implementer-quickstart.md` and
+  `docs/operational-guidance.md`. Both files exist on disk; the rc.1 README
+  silently omitted them.
+- `Makefile` `docs` target reorganised into "Normative" and "Reserved"
+  reading sections so reserved RFC-0010/0011/0012 are no longer presented
+  as items 16-18 of a single linear sequence.
+
+### CI
+
+- Release dry-run added: CI now runs `make release` and lists the produced
+  archive contents so accidental inclusion of `plans/`, `.claude/`,
+  `CLAUDE.md`, or `.DS_Store` is caught at PR time.
+
+---
+
 ## v0.1.0 (final simplification pass)
 
 Editorial pass for v0.1.0. No protocol architecture changes — TCT

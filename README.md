@@ -1,7 +1,7 @@
 # Agent Identity & Trust Protocol (AITP)
 
-**Version:** 0.1.0-draft
-**Status:** Community Standards Track (Draft)
+**Version:** 0.1.0-rc.3
+**Status:** Community Standards Track (Release Candidate)
 **Canonical wire format:** JSON
 **Normative transport:** HTTPS
 **Canonical signing input:** RFC 8785 (JCS) canonical JSON
@@ -129,6 +129,8 @@ If you are new to AITP, read in this order:
 12. **[RFC-AITP-0009 Security](rfcs/RFC-AITP-0009-security.md)** — threat model.
 13. **[docs/discovery.md](docs/discovery.md)** — initial peer discovery patterns (non-normative).
 14. **[docs/integration-guide.md](docs/integration-guide.md)** — consuming a peer-issued TCT in code.
+15. **[docs/implementer-quickstart.md](docs/implementer-quickstart.md)** — one-page reading order for someone building an AITP peer.
+16. **[docs/operational-guidance.md](docs/operational-guidance.md)** — renewal patterns, Manifest rotation, cache TTL tuning, failure modes (non-normative).
 
 ---
 

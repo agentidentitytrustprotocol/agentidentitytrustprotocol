@@ -25,7 +25,7 @@ for schema_file in "${SCHEMA_DIR}"/*.schema.json; do
     if [ -f "$schema_file" ]; then
         TOTAL=$((TOTAL + 1))
         echo "Validating: $(basename "$schema_file")"
-        if ajv compile -s "${schema_file}" --spec=draft2020 --strict=false; then
+        if ajv compile -s "${schema_file}" --spec=draft2020 --strict=false -c ajv-formats; then
             VALIDATED=$((VALIDATED + 1))
             echo "  ✓ Valid"
         else

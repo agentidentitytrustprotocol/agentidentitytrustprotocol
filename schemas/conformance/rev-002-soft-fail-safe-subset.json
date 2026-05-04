@@ -1,0 +1,33 @@
+{
+  "id": "rev-002",
+  "description": "Same shape as `rev-001`, but the verifier's policy is `SoftFail`: a stale or unreachable snapshot MUST NOT cause hard rejection. Implementations MAY emit telemetry; the wire-level outcome is `success` (or, equivalently, `revoked = false`). This fixture protects callers that prefer availability over revocation freshness in low-value flows. (RFC-AITP-0008 §1.5; alpha.5 P12.)",
+  "tags": [
+    "success",
+    "revocation",
+    "policy",
+    "soft-fail"
+  ],
+  "input": {
+    "policy": {
+      "fail_mode": "soft_fail",
+      "max_staleness_secs": 3600
+    },
+    "now": 1711990000,
+    "expected_issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "snapshot": {
+      "revocation_list": {
+        "version": "aitp/0.1",
+        "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+        "published_at": 1711800000,
+        "expires_at": 1712076400,
+        "entries": []
+      },
+      "signature": "MeoTSIvDs6ZC60l58cYPagl5IP7srYAmTNntPbq7aDNxU6FpiONkydUPlfJc0vBj3fxT06R5Go1NMugzaHc-DA"
+    },
+    "operation": "verify_revocation_snapshot"
+  },
+  "expected": {
+    "outcome": "success",
+    "rationale": "SoftFail returns `revoked = false` for the queried JTI. Implementations MAY surface a telemetry event flagging the staleness."
+  }
+}

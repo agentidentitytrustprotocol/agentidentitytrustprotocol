@@ -91,3 +91,5 @@ $RECYCLE.BIN/
 # Test coverage
 coverage/
 *.lcov
+
+plans/

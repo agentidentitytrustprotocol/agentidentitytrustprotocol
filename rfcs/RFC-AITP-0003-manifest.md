@@ -2,8 +2,8 @@
 # Agent Manifest
 
 **Document:** RFC-AITP-0003
-**Version:** 0.1.0-draft
-**Status:** Draft
+**Version:** 0.1.0-rc.3
+**Status:** Release Candidate
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0002 Identity](RFC-AITP-0002-identity.md)
 
 ---
