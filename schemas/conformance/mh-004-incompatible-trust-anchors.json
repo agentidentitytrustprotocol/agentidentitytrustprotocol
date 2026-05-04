@@ -1,6 +1,6 @@
 {
   "id": "mh-004",
-  "description": "Peer's identity issuer is not present in the receiving peer's trust_anchors. The handshake MUST fail with INCOMPATIBLE_TRUST_ANCHORS \u2014 there is no shared verifier in v0.1.",
+  "description": "Peer's identity issuer is not present in the receiving peer's trust_anchors. The handshake MUST fail with INCOMPATIBLE_TRUST_ANCHORS — there is no shared verifier in v0.1.",
   "tags": [
     "mutual-handshake",
     "trust-anchors",
@@ -15,20 +15,20 @@
       "version": "aitp/0.1",
       "message_type": "mutual_hello",
       "message_id": "660e8400-e29b-41d4-a716-446655440103",
-      "timestamp": "__NOW__",
+      "timestamp": 1711900000,
       "sender": {
-        "agent_id": "aid:pubkey:peerA_pubkey_AID_v01_placeholder_aaaaaaaaaa"
+        "agent_id": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik"
       },
       "payload": {
         "identity": {
           "type": "oidc",
           "issuer": "https://auth.unknown-vendor.example",
           "subject": "agent-A",
-          "proof": "__VALID_JWT_FROM_UNKNOWN_ISSUER__"
+          "proof": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZ2VudC1BIiwiaWF0IjoxNzExOTAwMDAwLCJleHAiOjE3MTE5MDM2MDAsIm5vbmNlIjoiY1ktRmhBYVM0Y3o1UFpNaUVJR2tqZyIsImF1ZCI6ImFpZDpwdWJrZXk6TzJvbnZNNjJwQzFpbzZqUUttOE5jMlV5RlhjZDRrT21Pc0JJb1l0WjJpayIsImNuZiI6eyJqa3QiOiI5WlAwM051OEdyWFBBVWtiS054SE9LQnp4UFg4M1NTaGdGa1JOSy1mMmx3In19._fO3OZ9NGOew1H_FizHCiKaUEoEZKEPHl1cs65BzuQU"
         },
         "manifest": {
           "version": "aitp/0.1",
-          "aid": "aid:pubkey:peerA_pubkey_AID_v01_placeholder_aaaaaaaaaa",
+          "aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
           "handshake_endpoint": "https://a.agents.example.com/aitp/handshake",
           "accepted_trust_anchors": [
             "https://auth.unknown-vendor.example"
@@ -38,25 +38,26 @@
           ],
           "required_peer_capabilities": [],
           "proof_of_possession": {
-            "challenge": "Y2hhbGxlbmdlX2Jhc2U2NHVybF8xMjhiaXQ",
-            "signature": "__VALID_POP_SIG__"
+            "challenge": "E1P1xitRfiKsGDoeyKCI0w",
+            "signature": "F20pIWS0eVafhkASofMiTKFwfBLR3IDnFXSQAzPMT20UCVb2UMoi7LtARhCwIaPwAlQCWNRvv61hl-3aNkPiCw"
           },
           "published_at": 1711899000,
           "expires_at": 1711985400,
-          "signature": "__VALID_MANIFEST_SIG__",
           "identity_hint": {
             "type": "oidc",
             "issuer": "https://auth.unknown-vendor.example",
             "subject": "agent-A"
-          }
+          },
+          "signature": "lOQ57QGJzJGI6lonVMPcxv9Gpj7xQwx6q4m29_NqJuyUPHLmi3ShbUSbbk2w5P1YIXrp5P61g33Z6Ta_9pkeAw"
         },
         "requested_grants": [
           "macp.mode.task.v1"
         ],
-        "pop_nonce": "__VALID_NONCE__"
+        "pop_nonce": "cY-FhAaS4cz5PZMiEIGkjg"
       },
-      "signature": "__VALID_ENVELOPE_SIG__"
-    }
+      "signature": "rO71JCMmLQaiiqH_ESAMWo9g6WZoHLnR-rn8sTzwWE6QdT9xfTGRiO24hlfeETiDc1sOBK3AwRq-F0cZjtZdAg"
+    },
+    "operation": "verify_handshake_payload"
   },
   "expected": {
     "outcome": "failure",

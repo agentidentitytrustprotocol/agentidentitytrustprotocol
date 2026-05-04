@@ -12,20 +12,20 @@
       "version": "aitp/0.1",
       "message_type": "mutual_hello",
       "message_id": "660e8400-e29b-41d4-a716-446655440101",
-      "timestamp": "__NOW__",
+      "timestamp": 1711900000,
       "sender": {
-        "agent_id": "aid:pubkey:attacker_pubkey_AID_v01_placeholder_XXXXXXX"
+        "agent_id": "aid:pubkey:OzIbdL3LFp9yYMYFkru2PZtNYpQkoMWK_0ZAp18KKwY"
       },
       "payload": {
         "identity": {
           "type": "oidc",
           "issuer": "https://auth.openai.com",
           "subject": "agent-attacker",
-          "proof": "__VALID_JWT__"
+          "proof": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZ2VudC1hdHRhY2tlciIsImlhdCI6MTcxMTkwMDAwMCwiZXhwIjoxNzExOTAzNjAwLCJub25jZSI6ImJRODhraUNocnlUS2R1c2tMWFNDTmciLCJhdWQiOiJhaWQ6cHVia2V5Ok8yb252TTYycEMxaW82alFLbThOYzJVeUZYY2Q0a09tT3NCSW9ZdFoyaWsiLCJjbmYiOnsiamt0Ijoid0otWnBNTlFpSUdZY1Q3bFpkaFlRcG1aeHFaSGNVWWVkRzR4UXlwcnJYQSJ9fQ.9lAw9rqGlzxRhW-5v_nFIREQnWHqghWsD-yMvP8BJ1I"
         },
         "manifest": {
           "version": "aitp/0.1",
-          "aid": "aid:pubkey:attacker_pubkey_AID_v01_placeholder_XXXXXXX",
+          "aid": "aid:pubkey:OzIbdL3LFp9yYMYFkru2PZtNYpQkoMWK_0ZAp18KKwY",
           "handshake_endpoint": "https://attacker.example.com/aitp/handshake",
           "accepted_trust_anchors": [
             "https://auth.openai.com"
@@ -35,25 +35,26 @@
           ],
           "required_peer_capabilities": [],
           "proof_of_possession": {
-            "challenge": "dGFtcGVyZWRfY2hhbGxlbmdlX2Jhc2U2NHVybA",
-            "signature": "__VALID_POP_SIG__"
+            "challenge": "kRQWvJDo2lalpVM-8UTxHw",
+            "signature": "EI-SkGjNMp6Id9map04hCKJ-erKrYZKGGNd0smz8ECkJC8vcb0tEVcIKrmk3_MbkBsATbRS-50TpJzeZAEeNDg"
           },
           "published_at": 1711899000,
           "expires_at": 1711985400,
-          "signature": "__TAMPERED_SIGNATURE__",
           "identity_hint": {
             "type": "oidc",
             "issuer": "https://auth.openai.com",
             "subject": "agent-attacker"
-          }
+          },
+          "signature": "JompHlgAW66_jTijQlwdoGS-TMtflBlf5jCKQSP2XykdWDFMhvgjPIUcxVb4o4ftPQnltoXbC57fTOWLIpvlAg"
         },
         "requested_grants": [
           "macp.mode.task.v1"
         ],
-        "pop_nonce": "__VALID_NONCE__"
+        "pop_nonce": "bQ88kiChryTKduskLXSCNg"
       },
-      "signature": "__VALID_ENVELOPE_SIG__"
-    }
+      "signature": "Bb-q4fHkbUpZt0tViYhEdD21946sXcS_gEEnj7lzUy98t74WVwpZ9EbYYaKXjFP04uv4Z_DmCxoAu4or4z6RCg"
+    },
+    "operation": "verify_handshake_payload"
   },
   "expected": {
     "outcome": "failure",

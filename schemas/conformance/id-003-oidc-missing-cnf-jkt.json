@@ -1,6 +1,6 @@
 {
   "id": "id-003",
-  "description": "Peer's OIDC identity JWT is otherwise valid but is missing the `cnf.jkt` claim. Without `cnf.jkt` the verifier cannot bind the JWT to the AID's public key \u2014 anyone could replay the JWT against a different AID. The receiving peer MUST reject with IDENTITY_FAILED (RFC-AITP-0002 \u00a72.3).",
+  "description": "Peer's OIDC identity JWT is otherwise valid but is missing the `cnf.jkt` claim. Without `cnf.jkt` the verifier cannot bind the JWT to the AID's public key — anyone could replay the JWT against a different AID. The receiving peer MUST reject with IDENTITY_FAILED (RFC-AITP-0002 §2.3).",
   "tags": [
     "security",
     "identity",
@@ -9,25 +9,25 @@
   ],
   "input": {
     "step": "received MUTUAL_HELLO from peer",
-    "self_aid": "aid:pubkey:verifier_pubkey_AID_v01_placeholder_vvvvvvv",
+    "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
     "envelope": {
       "version": "aitp/0.1",
       "message_type": "mutual_hello",
       "message_id": "770e8400-e29b-41d4-a716-446655440203",
-      "timestamp": "__NOW__",
+      "timestamp": 1711900000,
       "sender": {
-        "agent_id": "aid:pubkey:peerA_pubkey_AID_v01_placeholder_aaaaaaaaaa"
+        "agent_id": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik"
       },
       "payload": {
         "identity": {
           "type": "oidc",
           "issuer": "https://auth.openai.com",
           "subject": "agent-A",
-          "proof": "__JWT_MISSING_CNF_JKT_CLAIM__"
+          "proof": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZ2VudC1BIiwiaWF0IjoxNzExOTAwMDAwLCJleHAiOjE3MTE5MDM2MDAsIm5vbmNlIjoiWkNneTBkTkpmbHJuSUJtMHJrRTc4ZyIsImF1ZCI6ImFpZDpwdWJrZXk6TzJvbnZNNjJwQzFpbzZqUUttOE5jMlV5RlhjZDRrT21Pc0JJb1l0WjJpayJ9.LJykmCojGXNM2CviuFLPIcNo9pWJuGrWUjb_Id_0_F8"
         },
         "manifest": {
           "version": "aitp/0.1",
-          "aid": "aid:pubkey:peerA_pubkey_AID_v01_placeholder_aaaaaaaaaa",
+          "aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
           "handshake_endpoint": "https://a.agents.example.com/aitp/handshake",
           "accepted_trust_anchors": [
             "https://auth.openai.com"
@@ -37,25 +37,26 @@
           ],
           "required_peer_capabilities": [],
           "proof_of_possession": {
-            "challenge": "Y2hhbGxlbmdlX2Jhc2U2NHVybF8xMjhiaXQ",
-            "signature": "__VALID_POP_SIG__"
+            "challenge": "E1P1xitRfiKsGDoeyKCI0w",
+            "signature": "F20pIWS0eVafhkASofMiTKFwfBLR3IDnFXSQAzPMT20UCVb2UMoi7LtARhCwIaPwAlQCWNRvv61hl-3aNkPiCw"
           },
           "published_at": 1711899000,
           "expires_at": 1711985400,
-          "signature": "__VALID_MANIFEST_SIG__",
           "identity_hint": {
             "type": "oidc",
             "issuer": "https://auth.openai.com",
             "subject": "agent-A"
-          }
+          },
+          "signature": "PJ2gRlr6o6tdUsQim0s4zza9Xcj0qzFy60Ns4dZNvb1Oo2cUTM4yWCT8EydILWpu3IKZrXlyuCHSjyr1A9qDAw"
         },
         "requested_grants": [
           "macp.mode.task.v1"
         ],
-        "pop_nonce": "__VALID_NONCE__"
+        "pop_nonce": "ZCgy0dNJflrnIBm0rkE78g"
       },
-      "signature": "__VALID_ENVELOPE_SIG__"
-    }
+      "signature": "-5vy3-2C6vtemt3qXr-vpR_h-U0p-HOKZtcNPAYI5Hgq2pr_P048qd2iwHRpyIu1PijNJtgf8Twpt1swUCs6DQ"
+    },
+    "operation": "verify_handshake_payload"
   },
   "expected": {
     "outcome": "failure",

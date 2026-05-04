@@ -1,6 +1,6 @@
 {
   "id": "mh-003",
-  "description": "Peer's Manifest signature validates but its proof_of_possession.signature does not validate against manifest.aid. The receiving peer MUST reject the handshake \u2014 the Manifest could be a replay across agents.",
+  "description": "Peer's Manifest signature validates but its proof_of_possession.signature does not validate against manifest.aid. The receiving peer MUST reject the handshake — the Manifest could be a replay across agents.",
   "tags": [
     "security",
     "mutual-handshake",
@@ -13,20 +13,20 @@
       "version": "aitp/0.1",
       "message_type": "mutual_hello",
       "message_id": "660e8400-e29b-41d4-a716-446655440102",
-      "timestamp": "__NOW__",
+      "timestamp": 1711900000,
       "sender": {
-        "agent_id": "aid:pubkey:peerA_pubkey_AID_v01_placeholder_aaaaaaaaaa"
+        "agent_id": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik"
       },
       "payload": {
         "identity": {
           "type": "oidc",
           "issuer": "https://auth.openai.com",
           "subject": "agent-A",
-          "proof": "__VALID_JWT__"
+          "proof": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZ2VudC1BIiwiaWF0IjoxNzExOTAwMDAwLCJleHAiOjE3MTE5MDM2MDAsIm5vbmNlIjoiNzdveXk0a1VSZFlrcDhaa21XakFoUSIsImF1ZCI6ImFpZDpwdWJrZXk6TzJvbnZNNjJwQzFpbzZqUUttOE5jMlV5RlhjZDRrT21Pc0JJb1l0WjJpayIsImNuZiI6eyJqa3QiOiI5WlAwM051OEdyWFBBVWtiS054SE9LQnp4UFg4M1NTaGdGa1JOSy1mMmx3In19.7mLw5Tj7eaxD39Cwwy1PupE8GveBJl0HbydfeUJGMSQ"
         },
         "manifest": {
           "version": "aitp/0.1",
-          "aid": "aid:pubkey:peerA_pubkey_AID_v01_placeholder_aaaaaaaaaa",
+          "aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
           "handshake_endpoint": "https://a.agents.example.com/aitp/handshake",
           "accepted_trust_anchors": [
             "https://auth.openai.com"
@@ -36,25 +36,26 @@
           ],
           "required_peer_capabilities": [],
           "proof_of_possession": {
-            "challenge": "Y2hhbGxlbmdlX2Jhc2U2NHVybF8xMjhiaXQ",
-            "signature": "__INVALID_POP_SIG__"
+            "challenge": "E1P1xitRfiKsGDoeyKCI0w",
+            "signature": "F20pIWS0eVafhkASofMiTKFwfBLR3IDnFXSQAzPMT20UCVb2UMoi7LtARhCwIaPwAlQCWNRvv61hl-3aNkPiCg"
           },
           "published_at": 1711899000,
           "expires_at": 1711985400,
-          "signature": "__VALID_MANIFEST_SIG__",
           "identity_hint": {
             "type": "oidc",
             "issuer": "https://auth.openai.com",
             "subject": "agent-A"
-          }
+          },
+          "signature": "PJ2gRlr6o6tdUsQim0s4zza9Xcj0qzFy60Ns4dZNvb1Oo2cUTM4yWCT8EydILWpu3IKZrXlyuCHSjyr1A9qDAw"
         },
         "requested_grants": [
           "macp.mode.task.v1"
         ],
-        "pop_nonce": "__VALID_NONCE__"
+        "pop_nonce": "77oyy4kURdYkp8ZkmWjAhQ"
       },
-      "signature": "__VALID_ENVELOPE_SIG__"
-    }
+      "signature": "BCl4kICjUx8XI7Dw1AMlszIF-iQPzbnSCdLIdKViJ9LOHrKl90pZzx7pomaGS5fYv0WyQ7_IF32DCmFdTWvzCA"
+    },
+    "operation": "verify_handshake_payload"
   },
   "expected": {
     "outcome": "failure",

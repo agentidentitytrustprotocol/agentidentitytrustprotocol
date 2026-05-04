@@ -1,36 +1,51 @@
 {
   "id": "mh-006",
   "description": "Peer-issued TCT delivered in MUTUAL_COMMIT_ACK has an audience that is not the receiving peer's own AID. The receiving peer MUST reject with AUDIENCE_MISMATCH — the TCT could be a redirected token bound to a different agent.",
-  "tags": ["security", "mutual-handshake", "tct", "confused-deputy"],
+  "tags": [
+    "security",
+    "mutual-handshake",
+    "tct",
+    "confused-deputy"
+  ],
   "input": {
     "step": "initiator received MUTUAL_COMMIT_ACK",
-    "self_aid": "aid:pubkey:initiator_pubkey_AID_v01_placeholder_iiiiii",
+    "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
     "envelope": {
       "version": "aitp/0.1",
       "message_type": "mutual_commit_ack",
       "message_id": "660e8400-e29b-41d4-a716-446655440105",
-      "timestamp": "__NOW__",
-      "sender": { "agent_id": "aid:pubkey:peerB_pubkey_AID_v01_placeholder_bbbbbbbbbb" },
+      "timestamp": 1711900000,
+      "sender": {
+        "agent_id": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+      },
       "payload": {
         "tct_for_peer": {
           "tct": {
             "version": "aitp/0.1",
             "jti": "660e8400-e29b-41d4-a716-446655440106",
-            "issuer": "aid:pubkey:peerB_pubkey_AID_v01_placeholder_bbbbbbbbbb",
-            "subject": "aid:pubkey:initiator_pubkey_AID_v01_placeholder_iiiiii",
-            "audience": "aid:pubkey:someOtherAgent_pubkey_AID_v01_placeholderoo",
+            "issuer": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+            "subject": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+            "audience": "aid:pubkey:JIrL26-eBQGW3nBL6i1odw5RkVDRA7WH2uLZytU92TA",
             "issued_at": 1711900250,
             "expires_at": 1711903850,
-            "grants": ["macp.mode.task.v1"],
-            "binding": { "cnf": "initiator_pubkey_AID_v01_placeholder_iiiiii" },
-            "signature": "__VALID_TCT_SIG__"
+            "grants": [
+              "macp.mode.task.v1"
+            ],
+            "binding": {
+              "cnf": "O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik"
+            },
+            "signature": "3kVVC8LrC1OiHAx3cSNcJwi_XQewe9NsMxKFdA4k2zJsETBmsZafQbRINaXYEknEoQTok7lt7xkp7PCy4fNkDg"
           }
         },
-        "pop_signature": "__VALID_POP_SIG__",
-        "pop_nonce_echo": "__VALID_NONCE_ECHO__"
+        "pop_signature": "cI49wVRg_P9WWzUqgNEUYOKhnxkAO6sK2PyBAUgU8-E6tiXNejj7OkiS9AZqFF8uWa3xBBicDuWsWEc4v-gEAg",
+        "pop_nonce_echo": "BpXqahnKymUSJhsuv8NC_Q"
       },
-      "signature": "__VALID_ENVELOPE_SIG__"
-    }
+      "signature": "UDlz4XSlxNeCGM4Nboq0wmzKGgLZSxWbT8N6QY3fvo8sG6iv5earOI5MDV7WI43ep2T6MwhsuARcUVLhZX9nDg"
+    },
+    "operation": "verify_handshake_payload"
   },
-  "expected": { "outcome": "failure", "error_code": "AUDIENCE_MISMATCH" }
+  "expected": {
+    "outcome": "failure",
+    "error_code": "AUDIENCE_MISMATCH"
+  }
 }

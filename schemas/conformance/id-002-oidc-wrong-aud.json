@@ -1,6 +1,6 @@
 {
   "id": "id-002",
-  "description": "Peer's OIDC identity JWT carries an `aud` claim that targets a different peer's AID, not the receiving peer's. The receiving peer MUST reject with IDENTITY_FAILED \u2014 accepting a JWT minted for someone else would allow the holder to impersonate the subject across audiences (RFC-AITP-0002 \u00a72.2).",
+  "description": "Peer's OIDC identity JWT carries an `aud` claim that targets a different peer's AID, not the receiving peer's. The receiving peer MUST reject with IDENTITY_FAILED — accepting a JWT minted for someone else would allow the holder to impersonate the subject across audiences (RFC-AITP-0002 §2.2).",
   "tags": [
     "security",
     "identity",
@@ -10,26 +10,26 @@
   ],
   "input": {
     "step": "received MUTUAL_HELLO from peer",
-    "self_aid": "aid:pubkey:verifier_pubkey_AID_v01_placeholder_vvvvvvv",
-    "jwt_aud_claim": "aid:pubkey:someOtherAgent_pubkey_AID_v01_placeholderoo",
+    "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "jwt_aud_claim": "aid:pubkey:JIrL26-eBQGW3nBL6i1odw5RkVDRA7WH2uLZytU92TA",
     "envelope": {
       "version": "aitp/0.1",
       "message_type": "mutual_hello",
       "message_id": "770e8400-e29b-41d4-a716-446655440202",
-      "timestamp": "__NOW__",
+      "timestamp": 1711900000,
       "sender": {
-        "agent_id": "aid:pubkey:peerA_pubkey_AID_v01_placeholder_aaaaaaaaaa"
+        "agent_id": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik"
       },
       "payload": {
         "identity": {
           "type": "oidc",
           "issuer": "https://auth.openai.com",
           "subject": "agent-A",
-          "proof": "__JWT_AUD_TARGETS_DIFFERENT_PEER__"
+          "proof": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZ2VudC1BIiwiaWF0IjoxNzExOTAwMDAwLCJleHAiOjE3MTE5MDM2MDAsIm5vbmNlIjoiRlEyRWNHUTZhTnNPVFdRVThEdjJvUSIsImF1ZCI6ImFpZDpwdWJrZXk6ZHFGWklFU201UFVSSmx2S2M2WUUyUXNGS2RIZllDdmpDaG1wSlhaZzBmVSIsImNuZiI6eyJqa3QiOiI5WlAwM051OEdyWFBBVWtiS054SE9LQnp4UFg4M1NTaGdGa1JOSy1mMmx3In19.sVVQb2-IYVp90K7voMsy8jMDVfUtPS1QoUVpaPzvNak"
         },
         "manifest": {
           "version": "aitp/0.1",
-          "aid": "aid:pubkey:peerA_pubkey_AID_v01_placeholder_aaaaaaaaaa",
+          "aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
           "handshake_endpoint": "https://a.agents.example.com/aitp/handshake",
           "accepted_trust_anchors": [
             "https://auth.openai.com"
@@ -39,25 +39,26 @@
           ],
           "required_peer_capabilities": [],
           "proof_of_possession": {
-            "challenge": "Y2hhbGxlbmdlX2Jhc2U2NHVybF8xMjhiaXQ",
-            "signature": "__VALID_POP_SIG__"
+            "challenge": "E1P1xitRfiKsGDoeyKCI0w",
+            "signature": "F20pIWS0eVafhkASofMiTKFwfBLR3IDnFXSQAzPMT20UCVb2UMoi7LtARhCwIaPwAlQCWNRvv61hl-3aNkPiCw"
           },
           "published_at": 1711899000,
           "expires_at": 1711985400,
-          "signature": "__VALID_MANIFEST_SIG__",
           "identity_hint": {
             "type": "oidc",
             "issuer": "https://auth.openai.com",
             "subject": "agent-A"
-          }
+          },
+          "signature": "PJ2gRlr6o6tdUsQim0s4zza9Xcj0qzFy60Ns4dZNvb1Oo2cUTM4yWCT8EydILWpu3IKZrXlyuCHSjyr1A9qDAw"
         },
         "requested_grants": [
           "macp.mode.task.v1"
         ],
-        "pop_nonce": "__VALID_NONCE__"
+        "pop_nonce": "FQ2EcGQ6aNsOTWQU8Dv2oQ"
       },
-      "signature": "__VALID_ENVELOPE_SIG__"
-    }
+      "signature": "iiSL3qUJ7ofiVm0SNpFzqcfWEPrOXUsc3S8w63B7tvq8AheP8JymIr7RLlnTdDF6g9CiEpRyI9fXATw6rqr9CA"
+    },
+    "operation": "verify_handshake_payload"
   },
   "expected": {
     "outcome": "failure",

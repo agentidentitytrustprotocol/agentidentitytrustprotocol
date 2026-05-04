@@ -1,7 +1,11 @@
 {
   "id": "mh-008",
   "description": "MUTUAL_COMMIT carries a pop_signature that does not validate against the sender's AID public key when verified over sha256(receiver_pop_nonce). The receiver MUST reject with POP_VERIFICATION_FAILED — without a valid PoP the sender has not proven possession of the live private key.",
-  "tags": ["security", "mutual-handshake", "pop"],
+  "tags": [
+    "security",
+    "mutual-handshake",
+    "pop"
+  ],
   "input": {
     "step": "target received MUTUAL_COMMIT",
     "self_pop_nonce_sent_in_hello_ack": "Yl9wb3Bfbm9uY2VfMTI4Yml0X2Jhc2U2NHVybA",
@@ -9,28 +13,38 @@
       "version": "aitp/0.1",
       "message_type": "mutual_commit",
       "message_id": "660e8400-e29b-41d4-a716-446655440109",
-      "timestamp": "__NOW__",
-      "sender": { "agent_id": "aid:pubkey:initiator_pubkey_AID_v01_placeholder_iiiiii" },
+      "timestamp": 1711900000,
+      "sender": {
+        "agent_id": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik"
+      },
       "payload": {
         "tct_for_peer": {
           "tct": {
             "version": "aitp/0.1",
             "jti": "660e8400-e29b-41d4-a716-446655440110",
-            "issuer": "aid:pubkey:initiator_pubkey_AID_v01_placeholder_iiiiii",
-            "subject": "aid:pubkey:peerB_pubkey_AID_v01_placeholder_bbbbbbbbbb",
-            "audience": "aid:pubkey:peerB_pubkey_AID_v01_placeholder_bbbbbbbbbb",
+            "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+            "subject": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+            "audience": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
             "issued_at": 1711900200,
             "expires_at": 1711903800,
-            "grants": ["macp.mode.task.v1"],
-            "binding": { "cnf": "peerB_pubkey_AID_v01_placeholder_bbbbbbbbbb" },
-            "signature": "__VALID_TCT_SIG__"
+            "grants": [
+              "macp.mode.task.v1"
+            ],
+            "binding": {
+              "cnf": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+            },
+            "signature": "SkHVRyL5gefnkGSQgiogoS_1VPNPQ2Uk3Nskl8TD9sEfI6x0j5l5Lb2hNU_867LDoi_i9SyJ3Q66iOKUjyQ4Bg"
           }
         },
-        "pop_signature": "__INVALID_POP_SIG_OVER_WRONG_NONCE__",
+        "pop_signature": "HobmIjk4VRd_fgi3zkca89FyY5IyTAkxCpLk0K4tnIbQEk7JGfxY8E77p-JzUn1SvgsK0oV4XAZ4o35GPlG5Dg",
         "pop_nonce_echo": "Yl9wb3Bfbm9uY2VfMTI4Yml0X2Jhc2U2NHVybA"
       },
-      "signature": "__VALID_ENVELOPE_SIG__"
-    }
+      "signature": "vOq1F4kpTTviPYK1EJBWfxmhcdaPq8EPlx7bZrIE0JsjeVwfhI960iu0nbTr4A5ac56MDmzWYxE8vtfERQNoDw"
+    },
+    "operation": "verify_handshake_payload"
   },
-  "expected": { "outcome": "failure", "error_code": "POP_VERIFICATION_FAILED" }
+  "expected": {
+    "outcome": "failure",
+    "error_code": "POP_VERIFICATION_FAILED"
+  }
 }

@@ -1,27 +1,40 @@
 {
   "id": "del-003",
   "description": "Delegation scope exceeds grant_proof capabilities. MUST be rejected.",
-  "tags": ["security", "delegation", "scope-escalation"],
+  "tags": [
+    "security",
+    "delegation",
+    "scope-escalation"
+  ],
   "input": {
     "delegation": {
-      "delegator": "aid:pubkey:issuingPeer_pubkey_AID_v01_placeholderPPPPP",
-      "delegatee": "aid:pubkey:agentC_pubkey_AID_v01_placeholder_CCCCCCCCC",
-      "issued_by": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
-      "audience": "aid:pubkey:issuingPeer_pubkey_AID_v01_placeholderPPPPP",
-      "scope": ["read_data", "write_data"],
+      "delegator": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+      "delegatee": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+      "issued_by": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+      "audience": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+      "scope": [
+        "read_data",
+        "write_data"
+      ],
       "expires_at": 9999999999,
-      "cnf": "agentC_pubkey_AID_v01_placeholder_CCCCCCCCC",
+      "cnf": "dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
       "grant_proof": {
-        "issuer": "aid:pubkey:issuingPeer_pubkey_AID_v01_placeholderPPPPP",
-        "subject": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
-        "capabilities": ["read_data"],
+        "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+        "subject": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+        "capabilities": [
+          "read_data"
+        ],
         "issued_at": 1711900000,
         "expires_at": 9999999999,
         "source_tct_jti": "550e8400-e29b-41d4-a716-446655440099",
-        "signature": "__VALID_ISSUING_PEER_SIG__"
+        "signature": "KxKxsD80YrgjlDQ3m0LIs7LEa0t9Zea7h7GNtyL5E2-VXMa66W-LiC1yImY5CChMD8q2t2JuIvY0l-CfW3lBBg"
       },
-      "signature": "__VALID_B_SIG__"
-    }
+      "signature": "NjrsaMMRUwy0VfuCrlZdgQzkwVOb47XBW_KUt67oSm8t-aQz38BuvqhRVqJshlFPaCLhVUWOvsfJAYRkSQRKDA"
+    },
+    "operation": "verify_delegation_token"
   },
-  "expected": { "outcome": "failure", "error_code": "DELEGATION_SCOPE_EXCEEDED" }
+  "expected": {
+    "outcome": "failure",
+    "error_code": "DELEGATION_SCOPE_EXCEEDED"
+  }
 }

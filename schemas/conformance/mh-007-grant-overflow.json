@@ -1,36 +1,55 @@
 {
   "id": "mh-007",
   "description": "Peer-issued TCT carries grants that exceed the issuing peer's offered_capabilities (declared in its Manifest). The receiving peer MUST reject with GRANT_OVERFLOW — a peer cannot grant capabilities it did not publicly offer.",
-  "tags": ["security", "mutual-handshake", "tct", "policy"],
+  "tags": [
+    "security",
+    "mutual-handshake",
+    "tct",
+    "policy"
+  ],
   "input": {
     "step": "initiator received MUTUAL_COMMIT_ACK",
-    "issuer_offered_capabilities": ["macp.mode.task.v1"],
+    "issuer_offered_capabilities": [
+      "macp.mode.task.v1"
+    ],
     "envelope": {
       "version": "aitp/0.1",
       "message_type": "mutual_commit_ack",
       "message_id": "660e8400-e29b-41d4-a716-446655440107",
-      "timestamp": "__NOW__",
-      "sender": { "agent_id": "aid:pubkey:peerB_pubkey_AID_v01_placeholder_bbbbbbbbbb" },
+      "timestamp": 1711900000,
+      "sender": {
+        "agent_id": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+      },
       "payload": {
         "tct_for_peer": {
           "tct": {
             "version": "aitp/0.1",
             "jti": "660e8400-e29b-41d4-a716-446655440108",
-            "issuer": "aid:pubkey:peerB_pubkey_AID_v01_placeholder_bbbbbbbbbb",
-            "subject": "aid:pubkey:initiator_pubkey_AID_v01_placeholder_iiiiii",
-            "audience": "aid:pubkey:initiator_pubkey_AID_v01_placeholder_iiiiii",
+            "issuer": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+            "subject": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+            "audience": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
             "issued_at": 1711900250,
             "expires_at": 1711903850,
-            "grants": ["macp.mode.task.v1", "macp.session.start", "admin.privileged"],
-            "binding": { "cnf": "initiator_pubkey_AID_v01_placeholder_iiiiii" },
-            "signature": "__VALID_TCT_SIG__"
+            "grants": [
+              "macp.mode.task.v1",
+              "macp.session.start",
+              "admin.privileged"
+            ],
+            "binding": {
+              "cnf": "O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik"
+            },
+            "signature": "lBrX2-cCFlQaec7YNW_8KMCbL8TS7PnXzmJ6jV4wbXAqN1b-9iKXjDCuknZ4G3byeg7bcCfHCRZUS8WEF5AOCw"
           }
         },
-        "pop_signature": "__VALID_POP_SIG__",
-        "pop_nonce_echo": "__VALID_NONCE_ECHO__"
+        "pop_signature": "zRHO-sG3nsXm3M-9oW5sE9OdDdEVaCe6VEqRAa8X9blTJaWMV8IHLHdoGhqY0DeGLF4djR3HVYbMM6uhMTt_Cw",
+        "pop_nonce_echo": "VGlawa8CMmkQw7blLzdJeQ"
       },
-      "signature": "__VALID_ENVELOPE_SIG__"
-    }
+      "signature": "la96JfHSTtapb-39568Ohnjdv1oyBfuzjmdpt_YmWcg2ph15d9S8GZ6XbR2ihGXmB2C8D_zUwe5O4efhDq12Dg"
+    },
+    "operation": "verify_handshake_payload"
   },
-  "expected": { "outcome": "failure", "error_code": "GRANT_OVERFLOW" }
+  "expected": {
+    "outcome": "failure",
+    "error_code": "GRANT_OVERFLOW"
+  }
 }
