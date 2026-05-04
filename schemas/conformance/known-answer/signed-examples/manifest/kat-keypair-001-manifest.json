@@ -31,11 +31,11 @@
       "macp.mode.task.v1"
     ],
     "proof_of_possession": {
-      "challenge": "Uqz8PismhwpoECnc_3HSgw",
-      "signature": "2KSYY9qimTrpAuI2D9Dhwo1uF2EObhUfD67E1xncQmcYriWYX9le0CH6v5rzijzcxUrVWRCiMt7HsHVE_eD0Bw"
+      "challenge": "x25bGaVZ48adAdsA9Q6nGA",
+      "signature": "lsJ0mcawGXgb0syRPCFf2YZZxZLZWc7_CcJznNBZisWUJ49P623VQWL6v8RE8VWEtrnfd_FTCfPSe3N7qKsUBA"
     },
     "published_at": 1711900000,
     "expires_at": 1711986400,
-    "signature": "1aLmj_d3fAdej6QMEQRMUKtDSKqY000EFjhmhWQs15DANjWEwyduuLn9k1EzUZsl-K20Ot3JmGgc0xX86dS4Cw"
+    "signature": "4FAf5zWEtrqc7_Vyuvplj9sn0fk-7ns9-p1UFafQbyv87JQJmc3XPvBePHik8n-5CHYpww-Apu6c6gTGJcrxBg"
   }
 }

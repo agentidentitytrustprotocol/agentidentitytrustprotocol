@@ -12,6 +12,7 @@
     ]
   },
   "revocation_list": {
+    "version": "aitp/0.1",
     "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
     "published_at": 1711900000,
     "expires_at": 1711903600,
@@ -23,5 +24,5 @@
       }
     ]
   },
-  "signature": "j_ZYhfPue02S0NKbEZaqYCxvne5n9W7mZWzBmYoZPUQb93DtrXRW2h0tgff_LMzP0CeqD6SJub75WhWcqwR5BQ"
+  "signature": "L3_C5_w9R6Jj6cP4f0MLCVdvKYMz2oqnG8yPKXyoA-G29fi_U4zC-58RFaq4cir3F0G0-U1XC7eDpy03mAVRDg"
 }
