@@ -112,13 +112,20 @@ These codes are reserved for v0.2 multi-hop delegation (RFC-AITP-0011 is current
 
 ## Session Trust Bundle codes (RFC-AITP-0010, post-v0.1)
 
-These codes are reserved for v0.2 Session Trust Bundles (RFC-AITP-0010 is currently Draft and not part of v0.1 conformance).
+These codes are reserved for v0.2 Session Trust Bundles (RFC-AITP-0010 is currently Draft and not part of v0.1 conformance). The granular code set was pinned to align with the `aitp-rs` adapter that emits them ahead of v0.2 conformance.
 
 | Code | Meaning |
 |---|---|
-| `SESSION_BUNDLE_INVALID` | Bundle signature, expiry, or per-participant TCT verification failed. |
-| `SESSION_BUNDLE_NOT_MEMBER` | Receiver's AID is not in `participants[*].aid`. |
-| `SESSION_BUNDLE_EXPIRED` | Bundle `expires_at` is in the past. |
+| `BUNDLE_INVALID_SIGNATURE` | Coordinator's outer bundle signature failed verification under the coordinator's Manifest key. |
+| `BUNDLE_VERSION_MISMATCH` | `version` is not `"aitp/0.1"` (or a later version this implementation supports). |
+| `BUNDLE_EXPIRED` | `expires_at` is in the past at verification time. |
+| `BUNDLE_EXPIRY_WINDOW_INVARIANT` | `expires_at` is greater than `min(participants[*].tct.expires_at)` (violates RFC-AITP-0010 §6). |
+| `BUNDLE_COORDINATOR_ISSUER_MISMATCH` | One or more `participants[*].tct.issuer` values do not equal `coordinator`. |
+| `BUNDLE_AUDIENCE_MISMATCH` | A `participants[i].tct.audience` does not equal `participants[i].aid`. |
+| `BUNDLE_EMPTY_PARTICIPANTS` | `participants` array is empty. |
+| `BUNDLE_PARTICIPANT_TCT_INVALID` | At least one embedded participant TCT failed standard TCT verification. |
+| `BUNDLE_NOT_MEMBER` | Receiver's AID is not in `participants[*].aid`. |
+| `SESSION_BUNDLE_INVALID` | Aggregate fallback — implementations MAY return this when a deployment policy requires a single-error surface for bundles, in lieu of the specific codes above. |
 
 ## Adding a code
 

@@ -38,7 +38,7 @@
           "required_peer_capabilities": [],
           "proof_of_possession": {
             "challenge": "u08dThsYE5R_BiD1ekXggA",
-            "signature": "BkLM0y3KXftuVikYYYfrVGZnPb9ymUXejJ8tnRimm5G0v5rDXPrZiaFKuZ2JXp1g5GAg09OjcSgZ2aSuyzstDQ"
+            "signature": "k37vdvTxLF9l1kzt3rFv4jqmC4H368V5kJDee5Qq-arMHmJV9k9jpoKQdKvDw5qq59dZpZT6jkRLiOQqMfj0Aw"
           },
           "published_at": 1711900000,
           "expires_at": 1711986400,
@@ -47,7 +47,7 @@
             "issuer": "https://auth.openai.com",
             "subject": "agent-B"
           },
-          "signature": "VAsfpr1e1aeVCETB6ac8RGR-sZzSxDV8NTJBMZRAKgb70dSlabcoUutEQovwrAQRufMpAWevppG1fq1LMfgTDQ"
+          "signature": "090n-oN6rF6crI4rYaI73YUH-CM9eKQnPKWt7CO73eYNqP6Tlp4zEyV_iow0bgg4gORKwi0ZDLtXafGVXg3qBg"
         },
         "requested_grants": [
           "macp.mode.task.v1"
@@ -55,7 +55,7 @@
         "pop_nonce": "QWdlbnRCUG9wTm9uY2VOZXcxMjhiaXQ",
         "pop_nonce_echo": "QXR0YWNrZXJTd2FwcGVkTm9uY2VWYWx1ZQ"
       },
-      "signature": "2vjPL2Q9QZEYRoS3wbYvmOBtFUrSr-wQ_gW3jZYgWsZoZu4UR-qgzg6f0CJfjM85Ne0FbHCQNL21LXLZO01-Dg"
+      "signature": "V_8MW6Auau0IHeaf7LXHiBlFpgh91x9-D_2g95c2eJCi1TLpYtMTMS2pjQkYrB72vkwDGWjwyTaaYHeBKeQoBg"
     },
     "operation": "verify_handshake_payload"
   },

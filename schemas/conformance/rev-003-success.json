@@ -1,0 +1,38 @@
+{
+  "id": "rev-003",
+  "description": "Revocation snapshot happy path. A signed snapshot from the issuing peer (kat-keypair-001) is fresh (published_at within `max_staleness_secs`), its signature validates under the issuing peer's Manifest key, and a queried JTI is NOT in `entries`. Verifier returns 'not revoked' and the surrounding TCT verification continues. (RFC-AITP-0008 §1.5.) Counterpart to rev-001 (stale snapshot, fail-closed) and rev-002 (stale snapshot, soft-fail).",
+  "tags": [
+    "success",
+    "revocation",
+    "snapshot"
+  ],
+  "input": {
+    "policy": {
+      "fail_mode": "fail_closed",
+      "max_staleness_secs": 3600
+    },
+    "now": 1711900100,
+    "expected_issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "queried_jti": "550e8400-e29b-41d4-a716-446655440111",
+    "snapshot": {
+      "revocation_list": {
+        "version": "aitp/0.1",
+        "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+        "published_at": 1711900000,
+        "expires_at": 1711903600,
+        "entries": [
+          {
+            "jti": "550e8400-e29b-41d4-a716-446655440099",
+            "revoked_at": 1711899900
+          }
+        ]
+      },
+      "signature": "WLqGpbEPyIbEKr_ORtBHe_743SpSEHfVdn7hAVarB1h2na2KjwgrM3jMb7NyKbd946JQ53pZoxJQSfn7MdaZAg"
+    },
+    "operation": "verify_revocation_snapshot"
+  },
+  "expected": {
+    "outcome": "success",
+    "rationale": "Snapshot is fresh (100s old vs. policy max 3600s); signature verifies under the issuing peer's key; queried JTI is not in `entries`."
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "id": "del-mh-004",
+  "description": "Multi-hop per-hop revocation (RFC-AITP-0011 §6). The chain (identical to del-mh-001) is structurally valid: per-hop signatures verify, transitive scope subsetting passes, chain_hash recomputes, outer signature verifies. However, B's signed revocation snapshot (B = chain[1].issuer) lists chain[1].source_tct_jti = 550e8400-e29b-41d4-a716-446655443002 in `entries`. Per RFC-AITP-0011 §6, the verifier MUST check every chain[i].source_tct_jti against chain[i].issuer's deny list, and a revocation hit at ANY hop invalidates the entire delegation. Expected: DELEGATION_SOURCE_TCT_REVOKED.",
+  "tags": ["security", "delegation", "multi-hop", "revocation", "post-v0.1"],
+  "input": {
+    "delegation": {
+      "delegator": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+      "delegatee": "aid:pubkey:iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+      "issued_by": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+      "audience": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+      "scope": ["read_data"],
+      "expires_at": 1711903600,
+      "cnf": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+      "grant_proof": {
+        "issuer": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+        "subject": "aid:pubkey:iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+        "capabilities": ["read_data"],
+        "issued_at": 1711900200,
+        "expires_at": 1711903600,
+        "source_tct_jti": "550e8400-e29b-41d4-a716-446655443003",
+        "signature": "UqFTb7Za1b39_VdHf96x2VCVpnxhDFFUu-FoITbCo-AOqICiKWxoZiMmZWzz88oyk6r0S2SkM18LjpmPz36vCg"
+      },
+      "chain": [
+        {
+          "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+          "subject": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+          "capabilities": ["read_data", "write_data"],
+          "issued_at": 1711900000,
+          "expires_at": 1711905000,
+          "source_tct_jti": "550e8400-e29b-41d4-a716-446655443001",
+          "signature": "n3jgfHl3MbV4eXMZ8PodIu-_qFA7oh_uUigxEQyvMpshf9HxNRjCqqcUbukSFKASQikl66VbY9ELefmLMFEpCg"
+        },
+        {
+          "issuer": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+          "subject": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+          "capabilities": ["read_data"],
+          "issued_at": 1711900100,
+          "expires_at": 1711904000,
+          "source_tct_jti": "550e8400-e29b-41d4-a716-446655443002",
+          "signature": "eS5WqlVV-6ARMGNfwmEEk6A12oe_zYnkvV9G9Qcq2vI_ml9yw2CpJbxNOjqfpBOiVUVmkzM1zPV_XWDBA_nyAQ"
+        }
+      ],
+      "chain_hash": "RnXHwHGKEguW6MAwAlzJvOrJMLlmdZFnx-cFcXDiyto",
+      "signature": "ev-J-UlDI0BkypBjXdXp5T1dvTE4hIM_6Q7HVLLD5SnT891ccgOD6Sba4-CRu2gshTP3YqTHSrgv8cqwId1QCw"
+    },
+    "revocation_snapshots": [
+      {
+        "issuer_aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+        "snapshot": {
+          "revocation_list": {
+            "version": "aitp/0.1",
+            "issuer": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+            "published_at": 1711900500,
+            "expires_at": 1711904100,
+            "entries": [
+              {
+                "jti": "550e8400-e29b-41d4-a716-446655443002",
+                "revoked_at": 1711900400
+              }
+            ]
+          },
+          "signature": "SbwrN5cku2geJJJIJcmax5ZuNBK9XfOaLXGWIxp1HtW01jtwSiaI21aXSxWsL9B6Mdg-n19TuwBVOd1GWY5qDg"
+        }
+      }
+    ],
+    "now": 1711901000,
+    "operation": "verify_delegation_token"
+  },
+  "expected": {
+    "outcome": "failure",
+    "error_code": "DELEGATION_SOURCE_TCT_REVOKED",
+    "rationale": "chain[1].source_tct_jti (550e8400-e29b-41d4-a716-446655443002) is in B's deny list. Per RFC-AITP-0011 §6, every chain hop's source_tct_jti is checked against the issuer of that hop's deny list; a hit at any hop invalidates the entire delegation."
+  }
+}

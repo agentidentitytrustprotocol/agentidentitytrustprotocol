@@ -1,0 +1,68 @@
+{
+  "id": "del-mh-002",
+  "description": "Multi-hop scope inflation. chain[1] (B→C) declares capabilities=[\"read_data\",\"admin\"], but chain[0] (A→B) granted only [\"read_data\",\"write_data\"]. The transitive scope check (RFC-AITP-0011 §4) requires chain[1].capabilities ⊆ chain[0].capabilities; \"admin\" violates that. All per-hop signatures are valid (so a *single*-hop adjacent-only check would not catch this — only the full transitive chain does). Verifier MUST reject with DELEGATION_SCOPE_EXCEEDED.",
+  "tags": [
+    "security",
+    "delegation",
+    "multi-hop",
+    "scope-escalation",
+    "post-v0.1"
+  ],
+  "input": {
+    "delegation": {
+      "delegator": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+      "delegatee": "aid:pubkey:iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+      "issued_by": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+      "audience": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+      "scope": [
+        "read_data"
+      ],
+      "expires_at": 1711903600,
+      "cnf": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+      "grant_proof": {
+        "issuer": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+        "subject": "aid:pubkey:iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+        "capabilities": [
+          "read_data"
+        ],
+        "issued_at": 1711900200,
+        "expires_at": 1711903600,
+        "source_tct_jti": "550e8400-e29b-41d4-a716-446655444003",
+        "signature": "7TkvjkE6me53hEQ9OKBCfBNWaajRd3jsptIhDzWicvpCG5_3JxRikc-MIUqEtLX8xZ1ui0Q0n-IOE3PGrG8cCg"
+      },
+      "chain": [
+        {
+          "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+          "subject": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+          "capabilities": [
+            "read_data",
+            "write_data"
+          ],
+          "issued_at": 1711900000,
+          "expires_at": 1711905000,
+          "source_tct_jti": "550e8400-e29b-41d4-a716-446655444001",
+          "signature": "nBDrgcorq2KoTS2cf50GB3WCE-ZV2E9u9NmwvW8hZxPFfw1pLO2RqfcG3__1vR84SN0q9SFFFGgLUeEAWwwiAg"
+        },
+        {
+          "issuer": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+          "subject": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+          "capabilities": [
+            "read_data",
+            "admin"
+          ],
+          "issued_at": 1711900100,
+          "expires_at": 1711904000,
+          "source_tct_jti": "550e8400-e29b-41d4-a716-446655444002",
+          "signature": "lR3qAxuEOPvYTq-Qp-Uyz-oIPPAgn5NmolAPAGxXv6y0LvwQQSWd9c3cXH_DjZp5g_wzN5tRT6ce9t1dBKldBA"
+        }
+      ],
+      "chain_hash": "RKfg4LYwoLJ1O9p6FWWYuun4mFNQKgqzxgGS0oC6aGw",
+      "signature": "wBvrjFyojX0BXvFgPG3NDaiq1AmtKg1-tPA1T8bx4zlfrVpU-0ZJuIkuGaEs1NVradZtQ_TpRvn9e5q1T0H-Ag"
+    },
+    "operation": "verify_delegation_token"
+  },
+  "expected": {
+    "outcome": "failure",
+    "error_code": "DELEGATION_SCOPE_EXCEEDED"
+  }
+}

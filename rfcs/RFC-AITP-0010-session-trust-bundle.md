@@ -99,14 +99,16 @@ The coordinator MAY distribute the bundle by any transport that preserves the ca
 
 A participant receiving a bundle MUST, in order:
 
-1. **Version check** — `session_bundle.version` MUST be `"aitp/0.1"` or a later supported version.
-2. **Expiry check** — `session_bundle.expires_at` MUST be in the future.
-3. **Coordinator key resolution** — fetch and verify the coordinator's Manifest per RFC-AITP-0003 §5; resolve the coordinator's public key from `manifest.aid`.
-4. **Bundle signature** — verify `session_bundle.signature` against the coordinator's key over the canonical body.
-5. **Per-participant TCT verification** — for each `participants[i].tct`, run the standard TCT verification (RFC-AITP-0005 §9). Every embedded TCT MUST have `issuer == session_bundle.coordinator`. The participant SHOULD verify its own TCT first.
-6. **Self-membership check** — the receiving participant MUST find its own AID in `participants[*].aid` and confirm the embedded TCT's `audience` equals its own AID. A bundle that does not contain the receiver is rejected.
+1. **Version check** — `session_bundle.version` MUST be `"aitp/0.1"` or a later supported version. Failure ⇒ `BUNDLE_VERSION_MISMATCH`.
+2. **Expiry check** — `session_bundle.expires_at` MUST be in the future. Failure ⇒ `BUNDLE_EXPIRED`.
+3. **Expiry-window invariant** — `session_bundle.expires_at` MUST equal `min(participants[*].tct.expires_at)` (§6). Failure ⇒ `BUNDLE_EXPIRY_WINDOW_INVARIANT`.
+4. **Participants non-empty** — `participants` MUST contain at least one entry. Failure ⇒ `BUNDLE_EMPTY_PARTICIPANTS`.
+5. **Coordinator key resolution** — fetch and verify the coordinator's Manifest per RFC-AITP-0003 §5; resolve the coordinator's public key from `manifest.aid`.
+6. **Bundle signature** — verify `session_bundle.signature` against the coordinator's key over the canonical body. Failure ⇒ `BUNDLE_INVALID_SIGNATURE`.
+7. **Per-participant TCT verification** — for each `participants[i].tct`, run the standard TCT verification (RFC-AITP-0005 §9). Every embedded TCT MUST have `issuer == session_bundle.coordinator` (failure ⇒ `BUNDLE_COORDINATOR_ISSUER_MISMATCH`) and `audience == participants[i].aid` (failure ⇒ `BUNDLE_AUDIENCE_MISMATCH`); other TCT-level failures surface as `BUNDLE_PARTICIPANT_TCT_INVALID`. The participant SHOULD verify its own TCT first.
+8. **Self-membership check** — the receiving participant MUST find its own AID in `participants[*].aid` and confirm the embedded TCT's `audience` equals its own AID. Failure ⇒ `BUNDLE_NOT_MEMBER`.
 
-A failure at any step MUST result in `SESSION_BUNDLE_INVALID`. Implementations MUST NOT consume a bundle whose signature does not validate, regardless of whether individual TCTs are otherwise well-formed.
+Implementations MUST NOT consume a bundle whose signature does not validate, regardless of whether individual TCTs are otherwise well-formed. Implementations MAY collapse all of the above into the aggregate `SESSION_BUNDLE_INVALID` when a deployment policy requires a single-error surface, but new code SHOULD prefer the specific codes.
 
 ---
 
@@ -134,9 +136,17 @@ A coordinator that wishes to terminate a session entirely MUST add every embedde
 
 | Code | Meaning | Retryable |
 |---|---|---|
-| `SESSION_BUNDLE_INVALID` | Bundle signature, expiry, or per-participant TCT verification failed | false |
-| `SESSION_BUNDLE_NOT_MEMBER` | Receiver's AID is not in `participants[*].aid` | false |
-| `SESSION_BUNDLE_EXPIRED` | `expires_at` is in the past | false |
+| `BUNDLE_INVALID_SIGNATURE` | Coordinator's outer bundle signature failed verification under the coordinator's Manifest key | false |
+| `BUNDLE_VERSION_MISMATCH` | `version` is not `"aitp/0.1"` (or a later version this implementation supports) | false |
+| `BUNDLE_EXPIRED` | `expires_at` is in the past at verification time | false |
+| `BUNDLE_EXPIRY_WINDOW_INVARIANT` | `expires_at` is greater than `min(participants[*].tct.expires_at)` (violates §6) | false |
+| `BUNDLE_COORDINATOR_ISSUER_MISMATCH` | One or more `participants[*].tct.issuer` values do not equal `coordinator` | false |
+| `BUNDLE_AUDIENCE_MISMATCH` | A `participants[i].tct.audience` does not equal `participants[i].aid` | false |
+| `BUNDLE_EMPTY_PARTICIPANTS` | `participants` array is empty (a bundle MUST contain at least the receiver) | false |
+| `BUNDLE_PARTICIPANT_TCT_INVALID` | At least one embedded participant TCT failed standard TCT verification (§5 step 5) | false |
+| `BUNDLE_NOT_MEMBER` | Receiver's AID is not in `participants[*].aid` | false |
+
+The aggregate code `SESSION_BUNDLE_INVALID` is a fallback for implementations that do not distinguish the failure cases; new code SHOULD prefer the specific codes above. Implementations MAY return the aggregate when a deployment policy requires a single-error surface for bundles.
 
 ---
 
@@ -149,9 +159,7 @@ A coordinator that wishes to terminate a session entirely MUST add every embedde
 
 A conformant v0.1 implementation that opts into RFC-AITP-0010 MUST expose both operations in its conformance harness. Implementations that do not expose them MUST report SKIP for any `bundle-*` fixture rather than FAIL.
 
-KAT vectors live in [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json) (`kat-session-bundle-001`, to be added) and pin (coordinator key + N participant TCTs → canonical bundle body → signature). The vector follows the same convention as `kat-tct-001`.
-
-> **Draft-stage deferral.** This RFC is Draft. The KAT vector is deferred to RC promotion per the Draft-stage carve-out in [`governance/RFC-PROCESS.md`](../governance/RFC-PROCESS.md). It is a blocker for moving this RFC out of Review.
+KAT vector `kat-session-bundle-001` lives in [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json) and pins (coordinator key kat-keypair-001 + 2 participant TCTs → canonical bundle body → SHA-256 → Ed25519 signature). The vector follows the same convention as `kat-tct-001`. Conformance fixtures exercising the bundle verification path live at [`schemas/conformance/bundle-001-success.json`](../schemas/conformance/bundle-001-success.json), [`bundle-002-not-member.json`](../schemas/conformance/bundle-002-not-member.json), and [`bundle-003-expired.json`](../schemas/conformance/bundle-003-expired.json).
 
 ---
 

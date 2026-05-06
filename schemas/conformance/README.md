@@ -134,12 +134,35 @@ The runner interface is implementation-defined.
 |---|---|---|
 | `rev-001` | Stale revocation snapshot under `fail_closed` mode rejects the request | failure: TCT_REVOKED |
 | `rev-002` | Stale revocation snapshot under `soft_fail` mode allows a configured safe-subset of grants | success (degraded) |
+| `rev-003` | Fresh signed snapshot, JTI not in entries → not revoked | success |
 
 ### Delegation (RFC-AITP-0006)
 
 | ID | Description | Outcome |
 |---|---|---|
+| `del-001` | Single-hop happy path — A→B→C with scope ⊆ grant_proof.capabilities | success |
 | `del-003` | Scope exceeds grant_proof capabilities | failure: DELEGATION_SCOPE_EXCEEDED |
+
+### Multi-hop Delegation (RFC-AITP-0011, post-v0.1)
+
+These fixtures exercise the multi-hop delegation extension. v0.1 implementations MUST reject any token with a non-empty `chain` field with `DELEGATION_MULTIHOP_NOT_SUPPORTED` (RFC-AITP-0006 §9). v0.2 implementations that opt in follow RFC-AITP-0011 verification rules.
+
+| ID | Description | Outcome |
+|---|---|---|
+| `del-mh-001` | 3-hop chain (A→B→C→D) — all signatures, transitive scope, chain_hash, and outer signature valid | success |
+| `del-mh-002` | 3-hop chain where chain[1] introduces a capability not in chain[0] — transitive scope check rejects | failure: DELEGATION_SCOPE_EXCEEDED |
+| `del-mh-003` | 3-hop chain with tampered `chain_hash` — recomputed value mismatches | failure: DELEGATION_CHAIN_HASH_MISMATCH |
+| `del-mh-004` | 3-hop chain where `chain[1].source_tct_jti` is in chain[1].issuer's deny list | failure: DELEGATION_SOURCE_TCT_REVOKED |
+
+### Session Trust Bundle (RFC-AITP-0010, post-v0.1)
+
+Bundle fixtures use the same opt-in posture as multi-hop. v0.1 implementations are not required to support session bundles.
+
+| ID | Description | Outcome |
+|---|---|---|
+| `bundle-001` | 2-participant bundle, fresh, valid coordinator signature, receiver is in participants | success |
+| `bundle-002` | Bundle is byte-valid but receiver's AID is not in `participants[*].aid` | failure: BUNDLE_NOT_MEMBER |
+| `bundle-003` | Bundle's `expires_at` is in the past (with consistent embedded TCT expiry) | failure: BUNDLE_EXPIRED |
 
 Additions and edge-case fixtures (replay during MUTUAL_COMMIT, identity-issuer key rotation, partial chain verification, etc.) are welcome via PR.
 
