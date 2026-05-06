@@ -1,0 +1,57 @@
+{
+  "id": "bundle-002",
+  "description": "Session Trust Bundle membership check (RFC-AITP-0010 §5 step 8). The bundle is byte-identical to bundle-001 — coordinator signature, both embedded TCTs, expiry window, and version checks all pass. The defect is that the receiving participant (kat-keypair-004 / agentD, AID iojj3XQJ...) is NOT in `participants[*].aid`. The verifier MUST reject with BUNDLE_NOT_MEMBER. (A bundle proves coordinator-attested membership; a non-member receiver has no claim on the session.)",
+  "tags": ["security", "session-bundle", "membership", "post-v0.1"],
+  "input": {
+    "self_aid": "aid:pubkey:iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+    "now": 1711900100,
+    "session_bundle": {
+      "session_bundle": {
+        "version": "aitp/0.1",
+        "session_id": "550e8400-e29b-41d4-a716-446655442010",
+        "coordinator": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+        "issued_at": 1711900000,
+        "expires_at": 1711903600,
+        "participants": [
+          {
+            "aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+            "tct": {
+              "version": "aitp/0.1",
+              "jti": "550e8400-e29b-41d4-a716-446655442001",
+              "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+              "subject": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "audience": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "issued_at": 1711900000,
+              "expires_at": 1711903600,
+              "grants": ["macp.mode.task.v1"],
+              "binding": {"cnf": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"},
+              "signature": "dRaMvsneooEBb1BrVBvk2ObRANZr_1Q8ajCOzlcBapN86yIwSHXf9uc5PasGHeb22sf7nUC-s_fg7U_hVR34Aw"
+            }
+          },
+          {
+            "aid": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+            "tct": {
+              "version": "aitp/0.1",
+              "jti": "550e8400-e29b-41d4-a716-446655442002",
+              "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+              "subject": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+              "audience": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+              "issued_at": 1711900000,
+              "expires_at": 1711905600,
+              "grants": ["macp.mode.task.v1"],
+              "binding": {"cnf": "dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU"},
+              "signature": "gPVK5hq2JCHXP8RAYh1xDbN2qAzR1EfMNpGUJZYbixVohPzK5bWE519ra9WWxXLawAbp9lP-uKgJL9d5uWIBCg"
+            }
+          }
+        ]
+      },
+      "signature": "7jbZEE8jYKzmBHHgAcYbmW4SoJFnlZ-Gj22qaE_9T1K-LOpB0nqgz_35SAc9UHhccLnePf_szOdkbGOmVdEkAQ"
+    },
+    "operation": "verify_session_bundle"
+  },
+  "expected": {
+    "outcome": "failure",
+    "error_code": "BUNDLE_NOT_MEMBER",
+    "rationale": "Receiver's AID (iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w, kat-keypair-004) is not in participants[*].aid (only B = kat-keypair-002 and C = kat-keypair-003 are listed)."
+  }
+}

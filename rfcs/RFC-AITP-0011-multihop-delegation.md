@@ -225,9 +225,14 @@ Multi-hop is **opt-in** for v0.2. A v0.1 implementation that opts out MUST rejec
 3. Implement §5 chain-hash recomputation and verification.
 4. Implement §6 per-hop revocation lookup.
 
-Conformance fixtures for multi-hop will live under `schemas/conformance/del-mh-*.json` and follow the placeholder convention defined in [`schemas/conformance/PLACEHOLDERS.md`](../schemas/conformance/PLACEHOLDERS.md).
+Conformance fixtures for multi-hop live under `schemas/conformance/del-mh-*.json`:
 
-> **Draft-stage deferral.** This RFC is Draft. KAT vectors covering the per-hop signature reconstruction and the `chain_hash` truncation defense are deferred to RC promotion per the Draft-stage carve-out in [`governance/RFC-PROCESS.md`](../governance/RFC-PROCESS.md). They are blockers for moving this RFC out of Review.
+- [`del-mh-001-success.json`](../schemas/conformance/del-mh-001-success.json) — 3-hop happy path (reuses kat-multihop-chain-001 verbatim).
+- [`del-mh-002-scope-inflation.json`](../schemas/conformance/del-mh-002-scope-inflation.json) — transitive scope check (every signature valid; chain[1] introduces a capability not in chain[0]).
+- [`del-mh-003-chain-hash-mismatch.json`](../schemas/conformance/del-mh-003-chain-hash-mismatch.json) — truncation defense (chain_hash tampered).
+- [`del-mh-004-revoked-hop.json`](../schemas/conformance/del-mh-004-revoked-hop.json) — per-hop revocation (chain[1].source_tct_jti is in chain[1].issuer's deny list).
+
+KAT vectors `kat-multihop-chain-001` (per-hop signature reconstruction) and `kat-multihop-truncation-001` (chain_hash reference) live at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json).
 
 ---
 

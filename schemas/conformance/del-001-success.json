@@ -1,0 +1,42 @@
+{
+  "id": "del-001",
+  "description": "Single-hop delegation happy path. A peer-issued [read_data, write_data] to B (kat-keypair-001 → kat-keypair-002). B delegates [read_data] (a strict subset) to C (kat-keypair-003) with audience=A. A verifies the grant_proof signature against its own key, the scope subset, the audience, the expiry, and B's outer signature against B's Manifest key. All checks pass; A would mint a fresh peer-issued TCT for C carrying the delegated subset. (RFC-AITP-0006 §4.) The success counterpart to del-003-scope-exceeded.",
+  "tags": [
+    "success",
+    "delegation",
+    "single-hop"
+  ],
+  "input": {
+    "delegation": {
+      "delegator": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+      "delegatee": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+      "issued_by": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+      "audience": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+      "scope": [
+        "read_data"
+      ],
+      "expires_at": 1711903600,
+      "cnf": "dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+      "grant_proof": {
+        "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+        "subject": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+        "capabilities": [
+          "read_data",
+          "write_data"
+        ],
+        "issued_at": 1711900000,
+        "expires_at": 1711903600,
+        "source_tct_jti": "550e8400-e29b-41d4-a716-446655440101",
+        "signature": "aWdslr-XjlPetBKvV7pN1tnVihEgR4bDm411wT59kjFHy3-iBiGjDPeoSg6eYcKL15o-6XbfYYfnS50p5ZbiDQ"
+      },
+      "signature": "hB7Jx2ZlUJXnODpYzYUCBIjhat6YXUawLKzwBzyKoXEgIo8F_hkNZkjK4BBcO4tgfnuy-j2aerfrh0KDKZOjDQ"
+    },
+    "operation": "verify_delegation_token"
+  },
+  "expected": {
+    "outcome": "success",
+    "grants": [
+      "read_data"
+    ]
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "id": "bundle-003",
+  "description": "Session Trust Bundle expiry check (RFC-AITP-0010 §5 step 2). Bundle is byte-valid: coordinator signature verifies, embedded TCT signatures verify, expiry-window invariant holds (bundle.expires_at = min(tct.expires_at) = 1711799000), participants non-empty. The defect is that bundle.expires_at = 1711799000 is before `now` = 1711900100. Verifier MUST reject with BUNDLE_EXPIRED before consuming any embedded TCT.",
+  "tags": ["failure", "session-bundle", "expiry", "post-v0.1"],
+  "input": {
+    "self_aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+    "now": 1711900100,
+    "session_bundle": {
+      "session_bundle": {
+        "version": "aitp/0.1",
+        "session_id": "550e8400-e29b-41d4-a716-446655442110",
+        "coordinator": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+        "issued_at": 1711700000,
+        "expires_at": 1711799000,
+        "participants": [
+          {
+            "aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+            "tct": {
+              "version": "aitp/0.1",
+              "jti": "550e8400-e29b-41d4-a716-446655442101",
+              "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+              "subject": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "audience": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "issued_at": 1711700000,
+              "expires_at": 1711800000,
+              "grants": ["macp.mode.task.v1"],
+              "binding": {"cnf": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"},
+              "signature": "3v8isL4MT0Qxn--si6-eP4G09dVlZDKDnVo2MhuCKeVHRPl3YEgnqdtQLYDlB5DeKydP-FHA6ivv0biCR62YBA"
+            }
+          },
+          {
+            "aid": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+            "tct": {
+              "version": "aitp/0.1",
+              "jti": "550e8400-e29b-41d4-a716-446655442102",
+              "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+              "subject": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+              "audience": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+              "issued_at": 1711700000,
+              "expires_at": 1711799000,
+              "grants": ["macp.mode.task.v1"],
+              "binding": {"cnf": "dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU"},
+              "signature": "n_ptxhEzDZ00XU_2WozZqwkvJ3iXzaafj9tHMFfOZEA8X4NeH3-Zcru6banieKT3KZdzxI30GQXZUVfJNztfAA"
+            }
+          }
+        ]
+      },
+      "signature": "Xz7tIe12p-ADA4ax804HuwFeTi63ed6QJpNj2uQvnz6cFvWtbSbhKnwaCrjoEqTTvn5jfEg750egvo4rEvE3AA"
+    },
+    "operation": "verify_session_bundle"
+  },
+  "expected": {
+    "outcome": "failure",
+    "error_code": "BUNDLE_EXPIRED",
+    "rationale": "bundle.expires_at = 1711799000 is in the past relative to now = 1711900100 (101100 s = ~28 hours stale). The expiry check (step 2) MUST run before the signature check (step 6); a stale bundle is rejected even if its signature would verify."
+  }
+}

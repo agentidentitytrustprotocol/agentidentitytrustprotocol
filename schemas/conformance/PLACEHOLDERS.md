@@ -52,7 +52,8 @@ known-answer keypairs. The mapping is normative for v0.1:
 |---|---|---|
 | `agentA` (initiator / TCT issuer in most fixtures) | [`kat-keypair-001`](known-answer/keypairs.json) | `aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik` |
 | `agentB` (target / TCT subject) | [`kat-keypair-002`](known-answer/keypairs.json) | `aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg` |
-| `agentC` (delegatee, where present) | [`kat-keypair-003`](known-answer/keypairs.json) | `aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU` |
+| `agentC` (delegatee in single-hop, intermediate in multi-hop) | [`kat-keypair-003`](known-answer/keypairs.json) | `aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU` |
+| `agentD` (final delegatee in multi-hop chains) | [`kat-keypair-004`](known-answer/keypairs.json) | `aid:pubkey:iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w` |
 | `issuingPeer` (alias of `agentA` in delegation fixtures) | `kat-keypair-001` | same as `agentA` |
 | `worker_pubkey_AID_v01_placeholder_wwwwwwwww` (Manifest example) | `kat-keypair-002` | same as `agentB` |
 | `verifier_pubkey_AID_v01_placeholder_vvvvvvv` / `victim_pubkey_AID_v01_placeholder_vvvvvvvvv` (verifier in `id-*`) | `kat-keypair-001` | same as `agentA` |
@@ -81,6 +82,8 @@ implementation under test. The operation registry for v0.1:
 | `mh-*` (single-message) | `verify_handshake_payload` | Same as above. |
 | `mh-*` (multi-step `sequence`) | per-step in the sequence | Each `sequence[i]` carries its own `operation`; typical values are `start_handshake` and `process_handshake_message`. |
 | `tct-*` (multi-step `sequence`) | per-step in the sequence | Used by `tct-006` (downstream PoP exchange). Operations: `issue_pop_challenge` (verifier produces a `pop_challenge` envelope), `produce_pop_response` (holder signs `sha256(base64url_decode(nonce))` with `binding.cnf`'s private key and emits a `pop_response` envelope), `verify_pop_response` (verifier checks envelope signature, `nonce_echo`, and `pop_signature` per RFC-AITP-0005 §6.2). |
+| `del-mh-*` | `verify_delegation_token` | Multi-hop delegation verification (RFC-AITP-0011 §3-§6). Inputs may include a `revocation_snapshots` array of `{issuer_aid, snapshot}` records that the runner MUST populate per-hop deny lists from before checking source_tct_jti revocation. v0.1-only implementations MUST return `DELEGATION_MULTIHOP_NOT_SUPPORTED` for any token with a non-empty `chain` field. |
+| `bundle-*` | `verify_session_bundle` | Session Trust Bundle verification (RFC-AITP-0010 §5). Inputs include `self_aid` (the receiving participant) and `now` (reference clock). v0.1-only implementations report `SKIP` rather than `FAIL` when this operation is encountered. |
 
 A runner that encounters an unknown `operation` MUST return SKIP
 rather than FAIL — that lets an implementation under test

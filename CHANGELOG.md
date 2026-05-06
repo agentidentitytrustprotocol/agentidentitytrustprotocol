@@ -118,12 +118,29 @@ below.
 
 - **RFC-AITP-0010 Session Trust Bundle** is now Draft. Schema, trust
   model (coordinator-attested membership), per-pair revocation, expiry
-  bound to `min(participant.tct.expires_at)`, conformance ops
-  (`issue_session_bundle` / `verify_session_bundle`).
-- **RFC-AITP-0011 Multi-hop Delegation** is now Draft. `chain` array,
-  `chain_hash` truncation defense, `max_delegation_hops = 3` default,
-  transitive `scope ⊆ ... ⊆ chain[0].capabilities`, per-hop revocation
-  lookup. v0.1 implementations still reject multi-hop tokens.
+  bound to `min(participant.tct.expires_at)`, granular error code
+  surface (BUNDLE_INVALID_SIGNATURE, BUNDLE_VERSION_MISMATCH,
+  BUNDLE_EXPIRED, BUNDLE_EXPIRY_WINDOW_INVARIANT,
+  BUNDLE_COORDINATOR_ISSUER_MISMATCH, BUNDLE_AUDIENCE_MISMATCH,
+  BUNDLE_EMPTY_PARTICIPANTS, BUNDLE_PARTICIPANT_TCT_INVALID,
+  BUNDLE_NOT_MEMBER), conformance ops (`issue_session_bundle` /
+  `verify_session_bundle`). Pinned KAT vector
+  `kat-session-bundle-001` and three conformance fixtures
+  (`bundle-001-success`, `bundle-002-not-member`, `bundle-003-expired`)
+  with real Ed25519 signatures.
+- **RFC-AITP-0011 Multi-hop Delegation** is now Draft. Explicit
+  `DelegationStep` schema (with hop-0-vs-hop-i>0 dispatch), `chain`
+  array, `chain_hash` truncation defense, `max_delegation_hops = 3`
+  default, transitive `scope ⊆ ... ⊆ chain[0].capabilities`, per-hop
+  revocation lookup. v0.1 implementations still reject multi-hop tokens.
+  Pinned KAT vectors `kat-multihop-chain-001` (3-hop chain
+  reconstruction) and `kat-multihop-truncation-001` (chain_hash
+  reference) plus four conformance fixtures (`del-mh-001-success`,
+  `del-mh-002-scope-inflation`, `del-mh-003-chain-hash-mismatch`,
+  `del-mh-004-revoked-hop`) with real Ed25519 signatures.
+- **`kat-keypair-004`** added to `keypairs.json` (seed 0x01×32, AID
+  `iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w`) to support the 4-entity
+  multi-hop fixtures.
 
 ### Conformance fixtures and KAT vectors
 
