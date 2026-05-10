@@ -211,6 +211,27 @@ Implementations MAY transport AITP messages over any binary or text frame (raw J
 
 A signed object that round-trips through any transport MUST produce identical canonical JSON when verified. If a transport adds wrappers or renames fields, the implementation MUST strip them before reconstructing the canonical form.
 
+> **URL canonicalization.** String fields holding URLs (e.g.
+> `accepted_trust_anchors`, `handshake_endpoint`,
+> `identity_hint.issuer`) are signed as the **verbatim wire string** —
+> NOT the RFC 3986 §6 canonical form. An implementation that
+> deserializes such fields into a typed URL value (which normalizes
+> trailing slashes, lowercases the scheme, etc.) MUST preserve the
+> original byte form for re-serialization, or it will compute a
+> different signing input than the issuer did. Implementations
+> SHOULD model URL fields as opaque strings at the serde layer and
+> validate URL syntax separately when transport-layer parsing is
+> needed.
+
+> **Optional-array round-trip.** Optional array fields (e.g.
+> `accepted_identity_types`, the `extensions` map) MUST preserve
+> the absent-vs-explicit-empty distinction in canonical bytes.
+> Implementations modeling such fields as `Vec<T>` with
+> `skip_serializing_if = "Vec::is_empty"` collapse the two states
+> and will diverge from issuers that wrote an explicit `[]`. Use
+> `Option<Vec<T>>` (or equivalent) so the signing view emits the
+> same bytes the issuer signed.
+
 > **Known-answer test.** Pinned (object → JCS canonical bytes → SHA-256 digest) vectors for the four signed AITP artifacts (TCT, Manifest, delegation token, revocation snapshot) live at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json). Implementations MUST reproduce both the canonical byte sequence and the digest byte-for-byte. Mismatches typically indicate JCS sort-order, number-formatting, or Unicode-escaping bugs.
 
 #### 5.4.2 PoP signing input convention
