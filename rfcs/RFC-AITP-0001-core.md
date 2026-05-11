@@ -157,13 +157,39 @@ An AID is a stable, cryptographic identifier derived from a public key:
 aid:<method>:<identifier>
 ```
 
-v0.1 supported methods:
+v0.2 supported methods:
 
 | Method | Format | Example |
 |---|---|---|
-| `pubkey` | unpadded base64url of the 32-byte raw Ed25519 public key | `aid:pubkey:11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo` |
+| `pubkey` (legacy, Ed25519) | unpadded base64url of the 32-byte raw Ed25519 public key (43 chars) | `aid:pubkey:11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo` |
+| `pubkey:ed25519` (algorithm-tagged) | unpadded base64url of the 32-byte raw Ed25519 public key (43 chars) | `aid:pubkey:ed25519:11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo` |
+| `pubkey:p256` | unpadded base64url of the 33-byte SEC1 compressed P-256 public key (44 chars) | `aid:pubkey:p256:A8XBp7TBpRl6Q1QXZqXxZcGo1bRCw9KkV-Mn8eqXC8GE` |
 
-v0.1 supports Ed25519 only. The AID identifier component is the unpadded base64url (RFC 4648 §5) encoding of the 32-byte raw Ed25519 public key — exactly **43 characters** drawn from the alphabet `[A-Za-z0-9_-]`. Implementations MUST NOT use SPKI DER encoding, PEM wrappers, or any other encoding. AIDs MUST be exactly 43 characters in the identifier component; verifiers MUST reject AIDs of any other length.
+v0.2 introduces the algorithm-tagged grammar
+`aid:pubkey:<algorithm>:<identifier>` while preserving the legacy
+v0.1 form `aid:pubkey:<43-char-identifier>` (which implicitly
+means Ed25519). The legacy form is **accepted indefinitely** for
+interop — implementations MUST parse both. New AIDs published
+under the v0.2 profile SHOULD use the algorithm-tagged form. The
+legacy form is canonically equivalent to
+`aid:pubkey:ed25519:<same-identifier>` for trust decisions; the
+two forms are NOT byte-equal in canonical signing bytes, so
+issuers MUST publish each AID in exactly one form for the
+duration of its lifetime.
+
+The algorithm tag, when present, is part of the AID identifier —
+verifiers MUST reject AIDs whose algorithm tag is not in the
+registered set above.
+
+Implementations MUST NOT use SPKI DER encoding, PEM wrappers, or
+any other encoding for the identifier component. The unpadded
+base64url alphabet `[A-Za-z0-9_-]` is the only accepted character
+set. Identifier length is algorithm-specific:
+
+- `ed25519` (and the legacy untagged form) — exactly **43 chars**
+  (32 raw bytes).
+- `p256` — exactly **44 chars** (33 raw bytes; SEC1 compressed
+  point per [SEC 1 §2.3.3](https://www.secg.org/sec1-v2.pdf)).
 
 > **Known-answer test.** Pinned (seed → public key → AID) vectors live at [`schemas/conformance/known-answer/keypairs.json`](../schemas/conformance/known-answer/keypairs.json). For example, the all-zero 32-byte seed produces public key `O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik` and AID `aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik`. Implementations MUST reproduce these values byte-for-byte.
 
@@ -182,26 +208,95 @@ The `payload` object MUST be canonicalized per **[RFC 8785 — JSON Canonicaliza
 
 All `signature`, `pop_signature`, `cnf`, `proof`, and the AID identifier component (`aid:<method>:<identifier>`) are encoded as **unpadded base64url** per [RFC 4648 §5](https://datatracker.ietf.org/doc/html/rfc4648#section-5). Implementations MUST NOT emit `=` padding. Implementations SHOULD reject input that contains `=` padding; if they choose to accept it for compatibility with non-conformant senders, they MUST normalize to unpadded form before any signature verification.
 
-For the v0.1 Ed25519 profile, the unpadded base64url encoding length is fixed:
+For each algorithm the unpadded base64url encoding length is
+fixed; verifiers MUST reject any field whose encoded length
+differs from the algorithm's expected size:
 
-| Field | Raw bytes | Unpadded base64url length |
+| Field | Algorithm | Raw bytes | Unpadded base64url length |
+|---|---|---|---|
+| AID identifier — Ed25519 | `ed25519` | 32 | 43 chars |
+| AID identifier — P-256 | `p256` | 33 (SEC1 compressed) | 44 chars |
+| `binding.cnf` (TCT) and `cnf` (delegation) | (matches AID alg) | 32 / 33 | 43 / 44 chars |
+| `signature`, `pop_signature` — Ed25519 | `ed25519` | 64 | 86 chars |
+| `signature`, `pop_signature` — P-256 ECDSA | `p256` | 64 (R\|\|S, fixed-length) | 86 chars |
+| `pop_nonce`, Manifest `proof_of_possession.challenge` | (any) | 16 (128-bit nonce) | 22 chars |
+
+The canonical JSON Schemas under [`schemas/json/`](../schemas/json/)
+carry these constraints as `pattern` regexes; implementations MUST
+validate against the schema before attempting cryptographic
+verification.
+
+#### 5.4.3 Algorithm-tagged signature wire format
+
+Signature fields (envelope `signature`, manifest `signature`,
+TCT `signature`, delegation `signature`, revocation
+`signature`, PoP `pop_signature`, identity `proof`) MAY carry an
+algorithm tag prefix in v0.2:
+
+```
+<base64url-signature> := <86-char-b64url>                  (legacy v0.1, Ed25519 implicit)
+                       | "ed25519." <86-char-b64url>       (v0.2 tagged, Ed25519)
+                       | "p256." <86-char-b64url>          (v0.2 tagged, P-256)
+```
+
+The untagged 86-char form remains valid and is interpreted as
+`ed25519` for backward compatibility with v0.1. The tagged form is
+an ASCII algorithm name (`ed25519` or `p256`), a single period
+(`.`), then the unpadded base64url-encoded signature bytes.
+Verifiers MUST:
+
+1. Split on the first `.` to obtain the algorithm tag and signature
+   bytes.
+2. Reject if the algorithm tag is not in the registered set, or if
+   the encoded signature length doesn't match the algorithm's
+   expected size.
+3. Reject if the algorithm tag does NOT match the signing AID's
+   algorithm (e.g. an `ed25519`-AID signing with a `p256.` tagged
+   signature). This prevents downgrade attacks where a P-256-only
+   peer is tricked into accepting an Ed25519 signature labelled as
+   P-256.
+
+The algorithm tag is part of the canonical bytes that get hashed
+for outer signatures: changing the tag changes the bytes and
+therefore the hash. This binds the algorithm to the signed data.
+
+Implementations MUST use one of:
+
+| Algorithm | Identifier | Status |
 |---|---|---|
-| AID identifier (`aid:pubkey:<id>`) | 32 (Ed25519 public key) | 43 chars |
-| `binding.cnf` (TCT) and `cnf` (delegation) | 32 (Ed25519 public key) | 43 chars |
-| `signature`, `pop_signature` | 64 (Ed25519 signature) | 86 chars |
-| `pop_nonce`, Manifest `proof_of_possession.challenge` | 16 (128-bit nonce) | 22 chars |
+| Ed25519 (RFC 8032) | `ed25519` | REQUIRED |
+| ECDSA on P-256 with SHA-256 | `p256` | REQUIRED |
 
-Verifiers MUST reject any field whose encoded length differs from the table above. The canonical JSON Schemas under [`schemas/json/`](../schemas/json/) carry these constraints as `pattern` regexes; implementations MUST validate against the schema before attempting cryptographic verification.
+Both are mandatory in v0.2. A v0.2 peer MUST be able to verify
+both, even if it only signs with one. Manifests MAY advertise
+which algorithms a peer is willing to accept via the
+`accepted_signature_algorithms` field (RFC-AITP-0003 §3.2).
 
-Implementations MUST use:
+#### 5.4.4 JWK thumbprint for `cnf`
 
-| Algorithm | Identifier |
-|---|---|
-| Ed25519 | `ed25519` (REQUIRED) |
+The `cnf` field on TCTs and delegation tokens (RFC-AITP-0005,
+RFC-AITP-0006) MAY be one of:
 
-Ed25519 is the only signature algorithm in v0.1. Crypto agility is reserved for a future major version.
+- **Legacy v0.1 form** (Ed25519-only) — the 32-byte raw Ed25519
+  public key, base64url-unpadded (43 chars).
+- **v0.2 algorithm-agile form** — RFC 7638 JWK thumbprint of the
+  bound public key, base64url-unpadded SHA-256 over the canonical
+  JWK JSON. Algorithm-agnostic: a P-256 cnf is computed from the
+  JWK `{"crv":"P-256","kty":"EC","x":"…","y":"…"}` shape, an
+  Ed25519 cnf from `{"crv":"Ed25519","kty":"OKP","x":"…"}`.
 
-The algorithm is **not** encoded in the envelope. Verifiers determine the algorithm from the resolved key type bound to the sender's AID. This prevents algorithm-downgrade attacks.
+Verifiers MUST accept both forms during the v0.2 transition. New
+issuers SHOULD prefer the JWK thumbprint form because it survives
+key encoding changes (raw → SEC1 → JWK x-coordinate, etc.) and
+because it's the only form that works for non-Ed25519 keys.
+
+To distinguish the two forms, verifiers compare the cnf string
+length: 43 chars matches the legacy raw-pubkey form (and is then
+interpreted as Ed25519); 43 chars MUST also be tried as a JWK
+thumbprint when the bound key isn't Ed25519. Implementations
+SHOULD log a deprecation warning when accepting the legacy form,
+and SHOULD reject it once a deployment migration window has
+closed.
 
 #### 5.4.1 Signing input
 

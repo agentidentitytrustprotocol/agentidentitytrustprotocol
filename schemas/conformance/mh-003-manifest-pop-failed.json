@@ -1,6 +1,6 @@
 {
   "id": "mh-003",
-  "description": "Peer's Manifest signature validates but its proof_of_possession.signature does not validate against manifest.aid. The receiving peer MUST reject the handshake — the Manifest could be a replay across agents.",
+  "description": "Peer's Manifest signature validates but its proof_of_possession.signature does not validate against manifest.aid. The receiving peer MUST reject the handshake \u2014 the Manifest could be a replay across agents.",
   "tags": [
     "security",
     "mutual-handshake",
@@ -46,14 +46,14 @@
             "issuer": "https://auth.openai.com",
             "subject": "agent-A"
           },
-          "signature": "PJ2gRlr6o6tdUsQim0s4zza9Xcj0qzFy60Ns4dZNvb1Oo2cUTM4yWCT8EydILWpu3IKZrXlyuCHSjyr1A9qDAw"
+          "signature": "-UVVNNEGpz_wA6Gqv6xgWooSQ4hrZp_Fayi78apdb47W4D6Wr-44tHEperFn2dC1ldwizX_sTehIv45bp_hWAg"
         },
         "requested_grants": [
           "macp.mode.task.v1"
         ],
         "pop_nonce": "77oyy4kURdYkp8ZkmWjAhQ"
       },
-      "signature": "BCl4kICjUx8XI7Dw1AMlszIF-iQPzbnSCdLIdKViJ9LOHrKl90pZzx7pomaGS5fYv0WyQ7_IF32DCmFdTWvzCA"
+      "signature": "T1Hh-fpYjDAOe94uSHG1Ib8xxFPXMifXYVTUC3UdRd38RAkeOnJdpy1t8MF3wP_CtDONAF5JESaeX40RoIizCQ"
     },
     "operation": "verify_handshake_payload"
   },
