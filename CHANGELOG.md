@@ -2,6 +2,58 @@
 
 ## Unreleased
 
+### rc.4 — RFC unified-final pass
+
+Driven by `plans/aitp-rfc-unified-final-plan.md`. Closes the gap between
+the published RFCs and the reference library, tightens four security
+surfaces, and adds machine-readable conformance metadata so v0.1 runners
+can correctly skip post-v0.1 fixtures.
+
+- **RFC-AITP-0004 §8.1.** New non-normative shortened-renewal extension
+  describing the wire format for an opt-in renewal endpoint advertised
+  via `extensions["rfc-aitp-0005.renew_uri"]`. Eventual standardization
+  reserved as **RFC-AITP-0013** (Planned).
+- **RFC-AITP-0010.** Added a top-of-file conformance-scope statement —
+  the `bundle-*` fixture set is SKIP for v0.1 runners; the RFC's
+  MUST-level normative text applies only to draft opt-in
+  implementations.
+- **RFC-AITP-0008 §3.3.** Mandates that all network-adjacent revocation
+  lookups defer until *after* signature verification; closes the
+  attacker-chosen-network-fetch class of bugs.
+- **RFC-AITP-0007 §3.2.** `soft_fail` now MUST behave as `fail_closed`
+  when no trust basis exists for an issuer. Peer-Manifest key resolution
+  is `fail_closed` regardless of mode — no safe subset for unverified
+  identity.
+- **RFC-AITP-0002 §3.2.** Pinned-key key-possession-only verification is
+  forbidden as a production default; production code paths MUST consult
+  a configured `pinned_keys` store.
+- **Conformance fixtures.** Every fixture under `schemas/conformance/`
+  carries a metadata block (`rfc`, `status`, `required_for_v0_1`,
+  `feature`). New JSON Schema
+  `schemas/json/aitp-conformance-fixture.schema.json` enforces the block;
+  CI validates every fixture against it. Bundle and multi-hop fixtures
+  are tagged `status: "draft"`; v0.1 core fixtures are tagged
+  `status: "core"`. New fixture `del-004-multihop-rejected-v01` proves
+  v0.1 implementations reject any non-empty `chain` field with
+  `DELEGATION_MULTIHOP_NOT_SUPPORTED`.
+- **Error-code registry.** Added `TCT_EXPIRES_AFTER_MANIFEST` and
+  `INCOMPATIBLE_IDENTITY_TYPE`. Every table now carries a `spec_status`
+  column (`core` or `draft`).
+- **New registry.** `registries/extension-keys.md` pins the four
+  AITP-defined Manifest extension keys (`verify_uri`, `renew_uri`,
+  `delegation_verify_uri`, `revocation_list_uri`) so independent
+  implementations don't fork the strings.
+- **RFC process.** Strengthened the KAT requirement to mandate hex
+  preimage bytes (the decode-before-hash convention is non-obvious from
+  text alone — has caused two interop bugs); explicit non-merge gate for
+  PRs introducing new signing inputs without KAT vectors.
+- **Operational guidance.** New "Shortened renewal (experimental)"
+  section in `docs/operational-guidance.md` documenting when to enable
+  the opt-in extension, the discovery key, the 24h/8-renewal full-bind
+  ceiling, and the failure-mode fallback to full handshake.
+
+---
+
 RFC improvement pass driven by `plans/aitp-rfc-improvement-plan.md`,
 followed by a deep audit pass that fixed cross-RFC contradictions, schema
 drift, and stale-Reserved wording across docs. Tightens ambiguous PoP

@@ -1,20 +1,34 @@
 {
   "id": "del-mh-003",
+  "rfc": "RFC-AITP-0011",
+  "status": "draft",
+  "required_for_v0_1": false,
+  "feature": "experimental-multihop-delegation",
   "description": "Multi-hop chain_hash truncation defense. The chain and per-hop signatures are valid (identical to del-mh-001), but `chain_hash` has been tampered (does not match base64url(sha256(JCS([chain[0].source_tct_jti, chain[1].source_tct_jti])))). The verifier MUST recompute chain_hash from the chain contents and reject on mismatch with DELEGATION_CHAIN_HASH_MISMATCH (RFC-AITP-0011 §5). This is the canonical truncation-detection vector — equivalent to dropping a hop, since the outer signature covers chain_hash. Note: since chain_hash is bound into the outer signature, mutating it also invalidates `delegation.signature`; an implementation MAY also report DELEGATION_INVALID_SIGNATURE depending on which check it runs first. The chain_hash check is the more diagnostic one (the canonical pinned value lives at kat-multihop-truncation-001).",
-  "tags": ["security", "delegation", "multi-hop", "chain-hash", "post-v0.1"],
+  "tags": [
+    "security",
+    "delegation",
+    "multi-hop",
+    "chain-hash",
+    "post-v0.1"
+  ],
   "input": {
     "delegation": {
       "delegator": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
       "delegatee": "aid:pubkey:iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
       "issued_by": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
       "audience": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
-      "scope": ["read_data"],
+      "scope": [
+        "read_data"
+      ],
       "expires_at": 1711903600,
       "cnf": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
       "grant_proof": {
         "issuer": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
         "subject": "aid:pubkey:iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
-        "capabilities": ["read_data"],
+        "capabilities": [
+          "read_data"
+        ],
         "issued_at": 1711900200,
         "expires_at": 1711903600,
         "source_tct_jti": "550e8400-e29b-41d4-a716-446655443003",
@@ -24,7 +38,10 @@
         {
           "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
           "subject": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-          "capabilities": ["read_data", "write_data"],
+          "capabilities": [
+            "read_data",
+            "write_data"
+          ],
           "issued_at": 1711900000,
           "expires_at": 1711905000,
           "source_tct_jti": "550e8400-e29b-41d4-a716-446655443001",
@@ -33,7 +50,9 @@
         {
           "issuer": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
           "subject": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
-          "capabilities": ["read_data"],
+          "capabilities": [
+            "read_data"
+          ],
           "issued_at": 1711900100,
           "expires_at": 1711904000,
           "source_tct_jti": "550e8400-e29b-41d4-a716-446655443002",

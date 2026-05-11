@@ -1,5 +1,9 @@
 {
   "id": "mh-009",
+  "rfc": "RFC-AITP-0004",
+  "status": "core",
+  "required_for_v0_1": true,
+  "feature": null,
   "description": "Manifest declares `identity_hint.type = oidc` but the handshake payload presents a `pinned_key` identity proof (or vice versa). Receiver MUST reject with IDENTITY_FAILED. Without this gate, an attacker could downgrade an OIDC-only peer to pinned-key verification and bypass the OIDC trust-anchor checks (type confusion). (RFC-AITP-0002 §3 / RFC-AITP-0004 §5.1; alpha.5 P4.)",
   "tags": [
     "security",

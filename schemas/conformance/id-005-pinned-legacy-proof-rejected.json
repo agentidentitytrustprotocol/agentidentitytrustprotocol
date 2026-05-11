@@ -1,5 +1,9 @@
 {
   "id": "id-005",
+  "rfc": "RFC-AITP-0002",
+  "status": "core",
+  "required_for_v0_1": true,
+  "feature": null,
   "description": "A pinned-key proof signed using the pre-v0.1 two-field input (`message_id|timestamp`, no domain prefix, no receiver, no pop_nonce) MUST be rejected with IDENTITY_FAILED. The v0.1 normative proof input is the five-field domain-prefixed form (RFC-AITP-0002 §3.1). This fixture pins the cross-version regression: an alpha.4 implementation that rolled forward unchanged would silently accept the legacy proof. The minting tool produces the legacy signature in `__LEGACY_PINNED_PROOF__` so the fixture's signature alphabet is real and the verifier must replay the v0.1 reconstruction to discover the mismatch. (alpha.5 P1.)",
   "tags": [
     "security",

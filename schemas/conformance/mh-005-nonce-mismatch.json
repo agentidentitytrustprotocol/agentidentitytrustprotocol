@@ -1,5 +1,9 @@
 {
   "id": "mh-005",
+  "rfc": "RFC-AITP-0004",
+  "status": "core",
+  "required_for_v0_1": true,
+  "feature": null,
   "description": "MUTUAL_HELLO_ACK carries a pop_nonce_echo that does not match the pop_nonce the initiator sent in MUTUAL_HELLO. The initiator MUST reject the handshake with NONCE_MISMATCH — without echo binding, an attacker could inject a fabricated ACK referencing different nonces.",
   "tags": [
     "security",

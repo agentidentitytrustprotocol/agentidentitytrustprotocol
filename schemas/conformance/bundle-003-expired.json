@@ -1,7 +1,16 @@
 {
   "id": "bundle-003",
+  "rfc": "RFC-AITP-0010",
+  "status": "draft",
+  "required_for_v0_1": false,
+  "feature": "experimental-session-bundle",
   "description": "Session Trust Bundle expiry check (RFC-AITP-0010 §5 step 2). Bundle is byte-valid: coordinator signature verifies, embedded TCT signatures verify, expiry-window invariant holds (bundle.expires_at = min(tct.expires_at) = 1711799000), participants non-empty. The defect is that bundle.expires_at = 1711799000 is before `now` = 1711900100. Verifier MUST reject with BUNDLE_EXPIRED before consuming any embedded TCT.",
-  "tags": ["failure", "session-bundle", "expiry", "post-v0.1"],
+  "tags": [
+    "failure",
+    "session-bundle",
+    "expiry",
+    "post-v0.1"
+  ],
   "input": {
     "self_aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
     "now": 1711900100,
@@ -23,8 +32,12 @@
               "audience": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
               "issued_at": 1711700000,
               "expires_at": 1711800000,
-              "grants": ["macp.mode.task.v1"],
-              "binding": {"cnf": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"},
+              "grants": [
+                "macp.mode.task.v1"
+              ],
+              "binding": {
+                "cnf": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+              },
               "signature": "3v8isL4MT0Qxn--si6-eP4G09dVlZDKDnVo2MhuCKeVHRPl3YEgnqdtQLYDlB5DeKydP-FHA6ivv0biCR62YBA"
             }
           },
@@ -38,8 +51,12 @@
               "audience": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
               "issued_at": 1711700000,
               "expires_at": 1711799000,
-              "grants": ["macp.mode.task.v1"],
-              "binding": {"cnf": "dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU"},
+              "grants": [
+                "macp.mode.task.v1"
+              ],
+              "binding": {
+                "cnf": "dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU"
+              },
               "signature": "n_ptxhEzDZ00XU_2WozZqwkvJ3iXzaafj9tHMFfOZEA8X4NeH3-Zcru6banieKT3KZdzxI30GQXZUVfJNztfAA"
             }
           }

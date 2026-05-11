@@ -1,5 +1,9 @@
 {
   "id": "rev-002",
+  "rfc": "RFC-AITP-0008",
+  "status": "core",
+  "required_for_v0_1": true,
+  "feature": null,
   "description": "Same shape as `rev-001`, but the verifier's policy is `SoftFail`: a stale or unreachable snapshot MUST NOT cause hard rejection. Implementations MAY emit telemetry; the wire-level outcome is `success` (or, equivalently, `revoked = false`). This fixture protects callers that prefer availability over revocation freshness in low-value flows. (RFC-AITP-0008 §1.5; alpha.5 P12.)",
   "tags": [
     "success",

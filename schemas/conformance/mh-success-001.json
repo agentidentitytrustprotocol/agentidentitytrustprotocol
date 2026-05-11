@@ -1,5 +1,9 @@
 {
   "id": "mh-success-001",
+  "rfc": "RFC-AITP-0004",
+  "status": "core",
+  "required_for_v0_1": true,
+  "feature": null,
   "description": "Happy-path Mutual Handshake. Both peers present valid OIDC identity proofs bound to the per-handshake nonces, exchange Manifests with valid signatures and PoP, and emit two valid peer-issued TCTs. Each peer's `requested_grants` is contained in the other peer's `offered_capabilities`. Both peers MUST accept and store the inbound TCT.",
   "tags": [
     "happy-path",

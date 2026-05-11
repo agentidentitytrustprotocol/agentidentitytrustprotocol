@@ -1,5 +1,9 @@
 {
   "id": "tct-006",
+  "rfc": "RFC-AITP-0005",
+  "status": "core",
+  "required_for_v0_1": true,
+  "feature": null,
   "description": "Happy-path downstream PoP exchange (RFC-AITP-0005 §6.1, §6.2). A consuming peer (agentA) issues a `pop_challenge` for a TCT it holds against subject agentB; agentB returns a `pop_response` whose `nonce_echo` matches the challenge nonce and whose `pop_signature` is `sign(agentB_priv, sha256(base64url_decode(nonce)))`. The runner MUST execute both steps and assert that the verifier (agentA) accepts the response. This fixture proves the implementation can produce AND verify a downstream PoP exchange end-to-end (the §6.2 conformance-note requirement). Whether an implementation *enforces* PoP for every grant is deployment-configurable; the *capability* tested here is mandatory.",
   "tags": [
     "success",

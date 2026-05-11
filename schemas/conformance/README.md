@@ -23,9 +23,18 @@ conformance/
 
 ## Fixture Format
 
+Every fixture MUST carry the following metadata block as its leading
+fields. The block exists so a v0.1 conformance runner can know — without
+parsing scenario content — whether a fixture is required for v0.1, an
+opt-in draft feature, or out of scope entirely.
+
 ```json
 {
   "id": "unique-fixture-id",
+  "rfc": "RFC-AITP-NNNN",
+  "status": "core | draft | extension | reserved",
+  "required_for_v0_1": true,
+  "feature": null,
   "description": "Human-readable description of the scenario",
   "tags": ["happy-path | failure | security | edge-case"],
   "input": { ... },
@@ -36,6 +45,39 @@ conformance/
   }
 }
 ```
+
+### Metadata fields
+
+| Field | Type | Meaning |
+|---|---|---|
+| `id` | string | Fixture id (e.g. `mh-success-001`). |
+| `rfc` | string | Most-specific RFC the fixture exercises (e.g. `RFC-AITP-0006`). |
+| `status` | enum | One of `core`, `draft`, `extension`, `reserved`. See enforcement rules below. |
+| `required_for_v0_1` | bool | Whether a v0.1 implementation MUST pass this fixture. Always `false` for `draft` / `extension` fixtures. |
+| `feature` | string \| null | When `status != "core"`, the named opt-in feature flag a runner uses to enable this fixture (e.g. `experimental-session-bundle`). `null` for core fixtures. |
+
+### Conformance runner enforcement rules
+
+A v0.1 conformance runner MUST apply the following rules to the metadata
+block before executing a fixture:
+
+- `status: "core"` + `required_for_v0_1: true` → **MUST execute.** A
+  `OP_NOT_SUPPORTED` result or runner SKIP MUST be reported as a failure
+  for this fixture.
+- `status: "draft"` → **MUST SKIP** unless the runner has explicitly
+  opted into the named `feature` (and, by extension, draft conformance
+  for the cited RFC). Failing a v0.1 implementation for not implementing
+  a draft fixture is non-conformant runner behavior.
+- `status: "extension"` → **MUST SKIP** in the v0.1 default runner. May
+  be exercised only when the runner is explicitly testing the named
+  extension feature.
+- `status: "reserved"` → MUST be ignored by every runner; reserved status
+  exists only so a fixture id slot can be claimed before the underlying
+  RFC normative text lands.
+
+Any fixture missing the metadata block, or carrying invalid values for
+these fields, MUST cause the runner to fail loudly rather than silently
+skip — the metadata is a load-bearing input to interop testing.
 
 ### Multi-step `sequence` form
 
@@ -142,6 +184,7 @@ The runner interface is implementation-defined.
 |---|---|---|
 | `del-001` | Single-hop happy path — A→B→C with scope ⊆ grant_proof.capabilities | success |
 | `del-003` | Scope exceeds grant_proof capabilities | failure: DELEGATION_SCOPE_EXCEEDED |
+| `del-004` | A delegation token with a non-empty `chain` field MUST be rejected by v0.1 implementations as a structural check, before any per-hop signature work | failure: DELEGATION_MULTIHOP_NOT_SUPPORTED |
 
 ### Multi-hop Delegation (RFC-AITP-0011, post-v0.1)
 

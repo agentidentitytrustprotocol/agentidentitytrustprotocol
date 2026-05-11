@@ -16,6 +16,7 @@ This directory contains the normative RFCs that define the Agent Identity & Trus
 | [RFC-AITP-0010](RFC-AITP-0010-session-trust-bundle.md) | Session Trust Bundle | Draft (post-v0.1) |
 | [RFC-AITP-0011](RFC-AITP-0011-multihop-delegation.md) | Multi-hop Delegation | Draft (post-v0.1) |
 | [RFC-AITP-0012](RFC-AITP-0012-extensions.md) | Extensions (ZK, TEE) — reserved | Reserved |
+| RFC-AITP-0013 | TCT Renewal Extension | Planned |
 
 ## Reading order
 
@@ -39,6 +40,12 @@ Post-v0.1 (Draft normative text published, NOT part of v0.1 conformance):
 Reserved (no normative text, numbering pinned for future work):
 
 - **[RFC-AITP-0012 Extensions](RFC-AITP-0012-extensions.md)** — ZK and TEE namespaces.
+
+Planned (RFC number reserved, no document yet):
+
+- **RFC-AITP-0013 TCT Renewal Extension** — standardization of the
+  shortened renewal endpoint described non-normatively in
+  [RFC-AITP-0004 §8.1](RFC-AITP-0004-mutual-handshake.md#81-non-normative-shortened-renewal-extension).
 
 ## RFC lifecycle
 

@@ -1,5 +1,9 @@
 {
   "id": "man-002",
+  "rfc": "RFC-AITP-0003",
+  "status": "core",
+  "required_for_v0_1": true,
+  "feature": null,
   "description": "Manifest declares a `version` the receiver does not implement. Receivers MUST reject with MANIFEST_VERSION_UNKNOWN (RFC-AITP-0003) and MUST NOT attempt best-effort parsing of an unknown major version.",
   "tags": [
     "failure",

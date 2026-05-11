@@ -1,5 +1,9 @@
 {
   "id": "del-001",
+  "rfc": "RFC-AITP-0006",
+  "status": "core",
+  "required_for_v0_1": true,
+  "feature": null,
   "description": "Single-hop delegation happy path. A peer-issued [read_data, write_data] to B (kat-keypair-001 → kat-keypair-002). B delegates [read_data] (a strict subset) to C (kat-keypair-003) with audience=A. A verifies the grant_proof signature against its own key, the scope subset, the audience, the expiry, and B's outer signature against B's Manifest key. All checks pass; A would mint a fresh peer-issued TCT for C carrying the delegated subset. (RFC-AITP-0006 §4.) The success counterpart to del-003-scope-exceeded.",
   "tags": [
     "success",

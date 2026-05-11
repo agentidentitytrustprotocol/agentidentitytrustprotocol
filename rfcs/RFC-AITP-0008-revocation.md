@@ -133,6 +133,33 @@ The schema default for `revocation_policy.mode` is **`fail_closed`** (see `aitp-
 
 `max_staleness_secs` defines the maximum age of a cached revocation list. If the cached list is older than this value and the endpoint is unreachable, the configured `mode` applies.
 
+### 3.3 Revocation lookup ordering
+
+Implementations MUST verify the TCT's signature, issuer key binding,
+audience, and `expires_at` **before** consulting any network revocation
+source. The TCT fields `issuer` and `jti` are used as lookup keys for the
+deny list; verifying the signature first ensures these fields are
+authenticated and cannot be forged by an attacker to trigger
+attacker-chosen network fetches.
+
+A purely local, side-effect-free revocation check (e.g. an in-memory
+deny list with no network I/O, no DNS resolution, and no cache write)
+MAY run before signature verification, since it cannot be exploited for
+DoS amplification or cache pollution. **All network-adjacent revocation
+lookups** — HTTP fetches of `ListRevoked`, DNS resolution of issuer
+endpoints, writes to a shared revocation cache — MUST be deferred until
+after signature verification.
+
+**Security rationale.** An attacker who can inject an unsigned or
+wrongly-signed TCT can set `tct.issuer` to any AID. If revocation lookup
+runs before signature verification, the verifier will make a network
+request to that AID's revocation endpoint with attacker-chosen
+parameters. This enables (a) network-amplification DoS against arbitrary
+AIDs, (b) revocation-cache pollution under attacker-chosen issuer keys,
+and (c) side-channel disclosure of which AIDs the verifier is willing to
+contact. Anchoring revocation lookup to a *verified* `issuer` and `jti`
+removes all three.
+
 ---
 
 ## 4. Session Revocation

@@ -1,5 +1,9 @@
 {
   "id": "id-001",
+  "rfc": "RFC-AITP-0002",
+  "status": "core",
+  "required_for_v0_1": true,
+  "feature": null,
   "description": "Peer's OIDC identity JWT is otherwise valid but is missing the `aud` claim. Without `aud`, the verifier cannot confirm the JWT was minted for this peer; the receiving peer MUST reject with IDENTITY_FAILED (RFC-AITP-0002 §2.2).",
   "tags": [
     "security",

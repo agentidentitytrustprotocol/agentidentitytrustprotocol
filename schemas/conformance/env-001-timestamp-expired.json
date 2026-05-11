@@ -1,5 +1,9 @@
 {
   "id": "env-001",
+  "rfc": "RFC-AITP-0001",
+  "status": "core",
+  "required_for_v0_1": true,
+  "feature": null,
   "description": "Envelope timestamp is older than the receiver's tolerance window. Receivers MUST reject with TIMESTAMP_EXPIRED (RFC-AITP-0001 §5.5). Retryable.",
   "tags": [
     "security",

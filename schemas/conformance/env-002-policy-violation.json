@@ -1,5 +1,9 @@
 {
   "id": "env-002",
+  "rfc": "RFC-AITP-0004",
+  "status": "core",
+  "required_for_v0_1": true,
+  "feature": null,
   "description": "Caller invokes a capability not present in the active TCT's grants. Receivers MUST reject with POLICY_VIOLATION (RFC-AITP-0004 §4). The check is local — no remote lookup is required.",
   "tags": [
     "failure",

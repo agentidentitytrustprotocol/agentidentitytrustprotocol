@@ -1,7 +1,15 @@
 {
   "id": "bundle-001",
+  "rfc": "RFC-AITP-0010",
+  "status": "draft",
+  "required_for_v0_1": false,
+  "feature": "experimental-session-bundle",
   "description": "Session Trust Bundle happy path (RFC-AITP-0010 §5). Reuses kat-session-bundle-001 verbatim. Coordinator (kat-keypair-001) has run bilateral Mutual Handshakes with two participants (kat-keypair-002 = B, kat-keypair-003 = C) and minted a peer-issued TCT for each. The bundle packages both TCTs and is signed by the coordinator. The receiving participant (B in this fixture) verifies: bundle version, expiry-window invariant (bundle.expires_at = min(participants[*].tct.expires_at)), participants non-empty, coordinator key resolution, bundle signature, every embedded TCT (issuer = coordinator, audience = participant.aid), and self-membership. All checks pass; B accepts the bundle and the membership it asserts.",
-  "tags": ["success", "session-bundle", "post-v0.1"],
+  "tags": [
+    "success",
+    "session-bundle",
+    "post-v0.1"
+  ],
   "input": {
     "self_aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
     "now": 1711900100,
@@ -23,8 +31,12 @@
               "audience": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
               "issued_at": 1711900000,
               "expires_at": 1711903600,
-              "grants": ["macp.mode.task.v1"],
-              "binding": {"cnf": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"},
+              "grants": [
+                "macp.mode.task.v1"
+              ],
+              "binding": {
+                "cnf": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+              },
               "signature": "dRaMvsneooEBb1BrVBvk2ObRANZr_1Q8ajCOzlcBapN86yIwSHXf9uc5PasGHeb22sf7nUC-s_fg7U_hVR34Aw"
             }
           },
@@ -38,8 +50,12 @@
               "audience": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
               "issued_at": 1711900000,
               "expires_at": 1711905600,
-              "grants": ["macp.mode.task.v1"],
-              "binding": {"cnf": "dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU"},
+              "grants": [
+                "macp.mode.task.v1"
+              ],
+              "binding": {
+                "cnf": "dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU"
+              },
               "signature": "gPVK5hq2JCHXP8RAYh1xDbN2qAzR1EfMNpGUJZYbixVohPzK5bWE519ra9WWxXLawAbp9lP-uKgJL9d5uWIBCg"
             }
           }

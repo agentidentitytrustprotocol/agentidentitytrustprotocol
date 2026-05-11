@@ -1,5 +1,9 @@
 {
   "id": "rev-003",
+  "rfc": "RFC-AITP-0008",
+  "status": "core",
+  "required_for_v0_1": true,
+  "feature": null,
   "description": "Revocation snapshot happy path. A signed snapshot from the issuing peer (kat-keypair-001) is fresh (published_at within `max_staleness_secs`), its signature validates under the issuing peer's Manifest key, and a queried JTI is NOT in `entries`. Verifier returns 'not revoked' and the surrounding TCT verification continues. (RFC-AITP-0008 §1.5.) Counterpart to rev-001 (stale snapshot, fail-closed) and rev-002 (stale snapshot, soft-fail).",
   "tags": [
     "success",
