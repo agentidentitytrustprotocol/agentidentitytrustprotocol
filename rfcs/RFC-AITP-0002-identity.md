@@ -169,6 +169,31 @@ A peer verifying an identity binding MUST:
 
 Peers MUST NOT accept pinned-key identities for public keys not present in the local configuration.
 
+#### Production requirement
+
+Verifying that a peer's key "matches its AID" — i.e. *key-possession proof
+alone* — is **not** sufficient for production deployments. AID
+construction is deterministic from the public key (RFC-AITP-0001 §5.3),
+so any agent can construct an AID for any key it generates. The trust
+anchor is the **local pinned-key configuration**, not the AID
+derivation; possession of a key tells you only that the holder generated
+that AID, not that the AID is one you have ever decided to trust.
+
+Implementations MUST NOT offer key-possession-only verification (i.e.
+"accept any pinned-key identity whose proof signature validates against
+the public key embedded in `manifest.aid`") as a production default. It
+MAY be offered as an explicitly named development mode (e.g.
+`unsafe_no_trust_store`) that:
+
+- requires explicit, non-default opt-in,
+- logs a high-severity warning each time a key is accepted, and
+- is documented as unsafe for any non-development deployment.
+
+All production code paths MUST consult a configured `pinned_keys` store
+and reject any pinned-key identity whose `public_key` is not present in
+that store, regardless of how cryptographically sound the proof
+signature is.
+
 ### 3.3 Example
 
 The `public_key` MUST be the same 43-char unpadded-base64url AID-identifier form defined in RFC-AITP-0001 §5.3. SPKI-DER and PEM forms are not permitted.

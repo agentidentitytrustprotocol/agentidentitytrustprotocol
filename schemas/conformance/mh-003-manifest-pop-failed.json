@@ -1,6 +1,10 @@
 {
   "id": "mh-003",
-  "description": "Peer's Manifest signature validates but its proof_of_possession.signature does not validate against manifest.aid. The receiving peer MUST reject the handshake \u2014 the Manifest could be a replay across agents.",
+  "rfc": "RFC-AITP-0004",
+  "status": "core",
+  "required_for_v0_1": true,
+  "feature": null,
+  "description": "Peer's Manifest signature validates but its proof_of_possession.signature does not validate against manifest.aid. The receiving peer MUST reject the handshake — the Manifest could be a replay across agents.",
   "tags": [
     "security",
     "mutual-handshake",

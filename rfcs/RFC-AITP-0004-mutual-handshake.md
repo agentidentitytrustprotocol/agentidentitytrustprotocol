@@ -472,6 +472,40 @@ Agents MUST NOT persist `pop_nonce` values across restarts. Restarting agents MU
 
 TCTs expire per `expires_at`. Peers MAY initiate a fresh Mutual Handshake before expiry to renew trust. There is no in-band renewal message in v0.1. Agents MUST NOT use an expired peer TCT. See [`docs/operational-guidance.md`](../docs/operational-guidance.md) for non-normative renewal patterns.
 
+### 8.1 Non-normative: shortened renewal extension
+
+Implementations MAY offer a shortened renewal endpoint as a non-normative
+extension. Shortened renewal is NOT part of v0.1 conformance and MUST be
+gated behind an explicit feature or configuration opt-in. Peers MUST
+advertise support via the `extensions["rfc-aitp-0005.renew_uri"]`
+Manifest field (see [`registries/extension-keys.md`](../registries/extension-keys.md))
+so other implementations can discover it without assuming its presence.
+
+Wire format for the experimental shortened renewal:
+
+- `POST /aitp/handshake/renew` (or any endpoint advertised in the Manifest
+  via `extensions["rfc-aitp-0005.renew_uri"]`).
+- Request body:
+  ```json
+  {
+    "current_tct": { "tct": { "...": "TctEnvelope" } },
+    "pop_nonce": "<22-char unpadded base64url>",
+    "pop_signature": "<86-char unpadded base64url, sign(holder_key, sha256(base64url_decode(pop_nonce)))>"
+  }
+  ```
+- Response: a `TctEnvelope` with a new `jti` and `expires_at ≤ issuer.manifest.expires_at`.
+
+An expired TCT MUST NOT be used to bootstrap a shortened renewal — the
+issuer MUST verify `current_tct.expires_at > now` before issuing a
+replacement. The issuer MUST also re-evaluate its grant policy for the
+holder; shortened renewal is not a bypass for revocation, manifest
+rotation, or trust-anchor changes.
+
+v0.1 conformance testers MUST NOT require shortened renewal support and
+MUST NOT fail implementations that only support full Mutual Handshake
+renewal. The eventual standardization of this extension is reserved as
+[RFC-AITP-0013 TCT Renewal Extension](README.md) (Planned).
+
 ---
 
 ## 9. Integration with Multi-Agent Sessions

@@ -162,6 +162,7 @@ There is no service-consumer profile. AITP is peer-to-peer.
 - **RFC-AITP-0010 Session Trust Bundle** *(Draft, post-v0.1)* — multi-agent session scaling.
 - **RFC-AITP-0011 Multi-hop Delegation** *(Draft, post-v0.1)* — chains beyond a single hop.
 - **RFC-AITP-0012 Extensions** *(reserved)* — `extensions.zk` and `extensions.tee` namespaces.
+- **RFC-AITP-0013 TCT Renewal Extension** *(Planned)* — standardization of the non-normative shortened renewal endpoint described in RFC-AITP-0004 §8.1.
 
 ---
 

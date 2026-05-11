@@ -9,9 +9,13 @@ deployments. The authoritative protocol is in the RFCs under
 ## Handshake renewal
 
 TCTs expire. Peers that need a continuing trust relationship rerun the
-Mutual Handshake (RFC-AITP-0004) before expiry. The protocol does not
-define a shortened renewal flow — round 1 is always full credential
-exchange, and round 2 always issues fresh TCTs.
+Mutual Handshake (RFC-AITP-0004) before expiry. AITP v0.1 conformance
+defines only the **full Mutual Handshake** as a renewal mechanism —
+round 1 is full credential exchange, round 2 issues fresh TCTs, and the
+contract is uniform across initial and renewing handshakes. A
+non-normative **shortened renewal extension** is described in
+[RFC-AITP-0004 §8.1](../rfcs/RFC-AITP-0004-mutual-handshake.md#81-non-normative-shortened-renewal-extension)
+and discussed below; it is opt-in and not part of v0.1 conformance.
 
 ### Recommended pattern
 
@@ -33,13 +37,70 @@ exchange, and round 2 always issues fresh TCTs.
   Manifest with a newer `published_at`. The renewing peer MUST accept
   the newer Manifest and discard its cached copy (RFC-AITP-0004 §11.3).
 
-### Why no in-band renewal?
+### Why no in-band renewal in v0.1 conformance?
 
 A shortened "renewal" message that skipped credential exchange would
 re-introduce the trust gap: an attacker holding an expired TCT could
 present it as proof of an existing relationship and skip identity
 verification. Forcing every renewal through the full handshake keeps the
 contract uniform: every TCT is issued only after a fresh PoP exchange.
+
+### Shortened renewal (experimental)
+
+[RFC-AITP-0004 §8.1](../rfcs/RFC-AITP-0004-mutual-handshake.md#81-non-normative-shortened-renewal-extension)
+defines a non-normative, opt-in shortened renewal endpoint that some
+implementations (notably the reference library `aitp-rs`) offer behind
+an explicit feature flag. It is **not** part of v0.1 conformance and is
+not assumed by interoperating peers unless advertised.
+
+**When you might enable it.** High-frequency, low-value renewals between
+two long-lived peers under the same operator (e.g. internal services
+that handshake hundreds of times per minute) where the full
+four-message handshake adds measurable latency and the operator accepts
+the narrower trust-rebinding semantics described below.
+
+**Discovery.** A peer that supports shortened renewal advertises it in
+its Manifest:
+
+```json
+{
+  "extensions": {
+    "rfc-aitp-0005.renew_uri": "https://agent-b.example.com/aitp/handshake/renew"
+  }
+}
+```
+
+The key is registered in
+[`registries/extension-keys.md`](../registries/extension-keys.md). Peers
+without that extension key MUST fall back to a full Mutual Handshake.
+
+**Wire format and constraints.** See RFC-AITP-0004 §8.1 for the request
+/ response shape. Operationally:
+
+- The current TCT MUST still be valid (`expires_at > now`) when the
+  renewal request is sent. Shortened renewal cannot resurrect an
+  already-expired TCT — that path requires a full handshake.
+- The issuer MUST re-evaluate its grant policy, revocation list, and
+  Manifest expiry on every shortened renewal. Skipping identity
+  re-presentation is not a license to skip authorization.
+- Implementations SHOULD impose a "ceiling" on consecutive shortened
+  renewals (e.g. force a full handshake every N renewals or every M
+  hours of wall-clock continuity) so that long-lived sessions
+  periodically re-bind identity end-to-end. The reference default is
+  every **24 hours** or every **8 shortened renewals**, whichever comes
+  first.
+
+**Failure modes.** A shortened renewal MAY fail with any of the standard
+handshake error codes plus the new
+[`TCT_EXPIRES_AFTER_MANIFEST`](../registries/error-codes.md) when the
+issuer's Manifest has rotated below the requested new expiry. On any
+failure the renewing peer MUST fall back to a full Mutual Handshake
+before continuing to use the (still-valid-but-soon-expiring) TCT.
+
+**Backwards compatibility.** A peer that does not advertise
+`rfc-aitp-0005.renew_uri` MUST be renewed via full Mutual Handshake. A
+peer that advertises it MAY also accept full Mutual Handshakes — the
+extension is additive, never substitutive.
 
 ---
 

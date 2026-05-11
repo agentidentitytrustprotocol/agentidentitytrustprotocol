@@ -1,20 +1,33 @@
 {
   "id": "del-mh-001",
+  "rfc": "RFC-AITP-0011",
+  "status": "draft",
+  "required_for_v0_1": false,
+  "feature": "experimental-multihop-delegation",
   "description": "Multi-hop delegation happy path (3 hops, A→B→C→D). Reuses kat-multihop-chain-001 verbatim. chain[0] is A's peer-issued TCT to B (in GrantProof shape; A's signature reused from the source TCT). chain[1] is B's intermediate-signed step delegating [read_data] to C. grant_proof is C's intermediate-signed step authorizing C to issue to D. delegation.signature is C's outer signature; chain_hash is base64url(sha256(JCS([chain[0].source_tct_jti, chain[1].source_tct_jti]))). A verifies every hop's signature, the transitive scope subsetting (read_data ⊆ read_data ⊆ [read_data, write_data]), the chain_hash, and the outer signature. All checks pass; A peer-issues a fresh TCT for D. (RFC-AITP-0011 §3, §4, §5.) NOTE: post-v0.1 — v0.1 implementations MUST reject any token with a non-empty `chain` field with DELEGATION_MULTIHOP_NOT_SUPPORTED.",
-  "tags": ["success", "delegation", "multi-hop", "post-v0.1"],
+  "tags": [
+    "success",
+    "delegation",
+    "multi-hop",
+    "post-v0.1"
+  ],
   "input": {
     "delegation": {
       "delegator": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
       "delegatee": "aid:pubkey:iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
       "issued_by": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
       "audience": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
-      "scope": ["read_data"],
+      "scope": [
+        "read_data"
+      ],
       "expires_at": 1711903600,
       "cnf": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
       "grant_proof": {
         "issuer": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
         "subject": "aid:pubkey:iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
-        "capabilities": ["read_data"],
+        "capabilities": [
+          "read_data"
+        ],
         "issued_at": 1711900200,
         "expires_at": 1711903600,
         "source_tct_jti": "550e8400-e29b-41d4-a716-446655443003",
@@ -24,7 +37,10 @@
         {
           "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
           "subject": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-          "capabilities": ["read_data", "write_data"],
+          "capabilities": [
+            "read_data",
+            "write_data"
+          ],
           "issued_at": 1711900000,
           "expires_at": 1711905000,
           "source_tct_jti": "550e8400-e29b-41d4-a716-446655443001",
@@ -33,7 +49,9 @@
         {
           "issuer": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
           "subject": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
-          "capabilities": ["read_data"],
+          "capabilities": [
+            "read_data"
+          ],
           "issued_at": 1711900100,
           "expires_at": 1711904000,
           "source_tct_jti": "550e8400-e29b-41d4-a716-446655443002",
@@ -47,7 +65,9 @@
   },
   "expected": {
     "outcome": "success",
-    "grants": ["read_data"],
+    "grants": [
+      "read_data"
+    ],
     "rationale": "Per-hop signatures verify under each issuer's key; transitive scope check passes (read_data ⊆ read_data ⊆ [read_data, write_data]); chain_hash recomputes from JTI list; outer signature verifies under C's key."
   }
 }

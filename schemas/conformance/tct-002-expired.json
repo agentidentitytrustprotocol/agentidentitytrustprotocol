@@ -1,5 +1,9 @@
 {
   "id": "tct-002",
+  "rfc": "RFC-AITP-0005",
+  "status": "core",
+  "required_for_v0_1": true,
+  "feature": null,
   "description": "Expired peer-issued TCT MUST be rejected regardless of signature validity.",
   "tags": [
     "failure",

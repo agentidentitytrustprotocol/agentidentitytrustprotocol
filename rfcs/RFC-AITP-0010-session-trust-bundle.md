@@ -10,6 +10,21 @@
 
 > **Status: Draft.** Normative text below resolves the four open questions tracked in earlier "Reserved" revisions of this RFC. The bundle wire format and conformance surface are still being implemented; consumers MUST treat the schema as Draft until this RFC is promoted to Release Candidate.
 
+> **Conformance scope.** RFC-AITP-0010 is **not part of AITP v0.1
+> conformance.** Implementations MUST NOT fail v0.1 conformance tests
+> because they do not implement Session Trust Bundles. Conformance
+> runners MUST treat the `bundle-*` fixture set in
+> [`schemas/conformance/`](../schemas/conformance/) as SKIP unless the
+> runner is explicitly opted into testing RFC-AITP-0010 draft conformance
+> (the metadata block on every bundle fixture carries
+> `status: "draft"` and `feature: "experimental-session-bundle"`; see
+> [`schemas/conformance/README.md`](../schemas/conformance/README.md)).
+>
+> The normative requirements in this document (MUST, SHALL, etc.) apply
+> only to implementations that explicitly opt into RFC-AITP-0010 draft
+> conformance. A v0.1-only implementation that ignores Session Trust
+> Bundles entirely is conformant.
+
 ---
 
 ## Abstract

@@ -129,6 +129,36 @@ In `soft_fail`, when key resolution fails, the agent MUST restrict grants to exc
 
 For peer-key resolution failures, `soft_fail` is not applicable. Without a peer's Manifest there is nothing to verify against; the handshake cannot proceed.
 
+### 3.2 Soft-fail and identity verification
+
+`soft_fail` applies only to **grant issuance policy** *after* the
+counterparty's identity has been independently verified via at least one
+of:
+
+- a **cached, still-valid issuer key** from a prior successful fetch,
+- a **pinned issuer key** from the local trust store, or
+- a **deployment-local trust context** (e.g. a sidecar that has already
+  authenticated the issuer out-of-band).
+
+If none of these trust bases exist for the issuer in question, `soft_fail`
+MUST behave as `fail_closed`. **An unverified identity proof MUST NOT be
+accepted under any fail mode.** The safe-subset semantics in §3.1 govern
+which grants survive soft-fail; they do NOT relax the identity check
+itself.
+
+For **peer Manifest key resolution** specifically (i.e. the peer-key flow
+in §1, not the identity-issuer flow in §2), every `fail_mode` behaves as
+`fail_closed`: if the peer's Manifest cannot be fetched and verified,
+the handshake MUST fail regardless of the configured mode. There is no
+safe subset when the peer's identity cannot be verified at all — soft-fail
+is a degraded-but-still-authenticated state, not an unauthenticated one.
+
+**Security rationale.** Treating "no trust basis" as soft-fail-allowed
+collapses the distinction between *not knowing* an issuer and *trusting
+it to issue restricted grants*. An attacker who can prevent a verifier
+from reaching any of the issuer-key sources could otherwise present
+arbitrary identity proofs and be granted the safe subset by default.
+
 ---
 
 ## 4. Offline Mode

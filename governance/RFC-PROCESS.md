@@ -97,17 +97,24 @@ What does NOT require an RFC:
 
 ### KAT requirement
 
-Any RFC that introduces a new signing input, hash construction, or
-canonicalization step MUST include at least one known-answer test
-(KAT) vector. The vector MUST pin:
+Any RFC that introduces a new **signing input, hash construction,
+canonicalization step, or PoP pattern** MUST include at least one
+known-answer test (KAT) vector. The vector MUST pin:
 
-- A pinned preimage (using one of the pinned keypairs in
-  [`schemas/conformance/known-answer/keypairs.json`](../schemas/conformance/known-answer/keypairs.json)
-  where applicable).
-- The hex of the SHA-256 digest (or other hash output if the RFC
+- The **preimage bytes in hex** (not just a description of how to
+  construct them). When the construction is `sha256(base64url_decode(x))`
+  — the convention used by every PoP site in v0.1 (see
+  [RFC-AITP-0001 §5.4.2](../rfcs/RFC-AITP-0001-core.md)) — the preimage
+  bytes are the *decoded* bytes, not the ASCII bytes of the base64url
+  string. Publishing the preimage as hex eliminates the ambiguity that
+  caused the alpha.4 PoP-nonce bug and the beta.1 Manifest-PoP bug.
+- The **SHA-256 digest in hex** (or other hash output if the RFC
   introduces a new hash).
-- The base64url-encoded signature, if the construction terminates in
-  a signature.
+- The **base64url-encoded Ed25519 signature** under `kat-keypair-001`
+  from [`schemas/conformance/known-answer/keypairs.json`](../schemas/conformance/known-answer/keypairs.json),
+  if the construction terminates in a signature. RFCs that need a
+  different keypair MAY use any pinned keypair from that file but MUST
+  cite which one in the KAT entry.
 
 KAT vectors live in
 [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json)
@@ -124,6 +131,16 @@ A KAT is not required for RFCs that only adjust process, governance,
 documentation, or non-normative narrative text. It IS required for
 any RFC that lands in `rfcs/RFC-AITP-*.md` and changes what bytes are
 fed to a signing or hashing primitive.
+
+**Enforcement.** PRs that introduce a new signing input, hash
+construction, or PoP pattern without a corresponding KAT vector will
+not be merged. This rule exists because the decode-before-hash
+convention (`sha256(base64url_decode(x))`) is non-obvious from the
+spec text alone and has caused two cross-implementation interop bugs
+in v0.1 (handshake PoP nonce; Manifest PoP challenge). Reviewers
+SHOULD reject any normative addition to a signing surface whose KAT
+vector is missing or specifies the preimage in any encoding other
+than hex.
 
 **Draft-stage carve-out.** Draft RFCs (status `Draft` and not yet
 RC) MAY publish without a KAT vector if the RFC explicitly notes the

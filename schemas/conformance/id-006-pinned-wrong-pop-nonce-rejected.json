@@ -1,5 +1,9 @@
 {
   "id": "id-006",
+  "rfc": "RFC-AITP-0002",
+  "status": "core",
+  "required_for_v0_1": true,
+  "feature": null,
   "description": "A pinned-key proof signed with a different `pop_nonce` than the envelope advertises MUST be rejected with IDENTITY_FAILED. The pop_nonce is one of the five proof-input fields (RFC-AITP-0002 §3.1); a verifier reconstructing the input with the envelope's payload.pop_nonce will not produce the same digest the signer used. (alpha.5 P1.)",
   "tags": [
     "security",

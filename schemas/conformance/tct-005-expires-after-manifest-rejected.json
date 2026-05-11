@@ -1,5 +1,9 @@
 {
   "id": "tct-005",
+  "rfc": "RFC-AITP-0005",
+  "status": "core",
+  "required_for_v0_1": true,
+  "feature": null,
   "description": "A TCT whose `expires_at` is after the issuing peer's Manifest `expires_at` MUST be rejected (RFC-AITP-0004 §4.3; alpha.5 P6). The issuing peer MUST NOT mint such a TCT in the first place; verifiers MAY assert the bound at verification time. The verifier here treats the TCT body as already past expiry relative to a reference clock that postdates the issuing Manifest, mirroring the runtime check.",
   "tags": [
     "failure",

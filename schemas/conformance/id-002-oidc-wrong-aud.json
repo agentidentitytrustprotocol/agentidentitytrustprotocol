@@ -1,5 +1,9 @@
 {
   "id": "id-002",
+  "rfc": "RFC-AITP-0002",
+  "status": "core",
+  "required_for_v0_1": true,
+  "feature": null,
   "description": "Peer's OIDC identity JWT carries an `aud` claim that targets a different peer's AID, not the receiving peer's. The receiving peer MUST reject with IDENTITY_FAILED — accepting a JWT minted for someone else would allow the holder to impersonate the subject across audiences (RFC-AITP-0002 §2.2).",
   "tags": [
     "security",

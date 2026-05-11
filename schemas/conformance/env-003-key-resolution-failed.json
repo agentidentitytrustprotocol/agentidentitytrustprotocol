@@ -1,5 +1,9 @@
 {
   "id": "env-003",
+  "rfc": "RFC-AITP-0007",
+  "status": "core",
+  "required_for_v0_1": true,
+  "feature": null,
   "description": "Verifier cannot resolve the issuing peer's signing key (Manifest unreachable, OIDC discovery offline, or no entry in pinned/well-known fallbacks). Receivers MUST reject with KEY_RESOLUTION_FAILED (RFC-AITP-0007). Retryable.",
   "tags": [
     "failure",

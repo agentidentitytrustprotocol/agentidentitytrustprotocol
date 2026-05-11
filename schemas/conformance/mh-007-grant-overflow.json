@@ -1,5 +1,9 @@
 {
   "id": "mh-007",
+  "rfc": "RFC-AITP-0004",
+  "status": "core",
+  "required_for_v0_1": true,
+  "feature": null,
   "description": "Peer-issued TCT carries grants that exceed the issuing peer's offered_capabilities (declared in its Manifest). The receiving peer MUST reject with GRANT_OVERFLOW — a peer cannot grant capabilities it did not publicly offer.",
   "tags": [
     "security",

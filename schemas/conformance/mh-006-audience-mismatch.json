@@ -1,5 +1,9 @@
 {
   "id": "mh-006",
+  "rfc": "RFC-AITP-0004",
+  "status": "core",
+  "required_for_v0_1": true,
+  "feature": null,
   "description": "Peer-issued TCT delivered in MUTUAL_COMMIT_ACK has an audience that is not the receiving peer's own AID. The receiving peer MUST reject with AUDIENCE_MISMATCH — the TCT could be a redirected token bound to a different agent.",
   "tags": [
     "security",

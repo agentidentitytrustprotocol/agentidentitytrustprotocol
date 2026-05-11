@@ -1,5 +1,9 @@
 {
   "id": "mh-008",
+  "rfc": "RFC-AITP-0004",
+  "status": "core",
+  "required_for_v0_1": true,
+  "feature": null,
   "description": "MUTUAL_COMMIT carries a pop_signature that does not validate against the sender's AID public key when verified over sha256(receiver_pop_nonce). The receiver MUST reject with POP_VERIFICATION_FAILED — without a valid PoP the sender has not proven possession of the live private key.",
   "tags": [
     "security",

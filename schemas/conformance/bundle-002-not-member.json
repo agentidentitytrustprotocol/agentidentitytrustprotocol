@@ -1,7 +1,16 @@
 {
   "id": "bundle-002",
+  "rfc": "RFC-AITP-0010",
+  "status": "draft",
+  "required_for_v0_1": false,
+  "feature": "experimental-session-bundle",
   "description": "Session Trust Bundle membership check (RFC-AITP-0010 §5 step 8). The bundle is byte-identical to bundle-001 — coordinator signature, both embedded TCTs, expiry window, and version checks all pass. The defect is that the receiving participant (kat-keypair-004 / agentD, AID iojj3XQJ...) is NOT in `participants[*].aid`. The verifier MUST reject with BUNDLE_NOT_MEMBER. (A bundle proves coordinator-attested membership; a non-member receiver has no claim on the session.)",
-  "tags": ["security", "session-bundle", "membership", "post-v0.1"],
+  "tags": [
+    "security",
+    "session-bundle",
+    "membership",
+    "post-v0.1"
+  ],
   "input": {
     "self_aid": "aid:pubkey:iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
     "now": 1711900100,
@@ -23,8 +32,12 @@
               "audience": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
               "issued_at": 1711900000,
               "expires_at": 1711903600,
-              "grants": ["macp.mode.task.v1"],
-              "binding": {"cnf": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"},
+              "grants": [
+                "macp.mode.task.v1"
+              ],
+              "binding": {
+                "cnf": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+              },
               "signature": "dRaMvsneooEBb1BrVBvk2ObRANZr_1Q8ajCOzlcBapN86yIwSHXf9uc5PasGHeb22sf7nUC-s_fg7U_hVR34Aw"
             }
           },
@@ -38,8 +51,12 @@
               "audience": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
               "issued_at": 1711900000,
               "expires_at": 1711905600,
-              "grants": ["macp.mode.task.v1"],
-              "binding": {"cnf": "dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU"},
+              "grants": [
+                "macp.mode.task.v1"
+              ],
+              "binding": {
+                "cnf": "dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU"
+              },
               "signature": "gPVK5hq2JCHXP8RAYh1xDbN2qAzR1EfMNpGUJZYbixVohPzK5bWE519ra9WWxXLawAbp9lP-uKgJL9d5uWIBCg"
             }
           }

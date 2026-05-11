@@ -1,5 +1,9 @@
 {
   "id": "tct-004",
+  "rfc": "RFC-AITP-0008",
+  "status": "core",
+  "required_for_v0_1": true,
+  "feature": null,
   "description": "TCT signature is valid and not expired, but its `jti` appears in the issuing peer's revocation list. Receivers MUST reject with TCT_REVOKED (RFC-AITP-0008). Per the per-issuing-peer model, only the originating issuer's deny list applies.",
   "tags": [
     "security",

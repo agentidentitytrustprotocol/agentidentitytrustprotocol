@@ -1,5 +1,9 @@
 {
   "id": "del-mh-002",
+  "rfc": "RFC-AITP-0011",
+  "status": "draft",
+  "required_for_v0_1": false,
+  "feature": "experimental-multihop-delegation",
   "description": "Multi-hop scope inflation. chain[1] (B→C) declares capabilities=[\"read_data\",\"admin\"], but chain[0] (A→B) granted only [\"read_data\",\"write_data\"]. The transitive scope check (RFC-AITP-0011 §4) requires chain[1].capabilities ⊆ chain[0].capabilities; \"admin\" violates that. All per-hop signatures are valid (so a *single*-hop adjacent-only check would not catch this — only the full transitive chain does). Verifier MUST reject with DELEGATION_SCOPE_EXCEEDED.",
   "tags": [
     "security",

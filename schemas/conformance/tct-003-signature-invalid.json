@@ -1,5 +1,9 @@
 {
   "id": "tct-003",
+  "rfc": "RFC-AITP-0005",
+  "status": "core",
+  "required_for_v0_1": true,
+  "feature": null,
   "description": "TCT signature does not validate under the issuing peer's resolved public key (e.g. tampered grant, swapped audience, or wrong key). Receivers MUST reject with TCT_SIGNATURE_INVALID (RFC-AITP-0005). The check is local.",
   "tags": [
     "security",

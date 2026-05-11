@@ -14,6 +14,7 @@ DELEGATION_SCHEMA="${PROJECT_ROOT}/schemas/json/aitp-delegation.schema.json"
 TRUST_ANCHORS_SCHEMA="${PROJECT_ROOT}/schemas/json/aitp-trust-anchors.schema.json"
 MANIFEST_SCHEMA="${PROJECT_ROOT}/schemas/json/aitp-manifest.schema.json"
 REVOCATION_LIST_SCHEMA="${PROJECT_ROOT}/schemas/json/aitp-revocation-list.schema.json"
+FIXTURE_META_SCHEMA="${PROJECT_ROOT}/schemas/json/aitp-conformance-fixture.schema.json"
 NON_NORMATIVE_DIR="${PROJECT_ROOT}/examples/non-normative"
 
 CONFORMANCE_DIR="${PROJECT_ROOT}/schemas/conformance"
@@ -49,18 +50,27 @@ syntax_check() {
     fi
 }
 
-# ── Conformance fixtures: syntax-only ────────────────────────────────────────
+# ── Conformance fixtures: syntax check + metadata block schema ──────────────
+# Fixture scenario content (input/expected) is fixture-shape-specific; we
+# syntax-check that, then validate the leading metadata block against
+# aitp-conformance-fixture.schema.json so a v0.1 conformance runner can
+# trust id / rfc / status / required_for_v0_1 / feature.
 if [ -d "$CONFORMANCE_DIR" ]; then
     echo "── Conformance fixtures (${CONFORMANCE_DIR}) ──"
     for f in "${CONFORMANCE_DIR}"/*.json; do
         [ -f "$f" ] || continue
         TOTAL=$((TOTAL + 1))
         echo "  $(basename "$f")"
-        if syntax_check "$f"; then
-            VALIDATED=$((VALIDATED + 1))
-            echo "    ✓ Valid JSON"
-        else
+        if ! syntax_check "$f"; then
             echo "    ✗ Invalid JSON"
+            exit 1
+        fi
+        if ajv validate -s "${FIXTURE_META_SCHEMA}" -d "${f}" --spec=draft2020 --strict=false -c ajv-formats >/dev/null 2>&1; then
+            VALIDATED=$((VALIDATED + 1))
+            echo "    ✓ Valid JSON + metadata block conforms"
+        else
+            echo "    ✗ Metadata block fails aitp-conformance-fixture schema"
+            ajv validate -s "${FIXTURE_META_SCHEMA}" -d "${f}" --spec=draft2020 --strict=false -c ajv-formats || true
             exit 1
         fi
     done

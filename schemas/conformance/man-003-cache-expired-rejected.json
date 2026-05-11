@@ -1,5 +1,9 @@
 {
   "id": "man-003",
+  "rfc": "RFC-AITP-0003",
+  "status": "core",
+  "required_for_v0_1": true,
+  "feature": null,
   "description": "Cached Manifest whose `expires_at` predates the verifier's current time MUST NOT be returned by `cached_manifest()` and MUST NOT be used for handshake bootstrap. Implementations that store Manifests in a local cache MUST honor `expires_at` on every read; serving a stale cached entry is treated as MANIFEST_EXPIRED. (RFC-AITP-0003 §4.2; alpha.5 P11.)",
   "tags": [
     "failure",
