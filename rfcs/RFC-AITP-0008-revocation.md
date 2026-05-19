@@ -150,15 +150,34 @@ lookups** — HTTP fetches of `ListRevoked`, DNS resolution of issuer
 endpoints, writes to a shared revocation cache — MUST be deferred until
 after signature verification.
 
-**Security rationale.** An attacker who can inject an unsigned or
-wrongly-signed TCT can set `tct.issuer` to any AID. If revocation lookup
-runs before signature verification, the verifier will make a network
-request to that AID's revocation endpoint with attacker-chosen
-parameters. This enables (a) network-amplification DoS against arbitrary
-AIDs, (b) revocation-cache pollution under attacker-chosen issuer keys,
-and (c) side-channel disclosure of which AIDs the verifier is willing to
-contact. Anchoring revocation lookup to a *verified* `issuer` and `jti`
-removes all three.
+**Security rationale.** `tct.issuer` and `tct.jti` are attacker-controlled
+bytes until the TCT's signature is verified. An implementation that routes
+revocation lookups via `tct.issuer` before signature verification enables:
+
+- **Network amplification DoS.** The attacker sets `issuer` to any AID,
+  forcing the verifier to make an HTTP fetch to that AID's revocation
+  endpoint. The fetch is attacker-triggered but originates from the
+  verifier, so the verifier becomes a reflector against arbitrary AIDs.
+- **Cache pollution.** Attacker-chosen `jti` values, paired with
+  attacker-chosen `issuer` values, can be inserted into the verifier's
+  revocation cache for AIDs the attacker does not control.
+- **Telemetry manipulation.** Revocation-hit metrics (counters,
+  per-issuer lookup rates, last-fetched timestamps) become manipulable
+  by an off-path attacker who can submit unverified TCTs.
+- **Side-channel disclosure.** Which AIDs the verifier is willing to
+  contact for revocation lookup leaks via outbound DNS / HTTP traffic.
+
+A purely local, in-memory deny-list check (no network I/O, no DNS
+resolution, no cache writes derived from issuer-provided input) is
+exempt from this ordering requirement — it cannot be exploited for
+amplification, pollution, or telemetry manipulation. All other checks —
+HTTPS fetches of `ListRevoked`, DNS resolution of issuer endpoints,
+writes to a shared revocation cache, external calls keyed off
+`tct.issuer` or `tct.jti` — MUST wait until after `verify_tct` returns
+success.
+
+Anchoring revocation lookup to a *verified* `issuer` and `jti` removes
+all four attack surfaces.
 
 ---
 

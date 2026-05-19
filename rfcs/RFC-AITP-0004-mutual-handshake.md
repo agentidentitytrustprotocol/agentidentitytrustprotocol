@@ -481,10 +481,22 @@ advertise support via the `extensions["rfc-aitp-0005.renew_uri"]`
 Manifest field (see [`registries/extension-keys.md`](../registries/extension-keys.md))
 so other implementations can discover it without assuming its presence.
 
+The path `/aitp/handshake/renew` is used in examples only. It is **NOT
+a reserved path** in core v0.1 — implementations MAY mount the
+shortened-renewal endpoint at any path, host, or port that is reachable
+over HTTPS. Implementations offering shortened renewal MUST advertise
+the **actual concrete endpoint** they expose in
+`extensions["rfc-aitp-0005.renew_uri"]`; peers that do not find this
+extension key in the issuer's Manifest MUST fall back to a fresh Mutual
+Handshake (this RFC, §1 onward) for renewal. Peers MUST NOT probe
+`/aitp/handshake/renew` directly when the extension is absent — the
+absence of the extension key is the discovery signal, not the HTTP
+response from a guessed path.
+
 Wire format for the experimental shortened renewal:
 
-- `POST /aitp/handshake/renew` (or any endpoint advertised in the Manifest
-  via `extensions["rfc-aitp-0005.renew_uri"]`).
+- `POST /aitp/handshake/renew` (illustrative path; the actual endpoint
+  is whatever the issuer advertises in `extensions["rfc-aitp-0005.renew_uri"]`).
 - Request body:
   ```json
   {

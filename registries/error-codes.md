@@ -107,6 +107,8 @@ Delegation-layer codes carry the `DELEGATION_` prefix so they cannot be confused
 | `DELEGATION_POP_FAILED` | Proof-of-possession failed. | core |
 | `DELEGATION_MULTIHOP_NOT_SUPPORTED` | Multi-hop attempt detected (v0.1 implementations reject multi-hop tokens). | core |
 
+> **`DELEGATION_MULTIHOP_NOT_SUPPORTED` is a core v0.1 code, not a draft code.** v0.1 implementations with default `max_hops = 0` MUST emit this code for any delegation token with a non-empty `chain` field — rejecting multi-hop is the **required v0.1 behavior**, not an optional one. The code is distinct from the `draft` codes in the "Multi-hop delegation codes (RFC-AITP-0011, post-v0.1)" table below: those codes (`DELEGATION_HOP_LIMIT_EXCEEDED`, `DELEGATION_CHAIN_HASH_MISMATCH`) are emitted by v0.2 implementations that have opted into multi-hop and are validating chain semantics. `DELEGATION_MULTIHOP_NOT_SUPPORTED` is the v0.1 *refusal* to even parse the chain — a structural rejection before any per-hop verification. See [conformance fixture `del-004`](../schemas/conformance/del-004-multihop-rejected-v01.json) for the pinned behavior.
+
 ## Multi-hop delegation codes (RFC-AITP-0011, post-v0.1)
 
 These codes are reserved for v0.2 multi-hop delegation (RFC-AITP-0011 is currently Draft and not part of v0.1 conformance). Implementations targeting only v0.1 will not emit them.

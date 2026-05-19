@@ -100,6 +100,21 @@ Sequence fixtures MAY also carry sibling fields inside `input` that provide cont
 
 `mh-001` (replay detection) and `tct-006` (downstream PoP) are the v0.1 fixtures using this form.
 
+### Side-effect assertions
+
+A fixture's `expected` block (or any step's per-step `expected` within a `sequence`) MAY carry an optional `side_effects` object. The conformance runner MUST instrument the listed effects and assert the actual values match. Existing fixtures that omit `side_effects` are unaffected — it is an additive field.
+
+Currently defined side-effect keys:
+
+| Key | Meaning |
+|---|---|
+| `revocation_lookup_called` | Whether the implementation called the network revocation source. Used by `rev-004` to pin RFC-AITP-0008 §3.3 (signature-before-revocation ordering). |
+| `network_fetch_called` | Whether the implementation made any outbound network fetch. Broader than `revocation_lookup_called`; used for DoS-amplification assertions. |
+| `pop_challenge_issued` | Whether the verifier issued a `pop_challenge` during fixture evaluation. Used by `tct-007` for PoP-enforcement conformance. |
+| `capability_authorized` | Whether the verifier authorized a capability invocation. Used by `tct-007` to assert PoP-required grants are rejected without a valid `pop_response`. |
+
+A runner that cannot instrument a listed side effect MUST report SKIP for that assertion (NOT silent pass). The schema (`schemas/json/aitp-conformance-fixture.schema.json`) lists the keys above; additional keys are permitted (`additionalProperties: true`) so new fixtures can add side-effect surfaces without a schema bump, but the registered keys are the only ones a v0.1 runner is required to recognize.
+
 ---
 
 ## Running Conformance Tests
@@ -111,6 +126,19 @@ Implementations MUST provide a conformance runner that:
 3. Reports pass/fail per fixture ID.
 
 The runner interface is implementation-defined.
+
+---
+
+## Fixture summary
+
+| Tier | Count | Required for v0.1 |
+|---|---|---|
+| `core` (required) | 37 | ✅ Yes |
+| `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 3 | ❌ No |
+| `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 4 | ❌ No |
+| **Total** | **44** | |
+
+Counts are sourced from the `status` and `feature` metadata block on each fixture file. A v0.1 conformance runner MUST execute every `core` fixture; `draft` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
 ---
 
@@ -169,6 +197,7 @@ The runner interface is implementation-defined.
 | `tct-004` | TCT `jti` listed in the issuing peer's revocation list | failure: TCT_REVOKED |
 | `tct-005` | TCT `expires_at` is after the issuing peer's Manifest `expires_at` | failure: TCT_EXPIRED |
 | `tct-006` | Downstream PoP `pop_challenge` / `pop_response` exchange round-trips successfully | success |
+| `tct-007` | A grant marked as requiring PoP MUST NOT be authorized without a valid `pop_response`; verifiers that silently skip PoP for a marked grant fail this fixture | failure: POP_RESPONSE_INVALID |
 
 ### Revocation (RFC-AITP-0008)
 
@@ -177,6 +206,7 @@ The runner interface is implementation-defined.
 | `rev-001` | Stale revocation snapshot under `fail_closed` mode rejects the request | failure: TCT_REVOKED |
 | `rev-002` | Stale revocation snapshot under `soft_fail` mode allows a configured safe-subset of grants | success (degraded) |
 | `rev-003` | Fresh signed snapshot, JTI not in entries → not revoked | success |
+| `rev-004` | TCT signature invalid → revocation source MUST NOT be consulted (asserts `side_effects.revocation_lookup_called == false`) | failure: TCT_SIGNATURE_INVALID |
 
 ### Delegation (RFC-AITP-0006)
 
