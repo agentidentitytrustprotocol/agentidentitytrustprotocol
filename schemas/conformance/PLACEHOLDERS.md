@@ -24,6 +24,7 @@ unambiguous against any base64url, hex, or UUID alphabet.
 | `__NOW__` | The runner's reference clock at execution time. | Unix seconds (integer). |
 | `__NOW_MINUS_3600__` | One hour before `__NOW__`. | `__NOW__ - 3600` (integer). |
 | `__NOW_PLUS_3600__` | One hour after `__NOW__`. | `__NOW__ + 3600` (integer). |
+| `__NOW_PLUS_7200__` | Two hours after `__NOW__`. | `__NOW__ + 7200` (integer). Used by `tct-005` to put `tct.expires_at` past the issuer's `issuer_manifest.expires_at` (`__NOW_PLUS_3600__`) while keeping the TCT itself in the future. |
 
 Additional `__NOW_MINUS_<seconds>__` and `__NOW_PLUS_<seconds>__`
 tokens MAY be introduced as new fixtures need them; minting tools MUST
@@ -76,7 +77,7 @@ implementation under test. The operation registry for v0.1:
 |---|---|---|
 | `env-*` | `verify_envelope` | Single envelope verification. |
 | `man-*` | `verify_manifest` | Standalone Manifest verification (RFC-AITP-0003 §5). |
-| `tct-*` | `verify_tct` | Standalone TCT verification (RFC-AITP-0005 §9). |
+| `tct-*` | `verify_tct` | Standalone TCT verification (RFC-AITP-0005 §9). MAY accept an `input.issuer_manifest` object (at minimum `{aid, expires_at}`) — when present, the runner supplies it to the verifier as the resolved issuing-peer Manifest so the §9.4 conditional Manifest-expiry bound check fires. When absent, the §9.4 check is skipped (per the RFC's "MAY be skipped when the issuer Manifest is unavailable" clause). `tct-005` exercises the present-Manifest path; other `tct-*` fixtures rely on §9.1/§9.2/§9.3 alone. |
 | `del-*` | `verify_delegation_token` | Single-hop delegation verification (RFC-AITP-0006 §4). |
 | `rev-*` | `verify_revocation_snapshot` or `verify_tct` | Revocation-layer fixtures. `rev-001`/`002`/`003` use `verify_revocation_snapshot` (RFC-AITP-0008 §1.5) to exercise the snapshot freshness / signature / lookup path directly. `rev-004` uses `verify_tct` (the standard TCT op) with `input.revocation_instrumented: true` and `expected.side_effects.revocation_lookup_called: false` to pin the RFC-AITP-0008 §3.3 ordering requirement — TCT signature verification MUST precede any network revocation lookup. Runners that cannot instrument the revocation source MUST SKIP the side-effect assertion (and thus the fixture, since it is core/required). |
 | `id-*` | `verify_handshake_payload` | Verify a single inline-handshake `payload` (i.e. the result of step 6 in RFC-AITP-0004 §5.1). |
@@ -108,6 +109,8 @@ encoding of the signature over the appropriate canonical input
 | `__VALID_A_SIG__` | Initiating peer (A)'s signing key | Context-dependent — typically envelope or TCT signing input; minting tool resolves from surrounding fixture shape. |
 | `__VALID_B_SIG__` | Target peer (B)'s signing key | Same; context-dependent. |
 | `__VALID_ISSUING_PEER_SIG__` | TCT issuer's signing key | Source-TCT signing input; reused verbatim in `grant_proof.signature` (RFC-AITP-0006 §3.1). |
+| `__VALID_GRANT_PROOF_SIG__` | TCT issuer's signing key | Functional alias of `__VALID_ISSUING_PEER_SIG__` used in delegation fixtures (`del-*`) where the `grant_proof.signature` field is the substitution target. Resolves to the same bytes as `__VALID_ISSUING_PEER_SIG__` when the source-TCT context is identical. Fixtures that do not actually verify the grant proof (because rejection happens earlier — see `__ANY_*__` family below) MAY still use this token; the minter substitutes a real signature so the alphabet matches the schema. |
+| `__LEGACY_PINNED_PROOF__` | Pinned-key holder's signing key (legacy two-field input) | Pre-v0.1 pinned-key proof signed over the two-field input `message_id "|" timestamp` (no domain prefix, no receiver, no `pop_nonce`). Used by `id-005` to assert that a v0.1 verifier MUST reject when it replays the v0.1 five-field reconstruction (RFC-AITP-0002 §3.1). The signature alphabet is real (Ed25519 over the legacy bytes) so the failure surfaces only at the input-reconstruction step, not at base64url decode. |
 | `__VALID_JWT__` | Identity issuer's key | Compact JWT serialization with claims pinned by the surrounding fixture context. |
 | `__VALID_JWT_FROM_UNKNOWN_ISSUER__` | Untrusted issuer's key | Same shape as `__VALID_JWT__` but signed by an issuer NOT in the verifier's `trust_anchors`. The signature is cryptographically valid; the policy check is what fails. |
 | `__VALID_NONCE__` | n/a | Random 128-bit base64url string (22 chars, unpadded). The minting tool MAY use a per-fixture deterministic seed for reproducibility. |
@@ -135,6 +138,27 @@ signature string and break cross-mint determinism.
 | `__JWT_AUD_TARGETS_DIFFERENT_PEER__` | OIDC JWT whose `aud` is some other peer's AID. | `IDENTITY_FAILED`. |
 | `__JWT_MISSING_CNF_JKT_CLAIM__` | OIDC JWT with `cnf.jkt` removed. | `IDENTITY_FAILED`. |
 | `__CAPTURED_PROOF_FROM_ORIGINAL_HANDSHAKE__` | A pinned-key proof signed over a *different* (sender, receiver, message_id, timestamp, pop_nonce) tuple than the one in this fixture. Tests cross-peer replay (RFC-AITP-0002 §3.1). | `IDENTITY_FAILED`. |
+
+## Ignored-value placeholders (structural-rejection fixtures)
+
+A small set of placeholders mark fields whose value is never inspected
+by a v0.1 implementation because the fixture rejects on an earlier
+structural check. The minting tool MUST still emit a syntactically
+valid value (so the fixture passes JSON-schema and length validation),
+but the bytes are not required to be cryptographically meaningful —
+no signature is verified against them.
+
+| Token | Field | Why it's ignored | Minter substitution |
+|---|---|---|---|
+| `__ANY_CHAIN_STEP_SIG__` | `delegation.chain[i].signature` | v0.1 implementations MUST reject any delegation token with a non-empty `chain` field at the structural check (RFC-AITP-0006 §9) before any per-hop signature work. Used by `del-004`. | Any 86-char unpadded base64url string. RECOMMENDED: a real Ed25519 signature under `kat-keypair-001` over the JCS-canonical chain-step body (same recipe as `__VALID_*_SIG__`), so the same minter path produces it. |
+| `__ANY_CHAIN_HASH__` | `delegation.chain_hash` | Same rationale — `chain_hash` is recomputed during multi-hop verification, which v0.1 never reaches. Used by `del-004`. | Any 43-char unpadded base64url (32 bytes); RECOMMENDED: `sha256(JCS(chain))` so the value is internally consistent even though no verifier checks it. |
+| `__ANY_DELEGATION_SIG__` | outer `delegation.signature` | Same rationale — outer delegation signature is not verified before the structural rejection in v0.1. Used by `del-004`. | Any 86-char unpadded base64url string; RECOMMENDED: a real Ed25519 signature so cross-fixture minter paths stay uniform. |
+
+A runner that exercises the post-v0.1 multi-hop opt-in (`feature:
+experimental-multihop-delegation`) does verify these fields and uses
+the `del-mh-*` fixture set, where the equivalent fields use
+`__VALID_*__` tokens (or are inline real signatures) rather than the
+`__ANY_*__` ignored variants.
 
 ## Adding new placeholders
 

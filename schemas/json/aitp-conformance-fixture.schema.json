@@ -34,6 +34,19 @@
       "type": ["string", "null"],
       "description": "Opt-in feature flag for non-core fixtures (null for core)."
     },
+    "dynamic": {
+      "type": "boolean",
+      "description": "Optional. When true, the fixture carries placeholder values in time-sensitive fields that cannot be statically minted; a conformance runner MUST regenerate them with the pinned KAT keypairs before execution. See schemas/conformance/README.md 'Dynamic fixtures'. Absent means the fixture is statically mintable."
+    },
+    "dynamic_fields": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Optional. Names of the fields a runner MUST regenerate when `dynamic` is true (e.g. issued_at, expires_at, signature, timestamp, nonce, nonce_echo, pop_signature)."
+    },
+    "$comment": {
+      "type": "string",
+      "description": "Optional human-readable note. Ignored by conformance runners."
+    },
     "description": { "type": "string" },
     "tags": {
       "type": "array",

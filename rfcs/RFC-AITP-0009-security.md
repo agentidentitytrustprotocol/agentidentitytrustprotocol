@@ -191,7 +191,13 @@ This ordering is normative: replay-before-rate-limit prevents an attacker from b
 
 ## 4. Cryptographic Agility
 
-AITP v0.1 supports a single signature algorithm: **Ed25519**. The algorithm is determined by the AID key type, not by a negotiated parameter, to prevent algorithm-downgrade attacks.
+AITP v0.1 supports a single signature algorithm: **Ed25519**. v0.1 conformance is Ed25519-only — implementations MUST verify Ed25519 envelope, Manifest, TCT, delegation, and revocation-snapshot signatures, and MUST reject any other algorithm tag in a v0.1 (`version: "aitp/0.1"`) artifact. The algorithm is determined by the AID key type, not by a negotiated parameter, to prevent algorithm-downgrade attacks.
+
+[RFC-AITP-0001 §5.4.3](RFC-AITP-0001-core.md#543-algorithm-tagged-signature-wire-format) defines a **forward-compatible** algorithm-tagged grammar (`<alg>.<base64url-sig>`) and an algorithm-tagged AID form (`aid:pubkey:<alg>:<identifier>`) that v0.2 will use to introduce P-256 (ECDSA on P-256 with SHA-256) as a second mandatory algorithm. The grammar and AID forms are reserved in v0.1 so that v0.2 peers can be deployed alongside v0.1 peers without a wire-format break, but the v0.1 conformance baseline is Ed25519-only:
+
+- A v0.1 peer MUST reject any envelope, Manifest, TCT, delegation, or revocation-snapshot signature whose algorithm tag is not Ed25519 (legacy untagged form, or `ed25519.<sig>`).
+- A v0.1 peer SHOULD reject any AID in algorithm-tagged form (`aid:pubkey:<alg>:<identifier>`) it does not implement; the legacy untagged `aid:pubkey:<43-char>` form is the canonical v0.1 AID shape.
+- The v0.2 dual-algorithm rules in RFC-AITP-0001 §5.4.3 (verifier MUST verify both, signer MAY use either) and the Manifest `accepted_signature_algorithms` v0.2 default (`["ed25519", "p256"]`, see RFC-AITP-0003 §3.2) apply only to `version: "aitp/0.2"` artifacts.
 
 A future major version MAY add algorithms via the RFC process. Removing algorithms requires a major version increment.
 

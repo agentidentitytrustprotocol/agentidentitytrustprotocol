@@ -341,11 +341,23 @@ B MUST:
 7. **Verify the envelope signature** using the now-trusted public key
    from `manifest.aid`. Failure ⇒ `INVALID_SIGNATURE`. From this point
    forward, the envelope's contents are authenticated.
-8. **Apply policy.** Check that A's identity issuer appears in B's own
-   `trust_anchors` (`INCOMPATIBLE_TRUST_ANCHORS` otherwise). Evaluate A's
-   `requested_grants` against B's policy and `offered_capabilities` to
-   determine what B will grant. Record A's `pop_nonce` for use in
-   MUTUAL_COMMIT_ACK. Construct and send MUTUAL_HELLO_ACK.
+8. **Apply policy.** Two distinct compatibility checks, each with its
+   own error code (cf. RFC-AITP-0003 §5):
+   - **Identity type accepted.** A's `identity.type` MUST appear in B's
+     own `accepted_identity_types` (default `["oidc"]` when absent).
+     Failure ⇒ `INCOMPATIBLE_IDENTITY_TYPE` — not
+     `INCOMPATIBLE_TRUST_ANCHORS`. This is the case where, for example,
+     A presents `pinned_key` but B accepts only `oidc`.
+   - **Trust-anchor overlap** (OIDC only). When `A.identity.type ==
+     "oidc"`, A's identity `issuer` MUST appear in B's
+     `trust_anchors`. Failure ⇒ `INCOMPATIBLE_TRUST_ANCHORS`. For
+     `pinned_key` this check is replaced by the
+     `pinned_keys` lookup already performed in step 6.
+
+   After compatibility passes, evaluate A's `requested_grants` against
+   B's policy and `offered_capabilities` to determine what B will
+   grant. Record A's `pop_nonce` for use in MUTUAL_COMMIT_ACK. Construct
+   and send MUTUAL_HELLO_ACK.
 
 ### 5.2 On receiving MUTUAL_HELLO_ACK (A verifies B)
 
@@ -388,6 +400,12 @@ B MUST:
    - `subject` equals B's AID.
    - `audience` equals B's AID.
    - `expires_at` is in the future.
+   - `tct_for_peer.expires_at ≤ A's Manifest `expires_at`** — the
+     verifier-side Manifest-expiry bound from
+     [RFC-AITP-0005 §9.4](RFC-AITP-0005-tct.md#94-manifest-expiry-bound-conditional).
+     B has A's Manifest from round 1 (cached), so this conditional
+     check is required at handshake time. Violation ⇒
+     `TCT_EXPIRES_AFTER_MANIFEST`.
    - `grants` are a subset of B's `offered_capabilities`.
    - Every capability in B's own `required_peer_capabilities` (from B's
      Manifest, RFC-AITP-0003 §3.2) is present in `tct_for_peer.grants`.
@@ -413,6 +431,12 @@ A MUST:
    - `subject` equals A's AID.
    - `audience` equals A's AID.
    - `expires_at` is in the future.
+   - `tct_for_peer.expires_at ≤ B's Manifest `expires_at`** — the
+     verifier-side Manifest-expiry bound from
+     [RFC-AITP-0005 §9.4](RFC-AITP-0005-tct.md#94-manifest-expiry-bound-conditional).
+     A has B's Manifest from round 1 (cached), so this conditional
+     check is required at handshake time. Violation ⇒
+     `TCT_EXPIRES_AFTER_MANIFEST`.
    - `grants` are a subset of A's `offered_capabilities`.
 5. **Verify peer-capability requirements.** A's own Manifest declares
    `required_peer_capabilities` (RFC-AITP-0003 §3.2). Every capability in
@@ -428,17 +452,22 @@ A MUST:
 
 | Scenario | Who fails | Error code |
 |---|---|---|
-| A's identity from issuer not in B's trust anchors | B | `INCOMPATIBLE_TRUST_ANCHORS` |
-| B's identity from issuer not in A's trust anchors | A | `INCOMPATIBLE_TRUST_ANCHORS` |
-| A's Manifest signature invalid | B | `MANIFEST_SIGNATURE_INVALID` |
-| B's Manifest signature invalid | A | `MANIFEST_SIGNATURE_INVALID` |
-| PoP signature verification failed | Either | `POP_VERIFICATION_FAILED` |
-| `pop_nonce_echo` mismatch | Either | `NONCE_MISMATCH` |
+| `payload.manifest.aid ≠ envelope.sender.agent_id` (step §5.1 #3) | Either | `INVALID_ENVELOPE` |
+| Manifest PoP signature invalid (step §5.1 #4) | Either | `MANIFEST_POP_FAILED` |
+| A's Manifest signature invalid (step §5.1 #5) | B | `MANIFEST_SIGNATURE_INVALID` |
+| B's Manifest signature invalid (step §5.2 #5) | A | `MANIFEST_SIGNATURE_INVALID` |
+| Identity proof failed or `identity.type` ≠ `manifest.identity_hint.type` (step §5.1 #6) | Either | `IDENTITY_FAILED` |
+| Peer's identity `type` not in own `accepted_identity_types` (step §5.1 #8) | Either | `INCOMPATIBLE_IDENTITY_TYPE` |
+| Peer's OIDC `issuer` not in own `trust_anchors` (step §5.1 #8, OIDC only) | Either | `INCOMPATIBLE_TRUST_ANCHORS` |
+| Envelope signature invalid after trust bootstrap (step §5.1 #7, §5.3 #1, §5.4 #1) | Either | `INVALID_SIGNATURE` |
+| PoP signature verification failed (step §5.3 #3, §5.4 #3) | Either | `POP_VERIFICATION_FAILED` |
+| `pop_nonce_echo` mismatch (step §5.2 #8, §5.3 #2, §5.4 #2) | Either | `NONCE_MISMATCH` |
 | Peer TCT `audience` does not match self AID | Either | `AUDIENCE_MISMATCH` |
 | Peer TCT grants exceed peer's `offered_capabilities` | Either | `GRANT_OVERFLOW` |
 | Grant intersection is empty | Issuing peer | `POLICY_VIOLATION` |
 | Received TCT lacks a capability listed in own `required_peer_capabilities` | Either | `INSUFFICIENT_GRANTS` |
 | Peer TCT already expired | Either | `TCT_EXPIRED` |
+| Peer TCT `expires_at` exceeds issuer's Manifest `expires_at` (step §5.3 #4, §5.4 #4; RFC-AITP-0005 §9.4) | Either | `TCT_EXPIRES_AFTER_MANIFEST` |
 | Envelope replay detected | Either | `REPLAY_DETECTED` |
 | Envelope timestamp expired | Either | `TIMESTAMP_EXPIRED` |
 
@@ -516,7 +545,7 @@ rotation, or trust-anchor changes.
 v0.1 conformance testers MUST NOT require shortened renewal support and
 MUST NOT fail implementations that only support full Mutual Handshake
 renewal. The eventual standardization of this extension is reserved as
-[RFC-AITP-0013 TCT Renewal Extension](README.md) (Planned).
+[RFC-AITP-0013 TCT Renewal Extension](RFC-AITP-0013-tct-renewal-extension.md) (Planned).
 
 ---
 

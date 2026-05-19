@@ -4,19 +4,19 @@ This directory contains the normative RFCs that define the Agent Identity & Trus
 
 | RFC | Title | Status |
 |---|---|---|
-| [RFC-AITP-0001](RFC-AITP-0001-core.md) | Core — envelope, signatures, replay, error codes | Draft |
-| [RFC-AITP-0002](RFC-AITP-0002-identity.md) | Identity Binding | Draft |
-| [RFC-AITP-0003](RFC-AITP-0003-manifest.md) | Agent Manifest | Draft |
-| [RFC-AITP-0004](RFC-AITP-0004-mutual-handshake.md) | Mutual Handshake | Draft |
-| [RFC-AITP-0005](RFC-AITP-0005-tct.md) | Trust Context Token | Draft |
-| [RFC-AITP-0006](RFC-AITP-0006-delegation.md) | Single-Hop Delegation | Draft |
-| [RFC-AITP-0007](RFC-AITP-0007-key-resolution.md) | Key Resolution | Draft |
-| [RFC-AITP-0008](RFC-AITP-0008-revocation.md) | Revocation | Draft |
-| [RFC-AITP-0009](RFC-AITP-0009-security.md) | Security & Threat Model | Draft |
+| [RFC-AITP-0001](RFC-AITP-0001-core.md) | Core — envelope, signatures, replay, error codes | Release Candidate |
+| [RFC-AITP-0002](RFC-AITP-0002-identity.md) | Identity Binding | Release Candidate |
+| [RFC-AITP-0003](RFC-AITP-0003-manifest.md) | Agent Manifest | Release Candidate |
+| [RFC-AITP-0004](RFC-AITP-0004-mutual-handshake.md) | Mutual Handshake | Release Candidate |
+| [RFC-AITP-0005](RFC-AITP-0005-tct.md) | Trust Context Token | Release Candidate |
+| [RFC-AITP-0006](RFC-AITP-0006-delegation.md) | Single-Hop Delegation | Release Candidate |
+| [RFC-AITP-0007](RFC-AITP-0007-key-resolution.md) | Key Resolution | Release Candidate |
+| [RFC-AITP-0008](RFC-AITP-0008-revocation.md) | Revocation | Release Candidate |
+| [RFC-AITP-0009](RFC-AITP-0009-security.md) | Security & Threat Model | Release Candidate |
 | [RFC-AITP-0010](RFC-AITP-0010-session-trust-bundle.md) | Session Trust Bundle | Draft (post-v0.1) |
 | [RFC-AITP-0011](RFC-AITP-0011-multihop-delegation.md) | Multi-hop Delegation | Draft (post-v0.1) |
 | [RFC-AITP-0012](RFC-AITP-0012-extensions.md) | Extensions (ZK, TEE) — reserved | Reserved |
-| RFC-AITP-0013 | TCT Renewal Extension | Planned |
+| [RFC-AITP-0013](RFC-AITP-0013-tct-renewal-extension.md) | TCT Renewal Extension | Planned |
 
 ## Reading order
 
@@ -43,10 +43,14 @@ Reserved (no normative text, numbering pinned for future work):
 
 Planned (RFC number reserved, no document yet):
 
-- **RFC-AITP-0013 TCT Renewal Extension** — standardization of the
-  shortened renewal endpoint described non-normatively in
+- **[RFC-AITP-0013 TCT Renewal Extension](RFC-AITP-0013-tct-renewal-extension.md)** —
+  standardization of the shortened renewal endpoint described
+  non-normatively in
   [RFC-AITP-0004 §8.1](RFC-AITP-0004-mutual-handshake.md#81-non-normative-shortened-renewal-extension).
+  A stub document exists; no normative text yet.
 
 ## RFC lifecycle
 
-`Draft → Review → Final Comment Period → Accepted` (or `Rejected`). See [governance/RFC-PROCESS.md](../governance/RFC-PROCESS.md).
+`Draft → Review → Release Candidate → Final Comment Period → Accepted` (or `Rejected`).
+
+**Release Candidate** is the editorial stage after Review and before FCP: the RFC text is substantively complete, the version carries an `rc.N` suffix (e.g. `0.1.0-rc.3`), and further changes are limited to clarifications, KAT vectors, and conformance fixtures. RC can iterate (rc.1, rc.2, …) as implementer feedback surfaces issues. Promotion to FCP requires all required KAT vectors present, the conformance fixture set complete for the RFC's normative surfaces, and at least one implementation passing the core conformance tier. See [governance/RFC-PROCESS.md](../governance/RFC-PROCESS.md) for the full stage definitions.
