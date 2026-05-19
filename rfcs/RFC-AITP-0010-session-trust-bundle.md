@@ -108,6 +108,32 @@ The coordinator MUST have completed a Mutual Handshake (RFC-AITP-0004) with ever
 
 The coordinator MAY distribute the bundle by any transport that preserves the canonical JSON (HTTPS POST, signed message bus, etc.). Each participant SHOULD verify the bundle on receipt.
 
+#### 4.3.1 Bundle HTTP transport (non-normative for Draft)
+
+Implementations that use HTTPS for bundle distribution SHOULD use the
+following paths so independent implementations interoperate without
+out-of-band configuration:
+
+| Path | Method | Purpose |
+|---|---|---|
+| `/aitp/session/bundle` | `POST` | Coordinator issues and stores a bundle. Request body is the `session_bundle` object defined in §3 (including the coordinator's `signature`). |
+| `/aitp/session/bundle/{session_id}` | `GET` | Participant fetches the bundle for a known `session_id`. Response body is the same `session_bundle` object. |
+
+These paths are RECOMMENDED, not reserved. Coordinators offering an
+HTTPS bundle endpoint MUST advertise the **actual concrete URL** they
+expose via `extensions["rfc-aitp-0010.bundle_uri"]` in their Manifest
+(see [`registries/extension-keys.md`](../registries/extension-keys.md)).
+Participants that do not find this extension key in the coordinator's
+Manifest MUST treat HTTPS as unavailable for that coordinator and use a
+non-HTTPS transport (signed message bus, push delivery, etc.); they MUST
+NOT probe `/aitp/session/bundle` directly. The absence of the extension
+key is the discovery signal, not the HTTP response from a guessed path.
+
+Bundle transport over HTTPS uses standard TLS server-cert validation
+(RFC-AITP-0009 §3 implementation requirements). The bundle's signature
+is verified per §5 regardless of which transport delivered it — the
+HTTP transport is a delivery convenience, not a trust upgrade.
+
 ---
 
 ## 5. Verification
@@ -181,6 +207,16 @@ KAT vector `kat-session-bundle-001` lives in [`schemas/conformance/known-answer/
 ## 10. Security Considerations
 
 - **Coordinator compromise.** A malicious or compromised coordinator can fabricate participant lists, omit revocation entries, or reissue stale bundles. Bundle consumers MUST treat the coordinator's AID with normal peer-trust scrutiny — there is no implicit privilege.
+
+  **Recovery procedure.** When a coordinator's signing key is known to be compromised:
+
+  1. The legitimate coordinator operator MUST publish a new Manifest under a **new AID** derived from a fresh key pair, following the emergency rotation procedure in [RFC-AITP-0003 §8.1](RFC-AITP-0003-manifest.md#81-emergency-rotation-key-compromise). The compromised AID is abandoned — it cannot be repaired by republishing under the same key.
+  2. All participants MUST treat bundles whose `coordinator` field equals the old (compromised) coordinator AID as untrusted from the moment of compromise notification, regardless of whether the bundle's `signature` still cryptographically verifies. The attacker holds the old signing key; outer-signature validity is no longer evidence of legitimate issuance.
+  3. The legitimate coordinator SHOULD notify participants out-of-band (the same channel that bootstraps coordinator trust in the first place — operator broadcast, MACP `SessionEnd`, etc.) and distribute a **fresh bundle under the new AID** by re-running the bilateral handshakes with each participant (RFC-AITP-0004) and issuing fresh per-participant TCTs that the new bundle embeds.
+  4. Bundle lifetime is bounded by `expires_at` (§6). Bundles whose `expires_at` is in the past MUST NOT be used regardless of provenance — including bundles signed by the compromised key. This means an unrevoked old bundle expires on its own schedule even if the compromise notification does not reach every consumer immediately; the worst-case exposure window for a stolen coordinator key is bounded by `min(participants[*].tct.expires_at)` plus the compromise-detection delay.
+  5. Participants that learn of compromise MUST NOT silently downgrade to a non-bundle session topology that papers over the missing trust artifact. Either a fresh bundle under the new AID arrives, or the session terminates — there is no "operate without bundle until further notice" middle state in v0.2.
+
+  This recovery model assumes coordinator-compromise detection is out-of-band; AITP v0.1/v0.2 do not specify push-based compromise notification. Push-based notification is a candidate for a future RFC.
 - **Bundle replay.** A bundle issued in session X MUST NOT be reusable in session Y. The `session_id` field and the `min(tct.expires_at)` expiry are the primary defenses; consumers MUST reject bundles whose `session_id` they have already accepted with a different signature.
 - **Transitive trust inflation.** Participants that never directly handshake with each other inherit only coordinator-attested membership, not peer-to-peer binding. The trust model (§2) makes this limit explicit; it does not provide proof of peer-to-peer identity binding.
 - **Mid-session revocation.** Resolved per §7 (per-pair degradation). The coordinator's deny list is the single source of truth.

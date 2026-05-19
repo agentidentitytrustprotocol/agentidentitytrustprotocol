@@ -176,13 +176,16 @@ Implementations SHOULD enforce per-source-IP and per-AID limits at the handshake
 
 Rate limiting is a deployment concern; these defaults are RECOMMENDED, not REQUIRED. Deployments handling high-volume agent swarms SHOULD tune limits to match expected traffic. Responses to rate-limited requests SHOULD use HTTP 429 with no AITP `error` envelope payload (the request never reached the protocol layer).
 
-The order of checks at the handshake endpoint SHOULD be:
+The check order at the handshake endpoint **MUST** be:
 
-1. Replay deny list and timestamp window (RFC-AITP-0001 §5.5) — protocol-level replay rejection.
-2. Rate-limit counters — resource-exhaustion defense.
-3. Schema validation and signature verification.
+1. **Message-ID deny list** (replay; [RFC-AITP-0001 §5.5](RFC-AITP-0001-core.md#55-replay-protection)) — runs before rate limiting so a replay attempt does not consume the sender's rate-limit slot. A captured envelope that re-arrives MUST be rejected with `REPLAY_DETECTED` without incrementing the rate-limit counter for the AID it carries.
+2. **Rate limiting** (this section) — runs before timestamp validation so a flood of distinct fresh envelopes is shed efficiently before any clock comparison or schema parsing.
+3. **Timestamp tolerance** ([RFC-AITP-0001 §5.5](RFC-AITP-0001-core.md#55-replay-protection)) — `TIMESTAMP_EXPIRED` for envelopes outside the configured window.
+4. **Content-Type and body-size validation** — reject oversized or wrong-Content-Type bodies before parsing.
+5. **Envelope signature verification** ([RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature)) — `INVALID_SIGNATURE` on failure.
+6. **Payload cryptographic checks** — Manifest signature/PoP, peer-issued TCT signature, downstream PoP, and any other payload-level cryptography per the message type (`MUTUAL_HELLO`, `MUTUAL_HELLO_ACK`, `MUTUAL_COMMIT`, `MUTUAL_COMMIT_ACK`).
 
-This ordering ensures a captured-and-replayed envelope is rejected without consuming a rate-limit slot, while a flood of distinct fresh envelopes is shed before they reach the cryptographic verification path.
+This ordering is normative: replay-before-rate-limit prevents an attacker from burning a victim's rate-limit budget with captured envelopes; rate-limit-before-timestamp sheds floods before any per-envelope work; signature-verification-before-payload-checks ensures payload bytes are authenticated before any expensive cryptographic operation runs against them. Implementations that reverse any of these orderings MUST document the deviation and the threat that justifies it; the conformance default is the order above.
 
 ---
 

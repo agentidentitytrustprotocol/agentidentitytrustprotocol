@@ -159,6 +159,39 @@ it to issue restricted grants*. An attacker who can prevent a verifier
 from reaching any of the issuer-key sources could otherwise present
 arbitrary identity proofs and be granted the safe subset by default.
 
+### 3.3 `fail_open` and identity verification
+
+`fail_open` MUST NOT bypass cryptographic signature validation. It MAY
+suppress network-resolution errors when an independent trust basis
+already exists for the identity issuer — specifically a **cached,
+still-valid issuer key** from a prior successful fetch or a **pinned
+issuer key** from the local trust store (the same trust bases enumerated
+in §3.2 for `soft_fail`). If no such key is available after applying
+`fail_open`, the downstream signature check has nothing to verify
+against and MUST fail: `fail_open` does not accept unverified identity
+proofs; it only suppresses the network error that preceded the
+(still-failing) signature check.
+
+Stated as an invariant: under every `key_resolution.fail_mode`, an
+identity proof MUST be verified against a key the verifier already
+trusts (cache, pin, or out-of-band) — `fail_open` widens the
+*availability* envelope around transient network failures, not the
+*identity* envelope around unauthenticated peers.
+
+Implementations MUST NOT offer `fail_open` as a production default. It
+is appropriate only for deployments with pinned issuer keys where
+network failures should not block handshakes — in that configuration the
+pinned key is always available and the signature check always runs
+against it. For all other deployments, `fail_closed` (the schema
+default) or `soft_fail` are the appropriate choices.
+
+**Conformance.** Implementations MUST NOT advertise `fail_open` as a
+recommended or default mode in their conformance harness or operator
+documentation. An implementation that permits an identity proof to be
+accepted under `fail_open` without verifying its signature against a
+cached or pinned issuer key is non-conformant, regardless of how the
+upstream key-resolution error is reported.
+
 ---
 
 ## 4. Offline Mode
