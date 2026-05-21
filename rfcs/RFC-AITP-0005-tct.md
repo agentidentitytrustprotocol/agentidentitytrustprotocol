@@ -141,6 +141,13 @@ Within the Mutual Handshake itself, PoP is **mandatory** and is exchanged via th
 
 The mechanism by which an issuing peer marks per-grant PoP requirements is **deployment-defined in v0.1**: it MAY be encoded in the issuing peer's `offered_capabilities` namespace (e.g. by suffix convention), kept in a side channel (a policy document at a well-known URL), or distributed out-of-band. A normative marking mechanism is reserved for a future RFC.
 
+**RECOMMENDED convention for v0.1.** Until a normative mechanism is standardized, implementations SHOULD use the `#pop_required` suffix to signal a PoP requirement on a grant: `<capability_identifier>#pop_required`. A consumer that recognizes this suffix MUST:
+
+1. Issue a `pop_challenge` before authorizing invocation of the marked grant.
+2. Reject the invocation if no valid `pop_response` is received within the challenge's freshness window.
+
+The `tct-007` conformance fixture uses `macp.mode.task.v1#pop_required` to exercise this convention. Deployments using a different marking scheme (`.pop_required`, `.requires_pop`, an out-of-band policy document, etc.) remain conformant for v0.1, provided both peers agree on the scheme out-of-band; the suffix above is RECOMMENDED specifically so that implementations with no prior agreement still interoperate on PoP-marked grants.
+
 Implementations that omit downstream PoP for non-marked grants MUST document that posture and MUST NOT claim conformance for environments that lack equivalent channel binding.
 
 ### 6.1 Downstream PoP exchange
@@ -301,6 +308,18 @@ Peer-issued TCT `expires_at` MUST NOT exceed the issuing peer's Manifest `expire
 
 - Verify proof-of-possession per the issuing peer's per-grant policy (§6). Consumers that omit downstream PoP MUST NOT claim conformance for environments lacking equivalent channel binding.
 - Check revocation status by querying the issuer's `ListRevoked` endpoint.
+
+### 9.4 Manifest expiry bound (conditional)
+
+If the issuing peer's Manifest is available — from the handshake payload or a local cache — the consumer MUST verify:
+
+```
+tct.expires_at ≤ issuer_manifest.expires_at
+```
+
+A TCT that violates this bound MUST be rejected with `TCT_EXPIRES_AFTER_MANIFEST`. A peer-issued TCT cannot outlive the Manifest credential that authenticates its issuer's key; RFC-AITP-0004 §4.3 constrains the issuer not to mint such a TCT, and this rule is the verifier-side mirror of that constraint.
+
+This check MAY be skipped when the issuer Manifest is unavailable — verifiers are NOT required to fetch the Manifest solely to perform it. The §9.1 expiry check (`expires_at` in the future) still applies unconditionally.
 
 ---
 

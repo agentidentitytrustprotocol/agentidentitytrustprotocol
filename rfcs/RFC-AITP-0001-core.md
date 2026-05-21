@@ -272,6 +272,18 @@ both, even if it only signs with one. Manifests MAY advertise
 which algorithms a peer is willing to accept via the
 `accepted_signature_algorithms` field (RFC-AITP-0003 §3.2).
 
+A verifier that encounters a signature whose algorithm tag it does
+not implement MUST reject with `INVALID_SIGNATURE`, never
+`KEY_RESOLUTION_FAILED`. "Algorithm not supported" is a
+signature-verification failure: the key may well be resolvable, but
+the signature cannot be checked. `KEY_RESOLUTION_FAILED` is reserved
+for the distinct case where the issuer or peer key itself cannot be
+resolved (RFC-AITP-0007). The distinction is load-bearing because
+`KEY_RESOLUTION_FAILED` is retryable (§5.7) while `INVALID_SIGNATURE`
+is not — reporting an unsupported-algorithm condition as
+`KEY_RESOLUTION_FAILED` would invite a caller to retry a request that
+can never succeed.
+
 #### 5.4.4 JWK thumbprint for `cnf`
 
 The `cnf` field on TCTs and delegation tokens (RFC-AITP-0005,

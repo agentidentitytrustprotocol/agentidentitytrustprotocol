@@ -22,6 +22,8 @@ The primary revocation mechanism for v0.1 is a JTI deny list **per issuing peer*
 
 The peer that issued a TCT (its `issuer` AID) is the only party that can revoke it. Revocation adds the TCT's `jti` to the issuing peer's deny list. The deny list is consulted by other peers via the issuing peer's `ListRevoked` HTTPS endpoint (RFC-AITP-0005 §10) or a per-token `Verify` call.
 
+**Wire-level rejection code.** A consuming peer that finds a TCT's `jti` in the issuing peer's signed deny list (after the ordering requirement in §3.3 has been satisfied) MUST reject the TCT with `TCT_REVOKED`. This is the only correct code for revocation rejection — `TCT_EXPIRED` is reserved for `expires_at` being in the past (RFC-AITP-0005 §9.1), `TCT_EXPIRES_AFTER_MANIFEST` is reserved for the Manifest-bound violation (RFC-AITP-0005 §9.4), and `TCT_SIGNATURE_INVALID` is reserved for cryptographic signature failure. Implementations that fold revocation into a generic expiry code lose the operator's ability to distinguish "issuer revoked this token early" from "this token reached its natural deadline."
+
 ### 1.2 Deny-list entries
 
 The deny list is internally a set of entry records. Each entry has the shape below; the canonical wire format that wraps these entries (with `version`, `issuer`, `published_at`, `expires_at`, and a signature) is defined in §1.5 and is the only form peers consume over the network.
@@ -133,6 +135,15 @@ The schema default for `revocation_policy.mode` is **`fail_closed`** (see `aitp-
 
 `max_staleness_secs` defines the maximum age of a cached revocation list. If the cached list is older than this value and the endpoint is unreachable, the configured `mode` applies.
 
+> **Related conditional check.** The Manifest-expiry bound on the TCT itself
+> ([RFC-AITP-0005 §9.4](RFC-AITP-0005-tct.md#94-manifest-expiry-bound-conditional))
+> uses the issuer's Manifest `expires_at`, not the revocation snapshot's
+> `expires_at`. The two policies are independent: a TCT may be revoked
+> before its Manifest expires (deny-list hit; `TCT_REVOKED`), or its
+> Manifest may expire before the TCT does (`TCT_EXPIRES_AFTER_MANIFEST`
+> when the check is performed and applicable). Implementations MUST NOT
+> conflate the two — both checks can fire for the same TCT.
+
 ### 3.3 Revocation lookup ordering
 
 Implementations MUST verify the TCT's signature, issuer key binding,
@@ -178,6 +189,13 @@ success.
 
 Anchoring revocation lookup to a *verified* `issuer` and `jti` removes
 all four attack surfaces.
+
+The `rev-004` conformance fixture pins this ordering: the runner
+instruments the revocation source and asserts it was NOT called when
+the TCT signature is invalid (`side_effects.revocation_lookup_called:
+false`). An implementation that fetches `ListRevoked` before signature
+verification fails the fixture even if it ultimately returns the
+correct `TCT_SIGNATURE_INVALID` error code.
 
 ---
 

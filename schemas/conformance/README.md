@@ -115,6 +115,52 @@ Currently defined side-effect keys:
 
 A runner that cannot instrument a listed side effect MUST report SKIP for that assertion (NOT silent pass). The schema (`schemas/json/aitp-conformance-fixture.schema.json`) lists the keys above; additional keys are permitted (`additionalProperties: true`) so new fixtures can add side-effect surfaces without a schema bump, but the registered keys are the only ones a v0.1 runner is required to recognize.
 
+### Dynamic fixtures
+
+A fixture MAY carry an optional `dynamic` boolean in its metadata
+block. Fixtures marked `"dynamic": true` carry placeholder values in
+time-sensitive fields because they exercise a live protocol exchange
+that cannot be statically minted. The companion `dynamic_fields` array
+names the fields the runner MUST regenerate.
+
+A conformance runner MUST generate fresh artifacts for every field
+listed in `dynamic_fields`, using the pinned KAT keypairs (see
+[`PLACEHOLDERS.md`](PLACEHOLDERS.md)), before invoking the
+implementation under test. It MUST NOT feed the placeholder tokens
+through verbatim.
+
+`tct-006` and `tct-007` carry this flag: each drives a multi-step
+`sequence` whose nonces, timestamps, and signatures must be fresh for
+the downstream PoP challenge/response to verify. Fixtures without the
+flag are statically mintable — their placeholders can be substituted
+once and reused.
+
+### Structural-rejection fixtures
+
+Some fixtures carry intentionally invalid or placeholder signatures
+and test that the implementation rejects on an early **structural**
+check, before reaching the cryptographic layer. The placeholder
+signature is never verified; the fixture passes by *not* reaching the
+signature verifier.
+
+`del-004` is the v0.1 structural-rejection fixture: a delegation token
+with a non-empty `chain` field MUST be rejected with
+`DELEGATION_MULTIHOP_NOT_SUPPORTED` before any per-hop signature work,
+so its chain-step, chain-hash, and outer-signature placeholders are
+deliberately never resolved.
+
+`rev-004` is **not** a structural-rejection fixture, despite also
+carrying a tampered-signature placeholder. It tests the opposite
+ordering: signature verification MUST be reached and MUST fail
+(`TCT_SIGNATURE_INVALID`), and the network revocation lookup MUST NOT
+run afterward. Its `__TAMPERED_SIG__` placeholder is minted (per
+[`PLACEHOLDERS.md`](PLACEHOLDERS.md) — sign properly, then flip the
+least-significant bit of the last raw signature byte) into a
+syntactically valid base64url signature that fails Ed25519
+verification, so the crypto layer is genuinely exercised. A runner
+that rejects `rev-004` at base64url decode — rather than at signature
+verification — is testing the wrong code path.
+
 ---
 
 ## Running Conformance Tests
@@ -174,7 +220,7 @@ Counts are sourced from the `status` and `feature` metadata block on each fixtur
 | `mh-006` | Peer-issued TCT audience ≠ self AID | failure: AUDIENCE_MISMATCH |
 | `mh-007` | Peer-issued TCT grants exceed offered_capabilities | failure: GRANT_OVERFLOW |
 | `mh-008` | Peer PoP signature invalid | failure: POP_VERIFICATION_FAILED |
-| `mh-009` | Peer's identity type not in own `accepted_identity_types` | failure: INCOMPATIBLE_TRUST_ANCHORS |
+| `mh-009` | Peer's `manifest.identity_hint.type` ≠ payload `identity.type` (type-confusion within the peer's own message; RFC-AITP-0004 §5.1 step 6) | failure: IDENTITY_FAILED |
 
 ### Identity Binding (RFC-AITP-0002)
 
@@ -195,7 +241,7 @@ Counts are sourced from the `status` and `feature` metadata block on each fixtur
 | `tct-002` | Expired peer-issued TCT rejected | failure: TCT_EXPIRED |
 | `tct-003` | TCT signature does not validate under the issuer's key | failure: TCT_SIGNATURE_INVALID |
 | `tct-004` | TCT `jti` listed in the issuing peer's revocation list | failure: TCT_REVOKED |
-| `tct-005` | TCT `expires_at` is after the issuing peer's Manifest `expires_at` | failure: TCT_EXPIRED |
+| `tct-005` | TCT `expires_at` is after the issuing peer's Manifest `expires_at` (TCT itself not yet expired) | failure: TCT_EXPIRES_AFTER_MANIFEST |
 | `tct-006` | Downstream PoP `pop_challenge` / `pop_response` exchange round-trips successfully | success |
 | `tct-007` | A grant marked as requiring PoP MUST NOT be authorized without a valid `pop_response`; verifiers that silently skip PoP for a marked grant fail this fixture | failure: POP_RESPONSE_INVALID |
 

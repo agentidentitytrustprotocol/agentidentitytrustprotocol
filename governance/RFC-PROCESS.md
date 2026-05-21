@@ -8,7 +8,7 @@ the process for proposing, reviewing, and accepting changes.
 ## RFC Lifecycle
 
 ```
-Idea → Draft → Review → Final Comment Period → Accepted | Rejected
+Idea → Draft → Review → Release Candidate → Final Comment Period → Accepted | Rejected
 ```
 
 ### Stages
@@ -22,6 +22,20 @@ Idea → Draft → Review → Final Comment Period → Accepted | Rejected
 - RFC is discussed for a minimum of 14 days
 - Core team triages and assigns a shepherd
 - Shepherd is responsible for driving the RFC to resolution
+
+**Release Candidate (RC)**
+- RFC text is considered substantively complete; further changes are limited
+  to clarifications, editorial fixes, conformance fixture additions, and KAT
+  vectors required by the KAT-requirement rule below
+- Version header on the RFC file carries an `rc.N` suffix (e.g. `0.1.0-rc.3`);
+  the `Status:` header on the RFC file reads `Release Candidate`
+- RC can iterate (`rc.1`, `rc.2`, …) as implementer feedback surfaces issues
+- Multiple implementations SHOULD be in progress against the RC text
+- Promotion to FCP requires:
+  - all KAT vectors required by the rule below are present
+  - the conformance fixture set is complete for every normative surface the
+    RFC introduces (signing inputs, error codes, side-effect ordering, etc.)
+  - at least one implementation passes the core conformance tier
 
 **Final Comment Period (FCP)**
 - Announced with a 7-day window

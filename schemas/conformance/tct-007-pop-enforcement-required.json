@@ -4,6 +4,14 @@
   "status": "core",
   "required_for_v0_1": true,
   "feature": null,
+  "dynamic": true,
+  "dynamic_fields": [
+    "issued_at",
+    "expires_at",
+    "signature",
+    "timestamp"
+  ],
+  "$comment": "Dynamic fixture — see schemas/conformance/README.md 'Dynamic fixtures'. The fields listed in dynamic_fields carry placeholders (__NOW*__, __VALID_*__); a conformance runner MUST mint fresh artifacts with the pinned KAT keypairs (PLACEHOLDERS.md) before execution. The pop_challenge nonce is generated live by the verifier during the sequence.",
   "description": "PoP-enforcement conformance (RFC-AITP-0005 §6 + §6.2). The issuing peer's policy marks the grant `macp.mode.task.v1#pop_required` as requiring downstream proof-of-possession. The consuming peer (verifier) is asked to authorize a capability invocation against this grant. A capability invocation MUST NOT be authorized in the absence of a valid `pop_response` over a fresh `pop_challenge` nonce — the policy marker is a MUST per §6, not a SHOULD, and a consumer that silently skips PoP for a marked grant is non-conformant per §6.2. The runner instruments the verifier so it can assert: (a) a `pop_challenge` was issued for the invocation, (b) no valid `pop_response` was returned within the challenge's freshness window, and (c) the verifier rejected the invocation with POP_RESPONSE_INVALID (or POP_CHALLENGE_INVALID if the challenge itself was malformed by the test harness). Verifiers that allow the invocation through despite (a)+(b) — i.e. silently skipping PoP regardless of the issuing peer's policy — MUST fail this fixture.",
   "tags": [
     "security",
