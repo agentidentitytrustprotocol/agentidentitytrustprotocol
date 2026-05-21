@@ -180,6 +180,10 @@ Reserved (numbering pinned, no normative text yet):
 
 - **0012 Extensions** — `extensions.zk` and `extensions.tee` namespaces.
 
+Planned (numbering pinned, stub document only):
+
+- **0013 TCT Renewal Extension** — eventual standardization of the non-normative shortened renewal endpoint (RFC-AITP-0004 §8.1).
+
 ---
 
 ## 8. Design rationale: why four messages?

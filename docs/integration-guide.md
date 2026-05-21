@@ -84,6 +84,18 @@ The `issuer_pubkey` is extracted from the issuing peer's `manifest.aid`
 loaded via `Ed25519PublicKey.from_public_bytes()`). v0.1 AIDs are exactly
 43 base64url characters; reject any AID of a different length.
 
+> **Also check the Manifest-expiry bound when you can.** If you hold the
+> issuing peer's Manifest — you do immediately after a Mutual Handshake,
+> where it is exchanged inline — additionally verify
+> `tct["expires_at"] <= issuer_manifest["expires_at"]` and reject with
+> `TCT_EXPIRES_AFTER_MANIFEST` on violation
+> ([RFC-AITP-0005 §9.4](../rfcs/RFC-AITP-0005-tct.md#94-manifest-expiry-bound-conditional)).
+> A peer-issued TCT must not outlive the Manifest credential that
+> authenticates its issuer's key. This check is conditional — skip it if
+> the issuer Manifest is not on hand; do not fetch it solely for this
+> purpose. The Step 2 expiry check (`expires_at` in the future) always
+> applies regardless.
+
 ---
 
 ## Step 3: Enforce grants
@@ -104,6 +116,12 @@ PoP at consumption time is governed by the issuing peer's per-grant policy
 marks as requiring it, and SHOULD verify PoP for all grants unless the
 deployment provides equivalent channel binding (mTLS with bound client
 certs, an authenticated message bus, etc.).
+
+The RECOMMENDED v0.1 marking convention is a `#pop_required` suffix on the
+grant string (`<capability>#pop_required`): a consumer that recognizes the
+suffix MUST run the challenge/response below before authorizing that grant,
+and MUST reject the invocation if no valid `pop_response` arrives within the
+challenge's freshness window (RFC-AITP-0005 §6).
 
 To verify PoP, send a fresh challenge nonce (via `pop_challenge` envelope),
 ask the peer to sign `sha256(base64url_decode(nonce))` — the holder MUST

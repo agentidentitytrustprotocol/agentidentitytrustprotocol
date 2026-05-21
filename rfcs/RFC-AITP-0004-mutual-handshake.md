@@ -400,7 +400,7 @@ B MUST:
    - `subject` equals B's AID.
    - `audience` equals B's AID.
    - `expires_at` is in the future.
-   - `tct_for_peer.expires_at ≤ A's Manifest `expires_at`** — the
+   - `tct_for_peer.expires_at` ≤ A's Manifest `expires_at` — the
      verifier-side Manifest-expiry bound from
      [RFC-AITP-0005 §9.4](RFC-AITP-0005-tct.md#94-manifest-expiry-bound-conditional).
      B has A's Manifest from round 1 (cached), so this conditional
@@ -431,7 +431,7 @@ A MUST:
    - `subject` equals A's AID.
    - `audience` equals A's AID.
    - `expires_at` is in the future.
-   - `tct_for_peer.expires_at ≤ B's Manifest `expires_at`** — the
+   - `tct_for_peer.expires_at` ≤ B's Manifest `expires_at` — the
      verifier-side Manifest-expiry bound from
      [RFC-AITP-0005 §9.4](RFC-AITP-0005-tct.md#94-manifest-expiry-bound-conditional).
      A has B's Manifest from round 1 (cached), so this conditional
