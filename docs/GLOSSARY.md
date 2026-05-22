@@ -125,6 +125,8 @@ A one-line "what is X / where is it defined" lookup for the core AITP concepts. 
 
 **PoP (Proof-of-Possession).** A signature over a fresh, server-supplied or handshake-bound nonce that proves the presenter holds the private key matching a public key (e.g. the Manifest's AID, or a TCT's `cnf`). See [RFC-AITP-0003 §6](../rfcs/RFC-AITP-0003-manifest.md), [RFC-AITP-0005 §6](../rfcs/RFC-AITP-0005-tct.md).
 
+**`#pop_required`.** The RECOMMENDED v0.1 convention for marking a TCT grant that requires downstream PoP: a grant string of the form `<capability>#pop_required` signals that a consumer MUST run the `pop_challenge` / `pop_response` exchange before authorizing the grant. Deployments MAY use a different marking scheme if both peers agree out-of-band. See [RFC-AITP-0005 §6](../rfcs/RFC-AITP-0005-tct.md#6-binding-proof-of-possession).
+
 **`pop_nonce`.** The per-handshake challenge used to bind PoP signatures to a specific exchange. Echoed back in `pop_nonce_echo` to prevent cross-handshake replay.
 
 ---

@@ -58,10 +58,17 @@ context so you don't end up reading them backwards.
     review what you've learned. The threat model is the integration
     test for whether you understood the protocol.
 
-**Skip RFC-AITP-0010, 0011, and 0012** until v0.2. RFCs 0010 and 0011
+**Skip RFC-AITP-0010 through 0013** until v0.2. RFCs 0010 and 0011
 have Draft normative text but are NOT part of v0.1 conformance — they
-target v0.2. RFC-AITP-0012 is fully reserved with no normative text.
+target v0.2. RFC-AITP-0012 is fully reserved with no normative text,
+and RFC-AITP-0013 (TCT Renewal Extension) is a Planned stub.
 v0.1 implementations MUST NOT depend on the post-v0.1 drafts.
+
+RFC-AITP-0001 through 0009 are at **Release Candidate** status
+(`0.1.0-rc.3`): the wire format is stable for v0.1, with changes
+limited to clarifications and conformance material. See
+[governance/RFC-PROCESS.md](../governance/RFC-PROCESS.md) for the
+lifecycle.
 
 ---
 
@@ -110,6 +117,6 @@ When implementing, verify against:
 
 - [`schemas/json/`](../schemas/json/) — canonical JSON Schemas.
 - [`schemas/conformance/`](../schemas/conformance/) — pass/fail behavioral
-  fixtures (`env-*`, `man-*`, `mh-*`, `id-*`, `tct-*`, `del-*`).
+  fixtures (`env-*`, `man-*`, `mh-*`, `id-*`, `tct-*`, `rev-*`, `del-*`).
 
 `make validate` runs the schema and example checks locally.
