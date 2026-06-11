@@ -22,9 +22,9 @@ Maintainers are responsible for:
 
 ## RFC Lifecycle
 
-`Draft → Review → Final Comment Period → Final` (or `Rejected`).
+`Idea → Draft → Review → Release Candidate → Final Comment Period → Accepted` (or `Rejected`).
 
-Status MUST be reflected in the RFC document header. See [RFC-PROCESS.md](RFC-PROCESS.md).
+Status MUST be reflected in the RFC document header. See [RFC-PROCESS.md](RFC-PROCESS.md) for the authoritative definition of each stage.
 
 ## Registry Authority
 

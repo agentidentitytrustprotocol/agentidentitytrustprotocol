@@ -69,20 +69,20 @@ The Trust Context Token is the bounded artifact.
 
 ## The structural shift: trust as a signed, portable artifact
 
-Now imagine the same agent, with one architectural change.
+Now imagine the same two agents, with one architectural change.
 
-Before the agent calls the payments service, it goes through an AITP verifier. The verifier checks the agent's identity proof — an OIDC JWT, a pinned key, eventually a DID — against its trust anchors. It evaluates policy. It produces, signs, and returns a single artifact: a Trust Context Token (TCT). The TCT names the subject, the audience (the payments service), an explicit list of grants (`payments.transfer.v1`), an expiry, and (optionally) a key the subject must prove possession of.
+Before they exchange any binding work, the requesting agent and the payments agent perform a **Mutual Handshake**. There is no third party in the loop. Each agent acts as its own verifier for the peer it is authenticating: it fetches the peer's signed Manifest, checks the peer's identity proof — an OIDC JWT, a pinned key, eventually a DID — against its own trust anchors, and proves possession of its key. When the handshake completes, each side holds a single artifact issued by the other: a **Trust Context Token (TCT)**. Each TCT names a subject, an audience, an explicit list of grants (`payments.transfer.v1`), an expiry, and a key the subject must prove possession of. It is signed by the peer that issued it.
 
-The agent presents the TCT to the payments service. The payments service does four small things:
+From then on, the trust decision is local. When a request crosses the boundary carrying its TCT, the consuming peer does four small things:
 
-1. Verify the signature against a known verifier key.
+1. Verify the signature against the issuing peer's key, resolved from that peer's Manifest.
 2. Check that the audience matches.
 3. Check that the expiry is in the future.
 4. Confirm the requested action is in the grant list.
 
-That is the entire trust decision. No introspection call. No upstream lookup. No service-mesh policy. No re-derivation of identity. The artifact is the decision.
+That is the entire trust decision. No central verifier. No introspection call. No upstream lookup. No service-mesh policy. No re-derivation of identity. The artifact is the decision.
 
-If the regulator calls at 03:14, there is one thing to point at: the TCT. Its issuer, audience, grants, and expiry are inspectable. Its signature ties the decision to a specific verifier and a specific moment in time. Trust becomes legible.
+If the regulator calls at 03:14, there is one thing to point at: the TCT. Its issuer, audience, grants, and expiry are inspectable. Its signature ties the decision to a specific issuing peer and a specific moment in time. Trust becomes legible.
 
 ---
 
@@ -102,7 +102,7 @@ The deeper reason this matters is not elegance. It is ownership.
 
 In a mesh of implicit trust decisions, ownership is diffuse. The payments service trusted the upstream service. The upstream service trusted the orchestrator. The orchestrator trusted the agent runtime. Each link has plausible-deniability shape: *we did what the previous hop told us to.* Nothing in the chain is signed by the actor that actually authorized the action.
 
-In an AITP-based model, ownership is concrete. The TCT is signed by an identifiable verifier. Its grants are explicit. Its audience binds it to a target. Its delegation chain — when present — is bounded to one hop in v0.1, with the original grant proof embedded inside. There is no place for a hop to silently expand authority.
+In an AITP-based model, ownership is concrete. The TCT is signed by an identifiable peer — the agent that issued it is the agent that stands behind it. Its grants are explicit. Its audience binds it to a target. Its delegation chain — when present — is bounded to one hop in v0.1, with the original grant proof embedded inside. There is no place for a hop to silently expand authority.
 
 Autonomous systems that influence finance, healthcare, logistics, energy, or governance will be judged by their ability to defend their authorizations, not by their ability to produce intelligent answers. The systems that endure will be the ones whose trust decisions are *structurally legible* — auditable, replayable, revocable, and bound to a specific subject and audience.
 
