@@ -14,7 +14,7 @@ Idea → Draft → Review → Release Candidate → Final Comment Period → Acc
 ### Stages
 
 **Draft**
-- Author opens a PR with a new file in `rfcs/XXXX-title.md`
+- Author opens a PR with a new file in `rfcs/RFC-AITP-XXXX-title.md`
 - RFC is numbered sequentially
 - Anyone may comment
 
