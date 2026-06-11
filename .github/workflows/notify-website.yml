@@ -1,0 +1,20 @@
+name: Notify Website of Doc Changes
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'rfcs/**'
+      - 'registries/**'
+      - 'schemas/**'
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.WEBSITE_SYNC_TOKEN }}
+          repository: agentidentitytrustprotocol/website
+          event-type: docs-updated
