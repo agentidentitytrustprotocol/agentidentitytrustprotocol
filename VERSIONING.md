@@ -2,18 +2,22 @@
 
 AITP uses a layered versioning model so that the wire format, the canonical schemas, and the published RFCs can evolve at different rates without surprising implementers.
 
-`aitp/0.1` is the **first published version**. It is agent-to-agent from the
+`aitp/0.1` was the **first published version** (reached `v0.1.0-rc.3`). It is agent-to-agent from the
 start; there is no earlier service-consumer version to migrate from.
+`aitp/0.2` is a **breaking revision**: cryptographic agility (Ed25519 + P-256) and
+re-serialization of the portable trust artifacts (TCT, grant voucher, delegation
+token) as compact JWS (see [RFC-AITP-0001 §1](rfcs/RFC-AITP-0001-core.md#1-status-of-this-memo)
+and the CHANGELOG for the migration record).
 
 ## Layers
 
 | Layer | Identifier | Example | Compat rules |
 |---|---|---|---|
-| Protocol version | `version` field on the envelope, TCT, and Manifest | `aitp/0.1` | Major mismatch ⇒ `UNKNOWN_VERSION`. Minor bumps are backward compatible. |
-| JSON Schema namespace | `$id` URI on each canonical schema | `https://aitp.dev/schema/v0.1/...` | Breaking changes bump the path segment to `v0.2/`. |
-| TCT version | `version` inside the TCT | `aitp/0.1` | Mirrors the protocol version. Consumers MUST reject unknown versions. |
-| Manifest version | `version` inside the Manifest | `aitp/0.1` | Mirrors the protocol version. |
-| RFC version | RFC document `Version:` header | `0.1.0-rc.3` | Tracks status (`-draft`, `-rc.N`, `-final`). |
+| Protocol version | `version` field on JCS-profile objects (envelope, Manifest, revocation snapshot); `ver` claim on JWS-profile artifacts (TCT, grant voucher, delegation token) | `aitp/0.2` | Major mismatch ⇒ `UNKNOWN_VERSION`. Minor bumps are backward compatible. |
+| JSON Schema namespace | `$id` URI on each canonical schema | `https://aitp.dev/schema/v0.2/...` | Breaking changes bump the path segment (`v0.1/` → `v0.2/`). The repo keeps a single flat `schemas/json/` directory tracking the current namespace; frozen earlier namespaces are available via the `schema-vX.Y.Z` git tags below, not via parallel directories. |
+| TCT version | `ver` claim inside the TCT JWS payload | `aitp/0.2` | Mirrors the protocol version. Consumers MUST reject unknown versions. |
+| Manifest version | `version` inside the Manifest | `aitp/0.2` | Mirrors the protocol version. |
+| RFC version | RFC document `Version:` header | `0.2.0-draft` | Tracks status (`-draft`, `-rc.N`, `-final`). |
 
 ## Change classes
 

@@ -1,0 +1,16 @@
+{
+  "_comment": "Grant voucher (RFC-AITP-0005 §8). Minted by the TCT issuer alongside the TCT and delivered in the same MUTUAL_COMMIT / MUTUAL_COMMIT_ACK payload; it is what lets the subject later delegate (RFC-AITP-0006) without anyone reconstructing TCT bytes. On the wire it is an opaque compact JWS (typ 'aitp-grant+jwt'). The token below is a PLACEHOLDER: the header segment is real base64url of {\"alg\":\"EdDSA\",\"typ\":\"aitp-grant+jwt\"}, but the payload and signature segments are human-readable stand-ins and will fail cryptographic verification. _decoded_claims shows what the payload segment would decode to: iss/sub/grants/iat/exp equal the companion TCT's values, and src_jti is the companion TCT's jti (the revocation linkage). This voucher is the one embedded verbatim in examples/delegation/single-hop.json. For a real, verifiable voucher see schemas/conformance/known-answer/signed-examples/grant-voucher/.",
+  "voucher_token": "eyJhbGciOiJFZERTQSIsInR5cCI6ImFpdHAtZ3JhbnQrand0In0.VOUCHER_PAYLOAD_NOT_REAL_see_decoded_claims_placeholder.VOUCHER_SIGNATURE_NOT_REAL_placeholder_AAAAAAAAAAAAAAAAAAAA",
+  "_decoded_claims": {
+    "ver": "aitp/0.2",
+    "iss": "aid:pubkey:issuingPeer_pubkey_AID_v01_placeholderPPPPP",
+    "sub": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+    "grants": [
+      "read_data",
+      "write_data"
+    ],
+    "iat": 1711900000,
+    "exp": 1711907200,
+    "src_jti": "550e8400-e29b-41d4-a716-446655440101"
+  }
+}

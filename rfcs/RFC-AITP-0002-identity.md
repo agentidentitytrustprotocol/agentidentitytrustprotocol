@@ -2,8 +2,8 @@
 # Identity Binding
 
 **Document:** RFC-AITP-0002
-**Version:** 0.1.0-rc.3
-**Status:** Release Candidate
+**Version:** 0.2.0-draft
+**Status:** Community Standards Track (v0.2 Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md)
 
 ---
@@ -14,7 +14,7 @@ This RFC defines how an agent's AID is bound to a verifiable claim from a truste
 
 **Where identity proof appears.** Identity proof — the verifiable JWT (for OIDC) or signature (for pinned_key) — is exchanged inline during the Mutual Handshake (RFC-AITP-0004 §3). The Agent Manifest (RFC-AITP-0003 §3.1) carries only an **identity hint** (`identity_hint`): static `type`/`issuer`/`subject` metadata, with no `proof` field. The hint lets peers discover *which* identity provider an agent uses; the verifiable proof is presented fresh each handshake so it can be bound to a per-handshake nonce and to the verifying peer's AID. The `aud`, `cnf.jkt`, and `nonce` requirements in §2 apply to the handshake-level identity proof only, never to the Manifest hint.
 
-v0.1 supports two identity types: `oidc` and `pinned_key`. Future identity types extend this RFC without modifying the core envelope.
+v0.2 supports two identity types: `oidc` and `pinned_key`. Future identity types extend this RFC without modifying the core envelope.
 
 ---
 
@@ -38,7 +38,7 @@ v0.1 supports two identity types: `oidc` and `pinned_key`. Future identity types
 | `issuer` | string | REQUIRED for `oidc` | Issuer URI (MUST match JWT `iss` claim). |
 | `subject` | string | REQUIRED | Agent subject identifier. |
 | `proof` | string | REQUIRED | JWT for OIDC; base64url signature for pinned_key. |
-| `public_key` | string | REQUIRED for `pinned_key`; MUST be absent for `oidc` | base64url-encoded public key. For `pinned_key`, this is the key the verifier looks up in its `pinned_keys` configuration (§3.2). For `oidc`, the agent's public key is already encoded in the verifying-peer envelope's `sender.agent_id` (the AID-identifier component) — there is no second copy in the descriptor, and including one would create an ambiguity over which key the JWT's `cnf.jkt` is meant to bind. The identity-descriptor schema (`schemas/json/aitp-identity.schema.json`) enforces this: its `oidc` branch forbids `public_key`, mirroring the `IdentityHint` rule that the Manifest schema applies to `identity_hint`. v0.1 verifiers MUST reject an OIDC `identity` descriptor that carries `public_key`. |
+| `public_key` | string | REQUIRED for `pinned_key`; MUST be absent for `oidc` | base64url-encoded public key. For `pinned_key`, this is the key the verifier looks up in its `pinned_keys` configuration (§3.2). For `oidc`, the agent's public key is already encoded in the verifying-peer envelope's `sender.agent_id` (the AID-identifier component) — there is no second copy in the descriptor, and including one would create an ambiguity over which key the JWT's `cnf.jkt` is meant to bind. The identity-descriptor schema (`schemas/json/aitp-identity.schema.json`) enforces this: its `oidc` branch forbids `public_key`, mirroring the `IdentityHint` rule that the Manifest schema applies to `identity_hint`. v0.2 verifiers MUST reject an OIDC `identity` descriptor that carries `public_key`. |
 
 The canonical JSON Schema is [`schemas/json/aitp-identity.schema.json`](../schemas/json/aitp-identity.schema.json).
 
@@ -77,6 +77,8 @@ The JWK used to compute `cnf.jkt` is the canonical OKP Ed25519 form, exactly:
 where `<aid-identifier>` is the 43-character AID identifier component from `aid:pubkey:<aid-identifier>` (i.e. the unpadded base64url encoding of the 32-byte raw Ed25519 public key, per RFC-AITP-0001 §5.3).
 
 The thumbprint is computed per RFC 7638: serialize this exact 3-field JSON object with members in lexicographic order, no whitespace, hash with SHA-256, encode the digest as unpadded base64url. Implementations MUST NOT include any other JWK members (no `kid`, no `alg`, no `use`) when computing the thumbprint — additional members would change the canonical serialization and the resulting hash.
+
+> **Shared convention with the portable trust artifacts.** In `aitp/0.2` this same RFC 7638 `cnf.jkt` convention is also the proof-of-possession key binding on the compact-JWS portable trust artifacts — the TCT and the delegation token ([RFC-AITP-0001 §5.4.4](RFC-AITP-0001-core.md#544-jwk-thumbprint-for-cnf), which cites this section). The v0.1 raw-public-key `binding.cnf` form on the TCT no longer exists; identity binding and token binding now use one `cnf.jkt` convention.
 
 > **Known-answer test.** For the pinned all-zero-seed Ed25519 keypair (`kat-keypair-001` in [`schemas/conformance/known-answer/keypairs.json`](../schemas/conformance/known-answer/keypairs.json)), `aid-identifier = O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik`, the canonical JWK input is `{"crv":"Ed25519","kty":"OKP","x":"O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik"}` (87 bytes), and the resulting `jkt` MUST be `9ZP03Nu8GrXPAUkbKNxHOKBzxPX83SShgFkRNK-f2lw`. Additional vectors live at [`schemas/conformance/known-answer/jwk-thumbprints.json`](../schemas/conformance/known-answer/jwk-thumbprints.json).
 
@@ -157,7 +159,7 @@ Where:
 - `pop_nonce_decoded_bytes` is the raw bytes obtained by base64url-decoding the handshake's `pop_nonce` (NOT the base64url string itself).
 - `\0` is a single null byte separator.
 
-> **Replay resistance.** v0.1 pinned-key proofs are bound to the full handshake context. A signature produced for one (sender, receiver, message, nonce) tuple cannot be replayed against a different tuple.
+> **Replay resistance.** v0.2 pinned-key proofs are bound to the full handshake context (the proof input is unchanged from v0.1). A signature produced for one (sender, receiver, message, nonce) tuple cannot be replayed against a different tuple.
 
 ### 3.2 Verification steps
 
@@ -235,7 +237,7 @@ The canonical schema is [`schemas/json/aitp-trust-anchors.schema.json`](../schem
 
 | Mode | Description |
 |---|---|
-| `static_config` | Keys baked into deployment config (RECOMMENDED for v0.1). |
+| `static_config` | Keys baked into deployment config (RECOMMENDED for v0.2). |
 | `well_known_endpoint` | Fetched from `https://<issuer>/.well-known/aitp-keys`. |
 | `out_of_band` | Manually provisioned (air-gapped / offline environments). |
 
@@ -243,7 +245,7 @@ See [RFC-AITP-0007 Key Resolution](RFC-AITP-0007-key-resolution.md) for resoluti
 
 ---
 
-## 5. Future Identity Types (v0.2+)
+## 5. Future Identity Types (v0.3+)
 
 The following identity types are reserved:
 
@@ -264,7 +266,7 @@ Peers receiving an unknown `type` MUST respond with `IDENTITY_FAILED`. New types
 - The `nonce` claim binds the JWT to a specific handshake instance. Without it, a JWT minted for one handshake against the right `aud` could be captured and replayed in a later handshake to the same peer (e.g. if the captured JWT has not yet expired). The `nonce` is bound to the same `pop_nonce` that drives the Mutual Handshake's PoP exchange, so identity-proof freshness and key-possession freshness share the same defense.
 - The `cnf.jkt` claim binds the JWT to the AID's signing key. A stolen JWT cannot be paired with a different key pair to impersonate a different agent, and an agent cannot prove identity without also controlling the private key that signs its Manifest and envelopes.
 - Together, `aud`, `nonce`, and `cnf.jkt` make the OIDC identity binding **non-transferable across peers, handshakes, and key pairs** in the same way TCTs are non-transferable.
-- The pinned-key proof input (§3.1) MUST bind sender AID, receiver AID, `message_id`, `timestamp`, AND the handshake `pop_nonce`. Earlier drafts that signed only `message_id|timestamp` did not bind sender or receiver and admitted cross-peer replay; the v0.1 proof input is the minimum that prevents it. Implementations MUST NOT accept the legacy two-field input.
+- The pinned-key proof input (§3.1) MUST bind sender AID, receiver AID, `message_id`, `timestamp`, AND the handshake `pop_nonce`. Earlier drafts that signed only `message_id|timestamp` did not bind sender or receiver and admitted cross-peer replay; the v0.1 proof input (unchanged in v0.2) is the minimum that prevents it. Implementations MUST NOT accept the legacy two-field input.
 - A peer MUST NOT relax issuer-list checks based on `reason` strings or any client-supplied hint.
 
 ---

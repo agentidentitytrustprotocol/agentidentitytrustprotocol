@@ -2,38 +2,43 @@
   "id": "del-003",
   "rfc": "RFC-AITP-0006",
   "status": "core",
-  "required_for_v0_1": true,
+  "required_for_v0_1": false,
+  "required_for_v0_2": true,
   "feature": null,
-  "description": "Delegation scope exceeds grant_proof capabilities. MUST be rejected.",
+  "description": "Delegation scope exceeds the embedded voucher's grants (aitp/0.2 compact-JWS shape). The outer delegation JWS declares scope [read_data, write_data] but A's grant voucher (embedded verbatim as the `voucher` claim) granted B only [read_data]. The outer signature and the voucher signature are both valid; the defect is purely scope ⊄ voucher.grants (RFC-AITP-0006 §4 step 6). MUST be rejected with DELEGATION_SCOPE_EXCEEDED.",
   "tags": [
     "security",
     "delegation",
     "scope-escalation"
   ],
   "input": {
-    "delegation": {
-      "delegator": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
-      "delegatee": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
-      "issued_by": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-      "audience": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "delegation_token": "__JWS_DELEGATION__",
+    "delegation_token_claims": {
+      "ver": "aitp/0.2",
+      "iss": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+      "sub": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+      "aud": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
       "scope": [
         "read_data",
         "write_data"
       ],
-      "expires_at": 9999999999,
-      "cnf": "dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
-      "grant_proof": {
-        "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
-        "subject": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-        "capabilities": [
+      "exp": 9999999999,
+      "cnf": {
+        "jkt": "LlsmkXmHJuXWkRZLv_FKl_mprfIV5aYVnXqCgsebsdU"
+      },
+      "voucher": "__JWS_GRANT_VOUCHER__",
+      "voucher_claims": {
+        "ver": "aitp/0.2",
+        "iss": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+        "sub": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+        "grants": [
           "read_data"
         ],
-        "issued_at": 1711900000,
-        "expires_at": 9999999999,
-        "source_tct_jti": "550e8400-e29b-41d4-a716-446655440099",
-        "signature": "KxKxsD80YrgjlDQ3m0LIs7LEa0t9Zea7h7GNtyL5E2-VXMa66W-LiC1yImY5CChMD8q2t2JuIvY0l-CfW3lBBg"
-      },
-      "signature": "NjrsaMMRUwy0VfuCrlZdgQzkwVOb47XBW_KUt67oSm8t-aQz38BuvqhRVqJshlFPaCLhVUWOvsfJAYRkSQRKDA"
+        "iat": 1711900000,
+        "exp": 9999999999,
+        "src_jti": "550e8400-e29b-41d4-a716-446655440099"
+      }
     },
     "operation": "verify_delegation_token"
   },

@@ -2,8 +2,10 @@
   "id": "rev-003",
   "rfc": "RFC-AITP-0008",
   "status": "core",
-  "required_for_v0_1": true,
+  "required_for_v0_1": false,
+  "required_for_v0_2": true,
   "feature": null,
+  "$comment": "The snapshot signature placeholder is the context-dependent __VALID_A_SIG__ (issuing peer is agentA / kat-keypair-001 per the PLACEHOLDERS.md AID role table); the JCS-profile snapshot signing input is unchanged in v0.2. The `jti` entry references a revoked TCT's jti claim; jti values are unchanged between v0.1 and v0.2 (still the revocation handle).",
   "description": "Revocation snapshot happy path. A signed snapshot from the issuing peer (kat-keypair-001) is fresh (published_at within `max_staleness_secs`), its signature validates under the issuing peer's Manifest key, and a queried JTI is NOT in `entries`. Verifier returns 'not revoked' and the surrounding TCT verification continues. (RFC-AITP-0008 §1.5.) Counterpart to rev-001 (stale snapshot, fail-closed) and rev-002 (stale snapshot, soft-fail).",
   "tags": [
     "success",
@@ -20,7 +22,7 @@
     "queried_jti": "550e8400-e29b-41d4-a716-446655440111",
     "snapshot": {
       "revocation_list": {
-        "version": "aitp/0.1",
+        "version": "aitp/0.2",
         "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
         "published_at": 1711900000,
         "expires_at": 1711903600,
@@ -31,7 +33,7 @@
           }
         ]
       },
-      "signature": "WLqGpbEPyIbEKr_ORtBHe_743SpSEHfVdn7hAVarB1h2na2KjwgrM3jMb7NyKbd946JQ53pZoxJQSfn7MdaZAg"
+      "signature": "__VALID_A_SIG__"
     },
     "operation": "verify_revocation_snapshot"
   },

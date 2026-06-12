@@ -2,7 +2,8 @@
   "id": "env-004",
   "rfc": "RFC-AITP-0001",
   "status": "core",
-  "required_for_v0_1": true,
+  "required_for_v0_1": false,
+  "required_for_v0_2": true,
   "feature": null,
   "description": "Two envelopes carrying the same `message_id` within the verifier's replay window MUST result in the second being rejected with REPLAY_DETECTED. The first envelope MUST be accepted (or rejected for a non-replay reason). The window MUST be at least `iat_tolerance_secs`; alpha.5 ships a 300 s default (RFC-AITP-0001 §5.5; alpha.5 P8). The HTTP transport applies this check at the boundary, before payload parsing.",
   "tags": [

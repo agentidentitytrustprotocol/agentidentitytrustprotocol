@@ -2,6 +2,82 @@
 
 ## Unreleased
 
+### v0.2.0-draft — JWS-TCT migration
+
+**Breaking revision**: the
+protocol version literal becomes `aitp/0.2`, and the portable trust
+artifacts (TCT, grant voucher, delegation token) are re-serialized as
+RFC 7515 compact JWS with explicit typing, while protocol-internal
+artifacts (envelopes, Manifests, revocation snapshots, handshake
+payloads) keep the JCS embedded-signature convention. This folds in
+the previously specified v0.2 crypto-agility deltas (algorithm-tagged
+AIDs and signatures, JWK-thumbprint `cnf`, mandatory Ed25519+P-256
+verification) under the same version literal.
+
+- **RFC-AITP-0001 §5.4** split into two signing profiles with a
+  normative boundary rule; new §5.4.5 Compact JWS profile (exact-bytes
+  signatures, header restricted to `alg`+`typ`, RFC 8725 explicit
+  typing, AID-derived algorithm pinning rejecting `none`, `ver` claim,
+  strict base64url parsing, optional `ext` claim). New error codes
+  `TOKEN_ALG_MISMATCH` / `TOKEN_TYP_MISMATCH`.
+- **RFC-AITP-0005** rewritten: TCT as compact JWS (`typ:
+  aitp-tct+jwt`; claims `ver/jti/iss/sub/aud/iat/exp/grants/cnf`);
+  `cnf` is the RFC 7800 `{"jkt": …}` form only; new §8 **grant
+  voucher** (`typ: aitp-grant+jwt`, minted alongside the TCT, carries
+  `src_jti` for revocation linkage); §12 design notes record the
+  rejected alternatives (dual serialization, byte-deterministic JWS,
+  full JOSE migration).
+- **RFC-AITP-0006** rewritten: `grant_proof` and its byte-reconstruction
+  verification are deleted; the delegation token is a compact JWS
+  embedding the issuer's voucher verbatim; nine-step verification with
+  no reconstruction; privacy erratum recorded (the v0.1 minimization
+  claim was illusory). Error code `DELEGATION_INVALID_GRANT_PROOF`
+  renamed `DELEGATION_INVALID_VOUCHER`.
+- **RFC-AITP-0004**: `MUTUAL_COMMIT`/`MUTUAL_COMMIT_ACK` carry `tct`
+  and optional `grant_voucher` as opaque compact JWS strings; TCT
+  verification steps restated per RFC-0005 §7.2.
+- **RFC-AITP-0008**: terminology sweep (`jti` claim, `voucher.src_jti`);
+  snapshot format explicitly unchanged (JCS profile); §3.3
+  verify-before-revocation-lookup re-affirmed for JWS artifacts.
+- **RFC-AITP-0009**: new threat entries §1.12 algorithm confusion,
+  §1.13 token-type confusion, §1.14 `alg: none`; reconstruction
+  surface removal noted; §4 crypto-agility restated per profile.
+- **RFC-AITP-0010/0011 (Draft)**: bundles embed TCT JWS strings;
+  multi-hop rewritten — `chain` is an array of verbatim delegation JWS
+  strings, `chain_hash` is the digest-array form, per-hop `jti`
+  revocation handles, voucher only on `chain[0]`.
+- **Registries**: media types `application/aitp-tct+jwt`,
+  `application/aitp-grant+jwt`, `application/aitp-delegation+jwt`
+  (`aitp-tct+json` superseded); error-code definitions restated in
+  voucher/claim terms.
+- **Schemas**: `$id` namespace bumped to
+  `https://aitp.dev/schema/v0.2/` (VERSIONING.md clarified: flat
+  directory + git tags, no parallel trees); `aitp-tct` / new
+  `aitp-grant-voucher` / `aitp-delegation` validate decoded JWS
+  claims; handshake and session-bundle schemas carry compact-JWS
+  strings; AID and signature patterns extended to the v0.2
+  algorithm-tagged grammar; fixture metadata gains
+  `required_for_v0_2`.
+- **KAT vectors**: `kat-tct-001`/`kat-delegation-001` JCS vectors
+  retired; `kat-manifest-001`/`kat-revocation-001` re-minted for
+  `aitp/0.2`; multihop/session-bundle vectors re-specified for the
+  v0.2 shapes; `jwk-thumbprints.json` gains keypair-004 and the first
+  P-256 vector and is now load-bearing for `cnf.jkt`;
+  `signed-examples/` populated with **real Ed25519 compact-JWS** TCT,
+  grant voucher, and delegation artifacts (independently verified with
+  a non-AITP JOSE stack) plus re-signed Manifest/revocation examples;
+  off-the-shelf JOSE smoke test documented in the KAT README.
+- **Conformance fixtures**: full surface re-minted to v0.2 placeholder
+  form (the version bump invalidates previously minted signatures;
+  aitp-rs re-materializes them). New attack fixtures `tct-008`
+  (alg `none`), `tct-009` (alg confusion), `tct-010` (typ confusion),
+  `del-005`/`del-006` (voucher issuer/subject mismatch), `del-007`
+  (v0.2 multihop structural rejection), `vch-001`/`vch-002` (voucher
+  verification), `env-005` (P-256 envelope — unblocks the deferred
+  aitp-rs item). `del-004` frozen in the v0.1 shape for v0.1 runners.
+  PLACEHOLDERS.md gains the compact-JWS whole-token placeholder family
+  with claims-sibling minting convention.
+
 ### rc.4 — RFC unified-final pass
 
 Driven by `plans/aitp-rfc-unified-final-plan.md`. Closes the gap between

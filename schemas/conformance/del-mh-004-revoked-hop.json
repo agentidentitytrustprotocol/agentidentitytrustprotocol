@@ -3,8 +3,10 @@
   "rfc": "RFC-AITP-0011",
   "status": "draft",
   "required_for_v0_1": false,
+  "required_for_v0_2": false,
   "feature": "experimental-multihop-delegation",
-  "description": "Multi-hop per-hop revocation (RFC-AITP-0011 §6). The chain (identical to del-mh-001) is structurally valid: per-hop signatures verify, transitive scope subsetting passes, chain_hash recomputes, outer signature verifies. However, B's signed revocation snapshot (B = chain[1].issuer) lists chain[1].source_tct_jti = 550e8400-e29b-41d4-a716-446655443002 in `entries`. Per RFC-AITP-0011 §6, the verifier MUST check every chain[i].source_tct_jti against chain[i].issuer's deny list, and a revocation hit at ANY hop invalidates the entire delegation. Expected: DELEGATION_SOURCE_TCT_REVOKED.",
+  "$comment": "Chain claims-sibling convention as in del-mh-001 (parallel chain_claims array; __COMPUTED_CHAIN_HASH__). The revocation snapshot is a JCS-profile artifact (unchanged by the JWS migration); its signature placeholder __VALID_B_SIG__ is minted by B over the JCS-canonical revocation_list bytes.",
+  "description": "Multi-hop per-hop revocation (RFC-AITP-0011 §6, aitp/0.2 shape). The chain (identical to del-mh-001) is structurally valid: every hop's JWS verifies, the voucher inside chain[0] verifies under A's own key, continuity, expiry monotonicity, transitive scope subsetting, and chain_hash recomputation all pass. However, B's signed revocation snapshot (B = chain[0].iss) lists chain[0].jti = 550e8400-e29b-41d4-a716-446655443002 in `entries`. Per RFC-AITP-0011 §6, the verifier MUST look up every hop token's jti against the deny list of that hop's iss (and chain[0].voucher.src_jti against A's own deny list), after all signature checks (RFC-AITP-0008 §3.3); a revocation hit at ANY hop invalidates the entire delegation. Expected: DELEGATION_SOURCE_TCT_REVOKED.",
   "tags": [
     "security",
     "delegation",
@@ -13,61 +15,61 @@
     "post-v0.1"
   ],
   "input": {
-    "delegation": {
-      "delegator": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
-      "delegatee": "aid:pubkey:iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
-      "issued_by": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
-      "audience": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "delegation_token": "__JWS_DELEGATION__",
+    "delegation_token_claims": {
+      "ver": "aitp/0.2",
+      "iss": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+      "sub": "aid:pubkey:iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
+      "aud": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
       "scope": [
         "read_data"
       ],
-      "expires_at": 1711903600,
-      "cnf": "iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
-      "grant_proof": {
-        "issuer": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
-        "subject": "aid:pubkey:iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
-        "capabilities": [
-          "read_data"
-        ],
-        "issued_at": 1711900200,
-        "expires_at": 1711903600,
-        "source_tct_jti": "550e8400-e29b-41d4-a716-446655443003",
-        "signature": "UqFTb7Za1b39_VdHf96x2VCVpnxhDFFUu-FoITbCo-AOqICiKWxoZiMmZWzz88oyk6r0S2SkM18LjpmPz36vCg"
+      "exp": 1711903600,
+      "cnf": {
+        "jkt": "UDDReOZl1ipXAfp9wYsm13sDBMK5og--QWdBjzuf6o4"
       },
+      "jti": "550e8400-e29b-41d4-a716-446655443003",
       "chain": [
+        "__JWS_DELEGATION__"
+      ],
+      "chain_claims": [
         {
-          "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
-          "subject": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-          "capabilities": [
-            "read_data",
-            "write_data"
-          ],
-          "issued_at": 1711900000,
-          "expires_at": 1711905000,
-          "source_tct_jti": "550e8400-e29b-41d4-a716-446655443001",
-          "signature": "n3jgfHl3MbV4eXMZ8PodIu-_qFA7oh_uUigxEQyvMpshf9HxNRjCqqcUbukSFKASQikl66VbY9ELefmLMFEpCg"
-        },
-        {
-          "issuer": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-          "subject": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
-          "capabilities": [
+          "ver": "aitp/0.2",
+          "iss": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+          "sub": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+          "aud": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+          "scope": [
             "read_data"
           ],
-          "issued_at": 1711900100,
-          "expires_at": 1711904000,
-          "source_tct_jti": "550e8400-e29b-41d4-a716-446655443002",
-          "signature": "eS5WqlVV-6ARMGNfwmEEk6A12oe_zYnkvV9G9Qcq2vI_ml9yw2CpJbxNOjqfpBOiVUVmkzM1zPV_XWDBA_nyAQ"
+          "exp": 1711904000,
+          "cnf": {
+            "jkt": "LlsmkXmHJuXWkRZLv_FKl_mprfIV5aYVnXqCgsebsdU"
+          },
+          "jti": "550e8400-e29b-41d4-a716-446655443002",
+          "voucher": "__JWS_GRANT_VOUCHER__",
+          "voucher_claims": {
+            "ver": "aitp/0.2",
+            "iss": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+            "sub": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+            "grants": [
+              "read_data",
+              "write_data"
+            ],
+            "iat": 1711900000,
+            "exp": 1711905000,
+            "src_jti": "550e8400-e29b-41d4-a716-446655443001"
+          }
         }
       ],
-      "chain_hash": "RnXHwHGKEguW6MAwAlzJvOrJMLlmdZFnx-cFcXDiyto",
-      "signature": "ev-J-UlDI0BkypBjXdXp5T1dvTE4hIM_6Q7HVLLD5SnT891ccgOD6Sba4-CRu2gshTP3YqTHSrgv8cqwId1QCw"
+      "chain_hash": "__COMPUTED_CHAIN_HASH__"
     },
     "revocation_snapshots": [
       {
         "issuer_aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
         "snapshot": {
           "revocation_list": {
-            "version": "aitp/0.1",
+            "version": "aitp/0.2",
             "issuer": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
             "published_at": 1711900500,
             "expires_at": 1711904100,
@@ -78,7 +80,7 @@
               }
             ]
           },
-          "signature": "SbwrN5cku2geJJJIJcmax5ZuNBK9XfOaLXGWIxp1HtW01jtwSiaI21aXSxWsL9B6Mdg-n19TuwBVOd1GWY5qDg"
+          "signature": "__VALID_B_SIG__"
         }
       }
     ],
@@ -88,6 +90,6 @@
   "expected": {
     "outcome": "failure",
     "error_code": "DELEGATION_SOURCE_TCT_REVOKED",
-    "rationale": "chain[1].source_tct_jti (550e8400-e29b-41d4-a716-446655443002) is in B's deny list. Per RFC-AITP-0011 §6, every chain hop's source_tct_jti is checked against the issuer of that hop's deny list; a hit at any hop invalidates the entire delegation."
+    "rationale": "chain[0].jti (550e8400-e29b-41d4-a716-446655443002) is in the deny list of chain[0].iss (B). Per RFC-AITP-0011 §6, every hop token's jti is checked against that hop issuer's deny list; a hit at any hop invalidates the entire delegation, after all signature checks have passed."
   }
 }

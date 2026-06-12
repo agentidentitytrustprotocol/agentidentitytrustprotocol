@@ -2,7 +2,8 @@
   "id": "id-004",
   "rfc": "RFC-AITP-0002",
   "status": "core",
-  "required_for_v0_1": true,
+  "required_for_v0_1": false,
+  "required_for_v0_2": true,
   "feature": null,
   "description": "Attacker captures a valid pinned-key identity proof from a previous handshake and replays it inside a fresh MUTUAL_HELLO addressed to a different receiver. The replayed envelope is well-formed and the signature still verifies under the original signer's public key, but the pinned-key proof input (RFC-AITP-0002 §3.1) binds the original sender, receiver, message_id, timestamp, and pop_nonce. The receiving peer reconstructs the proof input using its own AID as receiver and the new envelope's message_id, timestamp, and pop_nonce, and the signature MUST fail to verify. Receiver MUST reject with IDENTITY_FAILED.",
   "tags": [
@@ -24,7 +25,7 @@
       "original_pop_nonce": "Tm9uY2VfQ2FwdHVyZWRfRnJvbV9PbGRfSGFuZHNoYWtl"
     },
     "envelope": {
-      "version": "aitp/0.1",
+      "version": "aitp/0.2",
       "message_type": "mutual_hello",
       "message_id": "770e8400-e29b-41d4-a716-446655440402",
       "timestamp": 1711900000,
@@ -36,10 +37,10 @@
           "type": "pinned_key",
           "subject": "internal-worker-a",
           "public_key": "dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
-          "proof": "VQbp4AE4W82b2k3-gyteZeJUGFPBJuwgboXT8YBYwEnXHFckv4FegcTdANgEEAO5cIkxhmko7LYbjSJauA-SBQ"
+          "proof": "__CAPTURED_PROOF_FROM_ORIGINAL_HANDSHAKE__"
         },
         "manifest": {
-          "version": "aitp/0.1",
+          "version": "aitp/0.2",
           "aid": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
           "handshake_endpoint": "https://worker-a.agents.example.com/aitp/handshake",
           "accepted_trust_anchors": [
@@ -54,7 +55,7 @@
           "required_peer_capabilities": [],
           "proof_of_possession": {
             "challenge": "E1P1xitRfiKsGDoeyKCI0w",
-            "signature": "UAFEY4GuGKLxue2W7_lN2gAxf_z0MRsCqP5UteMojDUqpnwLrQRzI_Z-GpldwWN9ST9Aw3JEvZwv0VoiVEknCg"
+            "signature": "__VALID_POP_SIG__"
           },
           "published_at": 1711899000,
           "expires_at": 1711985400,
@@ -63,14 +64,14 @@
             "subject": "internal-worker-a",
             "public_key": "dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU"
           },
-          "signature": "f4Zt1iJ7cYt2_VUUx-oBus7MIR2UsLT-O3UY5jJ_84N_Nt9CY71HGIhEVXdCGaHAeAUTReBMh9x7mihPn24gAA"
+          "signature": "__VALID_MANIFEST_SIG__"
         },
         "requested_grants": [
           "macp.mode.task.v1"
         ],
         "pop_nonce": "Tm9uY2VfRnJlc2hfRm9yX1RoaXNfSGFuZHNoYWtl"
       },
-      "signature": "4_DR__I12xXlVQ4z6EtzVuFDGRADLxSu_kiXYKlYQt9bz4UVdJ4n-zaWhncciQ77uFMGXk710_hvq2mpyuuZCg"
+      "signature": "__VALID_ENVELOPE_SIG__"
     },
     "operation": "verify_handshake_payload"
   },

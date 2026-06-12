@@ -1,6 +1,6 @@
 .PHONY: help validate json-validate json-schema-validate clean install-tools docs release
 
-# AITP v0.1 ships as JSON only. The canonical wire format and signing input
+# AITP ships as JSON only. The canonical wire format and signing input
 # is RFC 8785 (JCS) canonical JSON. See RFC-AITP-0001 §5.4.1.
 
 # ── Default ───────────────────────────────────────────────────────────────────
@@ -9,7 +9,7 @@ help:
 	@echo "AITP Development Commands"
 	@echo
 	@echo "Validation:"
-	@echo "  make validate              Run all v0.1 validations (JSON only)"
+	@echo "  make validate              Run all v0.2 validations (JSON only)"
 	@echo "  make json-schema-validate  Validate JSON Schemas (meta-validation)"
 	@echo "  make json-validate         Validate JSON examples and conformance fixtures"
 	@echo
@@ -19,12 +19,12 @@ help:
 	@echo "Utilities:"
 	@echo "  make install-tools         Install required development tools (ajv-cli)"
 	@echo "  make release               Build the sanctioned release archive"
-	@echo "  make clean                 No-op in v0.1 (no generated artifacts)"
+	@echo "  make clean                 No-op (no generated artifacts)"
 
 # ── Validation ────────────────────────────────────────────────────────────────
 
 validate: json-schema-validate json-validate
-	@echo "✓ All v0.1 validations passed"
+	@echo "✓ All v0.2 validations passed"
 
 json-schema-validate:
 	@echo "Validating JSON Schemas (meta-validation)..."
@@ -39,7 +39,7 @@ json-validate:
 docs:
 	@echo "AITP reading order:"
 	@echo
-	@echo "Normative (v0.1):"
+	@echo "Normative (v0.2):"
 	@echo "   1. README.md"
 	@echo "   2. manifesto/manifesto.md"
 	@echo "   3. docs/architecture.md"
@@ -58,7 +58,7 @@ docs:
 	@echo "  16. docs/implementer-quickstart.md"
 	@echo "  17. docs/operational-guidance.md"
 	@echo
-	@echo "Post-v0.1 drafts (Draft normative text; NOT part of v0.1 conformance):"
+	@echo "Opt-in drafts (Draft normative text; NOT part of v0.2 core conformance):"
 	@echo "   - rfcs/RFC-AITP-0010-session-trust-bundle.md"
 	@echo "   - rfcs/RFC-AITP-0011-multihop-delegation.md"
 	@echo
@@ -72,7 +72,7 @@ docs:
 # ── Clean ────────────────────────────────────────────────────────────────────
 
 clean:
-	@echo "Nothing to clean (v0.1 has no generated artifacts)."
+	@echo "Nothing to clean (no generated artifacts)."
 
 # ── Release archive ──────────────────────────────────────────────────────────
 #
@@ -82,7 +82,7 @@ clean:
 # repo as a top-level folder).
 
 RELEASE_NAME ?= agentidentitytrustprotocol
-RELEASE_VERSION ?= v0.1.0-rc.3
+RELEASE_VERSION ?= v0.2.0-draft
 
 release:
 	@echo "Building release archive ${RELEASE_NAME}-${RELEASE_VERSION}.zip..."

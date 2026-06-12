@@ -2,7 +2,8 @@
   "id": "mh-001",
   "rfc": "RFC-AITP-0004",
   "status": "core",
-  "required_for_v0_1": true,
+  "required_for_v0_1": false,
+  "required_for_v0_2": true,
   "feature": null,
   "description": "Replayed MUTUAL_HELLO (duplicate message_id) MUST be rejected on the second send.",
   "tags": [

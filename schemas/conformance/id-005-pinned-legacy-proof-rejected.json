@@ -2,7 +2,8 @@
   "id": "id-005",
   "rfc": "RFC-AITP-0002",
   "status": "core",
-  "required_for_v0_1": true,
+  "required_for_v0_1": false,
+  "required_for_v0_2": true,
   "feature": null,
   "description": "A pinned-key proof signed using the pre-v0.1 two-field input (`message_id|timestamp`, no domain prefix, no receiver, no pop_nonce) MUST be rejected with IDENTITY_FAILED. The v0.1 normative proof input is the five-field domain-prefixed form (RFC-AITP-0002 §3.1). This fixture pins the cross-version regression: an alpha.4 implementation that rolled forward unchanged would silently accept the legacy proof. The minting tool produces the legacy signature in `__LEGACY_PINNED_PROOF__` so the fixture's signature alphabet is real and the verifier must replay the v0.1 reconstruction to discover the mismatch. (alpha.5 P1.)",
   "tags": [
@@ -14,7 +15,7 @@
   "input": {
     "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
     "envelope": {
-      "version": "aitp/0.1",
+      "version": "aitp/0.2",
       "message_type": "mutual_hello",
       "message_id": "770e8400-e29b-41d4-a716-446655440501",
       "timestamp": 1711900000,
@@ -26,10 +27,10 @@
           "type": "pinned_key",
           "subject": "internal-worker-a",
           "public_key": "dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
-          "proof": "I5bTrJY7mCLAJ6sWRtXVceU-vql8m9J6si2fa_yWl_ktU2NTMqZ-gdhWXDzH9-3hfP7gFThjs22cSjKK0K2wBg"
+          "proof": "__LEGACY_PINNED_PROOF__"
         },
         "manifest": {
-          "version": "aitp/0.1",
+          "version": "aitp/0.2",
           "aid": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
           "handshake_endpoint": "https://worker-a.agents.example.com/aitp/handshake",
           "accepted_trust_anchors": [],
@@ -42,7 +43,7 @@
           "required_peer_capabilities": [],
           "proof_of_possession": {
             "challenge": "E1P1xitRfiKsGDoeyKCI0w",
-            "signature": "UAFEY4GuGKLxue2W7_lN2gAxf_z0MRsCqP5UteMojDUqpnwLrQRzI_Z-GpldwWN9ST9Aw3JEvZwv0VoiVEknCg"
+            "signature": "__VALID_POP_SIG__"
           },
           "published_at": 1711899000,
           "expires_at": 1711985400,
@@ -51,14 +52,14 @@
             "subject": "internal-worker-a",
             "public_key": "dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU"
           },
-          "signature": "Zx1Ckuvv6QEq0hYQJDcMLJHFmsdiSTqctssLBjLuuNWMeg0MaTJMrLA8Tcp6wE29Tq-F1u3ed-IN1PgYnYCSCQ"
+          "signature": "__VALID_MANIFEST_SIG__"
         },
         "requested_grants": [
           "macp.mode.task.v1"
         ],
         "pop_nonce": "AAAAAAAAAAAAAAAAAAAAAA"
       },
-      "signature": "GThe1XUCbad9rehtfAAaaIbKNQ4wqzIhRRDN4nEvxczsjAaYScr5zNMIWbNMWoNhiLccnpaE5zkTikaePLFiAg"
+      "signature": "__VALID_ENVELOPE_SIG__"
     },
     "operation": "verify_handshake_payload"
   },

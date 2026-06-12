@@ -2,19 +2,19 @@
 # Security & Threat Model
 
 **Document:** RFC-AITP-0009
-**Version:** 0.1.0-rc.3
-**Status:** Release Candidate
+**Version:** 0.2.0-draft
+**Status:** Community Standards Track (v0.2 Draft)
 **Depends on:** All preceding RFCs.
 
 ---
 
 ## Abstract
 
-This RFC enumerates the threats AITP defends against in the agent-to-agent setting, the defenses, the v0.1 limitations, and the implementation requirements that conformant deployments MUST follow.
+This RFC enumerates the threats AITP defends against in the agent-to-agent setting, the defenses, the v0.2 limitations, and the implementation requirements that conformant deployments MUST follow.
 
 ---
 
-## 1. Threats Addressed in v0.1
+## 1. Threats Addressed in v0.2
 
 ### 1.1 Impersonation
 
@@ -24,7 +24,7 @@ This RFC enumerates the threats AITP defends against in the agent-to-agent setti
 - All envelopes are signed with the sender's private key (AID).
 - Identity binding requires proof-of-possession or a verifiable credential from a trusted issuer.
 - The Mutual Handshake includes a PoP exchange in round 2 that binds the TCT to a live private key.
-- Peer-issued TCTs are bound to the subject's public key via `binding.cnf`.
+- Peer-issued TCTs are bound to the subject's public key via the `cnf` claim (`cnf.jkt`, RFC-AITP-0001 §5.4.4).
 
 ### 1.2 Replay
 
@@ -34,7 +34,7 @@ This RFC enumerates the threats AITP defends against in the agent-to-agent setti
 - `message_id` deduplication: peers maintain a deny list of seen IDs.
 - `timestamp` tolerance window (default ±300 s): stale messages are rejected.
 - Mutual-Handshake nonces (`pop_nonce`, `pop_nonce_echo`) bind round 2 to round 1.
-- TCT `expires_at`: tokens are time-bounded.
+- TCT `exp`: tokens are time-bounded.
 - TCT `jti` revocation: tokens can be invalidated before expiry.
 
 ### 1.3 Manifest Tampering
@@ -60,9 +60,9 @@ This RFC enumerates the threats AITP defends against in the agent-to-agent setti
 **Threat:** Agent C presents B's delegation token to a different peer D, claiming B's authority there.
 
 **Defense:**
-- Delegation tokens carry an `audience` field set to the delegator's AID.
-- Peers MUST reject delegation tokens where `audience ≠ self`.
-- TCTs carry an `audience` field that MUST be the subject peer's AID; consuming peers reject mismatched audiences.
+- Delegation tokens carry an `aud` claim set to the AID of the issuing peer they may be presented to (A — RFC-AITP-0006 §2).
+- Peers MUST reject delegation tokens where `aud ≠ self` (`DELEGATION_AUDIENCE_MISMATCH`).
+- TCTs carry an `aud` claim that MUST be the subject peer's AID; consuming peers reject mismatched audiences (`AUDIENCE_MISMATCH`).
 - Wildcard audiences are forbidden (RFC-AITP-0005 §5).
 
 ### 1.6 Token Theft and Misuse
@@ -70,9 +70,9 @@ This RFC enumerates the threats AITP defends against in the agent-to-agent setti
 **Threat:** An attacker obtains a TCT and uses it without being the intended subject.
 
 **Defense:**
-- `binding.cnf` binds the TCT to the subject's public key.
+- The `cnf` claim binds the TCT to the subject's public key.
 - Consumers MUST verify proof-of-possession for grants marked as requiring it by the issuing peer's policy, and SHOULD verify PoP for all grants unless equivalent channel binding is explicitly configured.
-- Short TTLs (RFC-AITP-0005 §8.1) limit the window of misuse.
+- Short TTLs (RFC-AITP-0005 §9.1) limit the window of misuse.
 - JTI revocation allows immediate invalidation.
 
 ### 1.7 Delegation Scope Escalation
@@ -80,17 +80,19 @@ This RFC enumerates the threats AITP defends against in the agent-to-agent setti
 **Threat:** Agent B issues a delegation token to C claiming more capabilities than B was originally granted.
 
 **Defense:**
-- Delegation tokens carry a `grant_proof`: A's original signed grant to B.
-- Peers check `scope ⊆ grant_proof.capabilities`.
-- `grant_proof` is signed by A; B cannot forge it.
+- Delegation tokens embed — verbatim, as an opaque string — the grant voucher A minted alongside B's TCT (RFC-AITP-0005 §8): A's original signed grant to B.
+- Peers check `scope ⊆ voucher.grants` (`DELEGATION_SCOPE_EXCEEDED` on failure).
+- The voucher is signed by A; B cannot forge it, and B cannot substitute a voucher issued to another agent (`voucher.sub` must equal the outer `iss` — RFC-AITP-0006 §4 step 4, `DELEGATION_INVALID_VOUCHER`).
 - The scope-constraint check is **stateless** — no session lookup required.
+
+> **Reconstruction surface removed in v0.2.** The v0.1 `grant_proof` was a projection of B's TCT whose signature could only be checked by canonical-JSON *reconstruction* of the source TCT's bytes — a verifier-side re-serialization surface of exactly the kind the JWS migration exists to eliminate. That surface is removed entirely in v0.2: `verify_source_tct_projection`-style logic is deleted from the protocol, and every signature in delegation verification — the outer delegation JWS and the embedded voucher JWS — is checked over the transmitted bytes only (RFC-AITP-0006 §3–§4). No verification step reconstructs any byte sequence.
 
 ### 1.8 Peer-AID Confusion
 
 **Threat:** A consuming peer treats a peer-issued TCT as if it were issued by some other authority, or fails to resolve the issuer's key from the right Manifest.
 
 **Defense:**
-- The TCT `issuer` field is unambiguously a peer AID.
+- The TCT `iss` claim is unambiguously a peer AID.
 - Peer-issued TCT keys MUST be resolved from the issuing peer's Manifest, not from `trust_anchors`.
 - The Manifest's `aid` field encodes the public key directly (`aid:pubkey:<base64url>`), so resolution is local once the Manifest is verified.
 
@@ -107,13 +109,13 @@ This RFC enumerates the threats AITP defends against in the agent-to-agent setti
 
 **Threat:** An agent's private key is compromised.
 
-**Partial defense (v0.1):**
+**Partial defense (v0.2):**
 - The compromised peer SHOULD revoke all TCTs it issued (add JTIs to its deny list).
 - The compromised peer SHOULD re-publish its Manifest under a new `aid`.
 - Identity-issuer key revocation propagates through the cache TTL or `max_staleness_secs`.
 - Short TTLs limit exposure window.
 
-**Known limitation:** AITP v0.1 does not provide real-time key-compromise detection. Operators MUST establish out-of-band key-rotation procedures.
+**Known limitation:** AITP v0.2 does not provide real-time key-compromise detection. Operators MUST establish out-of-band key-rotation procedures.
 
 ### 1.11 Manifest PoP Bypass
 
@@ -126,19 +128,46 @@ This RFC enumerates the threats AITP defends against in the agent-to-agent setti
 - Implementations MUST cross-check their PoP code path against the pinned KAT vector `kat-manifest-pop-001` ([`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json)) so a "wrong-input" bug is detected at test time rather than at first cross-implementation contact.
 - Conformance fixtures `man-001`/`mh-003` exercise the rejection path; `kat-manifest-pop-001` exercises the construction path. Both MUST pass.
 
+### 1.12 Algorithm Confusion
+
+**Threat:** An attacker presents a compact-JWS artifact (TCT, grant voucher, delegation token) whose `alg` header does not correspond to the signer's key — for example, an ES256-signed token presented against an Ed25519 AID, or a header naming any algorithm the attacker hopes a permissive JOSE library will honor. This is the classic JOSE algorithm-confusion class: a verifier that trusts the header to select the verification algorithm can be steered onto the wrong (or a weaker) code path.
+
+**Defense:**
+- There is **no algorithm negotiation**. Before signature verification, the verifier derives the **sole acceptable** `alg` value from the signer's AID (`EdDSA` for Ed25519 AIDs, `ES256` for P-256 AIDs) and rejects any other header value with `TOKEN_ALG_MISMATCH` ([RFC-AITP-0001 §5.4.5](RFC-AITP-0001-core.md#545-compact-jws-profile-portable-trust-artifacts)). The AID, not the token, decides.
+- The `alg` header is treated as attacker-controlled input until pinned; pinning happens before any cryptographic operation (RFC-AITP-0005 §7.2 step 3, RFC-AITP-0006 §4 step 1).
+- Key material is never taken from the token: the header MUST contain exactly `alg` and `typ`, and headers carrying `jwk`, `jku`, `x5c`, `kid`, or any other parameter are rejected outright (RFC-AITP-0001 §5.4.5).
+- JCS-profile signatures have the parallel rule: the algorithm tag MUST match the signing AID's algorithm (RFC-AITP-0001 §5.4.3).
+
+### 1.13 Token-Type Confusion
+
+**Threat:** One AITP JWS artifact is replayed in another artifact's verification context — a grant voucher or delegation token presented as a TCT, or vice versa. The three portable artifacts are signed by the same agent keys and share claim names, so a verifier that dispatches on payload shape alone can be confused into honoring the wrong artifact.
+
+**Defense:**
+- Every AITP JWS carries an explicit `typ` per [RFC 8725 §3.11](https://datatracker.ietf.org/doc/html/rfc8725#section-3.11) (`aitp-tct+jwt`, `aitp-grant+jwt`, `aitp-delegation+jwt`), and verifiers MUST reject a token whose `typ` does not exactly match the single value expected for the verification context, with `TOKEN_TYP_MISMATCH` (RFC-AITP-0001 §5.4.5).
+- `typ` enforcement runs early in every verification order: TCT verification step 2 (RFC-AITP-0005 §7.2), and both layers of delegation verification — the outer token and the embedded voucher (RFC-AITP-0006 §4 steps 1 and 3).
+- Defense in depth: strict claim validation (unknown claims outside `ext` are rejected, RFC-AITP-0001 §5.4.5) means the artifacts' differing claim sets also fail cross-context validation even before semantic checks.
+
+### 1.14 Unsecured JWS (`alg: none`)
+
+**Threat:** An attacker strips or fabricates the signature of a compact-JWS artifact and presents it with `alg: none` (in any capitalization), or as a structurally degenerate token (missing or empty signature segment, JSON serialization, detached payload), hoping the verifier's JOSE library accepts unsecured input.
+
+**Defense:**
+- Algorithm pinning (§1.12) forecloses `none` by construction: `none` can never equal the AID-derived `alg` value, so the token is rejected with `TOKEN_ALG_MISMATCH` before any signature processing (RFC-AITP-0001 §5.4.5).
+- Strict three-segment parsing: verifiers MUST reject any token that does not consist of exactly three non-empty `.`-separated base64url segments — no unsecured JWS, no detached payload, no JSON serialization (RFC-AITP-0001 §5.4.5). A signature-less token never reaches the `alg` check, let alone verification.
+
 ---
 
-## 2. Known Limitations (v0.1)
+## 2. Known Limitations (v0.2)
 
 | Threat | Status |
 |---|---|
 | Sybil attacks | Delegated to identity providers (see [non-goals](#5-non-goals)). |
 | Runtime integrity (is the agent running expected code?) | Requires TEE — reserved in [RFC-AITP-0012](RFC-AITP-0012-extensions.md). |
 | Zero-knowledge compliance proofs | Requires ZK extension — reserved in [RFC-AITP-0012](RFC-AITP-0012-extensions.md). |
-| Real-time key-revocation propagation | Out-of-band in v0.1 (pull-based). |
+| Real-time key-revocation propagation | Out-of-band in v0.2 (pull-based). |
 | Cross-domain trust federation | Future specification. |
-| Multi-hop delegation chains | Specified in [RFC-AITP-0011](RFC-AITP-0011-multihop-delegation.md) (Draft; post-v0.1). |
-| Multi-agent session scaling (O(N²) handshakes) | Specified in [RFC-AITP-0010](RFC-AITP-0010-session-trust-bundle.md) (Draft; post-v0.1). |
+| Multi-hop delegation chains | Specified in [RFC-AITP-0011](RFC-AITP-0011-multihop-delegation.md) (Draft; opt-in). |
+| Multi-agent session scaling (O(N²) handshakes) | Specified in [RFC-AITP-0010](RFC-AITP-0010-session-trust-bundle.md) (Draft; opt-in). |
 
 ---
 
@@ -149,10 +178,10 @@ Implementations **MUST**:
 - Use a cryptographically secure RNG for `message_id`, PoP nonces, and Manifest challenges.
 - Store private keys in secure storage (HSM, OS keychain, or equivalent).
 - Validate all inputs against the JSON Schema before processing.
-- Enforce `expires_at` with server-side time (not client-provided time).
+- Enforce expiry (`exp` on compact-JWS artifacts, `expires_at` on JCS-profile objects) with server-side time (not client-provided time).
 - Validate the TLS certificate of any peer host before fetching its Manifest.
 - Log all authentication failures with sufficient context for forensic analysis.
-- Never log private keys, raw JWT tokens, PoP nonces, or delegation proof material.
+- Never log private keys, raw compact-JWS tokens (TCT, grant voucher, delegation token), PoP nonces, or other proof material.
 
 Implementations **SHOULD**:
 
@@ -191,13 +220,14 @@ This ordering is normative: replay-before-rate-limit prevents an attacker from b
 
 ## 4. Cryptographic Agility
 
-AITP v0.1 supports a single signature algorithm: **Ed25519**. v0.1 conformance is Ed25519-only — implementations MUST verify Ed25519 envelope, Manifest, TCT, delegation, and revocation-snapshot signatures, and MUST reject any other algorithm tag in a v0.1 (`version: "aitp/0.1"`) artifact. The algorithm is determined by the AID key type, not by a negotiated parameter, to prevent algorithm-downgrade attacks.
+AITP v0.2 mandates two signature algorithms: **Ed25519** (RFC 8032; JOSE `EdDSA`) and **ECDSA on P-256 with SHA-256** (JOSE `ES256`). A v0.2 peer MUST be able to verify both, even if it only signs with one (RFC-AITP-0001 §5.4.3); Manifests MAY advertise acceptance via `accepted_signature_algorithms` (v0.2 default `["ed25519", "p256"]`, RFC-AITP-0003 §3.2). The algorithm is determined by the AID key type, not by a negotiated parameter, to prevent algorithm-downgrade attacks.
 
-[RFC-AITP-0001 §5.4.3](RFC-AITP-0001-core.md#543-algorithm-tagged-signature-wire-format) defines a **forward-compatible** algorithm-tagged grammar (`<alg>.<base64url-sig>`) and an algorithm-tagged AID form (`aid:pubkey:<alg>:<identifier>`) that v0.2 will use to introduce P-256 (ECDSA on P-256 with SHA-256) as a second mandatory algorithm. The grammar and AID forms are reserved in v0.1 so that v0.2 peers can be deployed alongside v0.1 peers without a wire-format break, but the v0.1 conformance baseline is Ed25519-only:
+`version: "aitp/0.2"` artifacts carry their algorithm in one of two ways, depending on the signing profile (RFC-AITP-0001 §5.4):
 
-- A v0.1 peer MUST reject any envelope, Manifest, TCT, delegation, or revocation-snapshot signature whose algorithm tag is not Ed25519 (legacy untagged form, or `ed25519.<sig>`).
-- A v0.1 peer SHOULD reject any AID in algorithm-tagged form (`aid:pubkey:<alg>:<identifier>`) it does not implement; the legacy untagged `aid:pubkey:<43-char>` form is the canonical v0.1 AID shape.
-- The v0.2 dual-algorithm rules in RFC-AITP-0001 §5.4.3 (verifier MUST verify both, signer MAY use either) and the Manifest `accepted_signature_algorithms` v0.2 default (`["ed25519", "p256"]`, see RFC-AITP-0003 §3.2) apply only to `version: "aitp/0.2"` artifacts.
+- **JCS embedded-signature profile** (envelopes, Manifests, revocation snapshots, handshake payloads): the algorithm-tagged signature grammar `<alg>.<base64url-sig>` of [RFC-AITP-0001 §5.4.3](RFC-AITP-0001-core.md#543-algorithm-tagged-signature-wire-format-jcs-profile-only). The tag MUST match the signing AID's algorithm; the legacy untagged 86-char form remains valid and means Ed25519.
+- **Compact JWS profile** (TCT, grant voucher, delegation token — v0.2 re-serializes these portable trust artifacts as compact JWS, [RFC-AITP-0001 §5.4.5](RFC-AITP-0001-core.md#545-compact-jws-profile-portable-trust-artifacts)): the JOSE protected-header `alg` parameter carries the algorithm, pinned by the same AID-derived rule — the verifier derives the sole acceptable value from the signer's AID before verification and rejects anything else with `TOKEN_ALG_MISMATCH` (§1.12, §1.14).
+
+The two mechanisms are the same rule stated per profile: the AID decides the algorithm, and the algorithm marker is bound to the signed bytes (the §5.4.3 tag is part of the canonical hash input; the JWS `alg` header is inside the signed segments). The v0.1 baseline was Ed25519-only, with the TCT and delegation token still JCS-signed; both the algorithm-tagged grammar and the JWS re-serialization arrive together in `aitp/0.2`.
 
 A future major version MAY add algorithms via the RFC process. Removing algorithms requires a major version increment.
 
@@ -205,7 +235,7 @@ A future major version MAY add algorithms via the RFC process. Removing algorith
 
 ## 5. Non-Goals
 
-The following are explicitly out of scope for AITP v0.1:
+The following are explicitly out of scope for AITP v0.2:
 
 | Non-goal | Rationale |
 |---|---|
@@ -213,8 +243,8 @@ The following are explicitly out of scope for AITP v0.1:
 | Global reputation standardization | Domain-specific; reserved as a future extension. |
 | Sybil resistance | Belongs in identity providers, not a trust evaluation protocol. |
 | Identity issuance | AITP is a trust evaluation/expression layer, not an identity system. |
-| Real-time key-revocation push | Adds significant complexity; bounded by `max_staleness_secs` in v0.1. |
-| Multi-hop delegation chains | Specified in [RFC-AITP-0011](RFC-AITP-0011-multihop-delegation.md) (Draft; post-v0.1). |
+| Real-time key-revocation push | Adds significant complexity; bounded by `max_staleness_secs` in v0.2. |
+| Multi-hop delegation chains | Specified in [RFC-AITP-0011](RFC-AITP-0011-multihop-delegation.md) (Draft; opt-in). |
 | ZK proof verification (core) | Tooling still maturing; reserved as an extension. |
 | TEE attestation (core) | Hardware dependency; reserved as an extension. |
 | Cross-domain trust federation | Ecosystem problem, analogous to SAML/OIDC federation. |
@@ -230,13 +260,13 @@ See [`docs/non-goals.md`](../docs/non-goals.md) for the full rationale on each i
 
 **Setup.** A peer-issued a TCT to B. B delegates to C. C tries to use the delegation at D (not A).
 
-**Result.** D rejects — `delegation.audience = A's AID ≠ D's AID`.
+**Result.** D rejects — the delegation's `aud` claim = A's AID ≠ D's AID (`DELEGATION_AUDIENCE_MISMATCH`).
 
 ### 6.2 B escalates scope when delegating to C
 
 **Setup.** A peer-issued grants `["read_data"]` to B. B issues a delegation to C claiming `["read_data", "write_data"]`.
 
-**Result.** A rejects — `scope ⊆ grant_proof.capabilities` fails. `write_data` is not in A's original signed grant.
+**Result.** A rejects — `scope ⊆ voucher.grants` fails (`DELEGATION_SCOPE_EXCEEDED`). `write_data` is not in the grant voucher A signed.
 
 ### 6.3 Attacker replays a captured MUTUAL_HELLO
 
@@ -248,7 +278,7 @@ See [`docs/non-goals.md`](../docs/non-goals.md) for the full rationale on each i
 
 **Setup.** Attacker obtains a peer-issued TCT from network capture.
 
-**Result.** Attacker cannot prove possession of the private key matching `binding.cnf`. Consuming peers enforcing PoP reject the request.
+**Result.** Attacker cannot prove possession of the private key matching the TCT's `cnf.jkt`. Consuming peers enforcing PoP reject the request.
 
 > **Note:** PoP within the Mutual Handshake is mandatory. Downstream PoP is governed by the issuing peer's per-grant policy (RFC-AITP-0005 §6); consumers enforcing all grants SHOULD require PoP unless equivalent channel binding is present.
 
@@ -268,6 +298,6 @@ See [`docs/non-goals.md`](../docs/non-goals.md) for the full rationale on each i
 - [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md)
 - [RFC-AITP-0006 Single-Hop Delegation](RFC-AITP-0006-delegation.md)
 - [RFC-AITP-0008 Revocation](RFC-AITP-0008-revocation.md)
-- [RFC-AITP-0010 Session Trust Bundle](RFC-AITP-0010-session-trust-bundle.md) *(Draft, post-v0.1)*
-- [RFC-AITP-0011 Multi-hop Delegation](RFC-AITP-0011-multihop-delegation.md) *(Draft, post-v0.1)*
+- [RFC-AITP-0010 Session Trust Bundle](RFC-AITP-0010-session-trust-bundle.md) *(Draft, opt-in)*
+- [RFC-AITP-0011 Multi-hop Delegation](RFC-AITP-0011-multihop-delegation.md) *(Draft, opt-in)*
 - [RFC-AITP-0012 Extensions](RFC-AITP-0012-extensions.md)

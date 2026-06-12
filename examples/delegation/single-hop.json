@@ -1,26 +1,30 @@
 {
-  "delegation": {
-    "delegator": "aid:pubkey:issuingPeer_pubkey_AID_v01_placeholderPPPPP",
-    "delegatee": "aid:pubkey:agentC_pubkey_AID_v01_placeholder_CCCCCCCCC",
-    "issued_by": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
-    "audience": "aid:pubkey:issuingPeer_pubkey_AID_v01_placeholderPPPPP",
+  "_comment": "Single-hop delegation token (RFC-AITP-0006). B (the delegator-of-record, the peer the issuing peer actually granted) delegates a subset of its grants to C, audience-bound to the issuing peer. On the wire the token is an opaque compact JWS (typ 'aitp-delegation+jwt') signed by B; it embeds the issuing peer's grant voucher verbatim as the 'voucher' claim — the voucher replaces the v0.1 grant_proof. Both tokens below are PLACEHOLDERS: header segments are real base64url of the protected headers, but payload and signature segments are human-readable stand-ins and will fail cryptographic verification. _decoded_claims shows the outer token's payload; _decoded_voucher_claims shows the embedded voucher's payload (it is the same voucher as examples/grant-voucher/voucher.json). For real, verifiable tokens see schemas/conformance/known-answer/signed-examples/delegation/.",
+  "delegation_token": "eyJhbGciOiJFZERTQSIsInR5cCI6ImFpdHAtZGVsZWdhdGlvbitqd3QifQ.DELEGATION_PAYLOAD_NOT_REAL_see_decoded_claims_placeholder.DELEGATION_SIGNATURE_NOT_REAL_placeholder_AAAAAAAAAAAAAAAA",
+  "_decoded_claims": {
+    "ver": "aitp/0.2",
+    "iss": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+    "sub": "aid:pubkey:agentC_pubkey_AID_v01_placeholder_CCCCCCCCC",
+    "aud": "aid:pubkey:issuingPeer_pubkey_AID_v01_placeholderPPPPP",
     "scope": [
       "read_data"
     ],
-    "expires_at": 1711903600,
-    "cnf": "agentC_pubkey_AID_v01_placeholder_CCCCCCCCC",
-    "grant_proof": {
-      "issuer": "aid:pubkey:issuingPeer_pubkey_AID_v01_placeholderPPPPP",
-      "subject": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
-      "capabilities": [
-        "read_data",
-        "write_data"
-      ],
-      "issued_at": 1711900000,
-      "expires_at": 1711907200,
-      "source_tct_jti": "550e8400-e29b-41d4-a716-446655440101",
-      "signature": "sig_issuingPeer_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "exp": 1711903600,
+    "cnf": {
+      "jkt": "jkt_agentC_thumbprint_placeholder_CCCCCCCCC"
     },
-    "signature": "sig_delegator_b_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "voucher": "eyJhbGciOiJFZERTQSIsInR5cCI6ImFpdHAtZ3JhbnQrand0In0.VOUCHER_PAYLOAD_NOT_REAL_see_decoded_claims_placeholder.VOUCHER_SIGNATURE_NOT_REAL_placeholder_AAAAAAAAAAAAAAAAAAAA"
+  },
+  "_decoded_voucher_claims": {
+    "ver": "aitp/0.2",
+    "iss": "aid:pubkey:issuingPeer_pubkey_AID_v01_placeholderPPPPP",
+    "sub": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+    "grants": [
+      "read_data",
+      "write_data"
+    ],
+    "iat": 1711900000,
+    "exp": 1711907200,
+    "src_jti": "550e8400-e29b-41d4-a716-446655440101"
   }
 }

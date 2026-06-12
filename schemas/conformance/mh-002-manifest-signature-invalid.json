@@ -2,7 +2,8 @@
   "id": "mh-002",
   "rfc": "RFC-AITP-0004",
   "status": "core",
-  "required_for_v0_1": true,
+  "required_for_v0_1": false,
+  "required_for_v0_2": true,
   "feature": null,
   "description": "Peer's inline Manifest carries an invalid signature. The receiving peer MUST reject the handshake before any further processing.",
   "tags": [
@@ -13,7 +14,7 @@
   "input": {
     "step": "received MUTUAL_HELLO from peer",
     "envelope": {
-      "version": "aitp/0.1",
+      "version": "aitp/0.2",
       "message_type": "mutual_hello",
       "message_id": "660e8400-e29b-41d4-a716-446655440101",
       "timestamp": 1711900000,
@@ -25,10 +26,10 @@
           "type": "oidc",
           "issuer": "https://auth.openai.com",
           "subject": "agent-attacker",
-          "proof": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZ2VudC1hdHRhY2tlciIsImlhdCI6MTcxMTkwMDAwMCwiZXhwIjoxNzExOTAzNjAwLCJub25jZSI6ImJRODhraUNocnlUS2R1c2tMWFNDTmciLCJhdWQiOiJhaWQ6cHVia2V5Ok8yb252TTYycEMxaW82alFLbThOYzJVeUZYY2Q0a09tT3NCSW9ZdFoyaWsiLCJjbmYiOnsiamt0Ijoid0otWnBNTlFpSUdZY1Q3bFpkaFlRcG1aeHFaSGNVWWVkRzR4UXlwcnJYQSJ9fQ.9lAw9rqGlzxRhW-5v_nFIREQnWHqghWsD-yMvP8BJ1I"
+          "proof": "__VALID_JWT__"
         },
         "manifest": {
-          "version": "aitp/0.1",
+          "version": "aitp/0.2",
           "aid": "aid:pubkey:OzIbdL3LFp9yYMYFkru2PZtNYpQkoMWK_0ZAp18KKwY",
           "handshake_endpoint": "https://attacker.example.com/aitp/handshake",
           "accepted_trust_anchors": [
@@ -40,7 +41,7 @@
           "required_peer_capabilities": [],
           "proof_of_possession": {
             "challenge": "kRQWvJDo2lalpVM-8UTxHw",
-            "signature": "EI-SkGjNMp6Id9map04hCKJ-erKrYZKGGNd0smz8ECkJC8vcb0tEVcIKrmk3_MbkBsATbRS-50TpJzeZAEeNDg"
+            "signature": "__VALID_POP_SIG__"
           },
           "published_at": 1711899000,
           "expires_at": 1711985400,
@@ -49,14 +50,14 @@
             "issuer": "https://auth.openai.com",
             "subject": "agent-attacker"
           },
-          "signature": "JompHlgAW66_jTijQlwdoGS-TMtflBlf5jCKQSP2XykdWDFMhvgjPIUcxVb4o4ftPQnltoXbC57fTOWLIpvlAg"
+          "signature": "__TAMPERED_SIGNATURE__"
         },
         "requested_grants": [
           "macp.mode.task.v1"
         ],
         "pop_nonce": "bQ88kiChryTKduskLXSCNg"
       },
-      "signature": "Bb-q4fHkbUpZt0tViYhEdD21946sXcS_gEEnj7lzUy98t74WVwpZ9EbYYaKXjFP04uv4Z_DmCxoAu4or4z6RCg"
+      "signature": "__VALID_ENVELOPE_SIG__"
     },
     "operation": "verify_handshake_payload"
   },

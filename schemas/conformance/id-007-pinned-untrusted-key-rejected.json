@@ -2,7 +2,8 @@
   "id": "id-007",
   "rfc": "RFC-AITP-0002",
   "status": "core",
-  "required_for_v0_1": true,
+  "required_for_v0_1": false,
+  "required_for_v0_2": true,
   "feature": null,
   "description": "A pinned-key proof whose 32-byte public key is not present in the verifier's local pinned-key trust store MUST be rejected with IDENTITY_FAILED — even when the proof signature is cryptographically valid (RFC-AITP-0002 §3.2 step 1; alpha.5 P3). Without this gate the proof only proves key possession; it does not prove the verifier should *honor* keys it has never seen. The fixture supplies a concrete `trust_store` to make the policy decision deterministic.",
   "tags": [
@@ -17,7 +18,7 @@
       "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
     ],
     "envelope": {
-      "version": "aitp/0.1",
+      "version": "aitp/0.2",
       "message_type": "mutual_hello",
       "message_id": "770e8400-e29b-41d4-a716-446655440701",
       "timestamp": 1711900000,
@@ -32,7 +33,7 @@
           "proof": "vdLCEPGuUvVryXxnPdo_ZNYqaZmGuByZ5kRMU0ikKeVbn3SUjj2DD7y8e5pNBtp7jSHZ-Z0wzNdOl0NS1mSpCQ"
         },
         "manifest": {
-          "version": "aitp/0.1",
+          "version": "aitp/0.2",
           "aid": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
           "handshake_endpoint": "https://worker-a.agents.example.com/aitp/handshake",
           "accepted_trust_anchors": [],
@@ -45,7 +46,7 @@
           "required_peer_capabilities": [],
           "proof_of_possession": {
             "challenge": "E1P1xitRfiKsGDoeyKCI0w",
-            "signature": "UAFEY4GuGKLxue2W7_lN2gAxf_z0MRsCqP5UteMojDUqpnwLrQRzI_Z-GpldwWN9ST9Aw3JEvZwv0VoiVEknCg"
+            "signature": "__VALID_POP_SIG__"
           },
           "published_at": 1711899000,
           "expires_at": 1711985400,
@@ -54,14 +55,14 @@
             "subject": "internal-worker-a",
             "public_key": "dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU"
           },
-          "signature": "Zx1Ckuvv6QEq0hYQJDcMLJHFmsdiSTqctssLBjLuuNWMeg0MaTJMrLA8Tcp6wE29Tq-F1u3ed-IN1PgYnYCSCQ"
+          "signature": "__VALID_MANIFEST_SIG__"
         },
         "requested_grants": [
           "macp.mode.task.v1"
         ],
         "pop_nonce": "AAAAAAAAAAAAAAAAAAAAAA"
       },
-      "signature": "ACbS37oT2c3ONcJqoBHVBX7aY1laPePYBVQ8nHcD3aqaEc2PhmLBwIsh7gXtlxNBUxOB9QmBZjH5jBqNySyeCA"
+      "signature": "__VALID_ENVELOPE_SIG__"
     },
     "operation": "verify_handshake_payload"
   },

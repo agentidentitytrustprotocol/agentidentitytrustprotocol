@@ -16,6 +16,7 @@ conformance/
 ├── mh-*.json    Mutual Handshake scenarios (RFC-AITP-0004)
 ├── id-*.json    Identity binding failures (RFC-AITP-0002)
 ├── tct-*.json   Trust Context Token verification (RFC-AITP-0005, RFC-AITP-0008)
+├── vch-*.json   Grant voucher verification (RFC-AITP-0005 §8)
 └── del-*.json   Single-hop delegation (RFC-AITP-0006)
 ```
 
@@ -24,16 +25,17 @@ conformance/
 ## Fixture Format
 
 Every fixture MUST carry the following metadata block as its leading
-fields. The block exists so a v0.1 conformance runner can know — without
-parsing scenario content — whether a fixture is required for v0.1, an
-opt-in draft feature, or out of scope entirely.
+fields. The block exists so a conformance runner can know — without
+parsing scenario content — whether a fixture is required for its
+protocol version, an opt-in draft feature, or out of scope entirely.
 
 ```json
 {
   "id": "unique-fixture-id",
   "rfc": "RFC-AITP-NNNN",
   "status": "core | draft | extension | reserved",
-  "required_for_v0_1": true,
+  "required_for_v0_1": false,
+  "required_for_v0_2": true,
   "feature": null,
   "description": "Human-readable description of the scenario",
   "tags": ["happy-path | failure | security | edge-case"],
@@ -53,22 +55,25 @@ opt-in draft feature, or out of scope entirely.
 | `id` | string | Fixture id (e.g. `mh-success-001`). |
 | `rfc` | string | Most-specific RFC the fixture exercises (e.g. `RFC-AITP-0006`). |
 | `status` | enum | One of `core`, `draft`, `extension`, `reserved`. See enforcement rules below. |
-| `required_for_v0_1` | bool | Whether a v0.1 implementation MUST pass this fixture. Always `false` for `draft` / `extension` fixtures. |
+| `required_for_v0_1` | bool | Whether a v0.1 implementation MUST pass this fixture. `false` for fixtures minted in the v0.2 JWS token shape (a v0.1 implementation cannot parse them); `true` only for fixtures frozen in the v0.1 shape (currently only `del-004`). Always `false` for `draft` / `extension` fixtures. |
+| `required_for_v0_2` | bool | Whether a v0.2 implementation MUST pass this fixture. `false` for v0.1-frozen fixtures and all `draft` / `extension` fixtures. |
 | `feature` | string \| null | When `status != "core"`, the named opt-in feature flag a runner uses to enable this fixture (e.g. `experimental-session-bundle`). `null` for core fixtures. |
 
 ### Conformance runner enforcement rules
 
-A v0.1 conformance runner MUST apply the following rules to the metadata
-block before executing a fixture:
+A conformance runner selects fixtures by the implementation's protocol
+version (`required_for_v0_2` for a v0.2 runner, `required_for_v0_1` for
+a v0.1 runner) and MUST apply the following rules to the metadata block
+before executing a fixture:
 
-- `status: "core"` + `required_for_v0_1: true` → **MUST execute.** A
-  `OP_NOT_SUPPORTED` result or runner SKIP MUST be reported as a failure
-  for this fixture.
+- `status: "core"` + the matching `required_for_v0_N: true` → **MUST
+  execute.** A `OP_NOT_SUPPORTED` result or runner SKIP MUST be
+  reported as a failure for this fixture.
 - `status: "draft"` → **MUST SKIP** unless the runner has explicitly
   opted into the named `feature` (and, by extension, draft conformance
-  for the cited RFC). Failing a v0.1 implementation for not implementing
+  for the cited RFC). Failing an implementation for not implementing
   a draft fixture is non-conformant runner behavior.
-- `status: "extension"` → **MUST SKIP** in the v0.1 default runner. May
+- `status: "extension"` → **MUST SKIP** in the default runner. May
   be exercised only when the runner is explicitly testing the named
   extension feature.
 - `status: "reserved"` → MUST be ignored by every runner; reserved status
@@ -96,9 +101,9 @@ Fixtures that exercise stateful behavior (e.g. replay detection across two sends
 
 The runner MUST execute each step in order against the same implementation instance and assert the per-step `expected` outcome. Each step carries its own `operation` field — see PLACEHOLDERS.md "Operation key" for the per-prefix operation registry.
 
-Sequence fixtures MAY also carry sibling fields inside `input` that provide context shared across all steps. For example, `tct-006-pop-challenge-response.json` carries `input.tct_token` alongside `input.sequence` because every step in the sequence operates against the same TCT (the consuming peer issues a challenge for it; the holder produces a response over its `binding.cnf`; the verifier checks both). Sibling context fields are part of the fixture input and the runner MUST make them available to every step.
+Sequence fixtures MAY also carry sibling fields inside `input` that provide context shared across all steps. For example, `tct-006-pop-challenge-response.json` carries `input.tct_token` alongside `input.sequence` because every step in the sequence operates against the same TCT (the consuming peer issues a challenge for it; the holder produces a response with the subject key bound via `cnf.jkt`; the verifier checks both). Sibling context fields are part of the fixture input and the runner MUST make them available to every step.
 
-`mh-001` (replay detection) and `tct-006` (downstream PoP) are the v0.1 fixtures using this form.
+`mh-001` (replay detection) and `tct-006` (downstream PoP) are the fixtures using this form.
 
 ### Side-effect assertions
 
@@ -113,7 +118,7 @@ Currently defined side-effect keys:
 | `pop_challenge_issued` | Whether the verifier issued a `pop_challenge` during fixture evaluation. Used by `tct-007` for PoP-enforcement conformance. |
 | `capability_authorized` | Whether the verifier authorized a capability invocation. Used by `tct-007` to assert PoP-required grants are rejected without a valid `pop_response`. |
 
-A runner that cannot instrument a listed side effect MUST report SKIP for that assertion (NOT silent pass). The schema (`schemas/json/aitp-conformance-fixture.schema.json`) lists the keys above; additional keys are permitted (`additionalProperties: true`) so new fixtures can add side-effect surfaces without a schema bump, but the registered keys are the only ones a v0.1 runner is required to recognize.
+A runner that cannot instrument a listed side effect MUST report SKIP for that assertion (NOT silent pass). The schema (`schemas/json/aitp-conformance-fixture.schema.json`) lists the keys above; additional keys are permitted (`additionalProperties: true`) so new fixtures can add side-effect surfaces without a schema bump, but the registered keys are the only ones a runner is required to recognize.
 
 ### Dynamic fixtures
 
@@ -143,11 +148,19 @@ check, before reaching the cryptographic layer. The placeholder
 signature is never verified; the fixture passes by *not* reaching the
 signature verifier.
 
-`del-004` is the v0.1 structural-rejection fixture: a delegation token
-with a non-empty `chain` field MUST be rejected with
+`del-004` (frozen in the v0.1 wire shape, for v0.1 runners) and
+`del-007` (its v0.2 sibling, claim-shaped) are the structural-rejection
+fixtures: a delegation token carrying a `chain` MUST be rejected with
 `DELEGATION_MULTIHOP_NOT_SUPPORTED` before any per-hop signature work,
-so its chain-step, chain-hash, and outer-signature placeholders are
-deliberately never resolved.
+so their chain-entry, chain-hash, and (for del-004) outer-signature
+placeholders are deliberately never resolved.
+
+The new v0.2 token-format fixtures `tct-008` (`alg: none`) and
+`tct-009` (algorithm confusion) are also pre-crypto rejections: the
+AID-derived `alg` pin fails before any signature bytes are examined
+(RFC-AITP-0001 §5.4.5). `tct-010` (`typ` confusion) carries a
+*cryptographically valid* grant voucher presented as a TCT — the
+signature would verify; the explicit-typing check is what rejects.
 
 `rev-004` is **not** a structural-rejection fixture, despite also
 carrying a tampered-signature placeholder. It tests the opposite
@@ -177,14 +190,15 @@ The runner interface is implementation-defined.
 
 ## Fixture summary
 
-| Tier | Count | Required for v0.1 |
+| Tier | Count | Required for v0.2 |
 |---|---|---|
-| `core` (required) | 37 | ✅ Yes |
+| `core` (v0.2-required) | 45 | ✅ Yes |
+| `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (v0.1 runners only) |
 | `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 3 | ❌ No |
 | `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 4 | ❌ No |
-| **Total** | **44** | |
+| **Total** | **53** | |
 
-Counts are sourced from the `status` and `feature` metadata block on each fixture file. A v0.1 conformance runner MUST execute every `core` fixture; `draft` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
+Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A v0.2 conformance runner MUST execute every `required_for_v0_2` core fixture; `draft` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
 ---
 
@@ -198,6 +212,7 @@ Counts are sourced from the `status` and `feature` metadata block on each fixtur
 | `env-002` | Caller invokes a capability not present in the active TCT | failure: POLICY_VIOLATION |
 | `env-003` | Issuer key cannot be resolved (Manifest unreachable, OIDC offline) | failure: KEY_RESOLUTION_FAILED |
 | `env-004` | Replayed envelope `message_id` rejected by deny list | failure: REPLAY_DETECTED |
+| `env-005` | P-256 sender (`aid:pubkey:p256:`) envelope with algorithm-tagged signature verifies (RFC-AITP-0001 §5.4.3) | success |
 
 ### Manifest (RFC-AITP-0003)
 
@@ -239,11 +254,21 @@ Counts are sourced from the `status` and `feature` metadata block on each fixtur
 | ID | Description | Outcome |
 |---|---|---|
 | `tct-002` | Expired peer-issued TCT rejected | failure: TCT_EXPIRED |
-| `tct-003` | TCT signature does not validate under the issuer's key | failure: TCT_SIGNATURE_INVALID |
+| `tct-003` | TCT JWS signature does not validate under the issuer's key | failure: TCT_SIGNATURE_INVALID |
 | `tct-004` | TCT `jti` listed in the issuing peer's revocation list | failure: TCT_REVOKED |
-| `tct-005` | TCT `expires_at` is after the issuing peer's Manifest `expires_at` (TCT itself not yet expired) | failure: TCT_EXPIRES_AFTER_MANIFEST |
+| `tct-005` | TCT `exp` is after the issuing peer's Manifest `expires_at` (TCT itself not yet expired) | failure: TCT_EXPIRES_AFTER_MANIFEST |
 | `tct-006` | Downstream PoP `pop_challenge` / `pop_response` exchange round-trips successfully | success |
 | `tct-007` | A grant marked as requiring PoP MUST NOT be authorized without a valid `pop_response`; verifiers that silently skip PoP for a marked grant fail this fixture | failure: POP_RESPONSE_INVALID |
+| `tct-008` | JWS header `alg: none` rejected before any signature work (RFC-AITP-0001 §5.4.5) | failure: TOKEN_ALG_MISMATCH |
+| `tct-009` | ES256-signed token presented for an Ed25519 AID — AID-derived `alg` pin rejects | failure: TOKEN_ALG_MISMATCH |
+| `tct-010` | Cryptographically valid grant voucher (`typ: aitp-grant+jwt`) presented as a TCT — explicit typing rejects | failure: TOKEN_TYP_MISMATCH |
+
+### Grant voucher (RFC-AITP-0005 §8)
+
+| ID | Description | Outcome |
+|---|---|---|
+| `vch-001` | Valid grant voucher verifies under the issuer's own key (typ, AID-pinned alg, signature, claims) | success |
+| `vch-002` | Expired grant voucher rejected (surfaces as the delegation-context code per RFC-AITP-0006 §4 step 5) | failure: DELEGATION_EXPIRED |
 
 ### Revocation (RFC-AITP-0008)
 
@@ -258,24 +283,27 @@ Counts are sourced from the `status` and `feature` metadata block on each fixtur
 
 | ID | Description | Outcome |
 |---|---|---|
-| `del-001` | Single-hop happy path — A→B→C with scope ⊆ grant_proof.capabilities | success |
-| `del-003` | Scope exceeds grant_proof capabilities | failure: DELEGATION_SCOPE_EXCEEDED |
-| `del-004` | A delegation token with a non-empty `chain` field MUST be rejected by v0.1 implementations as a structural check, before any per-hop signature work | failure: DELEGATION_MULTIHOP_NOT_SUPPORTED |
+| `del-001` | Single-hop happy path — A→B→C with scope ⊆ voucher.grants | success |
+| `del-003` | Scope exceeds the embedded voucher's grants | failure: DELEGATION_SCOPE_EXCEEDED |
+| `del-004` | **Frozen in the v0.1 wire shape** (v0.1 runners only): a delegation token with a non-empty `chain` field MUST be rejected structurally, before any per-hop signature work | failure: DELEGATION_MULTIHOP_NOT_SUPPORTED |
+| `del-005` | Embedded voucher signed by a third party (`voucher.iss` ≠ verifier's AID) | failure: DELEGATION_INVALID_VOUCHER |
+| `del-006` | Voucher issued to a different subject (`voucher.sub` ≠ outer `iss`) | failure: DELEGATION_INVALID_VOUCHER |
+| `del-007` | v0.2 sibling of del-004: claim-shaped token carrying a `chain` rejected structurally by core implementations | failure: DELEGATION_MULTIHOP_NOT_SUPPORTED |
 
-### Multi-hop Delegation (RFC-AITP-0011, post-v0.1)
+### Multi-hop Delegation (RFC-AITP-0011, opt-in)
 
-These fixtures exercise the multi-hop delegation extension. v0.1 implementations MUST reject any token with a non-empty `chain` field with `DELEGATION_MULTIHOP_NOT_SUPPORTED` (RFC-AITP-0006 §9). v0.2 implementations that opt in follow RFC-AITP-0011 verification rules.
+These fixtures exercise the multi-hop delegation extension. Core implementations MUST reject any token carrying a `chain` claim with `DELEGATION_MULTIHOP_NOT_SUPPORTED` (RFC-AITP-0006 §4); implementations that opt in follow RFC-AITP-0011 verification rules (chain of verbatim delegation JWS strings, digest-array `chain_hash`, per-hop `jti` revocation).
 
 | ID | Description | Outcome |
 |---|---|---|
-| `del-mh-001` | 3-hop chain (A→B→C→D) — all signatures, transitive scope, chain_hash, and outer signature valid | success |
-| `del-mh-002` | 3-hop chain where chain[1] introduces a capability not in chain[0] — transitive scope check rejects | failure: DELEGATION_SCOPE_EXCEEDED |
-| `del-mh-003` | 3-hop chain with tampered `chain_hash` — recomputed value mismatches | failure: DELEGATION_CHAIN_HASH_MISMATCH |
-| `del-mh-004` | 3-hop chain where `chain[1].source_tct_jti` is in chain[1].issuer's deny list | failure: DELEGATION_SOURCE_TCT_REVOKED |
+| `del-mh-001` | 3-hop chain (A→B→C→D) — all JWS signatures, voucher on `chain[0]`, transitive scope, expiry monotonicity, and `chain_hash` valid | success |
+| `del-mh-002` | Chain hop's scope exceeds the voucher boundary — transitive scope check rejects | failure: DELEGATION_SCOPE_EXCEEDED |
+| `del-mh-003` | Chain with wrong `chain_hash` claim (signed over, so the outer signature is valid) — recomputation mismatches | failure: DELEGATION_CHAIN_HASH_MISMATCH |
+| `del-mh-004` | A hop's `jti` is in that hop issuer's deny list (RFC-AITP-0011 §6 per-hop revocation) | failure: DELEGATION_SOURCE_TCT_REVOKED |
 
-### Session Trust Bundle (RFC-AITP-0010, post-v0.1)
+### Session Trust Bundle (RFC-AITP-0010, opt-in)
 
-Bundle fixtures use the same opt-in posture as multi-hop. v0.1 implementations are not required to support session bundles.
+Bundle fixtures use the same opt-in posture as multi-hop. Core implementations are not required to support session bundles. Participant TCTs are embedded as opaque compact JWS strings.
 
 | ID | Description | Outcome |
 |---|---|---|
@@ -296,7 +324,7 @@ Earlier drafts of AITP used `hs-*` (handshake) fixture IDs. The Mutual Handshake
 | `hs-001-oidc-direct-tct` | `mh-success-001` | Happy-path mutual handshake; OIDC identity is one of several success paths covered by `id-*` fixtures. |
 | `hs-004-replay-rejected` | `mh-001` | Replayed `MUTUAL_HELLO` rejected via `REPLAY_DETECTED`. |
 
-No `hs-*` IDs are reserved for v0.1 or later.
+No `hs-*` IDs are reserved.
 
 ---
 
@@ -320,7 +348,11 @@ which also pins:
   of the last raw signature byte) so failure-injection placeholders
   reproduce.
 
-Minted (real-signature) versions of these fixtures will live alongside
-the placeholder originals once an implementation produces them. See
-[`known-answer/signed-examples/`](known-answer/signed-examples/) for
-the reserved location.
+The v0.2 portable trust artifacts (TCT, grant voucher, delegation
+token) are placeheld as **whole compact-JWS tokens** (`__JWS_*__`)
+with decoded-claims companion fields per the claims-sibling convention
+in PLACEHOLDERS.md. Real-signature reference artifacts (minted from
+the pinned seeds, off-the-shelf JOSE-verifiable) live under
+[`known-answer/signed-examples/`](known-answer/signed-examples/);
+the fixture surface itself stays in placeholder form until the
+implementation minting pass re-materializes it.

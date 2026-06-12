@@ -2,7 +2,8 @@
   "id": "man-002",
   "rfc": "RFC-AITP-0003",
   "status": "core",
-  "required_for_v0_1": true,
+  "required_for_v0_1": false,
+  "required_for_v0_2": true,
   "feature": null,
   "description": "Manifest declares a `version` the receiver does not implement. Receivers MUST reject with MANIFEST_VERSION_UNKNOWN (RFC-AITP-0003) and MUST NOT attempt best-effort parsing of an unknown major version.",
   "tags": [
@@ -13,7 +14,7 @@
   "input": {
     "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
     "supported_versions": [
-      "aitp/0.1"
+      "aitp/0.2"
     ],
     "manifest": {
       "version": "aitp/9.9",
@@ -28,7 +29,7 @@
       "required_peer_capabilities": [],
       "proof_of_possession": {
         "challenge": "E1P1xitRfiKsGDoeyKCI0w",
-        "signature": "sbbenelESMyzZLOUFyuZqbWmJH_CAc9Nkfhv5J_tutGqmQSXjDdtFx78DGxEvtWLSoLIwGpDu3yIy5W4KO29Dw"
+        "signature": "__VALID_POP_SIG__"
       },
       "published_at": 1711899000,
       "expires_at": 1711985400,
@@ -37,7 +38,7 @@
         "issuer": "https://auth.example.com",
         "subject": "agent-B"
       },
-      "signature": "TGhZxossXO1xOF2p4hlNYv1oUZi6xTtuYimF1ZAXhf9ZdxLEOAekCmEYGKgSODdOdn_pFB9diGxW3Sh9NcwnAw"
+      "signature": "__VALID_MANIFEST_SIG__"
     },
     "operation": "verify_manifest"
   },

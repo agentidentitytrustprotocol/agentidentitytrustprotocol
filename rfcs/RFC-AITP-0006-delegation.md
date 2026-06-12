@@ -2,15 +2,17 @@
 # Single-Hop Delegation
 
 **Document:** RFC-AITP-0006
-**Version:** 0.1.0-rc.3
-**Status:** Release Candidate
+**Version:** 0.2.0-draft
+**Status:** Community Standards Track (v0.2 Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md)
 
 ---
 
 ## Abstract
 
-Delegation lets an agent (B) that holds a TCT from an issuing peer (A) grant a subset of its capabilities to a third agent (C). v0.1 supports **single-hop delegation only**. Multi-hop chains are reserved for [RFC-AITP-0011](RFC-AITP-0011-multihop-delegation.md).
+Delegation lets an agent (B) that holds a TCT from an issuing peer (A) grant a subset of its capabilities to a third agent (C). This RFC supports **single-hop delegation only**. Multi-hop chains are reserved for [RFC-AITP-0011](RFC-AITP-0011-multihop-delegation.md).
+
+In `aitp/0.2` the delegation token is a **compact JWS** (RFC-AITP-0001 §5.4.5) signed by the delegating agent, which embeds — verbatim, as an opaque string — the **grant voucher** the issuing peer minted alongside B's TCT (RFC-AITP-0005 §8). No step of issuance or verification reconstructs any byte sequence: every signature is checked over the exact transmitted bytes.
 
 ---
 
@@ -19,15 +21,16 @@ Delegation lets an agent (B) that holds a TCT from an issuing peer (A) grant a s
 ```
 A (issuing peer)
 │
-│ peer-issues TCT to B with grants: ["read_data", "write_data"]
+│ peer-issues TCT + grant voucher to B   grants: ["read_data", "write_data"]
 ▼
 B (delegator)
 │
-│ issues Delegation Token to C with scope: ["read_data"]
+│ issues Delegation JWS to C             scope: ["read_data"]
+│ (embeds A's voucher verbatim)
 ▼
 C (delegatee)
 │
-│ presents Delegation Token + B's original grant proof to A
+│ presents the Delegation JWS to A
 ▼
 A verifies → peer-issues TCT for C with grants: ["read_data"]
 ```
@@ -36,135 +39,82 @@ A verifies → peer-issues TCT for C with grants: ["read_data"]
 
 ---
 
-## 2. Delegation Token Schema
+## 2. Delegation Token
+
+A delegation token is a compact JWS with protected header (exactly two parameters — RFC-AITP-0001 §5.4.5):
+
+```json
+{ "alg": "<derived from B's AID>", "typ": "aitp-delegation+jwt" }
+```
+
+and decoded claims:
 
 ```json
 {
-  "delegation": {
-    "delegator": "aid:pubkey:<A-pubkey>",
-    "delegatee": "aid:pubkey:<C-pubkey>",
-    "issued_by": "aid:pubkey:<B-pubkey>",
-    "audience": "aid:pubkey:<A-pubkey>",
-    "scope": ["read_data"],
-    "expires_at": 1711903600,
-    "cnf": "<C-public-key-base64url>",
-    "grant_proof": {
-      "issuer": "aid:pubkey:<A-pubkey>",
-      "subject": "aid:pubkey:<B-pubkey>",
-      "capabilities": ["read_data", "write_data"],
-      "issued_at": 1711900000,
-      "expires_at": 1711907200,
-      "source_tct_jti": "<jti of A's TCT to B>",
-      "signature": "<A-signature>"
-    },
-    "signature": "<B-signature>"
-  }
+  "ver": "aitp/0.2",
+  "iss": "aid:pubkey:ed25519:<B-key>",
+  "sub": "aid:pubkey:ed25519:<C-key>",
+  "aud": "aid:pubkey:ed25519:<A-key>",
+  "scope": ["read_data"],
+  "exp": 1711903600,
+  "cnf": { "jkt": "<RFC 7638 thumbprint of C's key>" },
+  "voucher": "<compact JWS string — A's grant voucher, verbatim>"
 }
 ```
 
-The canonical schema is [`schemas/json/aitp-delegation.schema.json`](../schemas/json/aitp-delegation.schema.json).
+| Claim | Type | Required | Description |
+|---|---|---|---|
+| `ver` | string | REQUIRED | MUST be `"aitp/0.2"`. |
+| `iss` | string | REQUIRED | AID of the agent issuing this delegation (B, the delegator-of-record). The token is signed by this key. |
+| `sub` | string | REQUIRED | AID of the agent receiving delegation (C). |
+| `aud` | string | REQUIRED | MUST equal A's AID — the only peer this token may be presented to. |
+| `scope` | array of string | REQUIRED | Capabilities delegated to C. Non-empty. |
+| `exp` | integer | REQUIRED | Unix seconds. MUST be ≤ the embedded voucher's `exp`. |
+| `cnf` | object | REQUIRED | RFC 7800 confirmation claim for C's key, `{"jkt": …}` form (RFC-AITP-0001 §5.4.4). MUST match the key encoded in `sub`. |
+| `voucher` | string | REQUIRED | The grant voucher compact JWS (RFC-AITP-0005 §8), embedded **verbatim**. B MUST NOT decode-and-re-encode it. |
+| `ext` | object | OPTIONAL | Extensions slot (RFC-AITP-0012); unknown claims outside `ext` MUST be rejected. |
 
-**Why `grant_proof` is not the full TCT.** A TCT contains all grants the issuer gave to B, which may be a superset of what B is delegating. Embedding the full TCT would expose B's complete capability profile to C and to any peer that inspects the delegation token. The minimized `grant_proof` contains only the fields needed for scope-subset verification and to reconstruct A's signing input (`issuer`, `subject`, `capabilities`, `issued_at`, `expires_at`, `source_tct_jti`, `signature`), which limits information disclosure while preserving stateless verifiability.
+The v0.1 `delegator` and `audience` fields (which v0.1 required to be equal) are collapsed into the single `aud` claim. The v0.1 `grant_proof` object is replaced by the `voucher` string. The canonical schema for the decoded claims is [`schemas/json/aitp-delegation.schema.json`](../schemas/json/aitp-delegation.schema.json).
 
 ---
 
-## 3. Fields
+## 3. Issuance Flow
 
-### 3.1 Issuance flow
+When B completes a handshake with A, the `MUTUAL_COMMIT` / `MUTUAL_COMMIT_ACK` payload carries both B's TCT and the companion grant voucher (RFC-AITP-0004 §4, RFC-AITP-0005 §8). To delegate to C, B:
 
-When B receives a TCT from A in `MUTUAL_COMMIT_ACK`, B MAY use that TCT directly to issue delegation tokens to other agents. The `grant_proof` B embeds in the delegation token is constructed from B's held TCT:
+1. Chooses `scope` ⊆ the voucher's `grants` and `exp` ≤ the voucher's `exp`.
+2. Builds the claims object above, embedding A's voucher string verbatim.
+3. Signs it as a compact JWS with its own key (`alg` derived from B's AID).
 
-| `grant_proof` field | Source from B's TCT |
-|---|---|
-| `issuer` | `tct.issuer` |
-| `subject` | `tct.subject` |
-| `capabilities` | `tct.grants` |
-| `issued_at` | `tct.issued_at` |
-| `expires_at` | `tct.expires_at` |
-| `source_tct_jti` | `tct.jti` |
-| `signature` | `tct.signature` |
+No issuance step requires A's involvement, and no step re-serializes the voucher. If A declined to mint a voucher at handshake time (issuer policy — RFC-AITP-0005 §8.2), B cannot delegate.
 
-No separate issuance flow is required — every TCT is a valid `grant_proof` source. Because `grant_proof.signature` is reused verbatim from the source TCT's signature, A's original signature continues to authenticate the grant without re-signing. B's outer `delegation.signature` covers the entire delegation token (excluding the outer `signature` field itself), so the per-delegation fields B chose (`scope`, `delegatee`, `cnf`, `expires_at`, `audience`, `delegator`, `issued_by`) are bound to the embedded `grant_proof` and cannot be substituted independently.
-
-> **Why `issued_at` is carried explicitly.** Earlier drafts allowed verifiers to reconstruct `issued_at` as `expires_at − default_TTL` (e.g. 3600 s). That works only when A used the default TTL; tokens minted with non-default TTL fail cross-implementation verification because A's signature covers `tct.issued_at` byte-exactly. v0.1 carries `issued_at` directly so the `grant_proof` byte sequence A signed can be reconstructed without guessing the TTL.
-
-
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `delegator` | string | REQUIRED | AID of the original issuing peer (A). |
-| `delegatee` | string | REQUIRED | AID of the agent receiving delegation (C). |
-| `issued_by` | string | REQUIRED | AID of the agent issuing this delegation (B). |
-| `audience` | string | REQUIRED | MUST equal A's AID — audience binding. |
-| `scope` | array of string | REQUIRED | Capabilities delegated to C. |
-| `expires_at` | integer | REQUIRED | MUST be ≤ `grant_proof.expires_at`. |
-| `cnf` | string | REQUIRED | C's public key for proof-of-possession. |
-| `grant_proof` | object | REQUIRED | A's original signed grant to B (constructed from B's source TCT — see §3.1). |
-| `grant_proof.issued_at` | integer | REQUIRED | Unix seconds; copied verbatim from the source TCT's `issued_at`. Required so the source TCT's signing input can be reconstructed byte-for-byte without guessing the issuer's chosen TTL. |
-| `grant_proof.source_tct_jti` | string | REQUIRED | The `jti` of A's original TCT to B. Used for revocation lookup against A's deny list. If the source TCT has been revoked, all derived delegation tokens MUST be rejected. |
-| `grant_proof.signature` | string | REQUIRED | A's signature over the source TCT (reused verbatim). |
-| `signature` | string | REQUIRED | B's signature over the delegation token. |
+> **What changed from v0.1.** The v0.1 `grant_proof` was a seven-field projection of B's TCT whose signature could only be checked by byte-exact *reconstruction* of the source TCT's canonical JSON. That reconstruction logic (`verify_source_tct_projection`-style code) is deleted from the protocol: the voucher is an independently signed artifact, verified like any other JWS over its transmitted bytes.
 
 ---
 
 ## 4. Verification Rules
 
-When C presents a delegation token to A, A MUST verify all of the following:
+When C presents a delegation token to A, A MUST verify all of the following, in order. Steps 1–6 are pure JWS/claims checks; the revocation lookup (step 7) comes after all signature checks per RFC-AITP-0008 §3.3.
 
-### 4.1 Structural validity
-
-1. `audience` MUST equal A's own AID. Mismatch ⇒ `DELEGATION_AUDIENCE_MISMATCH`.
-2. `delegator` MUST equal A's own AID. Mismatch ⇒ `DELEGATION_INVALID_GRANT_PROOF` (the token is not addressed to this issuer).
-3. `expires_at` MUST be in the future AND `delegation.expires_at` MUST be ≤ `grant_proof.expires_at` (a delegated grant cannot outlive the source TCT). Failure ⇒ `DELEGATION_EXPIRED`.
-
-### 4.2 Grant-proof validity (stateless)
-
-4. `grant_proof.issuer` MUST equal A's own AID. Mismatch ⇒ `DELEGATION_INVALID_GRANT_PROOF`.
-5. Verify `grant_proof.signature` against A's own public key. The signature input is the canonical JSON of the **reconstructed source TCT body**, with the following fields. Failure ⇒ `DELEGATION_INVALID_GRANT_PROOF`.
-
-   | Reconstructed TCT field | Source |
-   |---|---|
-   | `version` | constant `"aitp/0.1"` (the only TCT version in v0.1; reject if the source TCT was minted under a future version this verifier does not support) |
-   | `jti` | `grant_proof.source_tct_jti` |
-   | `issuer` | `grant_proof.issuer` |
-   | `subject` | `grant_proof.subject` |
-   | `audience` | `grant_proof.subject` (peer-issued TCTs always set `audience = subject` per RFC-AITP-0005 §5.1) |
-   | `issued_at` | `grant_proof.issued_at` (carried verbatim per §3.1; reconstructing as `expires_at − default_TTL` is not permitted in v0.1) |
-   | `expires_at` | `grant_proof.expires_at` |
-   | `grants` | `grant_proof.capabilities` |
-   | `binding.cnf` | the 43-char AID-identifier component of `grant_proof.subject` (peer-issued TCTs always bind `cnf` to the subject's public key per RFC-AITP-0004 §4.4) |
-
-   The verifier produces canonical JSON over this reconstructed object excluding the `signature` field per RFC 8785 (JCS), hashes with SHA-256, and verifies `grant_proof.signature` under A's public key. The reconstructed bytes MUST match the bytes A signed when issuing the original TCT; any divergence (extra fields, different encoding) MUST cause verification to fail.
-
-6. `grant_proof.subject` MUST equal `delegation.issued_by`. Mismatch ⇒ `DELEGATION_INVALID_GRANT_PROOF` — without this check, B could attach C's grant proof and claim to be delegating C's authority.
-7. `grant_proof.expires_at` MUST be in the future. Failure ⇒ `DELEGATION_EXPIRED`.
-
-### 4.2.1 Source TCT revocation check
-
-8. The verifier MUST look up `grant_proof.source_tct_jti` in its own (or a fresh fetched) deny list for the issuing peer. If the source TCT has been revoked, the delegation token MUST be rejected with `DELEGATION_SOURCE_TCT_REVOKED`. This is the only stateful check in delegation verification; it requires a revocation lookup, not a full session lookup.
-
-### 4.3 Scope constraint
-
-9. Every capability in `scope` MUST appear in `grant_proof.capabilities`:
+1. **Outer token.** Parse the compact JWS strictly (RFC-AITP-0001 §5.4.5). Enforce header `typ` == `aitp-delegation+jwt` ⇒ else `TOKEN_TYP_MISMATCH`. Derive the sole acceptable `alg` from the `iss` AID and reject any other ⇒ `TOKEN_ALG_MISMATCH`. Verify the signature against B's public key (resolved from the `iss` AID via B's Manifest, RFC-AITP-0003). Failure ⇒ `DELEGATION_INVALID_SIGNATURE`.
+2. **Addressing and freshness.** `aud` MUST equal A's own AID ⇒ else `DELEGATION_AUDIENCE_MISMATCH`. `exp` MUST be in the future ⇒ else `DELEGATION_EXPIRED`.
+3. **Embedded voucher.** Parse the `voucher` claim as a compact JWS. Enforce header `typ` == `aitp-grant+jwt` ⇒ else `TOKEN_TYP_MISMATCH`. `voucher.iss` MUST equal A's own AID, and the signature MUST verify under A's **own** key ⇒ else `DELEGATION_INVALID_VOUCHER`. (A is verifying its own past signature; no key resolution is needed.)
+4. **Delegator held the grant.** `voucher.sub` MUST equal the outer token's `iss` — the delegator-of-record is the peer A actually granted ⇒ else `DELEGATION_INVALID_VOUCHER`. Without this check, B could embed a voucher issued to some other agent.
+5. **Expiry monotonicity.** `voucher.exp` MUST be in the future, AND the outer `exp` MUST be ≤ `voucher.exp` (a delegated grant cannot outlive the source grant) ⇒ else `DELEGATION_EXPIRED`.
+6. **Scope constraint.** Every capability in `scope` MUST appear in `voucher.grants`:
 
    ```
-   scope ⊆ grant_proof.capabilities
+   scope ⊆ voucher.grants
    ```
 
-   Any delegation token where `scope` contains a capability not in `grant_proof.capabilities` MUST be rejected with `DELEGATION_SCOPE_EXCEEDED`.
+   ⇒ else `DELEGATION_SCOPE_EXCEEDED`.
+7. **Source TCT revocation.** Look up `voucher.src_jti` in A's own deny list. If the source TCT has been revoked, the delegation token MUST be rejected ⇒ `DELEGATION_SOURCE_TCT_REVOKED`. This is the only stateful check; it runs only after every signature check has passed (RFC-AITP-0008 §3.3).
+8. **No self-delegation.** The outer `iss` MUST NOT equal `sub` ⇒ else `DELEGATION_INVALID_SIGNATURE`.
+9. **Proof of possession.** Verify that the presenting agent holds the private key matching `cnf` by running the downstream PoP exchange of [RFC-AITP-0005 §6.1](RFC-AITP-0005-tct.md#61-downstream-pop-exchange) against C, with the bound key taken from the delegation's `sub` AID and checked against `cnf.jkt` (RFC-AITP-0005 §6.2). The verifier MUST issue a fresh `pop_challenge` with a per-verification 128-bit nonce. PoP failure ⇒ `DELEGATION_POP_FAILED`. Implementations MAY skip the exchange only when an equivalent channel binding to C's key is already in place (e.g. mTLS with a client certificate matching `cnf`); they MUST document that posture.
 
-### 4.4 Chain limits
+**Multi-hop guard.** Until an implementation explicitly opts into RFC-AITP-0011, it MUST reject any delegation token carrying a `chain` claim (RFC-AITP-0011's opt-in marker) with `DELEGATION_MULTIHOP_NOT_SUPPORTED` — a structural rejection before any per-hop processing.
 
-10. `issued_by` MUST NOT equal `delegatee` (self-delegation is rejected). Failure ⇒ `DELEGATION_INVALID_SIGNATURE`.
-11. No chain validation is required — only single-hop is supported. Implementations MUST reject delegation tokens where `issued_by` is itself a delegatee of another delegation (i.e. where the `grant_proof` is not a direct peer-issued TCT from A to B); only direct peer-issued grants from A to B are valid as `grant_proof`. Failure ⇒ `DELEGATION_MULTIHOP_NOT_SUPPORTED`.
-
-### 4.5 Proof of possession
-
-12. Verify that the presenting agent holds the private key matching `cnf` by running the downstream PoP exchange defined in [RFC-AITP-0005 §6.1](RFC-AITP-0005-tct.md#61-downstream-pop-exchange) against C, with `binding.cnf` taken from `delegation.cnf` (rather than from a TCT). The verifier MUST issue a fresh `pop_challenge` with a per-verification 128-bit nonce and verify C's `pop_response` per RFC-AITP-0005 §6.2. PoP failure ⇒ `DELEGATION_POP_FAILED`. Implementations MAY skip the exchange only when an equivalent channel binding to C's key is already in place (e.g. mTLS with a client certificate matching `cnf`); they MUST document that posture.
-
-### 4.6 Issuer signature
-
-13. Verify `signature` against B's public key (resolved from `issued_by` AID via B's Manifest, RFC-AITP-0003). Failure ⇒ `DELEGATION_INVALID_SIGNATURE`.
+No step of this algorithm reconstructs any byte sequence. Every signature is verified over bytes exactly as transmitted.
 
 ---
 
@@ -172,30 +122,36 @@ When C presents a delegation token to A, A MUST verify all of the following:
 
 ### 5.1 Audience binding
 
-The `audience` field MUST equal the delegator's AID (A). A delegation token presented to any other peer MUST be rejected. This prevents C from using B's delegation token at a different peer (D).
+The `aud` claim MUST equal the verifying issuer's AID (A). A delegation token presented to any other peer MUST be rejected. This prevents C from using B's delegation token at a different peer (D).
 
 ### 5.2 Non-transferability
 
-A delegation token is bound to a specific `audience`, a specific `delegatee`, and a specific `cnf`. None of these bindings can be changed without invalidating B's signature.
+A delegation token is bound to a specific `aud`, a specific `sub`, and a specific `cnf`. None of these bindings can be changed without invalidating B's signature.
 
 ### 5.3 Scope cannot exceed original grant
 
-Scope is verified against the grant proof, which is signed by A. B cannot forge a grant proof claiming more capabilities than A originally peer-issued.
+Scope is verified against the voucher, which is signed by A. B cannot forge a voucher claiming more capabilities than A originally granted, and B cannot substitute another agent's voucher (step 4).
+
+### 5.4 Privacy: the voucher discloses B's full grant profile
+
+The voucher carries the complete `grants` list of B's TCT, so C — and anyone C shows the token to — learns B's full capability profile from A, not just the delegated subset.
+
+> **Erratum against v0.1.** RFC-AITP-0006 v0.1 claimed the minimized `grant_proof` hid the delegator's full capability profile. It did not: signature reconstruction forced `grant_proof.capabilities` to equal the complete TCT grant list, so the disclosure was identical. v0.2 states the property honestly. A selective-disclosure voucher (SD-JWT-style) is a natural future fix; the extension point is reserved in RFC-AITP-0012.
 
 ---
 
 ## 6. Delegation Token Signature
 
-B signs the delegation token (excluding `signature`) using the same canonical serialization as the TCT:
+B signs the delegation token as a compact JWS over the transmitted bytes (RFC-AITP-0001 §5.4.5):
 
 ```
-sig_input  = sha256(canonical_json(delegation_without_signature))
-signature  = base64url(sign(B_private_key, sig_input))
+signing_input = ASCII(base64url(header) || "." || base64url(claims))
+signature     = base64url(sign(B_private_key, signing_input))
 ```
 
-Canonical JSON MUST be produced per [RFC 8785 (JCS)](https://datatracker.ietf.org/doc/html/rfc8785). See [RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature) for the unified canonicalization and base64url encoding rules. A worked example (`kat-delegation-001`) showing the canonical bytes and SHA-256 digest of a fixed delegation token body lives at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json); implementations MUST reproduce it byte-for-byte.
+There is no canonicalization step, for the outer token or the embedded voucher. The voucher string inside the claims object is covered verbatim by B's signature, so it cannot be swapped without invalidating the outer JWS.
 
-The same JCS rule applies to `grant_proof` when A originally signs it: A produces canonical JSON over the `grant_proof` object excluding its `signature` field, hashes with SHA-256, and signs with A's private key.
+Pinned (fixed seed → exact compact JWS) vectors for a single-hop delegation live under [`schemas/conformance/known-answer/signed-examples/delegation/`](../schemas/conformance/known-answer/signed-examples/delegation/); implementations MUST reproduce them byte-for-byte.
 
 ---
 
@@ -203,47 +159,48 @@ The same JCS rule applies to `grant_proof` when A originally signs it: A produce
 
 After verifying the delegation token, A issues a TCT for C with:
 
-- `subject = C's AID`
-- `audience = C's AID`
+- `sub = C's AID`
+- `aud = C's AID`
 - `grants = scope ∩ A's policy for delegated peers`
-- `expires_at ≤ delegation.expires_at`
+- `exp ≤ delegation.exp`
 
-A MAY reduce the grants or TTL based on local policy. A MUST NOT expand them.
+A MAY reduce the grants or TTL based on local policy. A MUST NOT expand them. A MAY also mint a companion grant voucher for C per RFC-AITP-0005 §8.2 — but only if its policy permits C to delegate onward (which, absent RFC-AITP-0011 opt-in, it should not).
 
 ---
 
 ## 8. Verification API
 
-Each issuing peer exposes a delegation-verification endpoint over HTTPS. The endpoint accepts a JSON envelope containing the delegation token, the calling agent's AID, and the delegatee's public key (for PoP); it returns either a fresh peer-issued TCT for the delegatee or a `DelegationError`.
+Each issuing peer exposes a delegation-verification endpoint over HTTPS. The endpoint accepts a JSON envelope containing the delegation token (compact JWS string) and the calling agent's AID; it returns either a fresh peer-issued TCT for the delegatee or a `DelegationError`.
 
-Defined error codes:
+Defined error codes (see [`registries/error-codes.md`](../registries/error-codes.md)):
 
 | Code | Meaning |
 |---|---|
-| `DELEGATION_AUDIENCE_MISMATCH` | `audience ≠ issuer_aid` |
-| `DELEGATION_SCOPE_EXCEEDED` | `scope ⊄ grant_proof.capabilities` |
-| `DELEGATION_INVALID_GRANT_PROOF` | `grant_proof.signature` invalid, or `grant_proof.subject ≠ issued_by` |
-| `DELEGATION_SOURCE_TCT_REVOKED` | `grant_proof.source_tct_jti` is in the issuing peer's deny list |
-| `DELEGATION_INVALID_SIGNATURE` | `delegation.signature` invalid |
-| `DELEGATION_EXPIRED` | Token or grant proof expired |
+| `TOKEN_TYP_MISMATCH` | Outer or embedded JWS `typ` is not the expected value (§4 steps 1, 3) |
+| `TOKEN_ALG_MISMATCH` | JWS `alg` is not the sole AID-derived value, including `none` (§4 step 1) |
+| `DELEGATION_AUDIENCE_MISMATCH` | `aud` ≠ verifier's AID |
+| `DELEGATION_SCOPE_EXCEEDED` | `scope ⊄ voucher.grants` |
+| `DELEGATION_INVALID_VOUCHER` | Embedded voucher signature invalid, `voucher.iss` ≠ verifier's AID, or `voucher.sub` ≠ outer `iss` |
+| `DELEGATION_SOURCE_TCT_REVOKED` | `voucher.src_jti` is in the issuing peer's deny list |
+| `DELEGATION_INVALID_SIGNATURE` | Outer delegation signature invalid, or self-delegation (`iss` == `sub`) |
+| `DELEGATION_EXPIRED` | Token or voucher expired, or `exp` > `voucher.exp` |
 | `DELEGATION_POP_FAILED` | Proof-of-possession failed |
-| `DELEGATION_MULTIHOP_NOT_SUPPORTED` | Multi-hop attempt detected |
+| `DELEGATION_MULTIHOP_NOT_SUPPORTED` | `chain` claim present without RFC-AITP-0011 opt-in |
+
+(`DELEGATION_INVALID_VOUCHER` replaces the v0.1 `DELEGATION_INVALID_GRANT_PROOF`; the other codes keep their names with definitions restated in voucher terms.)
 
 ---
 
 ## 9. Multi-hop (Future)
 
-Multi-hop delegation (A → B → C → D) is specified in [RFC-AITP-0011](RFC-AITP-0011-multihop-delegation.md) (Draft; not part of v0.1 conformance). RFC-AITP-0011 covers:
+Multi-hop delegation (A → B → C → D) is specified in [RFC-AITP-0011](RFC-AITP-0011-multihop-delegation.md) (Draft; opt-in). RFC-AITP-0011 covers:
 
-- chain format and `DelegationStep` per-entry shape
-- per-hop signature verification (with dispatch between hop 0 — peer-issued TCT projection — and hops i > 0 — intermediate-signed steps)
-- hop limits (default `max_delegation_hops = 3`)
-- defense against chain insertion (audience continuity), truncation (`chain_hash`), and scope inflation (transitive subsetting)
-- per-hop revocation (deny-list lookup at every hop's issuer)
+- the `chain` claim — an array of delegation compact JWS strings, one per hop, carried verbatim;
+- per-hop verification — standard JWS verification plus scope-subsetting, expiry monotonicity, and revocation at every hop;
+- hop limits (default `max_delegation_hops = 3`);
+- defense against chain insertion (audience continuity), truncation (`chain_hash`), and scope inflation (transitive subsetting).
 
-**v0.1 conformance.** Until an implementation explicitly opts into RFC-AITP-0011, it MUST reject any token whose `grant_proof` is itself a delegation rather than a direct peer-issued grant, AND it MUST reject any token carrying a non-empty `chain` field with `DELEGATION_MULTIHOP_NOT_SUPPORTED` (the `chain` field is RFC-AITP-0011's opt-in marker).
-
-**v0.2-and-up carve-out.** Implementations that opt into RFC-AITP-0011 follow that RFC's verification rules instead. In a multi-hop token (with non-empty `chain`), the top-level `grant_proof` is permitted to be a DelegationStep rather than a peer-issued TCT projection — see RFC-AITP-0011 §1.3.
+**Core conformance.** Until an implementation explicitly opts into RFC-AITP-0011, it MUST reject any delegation token carrying a `chain` claim with `DELEGATION_MULTIHOP_NOT_SUPPORTED`.
 
 ---
 
@@ -251,5 +208,8 @@ Multi-hop delegation (A → B → C → D) is specified in [RFC-AITP-0011](RFC-A
 
 - [RFC-AITP-0001 Core](RFC-AITP-0001-core.md)
 - [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md)
+- [RFC-AITP-0008 Revocation](RFC-AITP-0008-revocation.md)
 - [RFC-AITP-0009 Security](RFC-AITP-0009-security.md)
-- [RFC-AITP-0011 Multi-hop Delegation](RFC-AITP-0011-multihop-delegation.md) *(Draft, post-v0.1)*
+- [RFC-AITP-0011 Multi-hop Delegation](RFC-AITP-0011-multihop-delegation.md) *(Draft, opt-in)*
+- [RFC 7515 — JSON Web Signature](https://datatracker.ietf.org/doc/html/rfc7515)
+- [RFC 7800 — Proof-of-Possession Key Semantics for JWTs](https://datatracker.ietf.org/doc/html/rfc7800)

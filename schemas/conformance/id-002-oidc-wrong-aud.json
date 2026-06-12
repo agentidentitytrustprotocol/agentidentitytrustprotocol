@@ -2,7 +2,8 @@
   "id": "id-002",
   "rfc": "RFC-AITP-0002",
   "status": "core",
-  "required_for_v0_1": true,
+  "required_for_v0_1": false,
+  "required_for_v0_2": true,
   "feature": null,
   "description": "Peer's OIDC identity JWT carries an `aud` claim that targets a different peer's AID, not the receiving peer's. The receiving peer MUST reject with IDENTITY_FAILED — accepting a JWT minted for someone else would allow the holder to impersonate the subject across audiences (RFC-AITP-0002 §2.2).",
   "tags": [
@@ -17,7 +18,7 @@
     "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
     "jwt_aud_claim": "aid:pubkey:JIrL26-eBQGW3nBL6i1odw5RkVDRA7WH2uLZytU92TA",
     "envelope": {
-      "version": "aitp/0.1",
+      "version": "aitp/0.2",
       "message_type": "mutual_hello",
       "message_id": "770e8400-e29b-41d4-a716-446655440202",
       "timestamp": 1711900000,
@@ -29,10 +30,10 @@
           "type": "oidc",
           "issuer": "https://auth.openai.com",
           "subject": "agent-A",
-          "proof": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZ2VudC1BIiwiaWF0IjoxNzExOTAwMDAwLCJleHAiOjE3MTE5MDM2MDAsIm5vbmNlIjoiRlEyRWNHUTZhTnNPVFdRVThEdjJvUSIsImF1ZCI6ImFpZDpwdWJrZXk6ZHFGWklFU201UFVSSmx2S2M2WUUyUXNGS2RIZllDdmpDaG1wSlhaZzBmVSIsImNuZiI6eyJqa3QiOiI5WlAwM051OEdyWFBBVWtiS054SE9LQnp4UFg4M1NTaGdGa1JOSy1mMmx3In19.sVVQb2-IYVp90K7voMsy8jMDVfUtPS1QoUVpaPzvNak"
+          "proof": "__JWT_AUD_TARGETS_DIFFERENT_PEER__"
         },
         "manifest": {
-          "version": "aitp/0.1",
+          "version": "aitp/0.2",
           "aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
           "handshake_endpoint": "https://a.agents.example.com/aitp/handshake",
           "accepted_trust_anchors": [
@@ -44,7 +45,7 @@
           "required_peer_capabilities": [],
           "proof_of_possession": {
             "challenge": "E1P1xitRfiKsGDoeyKCI0w",
-            "signature": "16c6t4Yt9Yx6mdn9ppXlcdeaJQK6Mgv06f9o1lrzDD8HTVlNZvPCZl0co_TI6oZTYc7uBYC80yboelhJLKRECw"
+            "signature": "__VALID_POP_SIG__"
           },
           "published_at": 1711899000,
           "expires_at": 1711985400,
@@ -53,14 +54,14 @@
             "issuer": "https://auth.openai.com",
             "subject": "agent-A"
           },
-          "signature": "igkqh8FQYHyFvcM5YlPSgxmJAAK3DY0R2BoUXOuPjJYT7Zc-IQlVNKxaDcAi3Yi56YCZYcQ1ain0-uswnpnFCw"
+          "signature": "__VALID_MANIFEST_SIG__"
         },
         "requested_grants": [
           "macp.mode.task.v1"
         ],
         "pop_nonce": "FQ2EcGQ6aNsOTWQU8Dv2oQ"
       },
-      "signature": "Wb0yR_QHuDmrtp-WR8EAWucMmTPvvpThWdR3yOUcIWCq3MS18tlFcZTF36NMujvFOK4PUSEFcIOG8-X_ky2vBA"
+      "signature": "__VALID_ENVELOPE_SIG__"
     },
     "operation": "verify_handshake_payload"
   },
