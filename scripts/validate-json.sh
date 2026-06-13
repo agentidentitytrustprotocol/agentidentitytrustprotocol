@@ -78,6 +78,9 @@ if [ -d "$CONFORMANCE_DIR" ]; then
 fi
 
 # ── Examples: validate by directory against the matching schema ──────────────
+# v0.2: example files MAY carry top-level documentation companions whose keys
+# start with "_" (e.g. `_decoded_claims`, `_wire_note`); these are stripped
+# before schema validation, mirroring the signed-example `_kat_input` rule.
 validate_dir_against() {
     local dir="$1"
     local schema="$2"
@@ -88,22 +91,89 @@ validate_dir_against() {
         [ -f "$f" ] || continue
         TOTAL=$((TOTAL + 1))
         echo "  $(basename "$f")"
-        if ajv validate -s "${schema}" -d "${f}" --spec=draft2020 --strict=false -c ajv-formats >/dev/null 2>&1; then
+        local tmp_base tmp
+        tmp_base="$(mktemp)"
+        tmp="${tmp_base}.json"
+        mv "$tmp_base" "$tmp"
+        if ! python3 -c "import json,sys;d=json.load(open(sys.argv[1]));d={k:v for k,v in d.items() if not k.startswith('_')};json.dump(d,open(sys.argv[2],'w'))" "$f" "$tmp"; then
+            rm -f "$tmp"
+            echo "    ✗ Could not strip documentation companions"
+            exit 1
+        fi
+        if ajv validate -s "${schema}" -d "${tmp}" --spec=draft2020 --strict=false -c ajv-formats >/dev/null 2>&1; then
             VALIDATED=$((VALIDATED + 1))
             echo "    ✓ Valid"
+            rm -f "$tmp"
         else
             echo "    ✗ Invalid against ${label} schema"
-            ajv validate -s "${schema}" -d "${f}" --spec=draft2020 --strict=false -c ajv-formats || true
+            ajv validate -s "${schema}" -d "${tmp}" --spec=draft2020 --strict=false -c ajv-formats || true
+            rm -f "$tmp"
             exit 1
         fi
     done
     echo
 }
 
-validate_dir_against "${EXAMPLES_DIR}/manifest"   "${MANIFEST_SCHEMA}"        "manifest"
-validate_dir_against "${EXAMPLES_DIR}/tct"        "${TCT_SCHEMA}"             "tct"
-validate_dir_against "${EXAMPLES_DIR}/delegation" "${DELEGATION_SCHEMA}"      "delegation"
-validate_dir_against "${EXAMPLES_DIR}/revocation" "${REVOCATION_LIST_SCHEMA}" "revocation"
+# v0.2: a TCT / grant-voucher / delegation example file carries the wire form
+# (an opaque compact JWS string) plus a decoded-claims object; the claims
+# object is what validates against the claims schema. Accepted layouts:
+#   { "<x>_token": "<compact JWS>", "decoded_claims": { ... } }   (signed KATs)
+#   { "tct_token": "...", "_decoded_claims": { ... } }            (doc examples)
+validate_jws_dir() {
+    local dir="$1"
+    local schema="$2"
+    local label="$3"
+    [ -d "$dir" ] || return 0
+    echo "── ${label} JWS artifacts (${dir}) ──"
+    for f in "${dir}"/*.json; do
+        [ -f "$f" ] || continue
+        TOTAL=$((TOTAL + 1))
+        echo "  $(basename "$f")"
+        local tmp_base tmp
+        tmp_base="$(mktemp)"
+        tmp="${tmp_base}.json"
+        mv "$tmp_base" "$tmp"
+        if ! python3 - "$f" "$tmp" <<'PYEOF'
+import json, re, sys
+d = json.load(open(sys.argv[1]))
+claims = d.get('decoded_claims') or d.get('_decoded_claims')
+if claims is None:
+    sys.exit('no decoded_claims / _decoded_claims companion found')
+tokens = [v for k, v in d.items() if k.endswith('_token')]
+if not tokens:
+    sys.exit('no *_token field found')
+pat = re.compile(r'^[A-Za-z0-9_<>-]+\.[A-Za-z0-9_<>-]+\.[A-Za-z0-9_<>-]+$')
+for t in tokens:
+    if not pat.match(t):
+        sys.exit('token is not a three-segment compact JWS shape: %r' % t[:40])
+json.dump(claims, open(sys.argv[2], 'w'))
+PYEOF
+        then
+            rm -f "$tmp"
+            echo "    ✗ JWS artifact file malformed"
+            exit 1
+        fi
+        if ajv validate -s "${schema}" -d "${tmp}" --spec=draft2020 --strict=false -c ajv-formats >/dev/null 2>&1; then
+            VALIDATED=$((VALIDATED + 1))
+            echo "    ✓ Valid (decoded claims + token shape)"
+            rm -f "$tmp"
+        else
+            echo "    ✗ Decoded claims invalid against ${label} schema"
+            ajv validate -s "${schema}" -d "${tmp}" --spec=draft2020 --strict=false -c ajv-formats || true
+            rm -f "$tmp"
+            exit 1
+        fi
+    done
+    echo
+}
+
+GRANT_VOUCHER_SCHEMA="${PROJECT_ROOT}/schemas/json/aitp-grant-voucher.schema.json"
+
+validate_dir_against "${EXAMPLES_DIR}/manifest"      "${MANIFEST_SCHEMA}"        "manifest"
+validate_jws_dir     "${EXAMPLES_DIR}/tct"           "${TCT_SCHEMA}"             "tct"
+validate_jws_dir     "${EXAMPLES_DIR}/delegation"    "${DELEGATION_SCHEMA}"      "delegation"
+validate_jws_dir     "${EXAMPLES_DIR}/grant-voucher" "${GRANT_VOUCHER_SCHEMA}"   "grant-voucher"
+validate_dir_against "${EXAMPLES_DIR}/revocation"    "${REVOCATION_LIST_SCHEMA}" "revocation"
 
 # Non-normative examples are multi-message narratives, not single payloads.
 # Validate JSON syntax only (their inner messages are validated separately
@@ -184,10 +254,15 @@ validate_signed_kat() {
     echo
 }
 
-validate_signed_kat "${KAT_SIGNED_DIR}/manifest"   "${MANIFEST_SCHEMA}"        "manifest"
-validate_signed_kat "${KAT_SIGNED_DIR}/tct"        "${TCT_SCHEMA}"             "tct"
-validate_signed_kat "${KAT_SIGNED_DIR}/delegation" "${DELEGATION_SCHEMA}"      "delegation"
-validate_signed_kat "${KAT_SIGNED_DIR}/revocation" "${REVOCATION_LIST_SCHEMA}" "revocation"
+# JCS-profile signed examples validate as whole objects (after stripping
+# _kat_input); JWS-profile artifacts validate via their decoded claims +
+# token shape (validate_jws_dir tolerates the _kat_input companion since it
+# only reads decoded_claims and *_token fields).
+validate_signed_kat "${KAT_SIGNED_DIR}/manifest"      "${MANIFEST_SCHEMA}"        "manifest"
+validate_jws_dir    "${KAT_SIGNED_DIR}/tct"           "${TCT_SCHEMA}"             "tct"
+validate_jws_dir    "${KAT_SIGNED_DIR}/grant-voucher" "${GRANT_VOUCHER_SCHEMA}"   "grant-voucher"
+validate_jws_dir    "${KAT_SIGNED_DIR}/delegation"    "${DELEGATION_SCHEMA}"      "delegation"
+validate_signed_kat "${KAT_SIGNED_DIR}/revocation"    "${REVOCATION_LIST_SCHEMA}" "revocation"
 
 if [ $TOTAL -eq 0 ]; then
     echo "Warning: No JSON example or fixture files found"

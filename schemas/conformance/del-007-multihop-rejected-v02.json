@@ -1,0 +1,44 @@
+{
+  "id": "del-007",
+  "rfc": "RFC-AITP-0006",
+  "status": "core",
+  "required_for_v0_1": false,
+  "required_for_v0_2": true,
+  "feature": null,
+  "$comment": "v0.2 sibling of del-004 (which stays frozen in the v0.1 wire shape for v0.1 runners). Structural-rejection fixture: the chain entries are __ANY_JWS__ and chain_hash is __ANY_CHAIN_HASH__ because a core (non-opted-in) implementation MUST reject on the mere presence of the `chain` claim before any per-hop processing — those values are never inspected (see PLACEHOLDERS.md, ignored-value placeholders).",
+  "description": "A v0.2 delegation token (compact JWS, typ aitp-delegation+jwt) whose decoded claims carry a `chain` claim MUST be rejected by a core (non-opted-in) implementation with DELEGATION_MULTIHOP_NOT_SUPPORTED, regardless of any other validity property of the token. The `chain` claim is the RFC-AITP-0011 opt-in marker; RFC-AITP-0006 §4 (multi-hop guard) requires the structural rejection before any per-hop signature, scope, or chain-hash work. Per the chain-bearing token shape the outer claims carry jti and chain_hash and NO voucher (only chain[0] would carry the voucher — RFC-AITP-0011 §1.1), but none of that is processed: presence of `chain` alone triggers the rejection. Multi-hop acceptance semantics are exercised by the `del-mh-*` opt-in fixture set.",
+  "tags": [
+    "security",
+    "delegation",
+    "multi-hop",
+    "v0.2-rejection"
+  ],
+  "input": {
+    "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "delegation_token": "__JWS_DELEGATION__",
+    "delegation_token_claims": {
+      "ver": "aitp/0.2",
+      "iss": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+      "sub": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+      "aud": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+      "scope": [
+        "read_data"
+      ],
+      "exp": 9999999999,
+      "cnf": {
+        "jkt": "LlsmkXmHJuXWkRZLv_FKl_mprfIV5aYVnXqCgsebsdU"
+      },
+      "jti": "550e8400-e29b-41d4-a716-446655440107",
+      "chain": [
+        "__ANY_JWS__"
+      ],
+      "chain_hash": "__ANY_CHAIN_HASH__"
+    },
+    "operation": "verify_delegation_token"
+  },
+  "expected": {
+    "outcome": "failure",
+    "error_code": "DELEGATION_MULTIHOP_NOT_SUPPORTED",
+    "rationale": "The decoded claims carry a `chain` claim and the implementation under test has not opted into RFC-AITP-0011. The rejection is structural/early: no chain-entry signature, continuity, scope, or chain_hash verification is performed, which is why the chain entry and chain_hash are ignored-value placeholders."
+  }
+}

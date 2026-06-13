@@ -2,8 +2,10 @@
   "id": "rev-001",
   "rfc": "RFC-AITP-0008",
   "status": "core",
-  "required_for_v0_1": true,
+  "required_for_v0_1": false,
+  "required_for_v0_2": true,
   "feature": null,
+  "$comment": "The snapshot signature placeholder is the context-dependent __VALID_A_SIG__ (issuing peer is agentA / kat-keypair-001 per the PLACEHOLDERS.md AID role table); the JCS-profile snapshot signing input is unchanged in v0.2.",
   "description": "A signed revocation snapshot whose `published_at` exceeds the verifier's `max_staleness_secs` policy MUST be treated as no-snapshot. Implementations configured `FailClosed` MUST then reject the underlying TCT with TCT_REVOKED (or KEY_RESOLUTION_FAILED, depending on the call site). The snapshot here is otherwise well-formed and signed by the issuer; only its age trips the policy. (RFC-AITP-0008 §1.5; alpha.5 P12.)",
   "tags": [
     "failure",
@@ -20,13 +22,13 @@
     "expected_issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
     "snapshot": {
       "revocation_list": {
-        "version": "aitp/0.1",
+        "version": "aitp/0.2",
         "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
         "published_at": 1711800000,
         "expires_at": 1712076400,
         "entries": []
       },
-      "signature": "MeoTSIvDs6ZC60l58cYPagl5IP7srYAmTNntPbq7aDNxU6FpiONkydUPlfJc0vBj3fxT06R5Go1NMugzaHc-DA"
+      "signature": "__VALID_A_SIG__"
     },
     "operation": "verify_revocation_snapshot"
   },

@@ -2,8 +2,10 @@
   "id": "mh-008",
   "rfc": "RFC-AITP-0004",
   "status": "core",
-  "required_for_v0_1": true,
+  "required_for_v0_1": false,
+  "required_for_v0_2": true,
   "feature": null,
+  "$comment": "The payload `tct` is a __JWS_TCT__ compact-JWS placeholder with a `tct_claims` sibling (minting input; stripped by the minter). The TCT and envelope are valid — the defect is isolated to the pop_signature, minted per the __INVALID_POP_SIG_OVER_WRONG_NONCE__ recipe (signed over a different pop_nonce than the receiver expects).",
   "description": "MUTUAL_COMMIT carries a pop_signature that does not validate against the sender's AID public key when verified over sha256(receiver_pop_nonce). The receiver MUST reject with POP_VERIFICATION_FAILED — without a valid PoP the sender has not proven possession of the live private key.",
   "tags": [
     "security",
@@ -14,7 +16,7 @@
     "step": "target received MUTUAL_COMMIT",
     "self_pop_nonce_sent_in_hello_ack": "Yl9wb3Bfbm9uY2VfMTI4Yml0X2Jhc2U2NHVybA",
     "envelope": {
-      "version": "aitp/0.1",
+      "version": "aitp/0.2",
       "message_type": "mutual_commit",
       "message_id": "660e8400-e29b-41d4-a716-446655440109",
       "timestamp": 1711900000,
@@ -22,28 +24,26 @@
         "agent_id": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik"
       },
       "payload": {
-        "tct_for_peer": {
-          "tct": {
-            "version": "aitp/0.1",
-            "jti": "660e8400-e29b-41d4-a716-446655440110",
-            "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
-            "subject": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-            "audience": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-            "issued_at": 1711900200,
-            "expires_at": 1711903800,
-            "grants": [
-              "macp.mode.task.v1"
-            ],
-            "binding": {
-              "cnf": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
-            },
-            "signature": "SkHVRyL5gefnkGSQgiogoS_1VPNPQ2Uk3Nskl8TD9sEfI6x0j5l5Lb2hNU_867LDoi_i9SyJ3Q66iOKUjyQ4Bg"
+        "tct": "__JWS_TCT__",
+        "tct_claims": {
+          "ver": "aitp/0.2",
+          "jti": "660e8400-e29b-41d4-a716-446655440110",
+          "iss": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+          "sub": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+          "aud": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+          "iat": 1711900200,
+          "exp": 1711903800,
+          "grants": [
+            "macp.mode.task.v1"
+          ],
+          "cnf": {
+            "jkt": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y"
           }
         },
-        "pop_signature": "HobmIjk4VRd_fgi3zkca89FyY5IyTAkxCpLk0K4tnIbQEk7JGfxY8E77p-JzUn1SvgsK0oV4XAZ4o35GPlG5Dg",
+        "pop_signature": "__INVALID_POP_SIG_OVER_WRONG_NONCE__",
         "pop_nonce_echo": "Yl9wb3Bfbm9uY2VfMTI4Yml0X2Jhc2U2NHVybA"
       },
-      "signature": "vOq1F4kpTTviPYK1EJBWfxmhcdaPq8EPlx7bZrIE0JsjeVwfhI960iu0nbTr4A5ac56MDmzWYxE8vtfERQNoDw"
+      "signature": "__VALID_ENVELOPE_SIG__"
     },
     "operation": "verify_handshake_payload"
   },

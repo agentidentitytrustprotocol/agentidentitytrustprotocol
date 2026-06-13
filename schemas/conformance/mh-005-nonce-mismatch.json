@@ -2,7 +2,8 @@
   "id": "mh-005",
   "rfc": "RFC-AITP-0004",
   "status": "core",
-  "required_for_v0_1": true,
+  "required_for_v0_1": false,
+  "required_for_v0_2": true,
   "feature": null,
   "description": "MUTUAL_HELLO_ACK carries a pop_nonce_echo that does not match the pop_nonce the initiator sent in MUTUAL_HELLO. The initiator MUST reject the handshake with NONCE_MISMATCH — without echo binding, an attacker could inject a fabricated ACK referencing different nonces.",
   "tags": [
@@ -14,7 +15,7 @@
     "step": "initiator received MUTUAL_HELLO_ACK",
     "sent_pop_nonce": "QWdlbnRBUG9wTm9uY2VFeHBlY3RlZA",
     "envelope": {
-      "version": "aitp/0.1",
+      "version": "aitp/0.2",
       "message_type": "mutual_hello_ack",
       "message_id": "660e8400-e29b-41d4-a716-446655440104",
       "timestamp": 1711900000,
@@ -26,10 +27,10 @@
           "type": "oidc",
           "issuer": "https://auth.openai.com",
           "subject": "agent-B",
-          "proof": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZ2VudC1CIiwiaWF0IjoxNzExOTAwMDAwLCJleHAiOjE3MTE5MDM2MDAsIm5vbmNlIjoiUVdkbGJuUkNVRzl3VG05dVkyVk9aWGN4TWpoaWFYUSIsImF1ZCI6ImFpZDpwdWJrZXk6TzJvbnZNNjJwQzFpbzZqUUttOE5jMlV5RlhjZDRrT21Pc0JJb1l0WjJpayIsImNuZiI6eyJqa3QiOiIxSUcydE1IN0oyd2JKWm5PZjhMSnpRaXRLZjdMTXZvQUVsc3VETVZNNTRZIn19.0tpuQ9MtH4df_z-0dZvy73w-MIcMcksaRQg_K1dV6Zo"
+          "proof": "__VALID_JWT__"
         },
         "manifest": {
-          "version": "aitp/0.1",
+          "version": "aitp/0.2",
           "aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
           "handshake_endpoint": "https://b.agents.example.com/aitp/handshake",
           "accepted_trust_anchors": [
@@ -42,7 +43,7 @@
           "required_peer_capabilities": [],
           "proof_of_possession": {
             "challenge": "u08dThsYE5R_BiD1ekXggA",
-            "signature": "k37vdvTxLF9l1kzt3rFv4jqmC4H368V5kJDee5Qq-arMHmJV9k9jpoKQdKvDw5qq59dZpZT6jkRLiOQqMfj0Aw"
+            "signature": "__VALID_POP_SIG__"
           },
           "published_at": 1711900000,
           "expires_at": 1711986400,
@@ -51,7 +52,7 @@
             "issuer": "https://auth.openai.com",
             "subject": "agent-B"
           },
-          "signature": "090n-oN6rF6crI4rYaI73YUH-CM9eKQnPKWt7CO73eYNqP6Tlp4zEyV_iow0bgg4gORKwi0ZDLtXafGVXg3qBg"
+          "signature": "__VALID_MANIFEST_SIG__"
         },
         "requested_grants": [
           "macp.mode.task.v1"
@@ -59,7 +60,7 @@
         "pop_nonce": "QWdlbnRCUG9wTm9uY2VOZXcxMjhiaXQ",
         "pop_nonce_echo": "QXR0YWNrZXJTd2FwcGVkTm9uY2VWYWx1ZQ"
       },
-      "signature": "V_8MW6Auau0IHeaf7LXHiBlFpgh91x9-D_2g95c2eJCi1TLpYtMTMS2pjQkYrB72vkwDGWjwyTaaYHeBKeQoBg"
+      "signature": "__VALID_ENVELOPE_SIG__"
     },
     "operation": "verify_handshake_payload"
   },

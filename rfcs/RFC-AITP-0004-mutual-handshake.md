@@ -2,8 +2,8 @@
 # Mutual Handshake
 
 **Document:** RFC-AITP-0004
-**Version:** 0.1.0-rc.3
-**Status:** Release Candidate
+**Version:** 0.2.0-draft
+**Status:** Community Standards Track (v0.2 Draft)
 **Depends on:**
   [RFC-AITP-0001 Core](RFC-AITP-0001-core.md),
   [RFC-AITP-0002 Identity](RFC-AITP-0002-identity.md),
@@ -16,9 +16,9 @@
 
 The **Mutual Handshake** is the core agent-to-agent primitive in AITP. Two agents simultaneously verify each other's identity and establish bidirectional trust without requiring a third-party verifier.
 
-At the end of a successful Mutual Handshake, each agent holds a Trust Context Token (TCT) issued by its peer. Each TCT is signed by the issuing peer, audience-bound to the recipient, capability-scoped to what the issuer is willing to grant, and proof-of-possession bound to the recipient's key.
+At the end of a successful Mutual Handshake, each agent holds a Trust Context Token (TCT) issued by its peer. Each TCT is a compact JWS (RFC-AITP-0005 §1) signed by the issuing peer, audience-bound to the recipient, capability-scoped to what the issuer is willing to grant, and proof-of-possession bound to the recipient's key. The commit messages also carry an OPTIONAL companion **grant voucher** (RFC-AITP-0005 §8), minted by the TCT issuer at TCT issuance time, which is what later makes delegation (RFC-AITP-0006) verifiable.
 
-This RFC defines a four-message protocol over two round trips. There is no central verifier and no shared-verifier "fast path"; AITP v0.1 is strictly peer-to-peer.
+This RFC defines a four-message protocol over two round trips. There is no central verifier and no shared-verifier "fast path"; AITP v0.2 is strictly peer-to-peer.
 
 ---
 
@@ -28,7 +28,7 @@ The Mutual Handshake is governed by four normative principles. Architectural rat
 
 1. **Simultaneous presentation.** Both agents present identity in the same round trip. Either agent MAY initiate.
 2. **Symmetric trust output.** Both agents issue TCTs for each other. Neither agent is privileged by the protocol structure.
-3. **Peer-issued TCTs.** Each agent acts as its own verifier for the peer it is authenticating. The TCT `issuer` field is the authenticating agent's AID. Consumers of peer-issued TCTs validate them against the peer's AID public key (resolved from the peer's Manifest).
+3. **Peer-issued TCTs.** Each agent acts as its own verifier for the peer it is authenticating. The TCT `iss` claim is the authenticating agent's AID. Consumers of peer-issued TCTs validate them against the peer's AID public key (resolved from the peer's Manifest).
 4. **Graceful failure on incompatibility.** If trust-anchor overlap cannot be established, the handshake MUST fail with `INCOMPATIBLE_TRUST_ANCHORS`. Agents that cannot establish trust MUST NOT proceed with coordination.
 
 ---
@@ -67,6 +67,7 @@ Agent A                              Agent B
    |                                    |
    |------ MUTUAL_COMMIT --------------->|
    |       TCT_B  (A → B, signed by A)  |
+   |       Voucher_B (optional, by A)   |
    |       PoP_A  (A proves key to B)   |
    |                                    |
    | (B verifies TCT_B, verifies PoP_A, |
@@ -74,6 +75,7 @@ Agent A                              Agent B
    |                                    |
    |<------ MUTUAL_COMMIT_ACK ----------|
    |        TCT_A  (B → A, signed by B) |
+   |        Voucher_A (optional, by B)  |
    |        PoP_B  (B proves key to A)  |
    |                                    |
    | (A verifies TCT_A, verifies PoP_B) |
@@ -83,13 +85,15 @@ Agent A                              Agent B
    |   B holds TCT_B  (from A)          |
 ```
 
-The handshake is **four messages over two round trips**. The first round trip exchanges credentials and nonces. The second round trip exchanges the signed TCTs and proof-of-possession signatures.
+The handshake is **four messages over two round trips**. The first round trip exchanges credentials and nonces. The second round trip exchanges the signed TCTs (each with its OPTIONAL companion grant voucher) and proof-of-possession signatures.
 
 ---
 
 ## 3. Message Definitions
 
 All messages use the standard AITP envelope from RFC-AITP-0001 §5. New `message_type` values: `mutual_hello`, `mutual_hello_ack`, `mutual_commit`, `mutual_commit_ack`.
+
+Handshake envelopes and payloads remain JCS-profile signed (RFC-AITP-0001 §5.4.1). The TCT and grant voucher carried in the commit payloads are compact JWS strings (RFC-AITP-0001 §5.4.5): they are embedded as **opaque JSON strings**, verbatim — the envelope layer never decodes-and-re-encodes them, and the outer JCS signature covers the strings verbatim.
 
 > **PoP signing input (§§3.3, 3.4, 5.3, 5.4).** Throughout this RFC, `sha256(<nonce>)` denotes the SHA-256 hash of the **raw bytes obtained by base64url-decoding the nonce string** — never the ASCII bytes of the base64url form. This matches the convention used by the pinned-key proof input (RFC-AITP-0002 §3.1) and downstream PoP (RFC-AITP-0005 §6.1). The unified rule covering all four PoP sites lives in [RFC-AITP-0001 §5.4.2](RFC-AITP-0001-core.md#542-pop-signing-input-convention). Implementations that hash the base64url string itself are non-conformant.
 
@@ -101,7 +105,7 @@ Sent by the initiating agent (A) to the target agent (B).
 
 ```json
 {
-  "version": "aitp/0.1",
+  "version": "aitp/0.2",
   "message_type": "mutual_hello",
   "message_id": "<uuid-v4>",
   "timestamp": 1711900000,
@@ -180,20 +184,8 @@ Sent by the initiating agent (A) after verifying B's MUTUAL_HELLO_ACK.
 
 ```json
 {
-  "tct_for_peer": {
-    "tct": {
-      "version": "aitp/0.1",
-      "jti": "<uuid-v4>",
-      "issuer": "aid:pubkey:<A-pubkey>",
-      "subject": "aid:pubkey:<B-pubkey>",
-      "audience": "aid:pubkey:<B-pubkey>",
-      "issued_at": 1711900200,
-      "expires_at": 1711903800,
-      "grants": ["macp.mode.task.v1"],
-      "binding": { "cnf": "<B-pubkey>" },
-      "signature": "<A-sig>"
-    }
-  },
+  "tct": "<compact JWS string: aitp-tct+jwt>",
+  "grant_voucher": "<compact JWS string: aitp-grant+jwt>",
   "pop_signature": "<base64url — A's sig over sha256(B's pop_nonce)>",
   "pop_nonce_echo": "<B's pop_nonce from MUTUAL_HELLO_ACK>"
 }
@@ -203,7 +195,8 @@ Sent by the initiating agent (A) after verifying B's MUTUAL_HELLO_ACK.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `tct_for_peer` | object | REQUIRED | The TCT A is issuing for B. See §4 for issuance rules. |
+| `tct` | string | REQUIRED | The TCT A is issuing for B (RFC-AITP-0005), as an opaque compact JWS string with header `typ` `aitp-tct+jwt`. Embedded verbatim — never decoded-and-re-encoded by the envelope layer. See §4 for issuance rules. |
+| `grant_voucher` | string | OPTIONAL | The companion grant voucher (RFC-AITP-0005 §8), minted by A at TCT issuance time, as an opaque compact JWS string with header `typ` `aitp-grant+jwt`. A MAY omit it when its policy forbids B from delegating; without it B cannot delegate (RFC-AITP-0006). Embedded verbatim. |
 | `pop_signature` | string | REQUIRED | `base64url(sign(A_private_key, sha256(B_pop_nonce)))`. Proves A holds the key for its AID. |
 | `pop_nonce_echo` | string | REQUIRED | MUST equal B's `pop_nonce` from MUTUAL_HELLO_ACK. |
 
@@ -215,20 +208,8 @@ Sent by the target agent (B) to complete the handshake.
 
 ```json
 {
-  "tct_for_peer": {
-    "tct": {
-      "version": "aitp/0.1",
-      "jti": "<uuid-v4>",
-      "issuer": "aid:pubkey:<B-pubkey>",
-      "subject": "aid:pubkey:<A-pubkey>",
-      "audience": "aid:pubkey:<A-pubkey>",
-      "issued_at": 1711900400,
-      "expires_at": 1711904000,
-      "grants": ["macp.mode.task.v1"],
-      "binding": { "cnf": "<A-pubkey>" },
-      "signature": "<B-sig>"
-    }
-  },
+  "tct": "<compact JWS string: aitp-tct+jwt>",
+  "grant_voucher": "<compact JWS string: aitp-grant+jwt>",
   "pop_signature": "<base64url — B's sig over sha256(A's pop_nonce)>",
   "pop_nonce_echo": "<A's pop_nonce from MUTUAL_HELLO>"
 }
@@ -238,7 +219,8 @@ Sent by the target agent (B) to complete the handshake.
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `tct_for_peer` | object | REQUIRED | The TCT B is issuing for A. |
+| `tct` | string | REQUIRED | The TCT B is issuing for A (RFC-AITP-0005), as an opaque compact JWS string with header `typ` `aitp-tct+jwt`. Embedded verbatim. |
+| `grant_voucher` | string | OPTIONAL | The companion grant voucher (RFC-AITP-0005 §8), minted by B at TCT issuance time, as an opaque compact JWS string with header `typ` `aitp-grant+jwt`. B MAY omit it when its policy forbids A from delegating. Embedded verbatim. |
 | `pop_signature` | string | REQUIRED | `base64url(sign(B_private_key, sha256(A_pop_nonce)))`. |
 | `pop_nonce_echo` | string | REQUIRED | MUST equal A's `pop_nonce` from MUTUAL_HELLO. |
 
@@ -246,7 +228,7 @@ Sent by the target agent (B) to complete the handshake.
 
 ## 4. TCT Issuance Rules
 
-Each agent issues a TCT for its peer. Peer-issued TCTs are the canonical TCT form: `issuer` is a peer agent AID, not a third-party verifier AID.
+Each agent issues a TCT for its peer. Peer-issued TCTs are the canonical TCT form: `iss` is a peer agent AID, not a third-party verifier AID.
 
 Consumers of peer-issued TCTs MUST:
 
@@ -269,25 +251,29 @@ issued_grants = peer_requested_grants
 
 The issuing agent MUST NOT grant capabilities it did not offer in its Manifest. The issuing agent MUST NOT grant capabilities the peer did not request.
 
-If the resulting `issued_grants` set is **empty**, the issuing agent MUST NOT issue a TCT and MUST instead respond with `POLICY_VIOLATION`. An empty-grants TCT is forbidden in v0.1: a TCT with no grants is operationally indistinguishable from a proof-of-identity, and AITP separates identity (the Manifest's identity binding + handshake PoP) from authority (the TCT's `grants`). Peers that need an identity-only proof MUST use the Manifest, not a stripped TCT.
+If the resulting `issued_grants` set is **empty**, the issuing agent MUST NOT issue a TCT and MUST instead respond with `POLICY_VIOLATION`. An empty-grants TCT is forbidden in v0.2: a TCT with no grants is operationally indistinguishable from a proof-of-identity, and AITP separates identity (the Manifest's identity binding + handshake PoP) from authority (the TCT's `grants`). Peers that need an identity-only proof MUST use the Manifest, not a stripped TCT.
 
 ### 4.2 Audience binding
 
-Peer-issued TCTs MUST set `audience` to the peer's AID:
+Peer-issued TCTs MUST set `aud` to the peer's AID:
 
 ```json
-"audience": "aid:pubkey:<peer-pubkey>"
+"aud": "aid:pubkey:<peer-pubkey>"
 ```
 
-The peer MUST verify that `audience` matches its own AID when consuming the TCT.
+The peer MUST verify that `aud` matches its own AID when consuming the TCT.
 
 ### 4.3 Expiry
 
-Peer-issued TCT `expires_at` MUST NOT exceed the issuing agent's Manifest `expires_at`. The RECOMMENDED default TTL for peer-issued TCTs is **1 hour**.
+Peer-issued TCT `exp` MUST NOT exceed the issuing agent's Manifest `expires_at`. The RECOMMENDED default TTL for peer-issued TCTs is **1 hour**.
 
 ### 4.4 Proof-of-possession binding
 
-Peer-issued TCTs MUST include `binding.cnf` set to the peer's public key. The `MUTUAL_COMMIT` / `MUTUAL_COMMIT_ACK` PoP signatures ARE the proof-of-possession verification for the handshake itself. Downstream consumers of peer-issued TCTs MAY require additional PoP per RFC-AITP-0005 §6.
+Peer-issued TCTs MUST include `cnf` with `jkt` set to the RFC 7638 thumbprint of the peer's public key — the key encoded in the TCT's `sub` AID (RFC-AITP-0005 §3). The `MUTUAL_COMMIT` / `MUTUAL_COMMIT_ACK` PoP signatures ARE the proof-of-possession verification for the handshake itself. Downstream consumers of peer-issued TCTs MAY require additional PoP per RFC-AITP-0005 §6.
+
+### 4.5 Grant voucher issuance
+
+The issuing agent mints the companion grant voucher (RFC-AITP-0005 §8) at TCT issuance time, with the same `iss`, `sub`, `grants`, `iat`, and `exp` as the TCT and `src_jti` equal to the TCT's `jti` (RFC-AITP-0005 §8.2). The voucher is delivered alongside the TCT, in the `grant_voucher` field of the same `MUTUAL_COMMIT` / `MUTUAL_COMMIT_ACK` payload (§§3.3–3.4). An issuing agent MAY omit the voucher when its policy forbids the peer from delegating; the handshake then carries only the TCT, and the peer cannot delegate (RFC-AITP-0006 §3).
 
 ---
 
@@ -378,8 +364,9 @@ A MUST:
 8. **Verify `pop_nonce_echo`** equals A's original `pop_nonce` from
    MUTUAL_HELLO. Failure ⇒ `NONCE_MISMATCH`.
 9. Apply policy: check B's identity issuer is in A's `trust_anchors`,
-   evaluate B's `requested_grants`, construct `tct_for_peer` (the TCT A
-   will issue for B) per §4, compute `pop_signature` over B's `pop_nonce`,
+   evaluate B's `requested_grants`, construct the `tct` A will issue for
+   B (and, if A's policy permits B to delegate, the companion
+   `grant_voucher`) per §4, compute `pop_signature` over B's `pop_nonce`,
    and send MUTUAL_COMMIT.
 
 ### 5.3 On receiving MUTUAL_COMMIT (B finalizes)
@@ -395,22 +382,42 @@ B MUST:
    Failure ⇒ `NONCE_MISMATCH`.
 3. Verify `pop_signature`: `verify(A_pubkey, sha256(B_pop_nonce), pop_signature)`.
    Failure ⇒ `POP_VERIFICATION_FAILED`.
-4. Verify `tct_for_peer` (the TCT A issued for B):
-   - Signature valid under A's AID public key.
-   - `subject` equals B's AID.
-   - `audience` equals B's AID.
-   - `expires_at` is in the future.
-   - `tct_for_peer.expires_at` ≤ A's Manifest `expires_at` — the
+4. Verify `tct` (the TCT A issued for B) per the verification order of
+   [RFC-AITP-0005 §7.2](RFC-AITP-0005-tct.md#72-verification-order):
+   - Parse the compact JWS strictly — exactly three non-empty
+     base64url segments (RFC-AITP-0001 §5.4.5).
+   - Header `typ` is exactly `aitp-tct+jwt`. Violation ⇒
+     `TOKEN_TYP_MISMATCH`.
+   - Header `alg` is the sole value derived from A's AID; any other
+     value, including `none`, ⇒ `TOKEN_ALG_MISMATCH`.
+   - JWS signature valid under A's AID public key.
+   - `ver` is `"aitp/0.2"`.
+   - `sub` equals B's AID.
+   - `aud` equals B's AID.
+   - `exp` is in the future.
+   - `cnf.jkt` equals the RFC 7638 thumbprint of the key encoded in
+     `sub` (RFC-AITP-0005 §3).
+   - `tct.exp` ≤ A's Manifest `expires_at` — the
      verifier-side Manifest-expiry bound from
-     [RFC-AITP-0005 §9.4](RFC-AITP-0005-tct.md#94-manifest-expiry-bound-conditional).
+     [RFC-AITP-0005 §10.4](RFC-AITP-0005-tct.md#104-manifest-expiry-bound-conditional).
      B has A's Manifest from round 1 (cached), so this conditional
      check is required at handshake time. Violation ⇒
      `TCT_EXPIRES_AFTER_MANIFEST`.
    - `grants` are a subset of B's `offered_capabilities`.
    - Every capability in B's own `required_peer_capabilities` (from B's
-     Manifest, RFC-AITP-0003 §3.2) is present in `tct_for_peer.grants`.
+     Manifest, RFC-AITP-0003 §3.2) is present in the TCT's `grants`.
      Missing required capability ⇒ `INSUFFICIENT_GRANTS`.
-5. Construct `tct_for_peer` (the TCT B issues for A) per §4.
+
+   If the payload carries `grant_voucher`, B stores the string verbatim
+   alongside the TCT for later delegation use (RFC-AITP-0006). B is not
+   required to verify the voucher at handshake time — the issuer
+   verifies its own voucher during delegation verification
+   (RFC-AITP-0005 §8.2, RFC-AITP-0006 §4) — but B MAY check the
+   RFC-AITP-0005 §8.2 consistency rules (`iss`, `sub`, `grants`, `iat`,
+   `exp` matching the TCT; `src_jti` equal to the TCT's `jti`) before
+   relying on it.
+5. Construct the `tct` B issues for A (and, per B's policy, the
+   companion `grant_voucher`) per §4.
 6. Compute `pop_signature` over A's `pop_nonce`.
 7. Send MUTUAL_COMMIT_ACK.
 
@@ -426,25 +433,37 @@ A MUST:
    Failure ⇒ `NONCE_MISMATCH`.
 3. Verify `pop_signature`: `verify(B_pubkey, sha256(A_pop_nonce), pop_signature)`.
    Failure ⇒ `POP_VERIFICATION_FAILED`.
-4. Verify `tct_for_peer` (the TCT B issued for A):
-   - Signature valid under B's AID public key.
-   - `subject` equals A's AID.
-   - `audience` equals A's AID.
-   - `expires_at` is in the future.
-   - `tct_for_peer.expires_at` ≤ B's Manifest `expires_at` — the
+4. Verify `tct` (the TCT B issued for A) per the verification order of
+   [RFC-AITP-0005 §7.2](RFC-AITP-0005-tct.md#72-verification-order):
+   - Parse the compact JWS strictly — exactly three non-empty
+     base64url segments (RFC-AITP-0001 §5.4.5).
+   - Header `typ` is exactly `aitp-tct+jwt`. Violation ⇒
+     `TOKEN_TYP_MISMATCH`.
+   - Header `alg` is the sole value derived from B's AID; any other
+     value, including `none`, ⇒ `TOKEN_ALG_MISMATCH`.
+   - JWS signature valid under B's AID public key.
+   - `ver` is `"aitp/0.2"`.
+   - `sub` equals A's AID.
+   - `aud` equals A's AID.
+   - `exp` is in the future.
+   - `cnf.jkt` equals the RFC 7638 thumbprint of the key encoded in
+     `sub` (RFC-AITP-0005 §3).
+   - `tct.exp` ≤ B's Manifest `expires_at` — the
      verifier-side Manifest-expiry bound from
-     [RFC-AITP-0005 §9.4](RFC-AITP-0005-tct.md#94-manifest-expiry-bound-conditional).
+     [RFC-AITP-0005 §10.4](RFC-AITP-0005-tct.md#104-manifest-expiry-bound-conditional).
      A has B's Manifest from round 1 (cached), so this conditional
      check is required at handshake time. Violation ⇒
      `TCT_EXPIRES_AFTER_MANIFEST`.
    - `grants` are a subset of A's `offered_capabilities`.
 5. **Verify peer-capability requirements.** A's own Manifest declares
    `required_peer_capabilities` (RFC-AITP-0003 §3.2). Every capability in
-   that list MUST appear in `tct_for_peer.grants` — i.e. B has granted A
+   that list MUST appear in the TCT's `grants` — i.e. B has granted A
    everything A required of its peer for this exchange. Any required
    capability missing ⇒ `INSUFFICIENT_GRANTS`. The converse check happens
    on B's side in §5.3 step 4.
-6. Store TCT_A (the TCT from B). Handshake is complete.
+6. Store TCT_A (the TCT from B) and, if present, its `grant_voucher`
+   string verbatim (same handling as §5.3 step 4). Handshake is
+   complete.
 
 ---
 
@@ -462,12 +481,14 @@ A MUST:
 | Envelope signature invalid after trust bootstrap (step §5.1 #7, §5.3 #1, §5.4 #1) | Either | `INVALID_SIGNATURE` |
 | PoP signature verification failed (step §5.3 #3, §5.4 #3) | Either | `POP_VERIFICATION_FAILED` |
 | `pop_nonce_echo` mismatch (step §5.2 #8, §5.3 #2, §5.4 #2) | Either | `NONCE_MISMATCH` |
-| Peer TCT `audience` does not match self AID | Either | `AUDIENCE_MISMATCH` |
+| Peer TCT header `typ` is not exactly `aitp-tct+jwt` (step §5.3 #4, §5.4 #4; RFC-AITP-0005 §7.2) | Either | `TOKEN_TYP_MISMATCH` |
+| Peer TCT header `alg` is not the sole AID-derived value, including `none` (step §5.3 #4, §5.4 #4; RFC-AITP-0001 §5.4.5) | Either | `TOKEN_ALG_MISMATCH` |
+| Peer TCT `aud` does not match self AID | Either | `AUDIENCE_MISMATCH` |
 | Peer TCT grants exceed peer's `offered_capabilities` | Either | `GRANT_OVERFLOW` |
 | Grant intersection is empty | Issuing peer | `POLICY_VIOLATION` |
 | Received TCT lacks a capability listed in own `required_peer_capabilities` | Either | `INSUFFICIENT_GRANTS` |
 | Peer TCT already expired | Either | `TCT_EXPIRED` |
-| Peer TCT `expires_at` exceeds issuer's Manifest `expires_at` (step §5.3 #4, §5.4 #4; RFC-AITP-0005 §9.4) | Either | `TCT_EXPIRES_AFTER_MANIFEST` |
+| Peer TCT `exp` exceeds issuer's Manifest `expires_at` (step §5.3 #4, §5.4 #4; RFC-AITP-0005 §10.4) | Either | `TCT_EXPIRES_AFTER_MANIFEST` |
 | Envelope replay detected | Either | `REPLAY_DETECTED` |
 | Envelope timestamp expired | Either | `TIMESTAMP_EXPIRED` |
 
@@ -484,13 +505,13 @@ The Mutual Handshake requires the following transient state, retained for at mos
 | Peer's inline Manifest | Both | Handshake complete or failure |
 | Own `pop_nonce` | Both | `pop_nonce_echo` verified in next message |
 | Peer's `pop_nonce` | Both | PoP signature computed and sent |
-| Own `tct_for_peer` (constructed, not yet confirmed) | Both | COMMIT_ACK verified |
+| Own issued TCT and grant voucher (constructed, not yet confirmed) | Both | COMMIT_ACK verified |
 
 After the handshake is complete:
 
 | State | Owner | Retained until |
 |---|---|---|
-| Peer's TCT (received) | Both | TCT `expires_at` or revocation |
+| Peer's TCT and grant voucher (received) | Both | TCT `exp` or revocation |
 | Peer's Manifest (cached) | Both | Manifest `expires_at` |
 
 Agents MUST NOT persist `pop_nonce` values across restarts. Restarting agents MUST re-initiate any interrupted handshake from scratch.
@@ -499,19 +520,19 @@ Agents MUST NOT persist `pop_nonce` values across restarts. Restarting agents MU
 
 ## 8. Handshake Renewal
 
-TCTs expire per `expires_at`. Peers MAY initiate a fresh Mutual Handshake before expiry to renew trust. There is no in-band renewal message in v0.1. Agents MUST NOT use an expired peer TCT. See [`docs/operational-guidance.md`](../docs/operational-guidance.md) for non-normative renewal patterns.
+TCTs expire per `exp`. Peers MAY initiate a fresh Mutual Handshake before expiry to renew trust. There is no in-band renewal message in v0.2. Agents MUST NOT use an expired peer TCT. See [`docs/operational-guidance.md`](../docs/operational-guidance.md) for non-normative renewal patterns.
 
 ### 8.1 Non-normative: shortened renewal extension
 
 Implementations MAY offer a shortened renewal endpoint as a non-normative
-extension. Shortened renewal is NOT part of v0.1 conformance and MUST be
+extension. Shortened renewal is NOT part of v0.2 conformance and MUST be
 gated behind an explicit feature or configuration opt-in. Peers MUST
 advertise support via the `extensions["rfc-aitp-0005.renew_uri"]`
 Manifest field (see [`registries/extension-keys.md`](../registries/extension-keys.md))
 so other implementations can discover it without assuming its presence.
 
 The path `/aitp/handshake/renew` is used in examples only. It is **NOT
-a reserved path** in core v0.1 — implementations MAY mount the
+a reserved path** in core v0.2 — implementations MAY mount the
 shortened-renewal endpoint at any path, host, or port that is reachable
 over HTTPS. Implementations offering shortened renewal MUST advertise
 the **actual concrete endpoint** they expose in
@@ -529,20 +550,23 @@ Wire format for the experimental shortened renewal:
 - Request body:
   ```json
   {
-    "current_tct": { "tct": { "...": "TctEnvelope" } },
+    "current_tct": "<compact JWS string: aitp-tct+jwt>",
     "pop_nonce": "<22-char unpadded base64url>",
     "pop_signature": "<86-char unpadded base64url, sign(holder_key, sha256(base64url_decode(pop_nonce)))>"
   }
   ```
-- Response: a `TctEnvelope` with a new `jti` and `expires_at ≤ issuer.manifest.expires_at`.
+- Response: a fresh TCT (compact JWS string, `typ` `aitp-tct+jwt`) with
+  a new `jti` and `exp ≤ issuer.manifest.expires_at` — accompanied, per
+  issuer policy, by a fresh companion grant voucher
+  (RFC-AITP-0005 §8.2).
 
 An expired TCT MUST NOT be used to bootstrap a shortened renewal — the
-issuer MUST verify `current_tct.expires_at > now` before issuing a
+issuer MUST verify `current_tct.exp > now` before issuing a
 replacement. The issuer MUST also re-evaluate its grant policy for the
 holder; shortened renewal is not a bypass for revocation, manifest
 rotation, or trust-anchor changes.
 
-v0.1 conformance testers MUST NOT require shortened renewal support and
+v0.2 conformance testers MUST NOT require shortened renewal support and
 MUST NOT fail implementations that only support full Mutual Handshake
 renewal. The eventual standardization of this extension is reserved as
 [RFC-AITP-0013 TCT Renewal Extension](RFC-AITP-0013-tct-renewal-extension.md) (Planned).
@@ -551,11 +575,11 @@ renewal. The eventual standardization of this extension is reserved as
 
 ## 9. Integration with Multi-Agent Sessions
 
-AITP v0.1 defines bilateral A2A trust only. Multi-agent systems MAY use the bilateral handshake between a coordinator and each participant, but v0.1 does NOT define participant-to-participant trust propagation, session-wide bundles, membership changes, or session-wide revocation. Session Trust Bundle is reserved for [RFC-AITP-0010](RFC-AITP-0010-session-trust-bundle.md).
+AITP v0.2 defines bilateral A2A trust only. Multi-agent systems MAY use the bilateral handshake between a coordinator and each participant, but v0.2 does NOT define participant-to-participant trust propagation, session-wide bundles, membership changes, or session-wide revocation. Session Trust Bundle is reserved for [RFC-AITP-0010](RFC-AITP-0010-session-trust-bundle.md).
 
 ---
 
-## 10. Transport in v0.1
+## 10. Transport in v0.2
 
 The Mutual Handshake is delivered as JSON envelopes over HTTPS (RFC-AITP-0001 §8). Each peer's `handshake_endpoint` (advertised in its Manifest) accepts POST requests carrying a single AITP envelope; responses are AITP envelopes carrying either the next handshake message or an `error` envelope.
 
@@ -583,8 +607,8 @@ The `handshake_endpoint` in the Manifest is a public-facing surface. Implementat
 
 ## 12. Non-Goals
 
-- **Multi-agent session bundles.** v0.1 is bilateral only. Participant-to-participant trust propagation, session-wide bundles, membership changes, and session-wide revocation are reserved for [RFC-AITP-0010](RFC-AITP-0010-session-trust-bundle.md).
-- **Full mesh trust without a coordinator.** v0.1 does not define a gossip or decentralized trust-propagation mechanism.
+- **Multi-agent session bundles.** v0.2 is bilateral only. Participant-to-participant trust propagation, session-wide bundles, membership changes, and session-wide revocation are reserved for [RFC-AITP-0010](RFC-AITP-0010-session-trust-bundle.md).
+- **Full mesh trust without a coordinator.** v0.2 does not define a gossip or decentralized trust-propagation mechanism.
 - **Continuous identity assurance.** Once a TCT is issued, AITP does not monitor whether the peer's identity remains valid. Renewal (§8) is the mechanism for re-verifying identity at TCT expiry.
 - **Revocation push.** JTI revocation is pull-based (RFC-AITP-0008). There is no push notification to a peer when a TCT is revoked mid-session.
 
@@ -596,6 +620,8 @@ The `handshake_endpoint` in the Manifest is a public-facing surface. Implementat
 - [RFC-AITP-0002 Identity](RFC-AITP-0002-identity.md)
 - [RFC-AITP-0003 Agent Manifest](RFC-AITP-0003-manifest.md)
 - [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md)
+- [RFC-AITP-0006 Single-Hop Delegation](RFC-AITP-0006-delegation.md)
 - [RFC-AITP-0009 Security](RFC-AITP-0009-security.md)
-- [RFC-AITP-0010 Session Trust Bundle](RFC-AITP-0010-session-trust-bundle.md) *(Draft, post-v0.1)*
+- [RFC-AITP-0010 Session Trust Bundle](RFC-AITP-0010-session-trust-bundle.md) *(Draft, post-v0.2)*
 - [RFC 2119 — Key words for use in RFCs](https://datatracker.ietf.org/doc/html/rfc2119)
+- [RFC 7515 — JSON Web Signature](https://datatracker.ietf.org/doc/html/rfc7515)

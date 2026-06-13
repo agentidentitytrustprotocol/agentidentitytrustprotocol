@@ -2,38 +2,43 @@
   "id": "del-001",
   "rfc": "RFC-AITP-0006",
   "status": "core",
-  "required_for_v0_1": true,
+  "required_for_v0_1": false,
+  "required_for_v0_2": true,
   "feature": null,
-  "description": "Single-hop delegation happy path. A peer-issued [read_data, write_data] to B (kat-keypair-001 → kat-keypair-002). B delegates [read_data] (a strict subset) to C (kat-keypair-003) with audience=A. A verifies the grant_proof signature against its own key, the scope subset, the audience, the expiry, and B's outer signature against B's Manifest key. All checks pass; A would mint a fresh peer-issued TCT for C carrying the delegated subset. (RFC-AITP-0006 §4.) The success counterpart to del-003-scope-exceeded.",
+  "description": "Single-hop delegation happy path (aitp/0.2 compact-JWS shape). A (kat-keypair-001) peer-issued a TCT and companion grant voucher to B (kat-keypair-002) with grants [read_data, write_data]. B delegates scope [read_data] (a strict subset) to C (kat-keypair-003) by minting a delegation JWS (typ aitp-delegation+jwt) with iss=B, sub=C, aud=A, cnf.jkt = C's RFC 7638 thumbprint, embedding A's grant voucher verbatim as the `voucher` claim. A verifies the outer JWS under B's Manifest key, the voucher under its own key (voucher.iss = A's AID, voucher.sub = outer iss = B), the audience, the expiry monotonicity (exp <= voucher.exp), and the scope subset (scope ⊆ voucher.grants). All checks pass; A would mint a fresh peer-issued TCT for C carrying the delegated subset. (RFC-AITP-0006 §4.) The success counterpart to del-003-scope-exceeded.",
   "tags": [
     "success",
     "delegation",
     "single-hop"
   ],
   "input": {
-    "delegation": {
-      "delegator": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
-      "delegatee": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
-      "issued_by": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-      "audience": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "delegation_token": "__JWS_DELEGATION__",
+    "delegation_token_claims": {
+      "ver": "aitp/0.2",
+      "iss": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+      "sub": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+      "aud": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
       "scope": [
         "read_data"
       ],
-      "expires_at": 1711903600,
-      "cnf": "dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
-      "grant_proof": {
-        "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
-        "subject": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-        "capabilities": [
+      "exp": 1711903600,
+      "cnf": {
+        "jkt": "LlsmkXmHJuXWkRZLv_FKl_mprfIV5aYVnXqCgsebsdU"
+      },
+      "voucher": "__JWS_GRANT_VOUCHER__",
+      "voucher_claims": {
+        "ver": "aitp/0.2",
+        "iss": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+        "sub": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+        "grants": [
           "read_data",
           "write_data"
         ],
-        "issued_at": 1711900000,
-        "expires_at": 1711903600,
-        "source_tct_jti": "550e8400-e29b-41d4-a716-446655440101",
-        "signature": "aWdslr-XjlPetBKvV7pN1tnVihEgR4bDm411wT59kjFHy3-iBiGjDPeoSg6eYcKL15o-6XbfYYfnS50p5ZbiDQ"
-      },
-      "signature": "hB7Jx2ZlUJXnODpYzYUCBIjhat6YXUawLKzwBzyKoXEgIo8F_hkNZkjK4BBcO4tgfnuy-j2aerfrh0KDKZOjDQ"
+        "iat": 1711900000,
+        "exp": 1711903600,
+        "src_jti": "550e8400-e29b-41d4-a716-446655440101"
+      }
     },
     "operation": "verify_delegation_token"
   },

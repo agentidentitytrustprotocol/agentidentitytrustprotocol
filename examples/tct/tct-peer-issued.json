@@ -1,19 +1,20 @@
 {
-  "tct": {
-    "version": "aitp/0.1",
+  "_comment": "Peer-issued TCT (RFC-AITP-0005). On the wire a v0.2 TCT is an opaque compact JWS string (header.payload.signature, typ 'aitp-tct+jwt'). The token below is a PLACEHOLDER: the header segment is real base64url of {\"alg\":\"EdDSA\",\"typ\":\"aitp-tct+jwt\"}, but the payload and signature segments are human-readable stand-ins and will fail cryptographic verification. _decoded_claims shows what the payload segment would decode to. For a real, verifiable token see schemas/conformance/known-answer/signed-examples/tct/.",
+  "tct_token": "eyJhbGciOiJFZERTQSIsInR5cCI6ImFpdHAtdGN0K2p3dCJ9.TCT_PAYLOAD_NOT_REAL_see_decoded_claims_placeholder.TCT_SIGNATURE_NOT_REAL_placeholder_AAAAAAAAAAAAAAAAAAAAAAAA",
+  "_decoded_claims": {
+    "ver": "aitp/0.2",
     "jti": "550e8400-e29b-41d4-a716-446655440101",
-    "issuer": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
-    "subject": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
-    "audience": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
-    "issued_at": 1711900250,
-    "expires_at": 1711903850,
+    "iss": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+    "sub": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+    "aud": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+    "iat": 1711900250,
+    "exp": 1711903850,
     "grants": [
       "macp.mode.task.v1",
       "macp.session.start"
     ],
-    "binding": {
-      "cnf": "agentA_pubkey_AID_v01_placeholder_AAAAAAAAA"
-    },
-    "signature": "sig_B_tct_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    "cnf": {
+      "jkt": "jkt_agentA_thumbprint_placeholder_AAAAAAAAA"
+    }
   }
 }

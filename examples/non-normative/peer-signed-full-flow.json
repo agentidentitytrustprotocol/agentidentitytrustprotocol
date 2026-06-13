@@ -1,5 +1,5 @@
 {
-  "_comment": "Full Mutual Handshake between Agent A (initiator) and Agent B (target). Four messages, two round trips. Both agents use OIDC identity from issuers that appear in each other's accepted_trust_anchors. Each agent self-issues a TCT for the other; there is no third-party verifier.",
+  "_comment": "Full Mutual Handshake between Agent A (initiator) and Agent B (target). Four messages, two round trips. Both agents use OIDC identity from issuers that appear in each other's accepted_trust_anchors. Each agent self-issues a TCT for the other as a compact JWS (typ 'aitp-tct+jwt'), minted alongside a companion grant voucher (typ 'aitp-grant+jwt') that enables later delegation (RFC-AITP-0005 §8, RFC-AITP-0006); there is no third-party verifier. All compact JWS strings here are PLACEHOLDERS: the header segments are real base64url, the payload and signature segments are human-readable stand-ins. The _decoded_tct_claims / _decoded_voucher_claims members are documentation companions showing what the placeholder payload segments would decode to — they are NOT part of the wire payload.",
   "preconditions": {
     "agent_a_aid": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
     "agent_b_aid": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
@@ -21,7 +21,7 @@
   "round_1": {
     "_comment": "Credential and nonce exchange. A sends MUTUAL_HELLO; B responds with MUTUAL_HELLO_ACK.",
     "message_1_mutual_hello": {
-      "version": "aitp/0.1",
+      "version": "aitp/0.2",
       "message_type": "mutual_hello",
       "message_id": "550e8400-e29b-41d4-a716-446655440010",
       "timestamp": 1711900100,
@@ -36,7 +36,7 @@
           "proof": "eyJhbGciOiJFZERTQSJ9.eyJpc3MiOiJodHRwczovL2F1dGguYW50aHJvcGljLmNvbSIsInN1YiI6ImNvb3JkaW5hdG9yLWFnZW50LTEifQ.placeholder_jwt_sig"
         },
         "manifest": {
-          "version": "aitp/0.1",
+          "version": "aitp/0.2",
           "aid": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
           "display_name": "CoordinatorAgent-1",
           "handshake_endpoint": "https://coordinator.agents.example.com/aitp/handshake",
@@ -73,7 +73,7 @@
     },
     "message_2_mutual_hello_ack": {
       "_comment": "B verifies A's manifest and identity, then responds with B's credentials, B's pop_nonce, and an echo of A's pop_nonce.",
-      "version": "aitp/0.1",
+      "version": "aitp/0.2",
       "message_type": "mutual_hello_ack",
       "message_id": "550e8400-e29b-41d4-a716-446655440011",
       "timestamp": 1711900150,
@@ -88,7 +88,7 @@
           "proof": "eyJhbGciOiJFZERTQSJ9.eyJpc3MiOiJodHRwczovL2F1dGgub3BlbmFpLmNvbSIsInN1YiI6Indvcmtlci1hZ2VudC03In0.placeholder_jwt_sig"
         },
         "manifest": {
-          "version": "aitp/0.1",
+          "version": "aitp/0.2",
           "aid": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
           "display_name": "WorkerAgent-7",
           "handshake_endpoint": "https://worker-7.agents.example.com/aitp/handshake",
@@ -124,10 +124,10 @@
     }
   },
   "round_2": {
-    "_comment": "TCT and PoP exchange. A sends MUTUAL_COMMIT containing the TCT for B and A's PoP. B responds with the TCT for A and B's PoP.",
+    "_comment": "TCT, grant voucher, and PoP exchange. A sends MUTUAL_COMMIT carrying the TCT and grant voucher for B plus A's PoP. B responds with the TCT and grant voucher for A plus B's PoP.",
     "message_3_mutual_commit": {
-      "_comment": "A has verified B's manifest and identity. A constructs TCT_B (grants B 'macp.mode.task.v1') and signs the PoP over B's nonce.",
-      "version": "aitp/0.1",
+      "_comment": "A has verified B's manifest and identity. A mints TCT_B (grants B 'macp.mode.task.v1') as a compact JWS, mints the companion grant voucher with the same iss/sub/grants/iat/exp and src_jti = TCT_B's jti, and signs the PoP over B's nonce.",
+      "version": "aitp/0.2",
       "message_type": "mutual_commit",
       "message_id": "550e8400-e29b-41d4-a716-446655440012",
       "timestamp": 1711900200,
@@ -135,23 +135,33 @@
         "agent_id": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA"
       },
       "payload": {
-        "tct_for_peer": {
-          "tct": {
-            "version": "aitp/0.1",
-            "jti": "550e8400-e29b-41d4-a716-446655440100",
-            "issuer": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
-            "subject": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
-            "audience": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
-            "issued_at": 1711900200,
-            "expires_at": 1711903800,
-            "grants": [
-              "macp.mode.task.v1"
-            ],
-            "binding": {
-              "cnf": "agentB_pubkey_AID_v01_placeholder_BBBBBBBBB"
-            },
-            "signature": "sig_A_tct_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        "tct": "eyJhbGciOiJFZERTQSIsInR5cCI6ImFpdHAtdGN0K2p3dCJ9.TCT_FOR_B_PAYLOAD_NOT_REAL_see_decoded_companion_placeholder.TCT_FOR_B_SIGNATURE_NOT_REAL_placeholder_AAAAAAAAAAAAAAAA",
+        "grant_voucher": "eyJhbGciOiJFZERTQSIsInR5cCI6ImFpdHAtZ3JhbnQrand0In0.VOUCHER_FOR_B_PAYLOAD_NOT_REAL_see_decoded_companion_placeholder.VOUCHER_FOR_B_SIGNATURE_NOT_REAL_placeholder_AAAAAAAAAAAA",
+        "_decoded_tct_claims": {
+          "ver": "aitp/0.2",
+          "jti": "550e8400-e29b-41d4-a716-446655440100",
+          "iss": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+          "sub": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+          "aud": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+          "iat": 1711900200,
+          "exp": 1711903800,
+          "grants": [
+            "macp.mode.task.v1"
+          ],
+          "cnf": {
+            "jkt": "jkt_agentB_thumbprint_placeholder_BBBBBBBBB"
           }
+        },
+        "_decoded_voucher_claims": {
+          "ver": "aitp/0.2",
+          "iss": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+          "sub": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+          "grants": [
+            "macp.mode.task.v1"
+          ],
+          "iat": 1711900200,
+          "exp": 1711903800,
+          "src_jti": "550e8400-e29b-41d4-a716-446655440100"
         },
         "pop_signature": "sig_A_pop_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         "pop_nonce_echo": "nonce_B_pop_v01_aaannn"
@@ -159,8 +169,8 @@
       "signature": "sig_A_envelope_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
     },
     "message_4_mutual_commit_ack": {
-      "_comment": "B has verified A's PoP and TCT_B. B constructs TCT_A (grants A 'macp.mode.task.v1' and 'read_data') and signs the PoP over A's nonce. Handshake complete.",
-      "version": "aitp/0.1",
+      "_comment": "B has verified A's PoP and TCT_B. B mints TCT_A (grants A 'macp.mode.task.v1' and 'read_data') as a compact JWS, mints the companion grant voucher with src_jti = TCT_A's jti, and signs the PoP over A's nonce. Handshake complete.",
+      "version": "aitp/0.2",
       "message_type": "mutual_commit_ack",
       "message_id": "550e8400-e29b-41d4-a716-446655440013",
       "timestamp": 1711900250,
@@ -168,24 +178,35 @@
         "agent_id": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB"
       },
       "payload": {
-        "tct_for_peer": {
-          "tct": {
-            "version": "aitp/0.1",
-            "jti": "550e8400-e29b-41d4-a716-446655440101",
-            "issuer": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
-            "subject": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
-            "audience": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
-            "issued_at": 1711900250,
-            "expires_at": 1711903850,
-            "grants": [
-              "macp.mode.task.v1",
-              "read_data"
-            ],
-            "binding": {
-              "cnf": "agentA_pubkey_AID_v01_placeholder_AAAAAAAAA"
-            },
-            "signature": "sig_B_tct_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        "tct": "eyJhbGciOiJFZERTQSIsInR5cCI6ImFpdHAtdGN0K2p3dCJ9.TCT_FOR_A_PAYLOAD_NOT_REAL_see_decoded_companion_placeholder.TCT_FOR_A_SIGNATURE_NOT_REAL_placeholder_AAAAAAAAAAAAAAAA",
+        "grant_voucher": "eyJhbGciOiJFZERTQSIsInR5cCI6ImFpdHAtZ3JhbnQrand0In0.VOUCHER_FOR_A_PAYLOAD_NOT_REAL_see_decoded_companion_placeholder.VOUCHER_FOR_A_SIGNATURE_NOT_REAL_placeholder_AAAAAAAAAAAA",
+        "_decoded_tct_claims": {
+          "ver": "aitp/0.2",
+          "jti": "550e8400-e29b-41d4-a716-446655440101",
+          "iss": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+          "sub": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+          "aud": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+          "iat": 1711900250,
+          "exp": 1711903850,
+          "grants": [
+            "macp.mode.task.v1",
+            "read_data"
+          ],
+          "cnf": {
+            "jkt": "jkt_agentA_thumbprint_placeholder_AAAAAAAAA"
           }
+        },
+        "_decoded_voucher_claims": {
+          "ver": "aitp/0.2",
+          "iss": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+          "sub": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+          "grants": [
+            "macp.mode.task.v1",
+            "read_data"
+          ],
+          "iat": 1711900250,
+          "exp": 1711903850,
+          "src_jti": "550e8400-e29b-41d4-a716-446655440101"
         },
         "pop_signature": "sig_B_pop_v01_placeholder_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
         "pop_nonce_echo": "nonce_A_pop_v01_aaannn"
@@ -194,27 +215,29 @@
     }
   },
   "outcome": {
-    "_comment": "Handshake complete. Each agent holds a peer-issued TCT.",
+    "_comment": "Handshake complete. Each agent holds a peer-issued TCT (compact JWS) plus its companion grant voucher, which it can later embed verbatim in a delegation token (RFC-AITP-0006).",
     "agent_a_holds": {
-      "tct_issuer": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
-      "tct_subject": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
-      "tct_audience": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+      "tct_iss": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+      "tct_sub": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+      "tct_aud": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
       "grants": [
         "macp.mode.task.v1",
         "read_data"
       ],
-      "expires_at": 1711903850,
-      "verify_sig_against": "B's AID public key (from B's manifest)"
+      "exp": 1711903850,
+      "grant_voucher_src_jti": "550e8400-e29b-41d4-a716-446655440101",
+      "verify_sig_against": "B's AID public key (from B's manifest), as a JWS over the transmitted bytes"
     },
     "agent_b_holds": {
-      "tct_issuer": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
-      "tct_subject": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
-      "tct_audience": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+      "tct_iss": "aid:pubkey:agentA_pubkey_AID_v01_placeholder_AAAAAAAAA",
+      "tct_sub": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
+      "tct_aud": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
       "grants": [
         "macp.mode.task.v1"
       ],
-      "expires_at": 1711903800,
-      "verify_sig_against": "A's AID public key (from A's manifest)"
+      "exp": 1711903800,
+      "grant_voucher_src_jti": "550e8400-e29b-41d4-a716-446655440100",
+      "verify_sig_against": "A's AID public key (from A's manifest), as a JWS over the transmitted bytes"
     }
   }
 }

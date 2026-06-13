@@ -3,8 +3,10 @@
   "rfc": "RFC-AITP-0010",
   "status": "draft",
   "required_for_v0_1": false,
+  "required_for_v0_2": false,
   "feature": "experimental-session-bundle",
-  "description": "Session Trust Bundle happy path (RFC-AITP-0010 §5). Reuses kat-session-bundle-001 verbatim. Coordinator (kat-keypair-001) has run bilateral Mutual Handshakes with two participants (kat-keypair-002 = B, kat-keypair-003 = C) and minted a peer-issued TCT for each. The bundle packages both TCTs and is signed by the coordinator. The receiving participant (B in this fixture) verifies: bundle version, expiry-window invariant (bundle.expires_at = min(participants[*].tct.expires_at)), participants non-empty, coordinator key resolution, bundle signature, every embedded TCT (issuer = coordinator, audience = participant.aid), and self-membership. All checks pass; B accepts the bundle and the membership it asserts.",
+  "$comment": "Participant TCT claims-sibling convention: each participants[i].tct is a __JWS_TCT__ compact-JWS placeholder with a `tct_claims` sibling in the SAME participant object carrying the decoded claims to mint. The minter resolves each tct, strips every tct_claims companion, then signs the bundle (__VALID_A_SIG__: coordinator kat-keypair-001 over the JCS-canonical session_bundle bytes excluding nothing — the minted TCT strings are covered verbatim).",
+  "description": "Session Trust Bundle happy path (RFC-AITP-0010 §5, aitp/0.2 shape; reuses kat-session-bundle-001 as re-specified for aitp/0.2). Coordinator (kat-keypair-001) has run bilateral Mutual Handshakes with two participants (kat-keypair-002 = B, kat-keypair-003 = C) and minted a peer-issued TCT (compact JWS, typ aitp-tct+jwt) for each. The bundle embeds both TCT strings verbatim and is JCS-signed by the coordinator. The receiving participant (B in this fixture) verifies: bundle version (aitp/0.2), expiry, expiry-window invariant (bundle.expires_at = min of the embedded TCTs' exp claims), participants non-empty, coordinator key resolution, bundle signature, every embedded TCT (strict JWS parse, typ, AID-pinned alg, signature; iss claim = coordinator, aud claim = participant.aid), and self-membership. All checks pass; B accepts the bundle and the membership it asserts.",
   "tags": [
     "success",
     "session-bundle",
@@ -15,7 +17,7 @@
     "now": 1711900100,
     "session_bundle": {
       "session_bundle": {
-        "version": "aitp/0.1",
+        "version": "aitp/0.2",
         "session_id": "550e8400-e29b-41d4-a716-446655442010",
         "coordinator": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
         "issued_at": 1711900000,
@@ -23,50 +25,50 @@
         "participants": [
           {
             "aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-            "tct": {
-              "version": "aitp/0.1",
+            "tct": "__JWS_TCT__",
+            "tct_claims": {
+              "ver": "aitp/0.2",
               "jti": "550e8400-e29b-41d4-a716-446655442001",
-              "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
-              "subject": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-              "audience": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
-              "issued_at": 1711900000,
-              "expires_at": 1711903600,
+              "iss": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+              "sub": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "aud": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+              "iat": 1711900000,
+              "exp": 1711903600,
               "grants": [
                 "macp.mode.task.v1"
               ],
-              "binding": {
-                "cnf": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
-              },
-              "signature": "dRaMvsneooEBb1BrVBvk2ObRANZr_1Q8ajCOzlcBapN86yIwSHXf9uc5PasGHeb22sf7nUC-s_fg7U_hVR34Aw"
+              "cnf": {
+                "jkt": "1IG2tMH7J2wbJZnOf8LJzQitKf7LMvoAElsuDMVM54Y"
+              }
             }
           },
           {
             "aid": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
-            "tct": {
-              "version": "aitp/0.1",
+            "tct": "__JWS_TCT__",
+            "tct_claims": {
+              "ver": "aitp/0.2",
               "jti": "550e8400-e29b-41d4-a716-446655442002",
-              "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
-              "subject": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
-              "audience": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
-              "issued_at": 1711900000,
-              "expires_at": 1711905600,
+              "iss": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+              "sub": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+              "aud": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+              "iat": 1711900000,
+              "exp": 1711905600,
               "grants": [
                 "macp.mode.task.v1"
               ],
-              "binding": {
-                "cnf": "dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU"
-              },
-              "signature": "gPVK5hq2JCHXP8RAYh1xDbN2qAzR1EfMNpGUJZYbixVohPzK5bWE519ra9WWxXLawAbp9lP-uKgJL9d5uWIBCg"
+              "cnf": {
+                "jkt": "LlsmkXmHJuXWkRZLv_FKl_mprfIV5aYVnXqCgsebsdU"
+              }
             }
           }
         ]
       },
-      "signature": "7jbZEE8jYKzmBHHgAcYbmW4SoJFnlZ-Gj22qaE_9T1K-LOpB0nqgz_35SAc9UHhccLnePf_szOdkbGOmVdEkAQ"
+      "signature": "__VALID_A_SIG__"
     },
     "operation": "verify_session_bundle"
   },
   "expected": {
     "outcome": "success",
-    "rationale": "Bundle signature verifies under coordinator's key (kat-session-bundle-001 pinned); both embedded TCTs verify under coordinator's key; receiver's AID is in participants; expires_at = 1711903600 = min(1711903600, 1711905600)."
+    "rationale": "Bundle signature verifies under the coordinator's key; both embedded TCT compact JWS strings verify under the coordinator's key with iss = coordinator and aud = participant aid; receiver's AID is in participants; expires_at = 1711903600 = min(1711903600, 1711905600)."
   }
 }

@@ -2,8 +2,8 @@
 # Trust Context Token (TCT)
 
 **Document:** RFC-AITP-0005
-**Version:** 0.1.0-rc.3
-**Status:** Release Candidate
+**Version:** 0.2.0-draft
+**Status:** Community Standards Track (v0.2 Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0004 Mutual Handshake](RFC-AITP-0004-mutual-handshake.md)
 
 ---
@@ -14,59 +14,94 @@ The Trust Context Token (TCT) is the canonical output of AITP. It is a signed, p
 
 A TCT answers exactly one question: *what is this peer allowed to do here?*
 
+In `aitp/0.2` the TCT is a **compact JWS** ([RFC 7515](https://datatracker.ietf.org/doc/html/rfc7515)) under the Compact JWS profile of [RFC-AITP-0001 §5.4.5](RFC-AITP-0001-core.md#545-compact-jws-profile-portable-trust-artifacts). Its claims map onto registered JWT claims, so any mature JOSE library can verify a TCT given only the issuer's public key — no AITP stack, no canonicalization, no byte reconstruction. This RFC also defines the **grant voucher** (§8), a companion JWS minted alongside the TCT that makes delegation (RFC-AITP-0006) verifiable without reconstructing TCT bytes.
+
 ---
 
-## 1. Schema
+## 1. Serialization
+
+A TCT is a compact JWS string:
+
+```
+<base64url(header)>.<base64url(claims)>.<base64url(signature)>
+```
+
+with protected header (exactly these two parameters — RFC-AITP-0001 §5.4.5):
+
+```json
+{ "alg": "EdDSA", "typ": "aitp-tct+jwt" }
+```
+
+`alg` is the sole value derived from the issuer's AID (`EdDSA` for Ed25519 AIDs, `ES256` for P-256 AIDs — RFC-AITP-0001 §5.4.5), and decoded claims:
 
 ```json
 {
-  "tct": {
-    "version": "aitp/0.1",
-    "jti": "<uuid-v4>",
-    "issuer": "aid:pubkey:<issuing-peer-base64url>",
-    "subject": "aid:pubkey:<subject-peer-base64url>",
-    "audience": "aid:pubkey:<subject-peer-base64url>",
-    "issued_at": 1711900000,
-    "expires_at": 1711903600,
-    "grants": [
-      "macp.mode.task.v1",
-      "read_data"
-    ],
-    "binding": {
-      "cnf": "<subject-peer-public-key-base64url>"
-    },
-    "signature": "<base64url>"
-  }
+  "ver": "aitp/0.2",
+  "jti": "<uuid-v4>",
+  "iss": "aid:pubkey:ed25519:<issuing-peer-key>",
+  "sub": "aid:pubkey:ed25519:<subject-peer-key>",
+  "aud": "aid:pubkey:ed25519:<subject-peer-key>",
+  "iat": 1711900000,
+  "exp": 1711903600,
+  "grants": [
+    "macp.mode.task.v1",
+    "read_data"
+  ],
+  "cnf": { "jkt": "<RFC 7638 thumbprint of subject key>" }
 }
 ```
 
-The canonical schema is [`schemas/json/aitp-tct.schema.json`](../schemas/json/aitp-tct.schema.json).
+The signature covers the exact transmitted bytes. Verifiers MUST NOT re-serialize or canonicalize any part of the token.
+
+The canonical schema for the decoded claims object is [`schemas/json/aitp-tct.schema.json`](../schemas/json/aitp-tct.schema.json). On the wire — in handshake payloads, session bundles, HTTP headers — the TCT is always the opaque compact string.
 
 ---
 
-## 2. Required Fields
+## 2. Claims
 
-| Field | Type | Description |
+| Claim | Type | Description |
 |---|---|---|
-| `version` | string | MUST be `"aitp/0.1"` for this RFC. |
-| `jti` | string | UUID v4. Unique token ID for revocation. |
-| `issuer` | string | AID of the issuing peer. |
-| `subject` | string | AID of the agent this TCT was issued for (the subject peer). |
-| `audience` | string | AID of the intended consuming peer. MUST equal the subject's AID. |
-| `issued_at` | integer | Unix timestamp of issuance. |
-| `expires_at` | integer | Unix timestamp of expiry. |
-| `grants` | array of string | Capability strings the subject is granted. |
-| `signature` | string | base64url signature by the issuing peer. |
+| `ver` | string | MUST be `"aitp/0.2"` for this RFC. Private claim; see RFC-AITP-0001 §5.4.5. |
+| `jti` | string | UUID v4. Unique token ID; the revocation handle (RFC-AITP-0008). |
+| `iss` | string | AID of the issuing peer. |
+| `sub` | string | AID of the agent this TCT was issued for (the subject peer). |
+| `aud` | string | AID of the intended consuming peer. MUST equal `sub`. |
+| `iat` | integer | Unix timestamp of issuance (seconds). |
+| `exp` | integer | Unix timestamp of expiry (seconds). |
+| `grants` | array of string | Capability strings the subject is granted. MUST be non-empty. Private claim. |
+| `cnf` | object | RFC 7800 confirmation claim, `{"jkt": …}` form only (§3). |
+| `ext` | object | OPTIONAL extensions slot (RFC-AITP-0012). Unknown keys inside `ext` MUST be ignored; unknown claims outside it MUST be rejected. |
 
-## 3. Required PoP Binding (v0.1 peer-issued TCT profile)
+`jti`, `iss`, `sub`, `aud`, `iat`, `exp`, and `cnf` carry their registered [RFC 7519](https://datatracker.ietf.org/doc/html/rfc7519) / [RFC 7800](https://datatracker.ietf.org/doc/html/rfc7800) semantics. `ver`, `grants`, and `ext` are AITP private claims.
 
-| Field | Type | Description |
+### 2.1 Mapping from the v0.1 TCT
+
+For implementers migrating from `aitp/0.1`:
+
+| v0.1 field | v0.2 claim |
+|---|---|
+| `version: "aitp/0.1"` | `ver: "aitp/0.2"` |
+| `jti` | `jti` (unchanged; still the revocation handle) |
+| `issuer` | `iss` |
+| `subject` | `sub` |
+| `audience` | `aud` (the `audience == subject` invariant carries over) |
+| `issued_at` / `expires_at` | `iat` / `exp` |
+| `grants` | `grants` |
+| `binding.cnf` (raw public key) | `cnf: {"jkt": …}` (§3) |
+| `signature` (embedded, over JCS bytes) | the JWS signature segment (over transmitted bytes) |
+| `extensions` | `ext` |
+
+---
+
+## 3. Confirmation Claim (`cnf`)
+
+| Claim | Type | Description |
 |---|---|---|
-| `binding.cnf` | string | Subject's public key, encoded as the same 43-char unpadded base64url AID-identifier form defined in RFC-AITP-0001 §5.3. Used for proof-of-possession. |
+| `cnf.jkt` | string | RFC 7638 JWK thumbprint of the subject's public key, base64url-unpadded (43 chars). Used for proof-of-possession. |
 
-Every v0.1 peer-issued TCT MUST include `binding.cnf`. There is no bearer-TCT profile in v0.1. `binding.cnf` is what distinguishes a peer-issued TCT from a credential that can be freely transferred — it binds the grant to the subject's live private key and enables downstream PoP verification by any consumer without replaying the handshake.
+Every v0.2 peer-issued TCT MUST include `cnf`. There is no bearer-TCT profile. `cnf` is what distinguishes a peer-issued TCT from a credential that can be freely transferred — it binds the grant to the subject's live private key and enables downstream PoP verification by any consumer without replaying the handshake.
 
-`binding.cnf` MUST equal the AID-identifier component of the TCT's `subject` field (i.e. the bytes after `aid:pubkey:`). Issuers MUST NOT issue TCTs where `cnf` and `subject` reference different keys, and consumers MUST reject such TCTs.
+`cnf.jkt` MUST equal the RFC 7638 thumbprint of the public key encoded in the TCT's `sub` AID (RFC-AITP-0001 §5.4.4). Issuers MUST NOT issue TCTs where `cnf.jkt` and `sub` reference different keys, and consumers MUST reject such TCTs. Because the subject AID itself encodes the key, the verifier derives the *expected* thumbprint from `sub` alone — `cnf.jkt` is deliberately redundant so that JOSE-generic verifiers (which understand `cnf` but not AIDs) can still perform PoP.
 
 ---
 
@@ -87,7 +122,7 @@ Grants SHOULD follow a dot-namespaced format: `<namespace>.<resource>.<action>`.
 
 - Grants are **additive** — the subject has every capability listed.
 - Grants have **no implicit hierarchy** — `read_data` does not imply `write_data`.
-- Grants are **flat** in v0.1 — no constraints or conditions inside a grant string.
+- Grants are **flat** in v0.2 — no constraints or conditions inside a grant string.
 - Grants MUST NOT contain whitespace.
 
 ### 4.2.1 Capability ownership
@@ -110,27 +145,27 @@ The issuing peer MUST NOT grant capabilities the subject did not request, MUST N
 
 ## 5. Audience
 
-The `audience` field identifies which peer this TCT is valid for.
+The `aud` claim identifies which peer this TCT is valid for.
 
 ### 5.1 Format
 
-`audience` MUST be the subject peer's AID:
+`aud` MUST be the subject peer's AID:
 
 ```
 aid:<method>:<identifier>
 ```
 
-Wildcard audiences (`"*"`) are NOT permitted in v0.1. Every TCT is bound to exactly one peer.
+Wildcard audiences (`"*"`) are NOT permitted. Every TCT is bound to exactly one peer. `aud` is a single string, never an array.
 
 ### 5.2 Audience validation
 
-A peer consuming a TCT MUST verify that `audience` matches its own AID. TCTs with a mismatched audience MUST be rejected with `AUDIENCE_MISMATCH`.
+A peer consuming a TCT MUST verify that `aud` matches its own AID. TCTs with a mismatched audience MUST be rejected with `AUDIENCE_MISMATCH`.
 
 ---
 
 ## 6. Binding (Proof of Possession)
 
-`binding.cnf` is REQUIRED on every v0.1 peer-issued TCT (RFC-AITP-0004 §4.4). It carries the subject's public key so any peer can challenge the holder for proof-of-possession.
+`cnf` is REQUIRED on every v0.2 peer-issued TCT (RFC-AITP-0004 §4.4). It binds the token to the subject's key so any peer can challenge the holder for proof-of-possession.
 
 Within the Mutual Handshake itself, PoP is **mandatory** and is exchanged via the `pop_signature` / `pop_nonce` fields of `MUTUAL_COMMIT` and `MUTUAL_COMMIT_ACK`.
 
@@ -139,14 +174,14 @@ Within the Mutual Handshake itself, PoP is **mandatory** and is exchanged via th
 - Consumers **MUST** verify PoP for any grant that the issuing peer's policy marks as requiring it.
 - Consumers **SHOULD** verify PoP for all grants by default, unless the deployment environment provides equivalent channel binding (e.g. mTLS with bound client certificates, an authenticated message bus where the underlying channel already proves possession of the AID's key).
 
-The mechanism by which an issuing peer marks per-grant PoP requirements is **deployment-defined in v0.1**: it MAY be encoded in the issuing peer's `offered_capabilities` namespace (e.g. by suffix convention), kept in a side channel (a policy document at a well-known URL), or distributed out-of-band. A normative marking mechanism is reserved for a future RFC.
+The mechanism by which an issuing peer marks per-grant PoP requirements is **deployment-defined in v0.2**: it MAY be encoded in the issuing peer's `offered_capabilities` namespace (e.g. by suffix convention), kept in a side channel (a policy document at a well-known URL), or distributed out-of-band. A normative marking mechanism is reserved for a future RFC.
 
-**RECOMMENDED convention for v0.1.** Until a normative mechanism is standardized, implementations SHOULD use the `#pop_required` suffix to signal a PoP requirement on a grant: `<capability_identifier>#pop_required`. A consumer that recognizes this suffix MUST:
+**RECOMMENDED convention.** Until a normative mechanism is standardized, implementations SHOULD use the `#pop_required` suffix to signal a PoP requirement on a grant: `<capability_identifier>#pop_required`. A consumer that recognizes this suffix MUST:
 
 1. Issue a `pop_challenge` before authorizing invocation of the marked grant.
 2. Reject the invocation if no valid `pop_response` is received within the challenge's freshness window.
 
-The `tct-007` conformance fixture uses `macp.mode.task.v1#pop_required` to exercise this convention. Deployments using a different marking scheme (`.pop_required`, `.requires_pop`, an out-of-band policy document, etc.) remain conformant for v0.1, provided both peers agree on the scheme out-of-band; the suffix above is RECOMMENDED specifically so that implementations with no prior agreement still interoperate on PoP-marked grants.
+The `tct-007` conformance fixture uses `macp.mode.task.v1#pop_required` to exercise this convention. Deployments using a different marking scheme (`.pop_required`, `.requires_pop`, an out-of-band policy document, etc.) remain conformant, provided both peers agree on the scheme out-of-band; the suffix above is RECOMMENDED specifically so that implementations with no prior agreement still interoperate on PoP-marked grants.
 
 Implementations that omit downstream PoP for non-marked grants MUST document that posture and MUST NOT claim conformance for environments that lack equivalent channel binding.
 
@@ -158,7 +193,7 @@ The downstream exchange is two messages, both wrapped in the standard envelope (
 
 ```json
 {
-  "version": "aitp/0.1",
+  "version": "aitp/0.2",
   "message_type": "pop_challenge",
   "message_id": "<uuid-v4>",
   "timestamp": <unix-seconds>,
@@ -177,7 +212,7 @@ The `tct_jti` field disambiguates which TCT the challenge refers to (a holder ma
 
 ```json
 {
-  "version": "aitp/0.1",
+  "version": "aitp/0.2",
   "message_type": "pop_response",
   "message_id": "<uuid-v4>",
   "timestamp": <unix-seconds>,
@@ -199,16 +234,16 @@ The consuming peer MUST:
 
 1. Verify the response envelope signature.
 2. Verify `nonce_echo` matches the nonce sent in the challenge.
-3. Verify `pop_signature` against `binding.cnf` from the TCT identified by `tct_jti`:
-   `verify(binding.cnf, sha256(base64url_decode(nonce)), pop_signature)`.
+3. Verify `pop_signature` against the subject's public key — the key encoded in the TCT's `sub` AID:
+   `verify(sub_public_key, sha256(base64url_decode(nonce)), pop_signature)`.
    The hash input MUST be the raw decoded bytes of the challenge nonce, not the base64url string.
-4. Confirm `binding.cnf` corresponds to the public key encoded in the TCT's `subject` AID.
+4. Confirm `cnf.jkt` equals the RFC 7638 thumbprint of that same key (§3).
 
 A failure at any step MUST return `POP_RESPONSE_INVALID`. A malformed or stale challenge MUST return `POP_CHALLENGE_INVALID`. Replay protection on `pop_challenge` follows RFC-AITP-0001 §5.5; nonces from an expired challenge MUST NOT be accepted.
 
-> **Conformance note.** An AITP v0.1 implementation MUST implement the PoP exchange mechanics — it MUST be capable of issuing `pop_challenge` envelopes, producing `pop_response` envelopes, and verifying both ends. Whether PoP is *enforced* for any specific grant depends on the issuing peer's policy annotation for that grant (the deployment-defined marking mechanism described in §6). Implementations MUST expose a configuration surface to enable PoP enforcement **per grant**, so that the issuing peer's policy annotations can be honored without code changes. **An implementation that silently skips PoP regardless of the issuing peer's policy — including for grants the issuer has marked as requiring PoP — is non-conformant.** This is true even if the deployment claims equivalent channel binding: equivalent channel binding may justify omitting PoP for non-marked grants (the SHOULD in §6 above), but a marked-by-issuer requirement is a MUST per §6 and cannot be silently dropped at the consumer side.
+> **Conformance note.** An AITP v0.2 implementation MUST implement the PoP exchange mechanics — it MUST be capable of issuing `pop_challenge` envelopes, producing `pop_response` envelopes, and verifying both ends. Whether PoP is *enforced* for any specific grant depends on the issuing peer's policy annotation for that grant (the deployment-defined marking mechanism described in §6). Implementations MUST expose a configuration surface to enable PoP enforcement **per grant**, so that the issuing peer's policy annotations can be honored without code changes. **An implementation that silently skips PoP regardless of the issuing peer's policy — including for grants the issuer has marked as requiring PoP — is non-conformant.** This is true even if the deployment claims equivalent channel binding: equivalent channel binding may justify omitting PoP for non-marked grants (the SHOULD in §6 above), but a marked-by-issuer requirement is a MUST per §6 and cannot be silently dropped at the consumer side.
 >
-> Implementations MUST also document their default PoP enforcement posture (enforce-for-marked-only, enforce-for-all, mTLS-equivalent-channel-binding, etc.) so operators can audit the configuration against their threat model. Claiming AITP v0.1 conformance while silently skipping PoP for grants the issuing peer has marked as requiring it is non-conformant — the implementation has the capability but is operating outside the MUST baseline of §6.
+> Implementations MUST also document their default PoP enforcement posture (enforce-for-marked-only, enforce-for-all, mTLS-equivalent-channel-binding, etc.) so operators can audit the configuration against their threat model.
 >
 > The conformance fixture [`tct-006-pop-challenge-response.json`](../schemas/conformance/tct-006-pop-challenge-response.json) verifies the implementation can produce and verify a PoP exchange end-to-end. The fixture [`tct-007-pop-enforcement-required.json`](../schemas/conformance/tct-007-pop-enforcement-required.json) verifies that a grant marked as requiring PoP cannot be consumed without a valid `pop_response` — implementations that allow capability invocation against a PoP-required grant in the absence of a valid response MUST fail this fixture.
 
@@ -224,18 +259,33 @@ This RFC defines the message types and their payloads; transport binding is depl
 
 ---
 
-## 7. TCT Signature
+## 7. TCT Signature and Verification
 
 ### 7.1 What is signed
 
+The JWS signing input is the transmitted bytes, per RFC 7515:
+
 ```
-sig_input = sha256(canonical_json(tct_without_signature))
-signature = base64url(sign(issuer_private_key, sig_input))
+signing_input = ASCII(base64url(header) || "." || base64url(claims))
+signature     = base64url(sign(issuer_private_key, signing_input))
 ```
 
-Canonical JSON MUST be produced per [RFC 8785 (JCS)](https://datatracker.ietf.org/doc/html/rfc8785). See [RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature) for the unified canonicalization and base64url encoding rules. A worked example (`kat-tct-001`) showing the canonical bytes and SHA-256 digest of a fixed TCT body lives at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json); implementations MUST reproduce it byte-for-byte.
+(For `EdDSA` the signature is Ed25519 over the signing input; for `ES256` it is ECDSA P-256/SHA-256 with the JOSE raw `R || S` encoding — RFC-AITP-0001 §5.4.5.)
 
-### 7.2 Issuer key resolution
+There is no canonicalization step. The bytes the issuer transmitted are the bytes the verifier checks. Pinned (fixed seed → exact compact JWS string) vectors live under [`schemas/conformance/known-answer/signed-examples/`](../schemas/conformance/known-answer/signed-examples/); implementations MUST reproduce them byte-for-byte, and any off-the-shelf JOSE tool given the issuer public key MUST verify them.
+
+### 7.2 Verification order
+
+A TCT verifier MUST, in order:
+
+1. **Parse strictly** — exactly three non-empty base64url segments (RFC-AITP-0001 §5.4.5 strict-parsing rules).
+2. **Enforce `typ`** — header `typ` MUST be exactly `aitp-tct+jwt`; otherwise reject with `TOKEN_TYP_MISMATCH`.
+3. **Pin `alg`** — derive the sole acceptable `alg` from the issuer's AID (`iss` claim) and reject any other header value, including `none`, with `TOKEN_ALG_MISMATCH`.
+4. **Verify the signature** against the issuer's public key.
+5. **Check claims** — `ver` known; `aud` == own AID; `exp` in the future; `cnf.jkt` matches `sub` (§3); grants non-empty.
+6. **Check revocation** — look up `jti` against the issuer's deny list (RFC-AITP-0008), only after all signature checks (RFC-AITP-0008 §3.3).
+
+### 7.3 Issuer key resolution
 
 The issuer's public key is resolved from the issuer's Agent Manifest (RFC-AITP-0003). A peer that has cached the issuer's Manifest does not need additional configuration to verify peer-issued TCTs.
 
@@ -265,7 +315,59 @@ If a peer-issued TCT cannot be traced to an issuer whose identity sits behind a 
 
 ---
 
-## 8. Lifecycle
+## 8. Grant Voucher
+
+The grant voucher is a compact JWS minted by the TCT issuer **at TCT issuance time**, alongside the TCT, and delivered in the same `MUTUAL_COMMIT` / `MUTUAL_COMMIT_ACK` payload (RFC-AITP-0004 §4). It exists for exactly one purpose: to let the subject later delegate (RFC-AITP-0006) without anyone reconstructing TCT bytes. It replaces the v0.1 `grant_proof` mechanism entirely.
+
+### 8.1 Serialization
+
+Protected header (exactly two parameters):
+
+```json
+{ "alg": "<derived from issuer AID>", "typ": "aitp-grant+jwt" }
+```
+
+Decoded claims:
+
+```json
+{
+  "ver": "aitp/0.2",
+  "iss": "aid:pubkey:ed25519:<TCT-issuer-key>",
+  "sub": "aid:pubkey:ed25519:<TCT-subject-key>",
+  "grants": ["macp.mode.task.v1", "read_data"],
+  "iat": 1711900000,
+  "exp": 1711903600,
+  "src_jti": "<jti of the companion TCT>"
+}
+```
+
+| Claim | Type | Description |
+|---|---|---|
+| `ver` | string | MUST be `"aitp/0.2"`. |
+| `iss` | string | The TCT issuer's AID. The voucher is signed by this key. |
+| `sub` | string | The TCT subject's AID — the peer entitled to delegate against this voucher. |
+| `grants` | array of string | MUST equal the companion TCT's `grants`. Non-empty. |
+| `iat` / `exp` | integer | MUST equal the companion TCT's `iat` / `exp`. |
+| `src_jti` | string | The companion TCT's `jti`. Revocation rides on this: revoking the TCT kills every voucher and delegation derived from it (RFC-AITP-0008). |
+| `ext` | object | OPTIONAL, same semantics as the TCT `ext` claim. |
+
+The voucher has no `jti` and no independent revocation handle — its lifecycle is strictly derived from the companion TCT via `src_jti`. It has no `cnf`: it is not presented under PoP by itself, but embedded verbatim inside a delegation token whose outer signature binds it (RFC-AITP-0006).
+
+The canonical schema for the decoded claims is [`schemas/json/aitp-grant-voucher.schema.json`](../schemas/json/aitp-grant-voucher.schema.json).
+
+### 8.2 Issuance rules
+
+- The issuer MUST mint the voucher with the same `iss`, `sub`, `grants`, `iat`, and `exp` as the companion TCT, and `src_jti` equal to the TCT's `jti`.
+- The voucher MUST be delivered alongside the TCT in the handshake commit payload (RFC-AITP-0004 §4). An issuer MAY decline to mint a voucher when its policy forbids the subject from delegating; the handshake then carries only the TCT, and the subject cannot delegate.
+- Voucher verification (by the issuer itself, during delegation verification) is defined in RFC-AITP-0006 §4.
+
+### 8.3 Privacy note
+
+The voucher carries the companion TCT's complete `grants` list. When the subject delegates, the delegatee (and any verifier of the delegation token) therefore sees the subject's full capability profile from that issuer, not just the delegated subset. This is an *honest* restatement of a property v0.1 already had — the v0.1 `grant_proof` claimed minimization but reconstruction forced `grant_proof.capabilities` to equal the full grant list. A future extension may introduce selective disclosure (SD-JWT-style) vouchers; the extension point is reserved in RFC-AITP-0012.
+
+---
+
+## 9. Lifecycle
 
 ```
 Issued → Active → Expired
@@ -273,10 +375,10 @@ Issued → Active → Expired
          Revoked ────────┘ (via JTI deny list)
 ```
 
-- TCTs MUST NOT be used after `expires_at`.
-- TCTs MAY be revoked before `expires_at` via the issuing peer's JTI deny list (see [RFC-AITP-0008](RFC-AITP-0008-revocation.md)).
+- TCTs MUST NOT be used after `exp`.
+- TCTs MAY be revoked before `exp` via the issuing peer's JTI deny list (see [RFC-AITP-0008](RFC-AITP-0008-revocation.md)). Revoking a TCT also invalidates its companion voucher and every delegation derived from it (`src_jti` linkage, §8.1).
 
-### 8.1 Recommended TTLs
+### 9.1 Recommended TTLs
 
 | Use case | Recommended TTL |
 |---|---|
@@ -284,46 +386,47 @@ Issued → Active → Expired
 | Standard task | 8 hours |
 | Long-running collaboration | 24 hours |
 
-Peer-issued TCT `expires_at` MUST NOT exceed the issuing peer's Manifest `expires_at`. (See RFC-AITP-0004 §4.3.)
+Peer-issued TCT `exp` MUST NOT exceed the issuing peer's Manifest `expires_at`. (See RFC-AITP-0004 §4.3.)
 
 ---
 
-## 9. Consumer Rules
+## 10. Consumer Rules
 
-### 9.1 MUST
+### 10.1 MUST
 
-1. Verify the TCT signature against the issuing peer's public key (resolved from the issuing peer's Manifest).
-2. Confirm `audience` matches own AID.
-3. Confirm `expires_at` is in the future.
+1. Run the full verification order of §7.2 (strict parse, `typ`, AID-pinned `alg`, signature against the issuing peer's Manifest-resolved key).
+2. Confirm `aud` matches own AID.
+3. Confirm `exp` is in the future.
 4. Enforce `grants` — deny any operation not in the grant list.
 
-### 9.2 MUST NOT
+### 10.2 MUST NOT
 
 - Recompute trust from the underlying identity proof.
-- Accept TCTs with an unknown `version`.
+- Accept TCTs with an unknown `ver`.
+- Accept the `alg` or any key material from the token itself — the AID and Manifest decide (RFC-AITP-0001 §5.4.5, RFC-AITP-0007).
 - Modify or re-sign TCTs.
-- Accept TCTs whose `audience` is not own AID.
+- Accept TCTs whose `aud` is not own AID.
 
-### 9.3 SHOULD
+### 10.3 SHOULD
 
 - Verify proof-of-possession per the issuing peer's per-grant policy (§6). Consumers that omit downstream PoP MUST NOT claim conformance for environments lacking equivalent channel binding.
 - Check revocation status by querying the issuer's `ListRevoked` endpoint.
 
-### 9.4 Manifest expiry bound (conditional)
+### 10.4 Manifest expiry bound (conditional)
 
 If the issuing peer's Manifest is available — from the handshake payload or a local cache — the consumer MUST verify:
 
 ```
-tct.expires_at ≤ issuer_manifest.expires_at
+tct.exp ≤ issuer_manifest.expires_at
 ```
 
 A TCT that violates this bound MUST be rejected with `TCT_EXPIRES_AFTER_MANIFEST`. A peer-issued TCT cannot outlive the Manifest credential that authenticates its issuer's key; RFC-AITP-0004 §4.3 constrains the issuer not to mint such a TCT, and this rule is the verifier-side mirror of that constraint.
 
-This check MAY be skipped when the issuer Manifest is unavailable — verifiers are NOT required to fetch the Manifest solely to perform it. The §9.1 expiry check (`expires_at` in the future) still applies unconditionally.
+This check MAY be skipped when the issuer Manifest is unavailable — verifiers are NOT required to fetch the Manifest solely to perform it. The §10.1 expiry check (`exp` in the future) still applies unconditionally.
 
 ---
 
-## 10. Peer-Issued TCT Verification API
+## 11. Peer-Issued TCT Verification API
 
 Each agent that issues TCTs MUST expose three HTTPS endpoints for peers to verify and manage revocation of its TCTs:
 
@@ -333,23 +436,48 @@ Each agent that issues TCTs MUST expose three HTTPS endpoints for peers to verif
 | `Revoke` | POST | Admin-only; adds a `jti` to the issuing peer's deny list. |
 | `ListRevoked` | GET | Returns the issuing peer's signed revocation snapshot (RFC-AITP-0008 §1.5). |
 
-Concrete URL paths are deployment-defined. The Manifest MAY advertise the verify and revocation endpoints in `extensions` (RFC-AITP-0012); v0.1 does not normatively pin those advertisement fields.
+Concrete URL paths are deployment-defined. The Manifest MAY advertise the verify and revocation endpoints in `extensions` (RFC-AITP-0012); v0.2 does not normatively pin those advertisement fields.
 
 ---
 
-## 11. Security Considerations
+## 12. Design Notes: Alternatives Considered (non-normative)
 
-- A TCT is portable — anyone holding it can present it. PoP via `binding.cnf` is the primary defense against TCT theft.
+The v0.2 move from JCS-signed JSON to compact JWS for the TCT was made for four reasons:
+
+1. **Kill the re-serialization bug class on the hot path.** A JWS signature covers the exact transmitted bytes; verifiers never re-canonicalize. JCS re-serialization mismatches are the XML-DSig/JOSE-era signature-bypass class, and TCTs are the artifact most likely to be verified by non-AITP code in other languages.
+2. **Off-the-shelf verification.** TCT claims map 1:1 onto registered JWT claims (`jti`/`iss`/`sub`/`aud`/`iat`/`exp`/`cnf`); every language has a mature JOSE library. Only `grants` (and `ver`/`ext`) are private claims.
+3. **Cross-protocol confusion immunity by convention.** RFC 8725 explicit typing (`typ`) replaces immunity-by-obscurity.
+4. **Standards legibility.** A "JWT profile with mandatory `cnf`" is legible to IETF/WIMSE/OpenID reviewers, with registerable media types.
+
+Alternatives rejected:
+
+- **Dual serialization** (JSON+JCS *and* JWS): doubles the conformance matrix and creates a downgrade surface — a verifier that accepts both forms can be steered to the weaker path.
+- **Byte-deterministic JWS** (JCS-canonicalized payload inside the JWS): keeps the canonicalization requirement alive and forfeits gain #1; the payload bytes would once again be reconstructible state.
+- **Full JOSE migration** (envelopes and manifests too): a much larger rewrite with no consumer for off-the-shelf verification of protocol-internal messages — both ends of those exchanges are full AITP stacks by definition. Hence the boundary rule of RFC-AITP-0001 §5.4.5.
+
+---
+
+## 13. Security Considerations
+
+- A TCT is portable — anyone holding it can present it. PoP via `cnf` is the primary defense against TCT theft.
 - Consuming peers MUST treat the TCT signature as the sole authority. The TCT is self-contained; there is no out-of-band lookup that "augments" trust.
+- The `alg` header is attacker-controlled input until pinned: deriving the sole acceptable algorithm from the AID **before** verification (§7.2 step 3) is what forecloses `none` and cross-algorithm confusion. See RFC-AITP-0009 §1.
+- `typ` enforcement (§7.2 step 2) prevents a grant voucher or delegation token — signed by the same keys — from being replayed as a TCT. See RFC-AITP-0009 §1.
 - Recommended TTLs balance availability against compromise blast radius. See [RFC-AITP-0009](RFC-AITP-0009-security.md).
-- Wildcard audiences are forbidden in v0.1 to prevent cross-peer confusion attacks.
+- Wildcard audiences are forbidden to prevent cross-peer confusion attacks.
 
 ---
 
-## 12. References
+## 14. References
 
 - [RFC-AITP-0001 Core](RFC-AITP-0001-core.md)
 - [RFC-AITP-0003 Agent Manifest](RFC-AITP-0003-manifest.md)
 - [RFC-AITP-0004 Mutual Handshake](RFC-AITP-0004-mutual-handshake.md)
+- [RFC-AITP-0006 Single-Hop Delegation](RFC-AITP-0006-delegation.md)
 - [RFC-AITP-0008 Revocation](RFC-AITP-0008-revocation.md)
 - [RFC-AITP-0009 Security](RFC-AITP-0009-security.md)
+- [RFC 7515 — JSON Web Signature](https://datatracker.ietf.org/doc/html/rfc7515)
+- [RFC 7519 — JSON Web Token](https://datatracker.ietf.org/doc/html/rfc7519)
+- [RFC 7638 — JWK Thumbprint](https://datatracker.ietf.org/doc/html/rfc7638)
+- [RFC 7800 — Proof-of-Possession Key Semantics for JWTs](https://datatracker.ietf.org/doc/html/rfc7800)
+- [RFC 8725 — JWT Best Current Practices](https://datatracker.ietf.org/doc/html/rfc8725)

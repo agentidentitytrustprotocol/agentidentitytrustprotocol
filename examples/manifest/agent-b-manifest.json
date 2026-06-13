@@ -1,6 +1,6 @@
 {
   "manifest": {
-    "version": "aitp/0.1",
+    "version": "aitp/0.2",
     "aid": "aid:pubkey:worker_pubkey_AID_v01_placeholder_wwwwwwwww",
     "display_name": "WorkerAgent-7",
     "handshake_endpoint": "https://worker-7.agents.example.com/aitp/handshake",

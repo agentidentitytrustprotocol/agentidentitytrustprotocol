@@ -1,6 +1,6 @@
 {
   "revocation_list": {
-    "version": "aitp/0.1",
+    "version": "aitp/0.2",
     "issuer": "aid:pubkey:issuingPeer_pubkey_AID_v01_placeholderPPPPP",
     "published_at": 1711900000,
     "expires_at": 1711903600,

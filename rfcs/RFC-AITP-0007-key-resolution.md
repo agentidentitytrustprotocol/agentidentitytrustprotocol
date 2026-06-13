@@ -2,8 +2,8 @@
 # Key Resolution
 
 **Document:** RFC-AITP-0007
-**Version:** 0.1.0-rc.3
-**Status:** Release Candidate
+**Version:** 0.2.0-draft
+**Status:** Community Standards Track (v0.2 Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0002 Identity](RFC-AITP-0002-identity.md), [RFC-AITP-0003 Agent Manifest](RFC-AITP-0003-manifest.md)
 
 ---

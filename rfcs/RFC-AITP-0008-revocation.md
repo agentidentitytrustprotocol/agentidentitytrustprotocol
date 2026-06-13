@@ -2,8 +2,8 @@
 # Revocation
 
 **Document:** RFC-AITP-0008
-**Version:** 0.1.0-rc.3
-**Status:** Release Candidate
+**Version:** 0.2.0-draft
+**Status:** Community Standards Track (v0.2 Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md)
 
 ---
@@ -16,13 +16,15 @@ AITP defines three revocation surfaces: token revocation via the JTI deny list, 
 
 ## 1. Token Revocation (JTI Deny List)
 
-The primary revocation mechanism for v0.1 is a JTI deny list **per issuing peer**.
+The primary revocation mechanism for v0.2 is a JTI deny list **per issuing peer**. The TCT's `jti` claim is the revocation handle, unchanged from v0.1 (RFC-AITP-0005 §2).
 
 ### 1.1 Revoking a TCT
 
-The peer that issued a TCT (its `issuer` AID) is the only party that can revoke it. Revocation adds the TCT's `jti` to the issuing peer's deny list. The deny list is consulted by other peers via the issuing peer's `ListRevoked` HTTPS endpoint (RFC-AITP-0005 §10) or a per-token `Verify` call.
+The peer that issued a TCT (the AID in its `iss` claim) is the only party that can revoke it. Revocation adds the TCT's `jti` claim to the issuing peer's deny list. The deny list is consulted by other peers via the issuing peer's `ListRevoked` HTTPS endpoint (RFC-AITP-0005 §11) or a per-token `Verify` call.
 
-**Wire-level rejection code.** A consuming peer that finds a TCT's `jti` in the issuing peer's signed deny list (after the ordering requirement in §3.3 has been satisfied) MUST reject the TCT with `TCT_REVOKED`. This is the only correct code for revocation rejection — `TCT_EXPIRED` is reserved for `expires_at` being in the past (RFC-AITP-0005 §9.1), `TCT_EXPIRES_AFTER_MANIFEST` is reserved for the Manifest-bound violation (RFC-AITP-0005 §9.4), and `TCT_SIGNATURE_INVALID` is reserved for cryptographic signature failure. Implementations that fold revocation into a generic expiry code lose the operator's ability to distinguish "issuer revoked this token early" from "this token reached its natural deadline."
+Revoking a TCT also kills everything derived from it. The companion grant voucher carries the TCT's `jti` as its `src_jti` claim (RFC-AITP-0005 §8.1) and has no independent revocation handle; delegation verification looks up `voucher.src_jti` against this same deny list (RFC-AITP-0006 §4 step 7) and rejects with `DELEGATION_SOURCE_TCT_REVOKED`. One deny-list entry therefore invalidates the TCT, its voucher, and every delegation token built on that voucher.
+
+**Wire-level rejection code.** A consuming peer that finds a TCT's `jti` in the issuing peer's signed deny list (after the ordering requirement in §3.3 has been satisfied) MUST reject the TCT with `TCT_REVOKED`. This is the only correct code for revocation rejection — `TCT_EXPIRED` is reserved for `exp` being in the past (RFC-AITP-0005 §9), `TCT_EXPIRES_AFTER_MANIFEST` is reserved for the Manifest-bound violation (RFC-AITP-0005 §10.4), and `TCT_SIGNATURE_INVALID` is reserved for cryptographic signature failure. Implementations that fold revocation into a generic expiry code lose the operator's ability to distinguish "issuer revoked this token early" from "this token reached its natural deadline."
 
 ### 1.2 Deny-list entries
 
@@ -40,20 +42,28 @@ The `reason` field is OPTIONAL informational metadata. Implementations MUST NOT 
 
 ### 1.3 Persistence
 
-The deny list SHOULD be persisted to survive restarts. In-memory-only deny lists are acceptable for v0.1 prototypes but **not for production use**.
+The deny list SHOULD be persisted to survive restarts. In-memory-only deny lists are acceptable for v0.2 prototypes but **not for production use**.
 
 ### 1.4 Distribution
 
-Distribution is pull-based in v0.1. A consuming peer SHOULD poll the issuing peer's `ListRevoked` endpoint with a configurable cadence. Push-based revocation is reserved for a future RFC.
+Distribution is pull-based in v0.2. A consuming peer SHOULD poll the issuing peer's `ListRevoked` endpoint with a configurable cadence. Push-based revocation is reserved for a future RFC.
 
 ### 1.5 Signed revocation response
 
 `ListRevoked` responses MUST be signed by the issuing peer to prevent a network attacker from forging or suppressing entries:
 
+> **Format unchanged in v0.2.** The revocation snapshot is a
+> protocol-internal artifact, exchanged only between full AITP stacks,
+> and it remains under the **JCS embedded-signature profile**
+> (RFC-AITP-0001 §5.4) in v0.2. It is NOT re-serialized as compact JWS —
+> the v0.2 JWS migration covers only the portable trust artifacts (TCT,
+> grant voucher, delegation token; RFC-AITP-0001 §5.4.5). The only v0.2
+> change to the snapshot is the `version` literal.
+
 ```json
 {
   "revocation_list": {
-    "version":    "aitp/0.1",
+    "version":    "aitp/0.2",
     "issuer":     "<issuing-peer-AID>",
     "published_at": <unix-seconds>,
     "expires_at":   <unix-seconds>,
@@ -69,8 +79,8 @@ The canonical schema is [`schemas/json/aitp-revocation-list.schema.json`](../sch
 
 | Field | Required | Description |
 |---|---|---|
-| `version` | REQUIRED | MUST be `"aitp/0.1"`. |
-| `issuer` | REQUIRED | The issuing peer's AID. MUST equal the `issuer` of every TCT covered by the entries. |
+| `version` | REQUIRED | MUST be `"aitp/0.2"`. |
+| `issuer` | REQUIRED | The issuing peer's AID. MUST equal the `iss` claim of every TCT covered by the entries. (The snapshot keeps its JCS-profile field name `issuer`; only the JWS-profile artifacts use the registered claim names.) |
 | `published_at` | REQUIRED | Unix timestamp when this list snapshot was signed. |
 | `expires_at` | REQUIRED | Unix timestamp after which this snapshot MUST NOT be cached. |
 | `entries` | REQUIRED | Array of revoked-entry records (may be empty). |
@@ -136,7 +146,7 @@ The schema default for `revocation_policy.mode` is **`fail_closed`** (see `aitp-
 `max_staleness_secs` defines the maximum age of a cached revocation list. If the cached list is older than this value and the endpoint is unreachable, the configured `mode` applies.
 
 > **Related conditional check.** The Manifest-expiry bound on the TCT itself
-> ([RFC-AITP-0005 §9.4](RFC-AITP-0005-tct.md#94-manifest-expiry-bound-conditional))
+> ([RFC-AITP-0005 §10.4](RFC-AITP-0005-tct.md#104-manifest-expiry-bound-conditional))
 > uses the issuer's Manifest `expires_at`, not the revocation snapshot's
 > `expires_at`. The two policies are independent: a TCT may be revoked
 > before its Manifest expires (deny-list hit; `TCT_REVOKED`), or its
@@ -146,12 +156,21 @@ The schema default for `revocation_policy.mode` is **`fail_closed`** (see `aitp-
 
 ### 3.3 Revocation lookup ordering
 
-Implementations MUST verify the TCT's signature, issuer key binding,
-audience, and `expires_at` **before** consulting any network revocation
-source. The TCT fields `issuer` and `jti` are used as lookup keys for the
-deny list; verifying the signature first ensures these fields are
-authenticated and cannot be forged by an attacker to trigger
-attacker-chosen network fetches.
+Implementations MUST complete the TCT's compact-JWS verification —
+strict parse, `typ` enforcement, AID-pinned `alg`, signature, issuer key
+binding, audience, and `exp` (RFC-AITP-0005 §7.2 steps 1–5) — **before**
+consulting any network revocation source. The TCT claims `iss` and `jti`
+are used as lookup keys for the deny list; verifying the signature first
+ensures these claims are authenticated and cannot be forged by an
+attacker to trigger attacker-chosen network fetches.
+
+This ordering applies uniformly to the compact-JWS artifacts. When
+verifying a delegation token, **every** signature check — the outer
+delegation JWS *and* the embedded grant voucher JWS — MUST complete
+before the revocation lookup on `voucher.src_jti` (RFC-AITP-0006 §4,
+where the lookup is deliberately step 7). `voucher.src_jti` is
+attacker-controlled bytes until both signatures have verified, exactly
+as `iss` and `jti` are for a bare TCT.
 
 A purely local, side-effect-free revocation check (e.g. an in-memory
 deny list with no network I/O, no DNS resolution, and no cache write)
@@ -161,16 +180,17 @@ lookups** — HTTP fetches of `ListRevoked`, DNS resolution of issuer
 endpoints, writes to a shared revocation cache — MUST be deferred until
 after signature verification.
 
-**Security rationale.** `tct.issuer` and `tct.jti` are attacker-controlled
-bytes until the TCT's signature is verified. An implementation that routes
-revocation lookups via `tct.issuer` before signature verification enables:
+**Security rationale.** The TCT's `iss` and `jti` claims are
+attacker-controlled bytes until the JWS signature is verified. An
+implementation that routes revocation lookups via the `iss` claim before
+signature verification enables:
 
-- **Network amplification DoS.** The attacker sets `issuer` to any AID,
+- **Network amplification DoS.** The attacker sets `iss` to any AID,
   forcing the verifier to make an HTTP fetch to that AID's revocation
   endpoint. The fetch is attacker-triggered but originates from the
   verifier, so the verifier becomes a reflector against arbitrary AIDs.
 - **Cache pollution.** Attacker-chosen `jti` values, paired with
-  attacker-chosen `issuer` values, can be inserted into the verifier's
+  attacker-chosen `iss` values, can be inserted into the verifier's
   revocation cache for AIDs the attacker does not control.
 - **Telemetry manipulation.** Revocation-hit metrics (counters,
   per-issuer lookup rates, last-fetched timestamps) become manipulable
@@ -183,11 +203,11 @@ resolution, no cache writes derived from issuer-provided input) is
 exempt from this ordering requirement — it cannot be exploited for
 amplification, pollution, or telemetry manipulation. All other checks —
 HTTPS fetches of `ListRevoked`, DNS resolution of issuer endpoints,
-writes to a shared revocation cache, external calls keyed off
-`tct.issuer` or `tct.jti` — MUST wait until after `verify_tct` returns
-success.
+writes to a shared revocation cache, external calls keyed off the `iss`,
+`jti`, or `voucher.src_jti` claims — MUST wait until after `verify_tct`
+returns success.
 
-Anchoring revocation lookup to a *verified* `issuer` and `jti` removes
+Anchoring revocation lookup to a *verified* `iss` and `jti` removes
 all four attack surfaces.
 
 The `rev-004` conformance fixture pins this ordering: the runner
@@ -205,9 +225,9 @@ For long-running peer interactions, the issuing peer MAY signal revocation by ad
 
 Re-verification interval: RECOMMENDED every 5 minutes for sessions lasting more than 1 hour.
 
-### 4.1 Session invalidation model (v0.1)
+### 4.1 Session invalidation model (v0.2)
 
-In v0.1, "session invalidation" — terminating every active interaction with a specific subject peer — is achieved by revoking every TCT the issuer has ever issued to that subject. There is no separate session-level revocation surface. The deny list (§1) is the single source of truth.
+In v0.2, "session invalidation" — terminating every active interaction with a specific subject peer — is achieved by revoking every TCT the issuer has ever issued to that subject. There is no separate session-level revocation surface. The deny list (§1) is the single source of truth; the `src_jti` linkage (§1.1) means the same revocations also invalidate the subject's vouchers and any delegations built on them.
 
 An issuer wishing to terminate all active sessions with peer B MUST:
 
@@ -215,9 +235,9 @@ An issuer wishing to terminate all active sessions with peer B MUST:
 2. Publish a new signed revocation snapshot (§1.5) reflecting the additions. Empty-snapshot signing rules apply if the issuer had nothing else revoked.
 3. OPTIONALLY publish a short-TTL Manifest ([RFC-AITP-0003 §8](RFC-AITP-0003-manifest.md#8-manifest-rotation)) to accelerate consuming peers' cache expiry — useful when revocations propagate slower than the issuer wants.
 
-A "session-level revoke-all" API (one operation that covers a subject without enumerating individual JTIs) is reserved for a future RFC. v0.1 implementations SHOULD surface per-JTI revocation as the primary admin API; bulk-revocation-by-subject is a quality-of-life concern, not a protocol requirement.
+A "session-level revoke-all" API (one operation that covers a subject without enumerating individual JTIs) is reserved for a future RFC. v0.2 implementations SHOULD surface per-JTI revocation as the primary admin API; bulk-revocation-by-subject is a quality-of-life concern, not a protocol requirement.
 
-**Limitation (issuer JTI history).** An issuer that does not maintain a complete history of issued JTIs cannot guarantee total session revocation — it can only revoke the JTIs it remembers. Issuers SHOULD persist issued JTIs at least until `max(issued_tct.expires_at)` for the relevant subject so the bulk-revocation operation above is complete. After that point all unrevoked TCTs are guaranteed expired, so the JTI is no longer needed for session-revocation completeness; it MAY be garbage-collected from the issuer-side history table.
+**Limitation (issuer JTI history).** An issuer that does not maintain a complete history of issued JTIs cannot guarantee total session revocation — it can only revoke the JTIs it remembers. Issuers SHOULD persist issued JTIs at least until `max(issued_tct.exp)` for the relevant subject so the bulk-revocation operation above is complete. After that point all unrevoked TCTs are guaranteed expired, so the JTI is no longer needed for session-revocation completeness; it MAY be garbage-collected from the issuer-side history table.
 
 This is an **issuer-side persistence** requirement and is not visible on the wire. It is a SHOULD (not a MUST) because the deficiency manifests as an *issuer's inability to enumerate its own subject TCTs* rather than as a protocol-level error a peer can observe; an issuer that fails to enumerate is silently providing weaker session-revocation guarantees than its consuming peers will assume. See [§1.3](#13-persistence) for the related deny-list persistence guidance — the deny list and the issued-JTI history are two distinct issuer-side structures with the same persistence motivation.
 
@@ -228,7 +248,7 @@ This is an **issuer-side persistence** requirement and is not visible on the wir
 - The issuing peer's `ListRevoked` endpoint is itself a trust surface; it MUST be served over HTTPS, and its responses SHOULD be signed by the issuing peer.
 - `fail_open` trades security for availability and MUST NOT be the default for high-value operations.
 - Clock skew between the issuing peer and consuming peers reduces effective revocation latency. Implementations SHOULD use a monotonic clock when comparing `revoked_at`.
-- A compromised peer can stop honoring its own revocations. Defense in depth: high-value operations SHOULD use short TTLs (RFC-AITP-0005 §8.1) so that revocation latency is bounded by the TCT lifetime.
+- A compromised peer can stop honoring its own revocations. Defense in depth: high-value operations SHOULD use short TTLs (RFC-AITP-0005 §9.1) so that revocation latency is bounded by the TCT lifetime.
 
 ---
 

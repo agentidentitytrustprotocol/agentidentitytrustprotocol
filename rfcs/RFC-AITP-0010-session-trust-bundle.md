@@ -2,18 +2,18 @@
 # Session Trust Bundle
 
 **Document:** RFC-AITP-0010
-**Version:** 0.1.0-draft.1
+**Version:** 0.2.0-draft
 **Status:** Draft
-**Depends on:** [RFC-AITP-0004 Mutual Handshake](RFC-AITP-0004-mutual-handshake.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md), [RFC-AITP-0008 Revocation](RFC-AITP-0008-revocation.md)
+**Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0004 Mutual Handshake](RFC-AITP-0004-mutual-handshake.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md), [RFC-AITP-0008 Revocation](RFC-AITP-0008-revocation.md)
 
 ---
 
 > **Status: Draft.** Normative text below resolves the four open questions tracked in earlier "Reserved" revisions of this RFC. The bundle wire format and conformance surface are still being implemented; consumers MUST treat the schema as Draft until this RFC is promoted to Release Candidate.
 
-> **Conformance scope.** RFC-AITP-0010 is **not part of AITP v0.1
-> conformance.** Implementations MUST NOT fail v0.1 conformance tests
-> because they do not implement Session Trust Bundles. Conformance
-> runners MUST treat the `bundle-*` fixture set in
+> **Conformance scope.** RFC-AITP-0010 is **not part of AITP core
+> conformance** (v0.1 or v0.2). Implementations MUST NOT fail core
+> conformance tests because they do not implement Session Trust Bundles.
+> Conformance runners MUST treat the `bundle-*` fixture set in
 > [`schemas/conformance/`](../schemas/conformance/) as SKIP unless the
 > runner is explicitly opted into testing RFC-AITP-0010 draft conformance
 > (the metadata block on every bundle fixture carries
@@ -22,7 +22,7 @@
 >
 > The normative requirements in this document (MUST, SHALL, etc.) apply
 > only to implementations that explicitly opt into RFC-AITP-0010 draft
-> conformance. A v0.1-only implementation that ignores Session Trust
+> conformance. A core-only implementation that ignores Session Trust
 > Bundles entirely is conformant.
 
 ---
@@ -58,18 +58,20 @@ A and B do NOT hold a direct peer-issued TCT from each other. A peer that requir
 
 ## 3. Schema
 
+The bundle itself is a **JCS-signed JSON object** — a protocol-internal artifact under the embedded-signature profile of [RFC-AITP-0001 §5.4.1](RFC-AITP-0001-core.md#541-signing-input-jcs-profile). The TCTs it carries are **portable trust artifacts**: each participant `tct` is an opaque compact JWS string (RFC-AITP-0005 §1, RFC-AITP-0001 §5.4.5), embedded verbatim and covered as-is by the coordinator's outer JCS signature.
+
 ```json
 {
   "session_bundle": {
-    "version": "aitp/0.1",
+    "version": "aitp/0.2",
     "session_id": "<uuid-v4>",
-    "coordinator": "aid:pubkey:<coordinator-base64url>",
+    "coordinator": "aid:pubkey:ed25519:<coordinator-base64url>",
     "issued_at": 1711900000,
     "expires_at": 1711903600,
     "participants": [
       {
-        "aid": "aid:pubkey:<participant-base64url>",
-        "tct": { "...": "embedded peer-issued TCT — coordinator → participant" }
+        "aid": "aid:pubkey:ed25519:<participant-base64url>",
+        "tct": "<compact JWS string — peer-issued TCT, coordinator → participant>"
       }
     ],
     "signature": "<base64url sig over canonical session_bundle JSON excluding signature>"
@@ -79,15 +81,15 @@ A and B do NOT hold a direct peer-issued TCT from each other. A peer that requir
 
 | Field | Required | Description |
 |---|---|---|
-| `version` | REQUIRED | MUST be `"aitp/0.1"` for this RFC. |
+| `version` | REQUIRED | MUST be `"aitp/0.2"` for this RFC. |
 | `session_id` | REQUIRED | UUID v4 unique to this session. Used as a replay-binding scope. |
-| `coordinator` | REQUIRED | The coordinator's AID. MUST match the `issuer` of every embedded `tct`. |
+| `coordinator` | REQUIRED | The coordinator's AID. MUST match the `iss` claim of every embedded `tct`. |
 | `issued_at` | REQUIRED | Unix timestamp when this bundle was signed. |
-| `expires_at` | REQUIRED | Unix timestamp after which the bundle MUST NOT be used. MUST equal `min(participants[*].tct.expires_at)` (see §6). |
-| `participants` | REQUIRED | Array of participant entries. Each entry pairs a participant AID with the peer-issued TCT the coordinator issued to that participant during the bilateral handshake that fed into this bundle. |
+| `expires_at` | REQUIRED | Unix timestamp after which the bundle MUST NOT be used. MUST equal the minimum `exp` claim across the embedded participant TCTs (see §6). |
+| `participants` | REQUIRED | Array of participant entries. Each entry pairs a participant AID with the peer-issued TCT (compact JWS string) the coordinator issued to that participant during the bilateral handshake that fed into this bundle. |
 | `signature` | REQUIRED | Coordinator's signature over the canonical `session_bundle` JSON (excluding `signature`). Same JCS rules as RFC-AITP-0001 §5.4.1. |
 
-The participant `tct` field is a verbatim peer-issued TCT (RFC-AITP-0005 §1) — coordinator-issued, with `audience` set to the participant's AID. The bundle distributes the participant's *own* TCT back to that participant alongside everyone else's, so a single fetch reveals the full session roster.
+The participant `tct` field is a verbatim peer-issued TCT compact JWS (RFC-AITP-0005 §1) — coordinator-issued, with the `aud` claim set to the participant's AID. Per RFC-AITP-0001 §5.4.5, the bundle never parses, transforms, or re-encodes the embedded string; consumers that need a TCT's claims base64url-decode its payload segment but MUST NOT re-serialize it. The bundle distributes the participant's *own* TCT back to that participant alongside everyone else's, so a single fetch reveals the full session roster.
 
 ---
 
@@ -99,10 +101,10 @@ The coordinator MUST have completed a Mutual Handshake (RFC-AITP-0004) with ever
 
 ### 4.2 Construction
 
-1. For each participant `P_i`, take the peer-issued TCT the coordinator issued during the handshake (`coordinator → P_i`).
-2. Compute `expires_at = min(TCT_i.expires_at)` across all participants.
-3. Assemble the `session_bundle` body with `version`, fresh `session_id`, `coordinator`, `issued_at`, this `expires_at`, and the `participants` array.
-4. Sign the canonical JCS bytes of the body (excluding `signature`) with the coordinator's private key.
+1. For each participant `P_i`, take the peer-issued TCT compact JWS the coordinator issued during the handshake (`coordinator → P_i`), verbatim.
+2. Compute `expires_at = min(TCT_i.exp)` across all participants, reading each TCT's `exp` claim from its decoded payload.
+3. Assemble the `session_bundle` body with `version`, fresh `session_id`, `coordinator`, `issued_at`, this `expires_at`, and the `participants` array (each `tct` an opaque string).
+4. Sign the canonical JCS bytes of the body (excluding `signature`) with the coordinator's private key. The embedded TCT strings are covered verbatim by this signature.
 
 ### 4.3 Distribution
 
@@ -140,14 +142,14 @@ HTTP transport is a delivery convenience, not a trust upgrade.
 
 A participant receiving a bundle MUST, in order:
 
-1. **Version check** — `session_bundle.version` MUST be `"aitp/0.1"` or a later supported version. Failure ⇒ `BUNDLE_VERSION_MISMATCH`.
+1. **Version check** — `session_bundle.version` MUST be `"aitp/0.2"` or a later supported version. Failure ⇒ `BUNDLE_VERSION_MISMATCH`.
 2. **Expiry check** — `session_bundle.expires_at` MUST be in the future. Failure ⇒ `BUNDLE_EXPIRED`.
-3. **Expiry-window invariant** — `session_bundle.expires_at` MUST equal `min(participants[*].tct.expires_at)` (§6). Failure ⇒ `BUNDLE_EXPIRY_WINDOW_INVARIANT`.
+3. **Expiry-window invariant** — `session_bundle.expires_at` MUST equal the minimum `exp` claim across the embedded participant TCTs (§6). Failure ⇒ `BUNDLE_EXPIRY_WINDOW_INVARIANT`.
 4. **Participants non-empty** — `participants` MUST contain at least one entry. Failure ⇒ `BUNDLE_EMPTY_PARTICIPANTS`.
 5. **Coordinator key resolution** — fetch and verify the coordinator's Manifest per RFC-AITP-0003 §5; resolve the coordinator's public key from `manifest.aid`.
-6. **Bundle signature** — verify `session_bundle.signature` against the coordinator's key over the canonical body. Failure ⇒ `BUNDLE_INVALID_SIGNATURE`.
-7. **Per-participant TCT verification** — for each `participants[i].tct`, run the standard TCT verification (RFC-AITP-0005 §9). Every embedded TCT MUST have `issuer == session_bundle.coordinator` (failure ⇒ `BUNDLE_COORDINATOR_ISSUER_MISMATCH`) and `audience == participants[i].aid` (failure ⇒ `BUNDLE_AUDIENCE_MISMATCH`); other TCT-level failures surface as `BUNDLE_PARTICIPANT_TCT_INVALID`. The participant SHOULD verify its own TCT first.
-8. **Self-membership check** — the receiving participant MUST find its own AID in `participants[*].aid` and confirm the embedded TCT's `audience` equals its own AID. Failure ⇒ `BUNDLE_NOT_MEMBER`.
+6. **Bundle signature** — verify `session_bundle.signature` against the coordinator's key over the canonical body (the embedded TCT strings are covered verbatim). Failure ⇒ `BUNDLE_INVALID_SIGNATURE`.
+7. **Per-participant TCT verification** — for each `participants[i].tct`, run the standard TCT verification order (RFC-AITP-0005 §7.2: strict parse, `typ`, AID-pinned `alg`, signature, claims). Every embedded TCT MUST have an `iss` claim equal to `session_bundle.coordinator` (failure ⇒ `BUNDLE_COORDINATOR_ISSUER_MISMATCH`) and an `aud` claim equal to `participants[i].aid` (failure ⇒ `BUNDLE_AUDIENCE_MISMATCH`); other TCT-level failures — including `TOKEN_TYP_MISMATCH` / `TOKEN_ALG_MISMATCH` rejections of an embedded token — surface as `BUNDLE_PARTICIPANT_TCT_INVALID`. The participant SHOULD verify its own TCT first.
+8. **Self-membership check** — the receiving participant MUST find its own AID in `participants[*].aid` and confirm the embedded TCT's `aud` claim equals its own AID. Failure ⇒ `BUNDLE_NOT_MEMBER`.
 
 Implementations MUST NOT consume a bundle whose signature does not validate, regardless of whether individual TCTs are otherwise well-formed. Implementations MAY collapse all of the above into the aggregate `SESSION_BUNDLE_INVALID` when a deployment policy requires a single-error surface, but new code SHOULD prefer the specific codes.
 
@@ -155,7 +157,7 @@ Implementations MUST NOT consume a bundle whose signature does not validate, reg
 
 ## 6. Expiry
 
-`session_bundle.expires_at` MUST equal `min(participants[*].tct.expires_at)`. This ensures the bundle is never valid past the lifetime of its shortest-lived participant TCT. A bundle whose `expires_at` exceeds any embedded TCT's `expires_at` is non-conformant and MUST be rejected at issuance and at verification time.
+`session_bundle.expires_at` MUST equal the minimum `exp` claim across the embedded participant TCTs — `min(exp(participants[*].tct))`, where `exp(·)` reads the `exp` claim from the TCT's decoded JWS payload. This ensures the bundle is never valid past the lifetime of its shortest-lived participant TCT: bundle validity cannot outlive any member TCT's `exp`. A bundle whose `expires_at` exceeds any embedded TCT's `exp` claim is non-conformant and MUST be rejected at issuance and at verification time.
 
 When the bundle expires, the coordinator SHOULD re-run the bilateral handshakes for any expiring participants, mint fresh TCTs, and publish a new bundle with a fresh `session_id`. Bundle reuse across sessions is forbidden — a bundle from session X MUST NOT be presented in session Y.
 
@@ -165,11 +167,11 @@ When the bundle expires, the coordinator SHOULD re-run the bilateral handshakes 
 
 Bundle revocation is **per-pair degradation**, not whole-bundle invalidation:
 
-- Revoking a single participant's TCT (via the coordinator's deny list, RFC-AITP-0008 §1) removes that participant from the active session.
-- The remaining participants' TCTs in the same bundle are unaffected and remain valid until their own `expires_at`.
-- Consuming peers MUST re-check each embedded TCT against the coordinator's `ListRevoked` feed at the cadence configured by `revocation_policy.max_staleness_secs` (RFC-AITP-0008 §3.2).
+- Revoking a single participant's TCT (adding its `jti` claim to the coordinator's deny list, RFC-AITP-0008 §1) removes that participant from the active session.
+- The remaining participants' TCTs in the same bundle are unaffected and remain valid until their own `exp`.
+- Consuming peers MUST re-check each embedded TCT's `jti` against the coordinator's `ListRevoked` feed at the cadence configured by `revocation_policy.max_staleness_secs` (RFC-AITP-0008 §3.2).
 
-A coordinator that wishes to terminate a session entirely MUST add every embedded TCT JTI to its deny list. There is no "revoke the bundle" surface; the bundle is a redistribution of TCTs, and the TCT JTI deny list is the only revocation primitive.
+A coordinator that wishes to terminate a session entirely MUST add every embedded TCT's `jti` to its deny list. There is no "revoke the bundle" surface; the bundle is a redistribution of TCTs, and the TCT `jti` deny list is the only revocation primitive.
 
 ---
 
@@ -178,13 +180,13 @@ A coordinator that wishes to terminate a session entirely MUST add every embedde
 | Code | Meaning | Retryable |
 |---|---|---|
 | `BUNDLE_INVALID_SIGNATURE` | Coordinator's outer bundle signature failed verification under the coordinator's Manifest key | false |
-| `BUNDLE_VERSION_MISMATCH` | `version` is not `"aitp/0.1"` (or a later version this implementation supports) | false |
+| `BUNDLE_VERSION_MISMATCH` | `version` is not `"aitp/0.2"` (or a later version this implementation supports) | false |
 | `BUNDLE_EXPIRED` | `expires_at` is in the past at verification time | false |
-| `BUNDLE_EXPIRY_WINDOW_INVARIANT` | `expires_at` is greater than `min(participants[*].tct.expires_at)` (violates §6) | false |
-| `BUNDLE_COORDINATOR_ISSUER_MISMATCH` | One or more `participants[*].tct.issuer` values do not equal `coordinator` | false |
-| `BUNDLE_AUDIENCE_MISMATCH` | A `participants[i].tct.audience` does not equal `participants[i].aid` | false |
+| `BUNDLE_EXPIRY_WINDOW_INVARIANT` | `expires_at` is greater than the minimum `exp` claim across the embedded participant TCTs (violates §6) | false |
+| `BUNDLE_COORDINATOR_ISSUER_MISMATCH` | One or more embedded TCTs carry an `iss` claim that does not equal `coordinator` | false |
+| `BUNDLE_AUDIENCE_MISMATCH` | A `participants[i].tct` carries an `aud` claim that does not equal `participants[i].aid` | false |
 | `BUNDLE_EMPTY_PARTICIPANTS` | `participants` array is empty (a bundle MUST contain at least the receiver) | false |
-| `BUNDLE_PARTICIPANT_TCT_INVALID` | At least one embedded participant TCT failed standard TCT verification (§5 step 5) | false |
+| `BUNDLE_PARTICIPANT_TCT_INVALID` | At least one embedded participant TCT failed standard TCT verification (§5 step 7), including `typ`/`alg` rejection of the embedded JWS | false |
 | `BUNDLE_NOT_MEMBER` | Receiver's AID is not in `participants[*].aid` | false |
 
 The aggregate code `SESSION_BUNDLE_INVALID` is a fallback for implementations that do not distinguish the failure cases; new code SHOULD prefer the specific codes above. Implementations MAY return the aggregate when a deployment policy requires a single-error surface for bundles.
@@ -198,9 +200,9 @@ The aggregate code `SESSION_BUNDLE_INVALID` is a fallback for implementations th
 | `issue_session_bundle` | Coordinator op: take N coordinator-issued TCTs and produce a signed bundle. |
 | `verify_session_bundle` | Participant op: run §5 verification on a received bundle. |
 
-A conformant v0.1 implementation that opts into RFC-AITP-0010 MUST expose both operations in its conformance harness. Implementations that do not expose them MUST report SKIP for any `bundle-*` fixture rather than FAIL.
+A conformant v0.2 implementation that opts into RFC-AITP-0010 MUST expose both operations in its conformance harness. Implementations that do not expose them MUST report SKIP for any `bundle-*` fixture rather than FAIL.
 
-KAT vector `kat-session-bundle-001` lives in [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json) and pins (coordinator key kat-keypair-001 + 2 participant TCTs → canonical bundle body → SHA-256 → Ed25519 signature). The vector follows the same convention as `kat-tct-001`. Conformance fixtures exercising the bundle verification path live at [`schemas/conformance/bundle-001-success.json`](../schemas/conformance/bundle-001-success.json), [`bundle-002-not-member.json`](../schemas/conformance/bundle-002-not-member.json), and [`bundle-003-expired.json`](../schemas/conformance/bundle-003-expired.json).
+KAT vector `kat-session-bundle-001` lives in [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json) and pins (coordinator key kat-keypair-001 + 2 participant TCT compact JWS strings → canonical bundle body → SHA-256 → Ed25519 signature). The vector is reworked for `aitp/0.2`: the bundle's own JCS form survives, but its embedded TCT members are opaque compact JWS strings (minted per the RFC-AITP-0005 signed-example vectors), covered verbatim by the JCS body. Conformance fixtures exercising the bundle verification path live at [`schemas/conformance/bundle-001-success.json`](../schemas/conformance/bundle-001-success.json), [`bundle-002-not-member.json`](../schemas/conformance/bundle-002-not-member.json), and [`bundle-003-expired.json`](../schemas/conformance/bundle-003-expired.json).
 
 ---
 
@@ -213,11 +215,11 @@ KAT vector `kat-session-bundle-001` lives in [`schemas/conformance/known-answer/
   1. The legitimate coordinator operator MUST publish a new Manifest under a **new AID** derived from a fresh key pair, following the emergency rotation procedure in [RFC-AITP-0003 §8.1](RFC-AITP-0003-manifest.md#81-emergency-rotation-key-compromise). The compromised AID is abandoned — it cannot be repaired by republishing under the same key.
   2. All participants MUST treat bundles whose `coordinator` field equals the old (compromised) coordinator AID as untrusted from the moment of compromise notification, regardless of whether the bundle's `signature` still cryptographically verifies. The attacker holds the old signing key; outer-signature validity is no longer evidence of legitimate issuance.
   3. The legitimate coordinator SHOULD notify participants out-of-band (the same channel that bootstraps coordinator trust in the first place — operator broadcast, MACP `SessionEnd`, etc.) and distribute a **fresh bundle under the new AID** by re-running the bilateral handshakes with each participant (RFC-AITP-0004) and issuing fresh per-participant TCTs that the new bundle embeds.
-  4. Bundle lifetime is bounded by `expires_at` (§6). Bundles whose `expires_at` is in the past MUST NOT be used regardless of provenance — including bundles signed by the compromised key. This means an unrevoked old bundle expires on its own schedule even if the compromise notification does not reach every consumer immediately; the worst-case exposure window for a stolen coordinator key is bounded by `min(participants[*].tct.expires_at)` plus the compromise-detection delay.
+  4. Bundle lifetime is bounded by `expires_at` (§6). Bundles whose `expires_at` is in the past MUST NOT be used regardless of provenance — including bundles signed by the compromised key. This means an unrevoked old bundle expires on its own schedule even if the compromise notification does not reach every consumer immediately; the worst-case exposure window for a stolen coordinator key is bounded by the minimum `exp` claim across the embedded participant TCTs plus the compromise-detection delay.
   5. Participants that learn of compromise MUST NOT silently downgrade to a non-bundle session topology that papers over the missing trust artifact. Either a fresh bundle under the new AID arrives, or the session terminates — there is no "operate without bundle until further notice" middle state in v0.2.
 
   This recovery model assumes coordinator-compromise detection is out-of-band; AITP v0.1/v0.2 do not specify push-based compromise notification. Push-based notification is a candidate for a future RFC.
-- **Bundle replay.** A bundle issued in session X MUST NOT be reusable in session Y. The `session_id` field and the `min(tct.expires_at)` expiry are the primary defenses; consumers MUST reject bundles whose `session_id` they have already accepted with a different signature.
+- **Bundle replay.** A bundle issued in session X MUST NOT be reusable in session Y. The `session_id` field and the minimum-TCT-`exp` expiry bound (§6) are the primary defenses; consumers MUST reject bundles whose `session_id` they have already accepted with a different signature.
 - **Transitive trust inflation.** Participants that never directly handshake with each other inherit only coordinator-attested membership, not peer-to-peer binding. The trust model (§2) makes this limit explicit; it does not provide proof of peer-to-peer identity binding.
 - **Mid-session revocation.** Resolved per §7 (per-pair degradation). The coordinator's deny list is the single source of truth.
 - **Selective omission.** A coordinator that withholds bundle distribution from a participant cannot be detected by the protocol alone. Out-of-band session announcements (e.g. via the upper-layer coordination protocol) are required to detect omission.

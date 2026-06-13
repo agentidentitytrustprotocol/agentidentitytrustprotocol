@@ -2,7 +2,8 @@
   "id": "mh-003",
   "rfc": "RFC-AITP-0004",
   "status": "core",
-  "required_for_v0_1": true,
+  "required_for_v0_1": false,
+  "required_for_v0_2": true,
   "feature": null,
   "description": "Peer's Manifest signature validates but its proof_of_possession.signature does not validate against manifest.aid. The receiving peer MUST reject the handshake — the Manifest could be a replay across agents.",
   "tags": [
@@ -14,7 +15,7 @@
   "input": {
     "step": "received MUTUAL_HELLO from peer",
     "envelope": {
-      "version": "aitp/0.1",
+      "version": "aitp/0.2",
       "message_type": "mutual_hello",
       "message_id": "660e8400-e29b-41d4-a716-446655440102",
       "timestamp": 1711900000,
@@ -26,10 +27,10 @@
           "type": "oidc",
           "issuer": "https://auth.openai.com",
           "subject": "agent-A",
-          "proof": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZ2VudC1BIiwiaWF0IjoxNzExOTAwMDAwLCJleHAiOjE3MTE5MDM2MDAsIm5vbmNlIjoiNzdveXk0a1VSZFlrcDhaa21XakFoUSIsImF1ZCI6ImFpZDpwdWJrZXk6TzJvbnZNNjJwQzFpbzZqUUttOE5jMlV5RlhjZDRrT21Pc0JJb1l0WjJpayIsImNuZiI6eyJqa3QiOiI5WlAwM051OEdyWFBBVWtiS054SE9LQnp4UFg4M1NTaGdGa1JOSy1mMmx3In19.7mLw5Tj7eaxD39Cwwy1PupE8GveBJl0HbydfeUJGMSQ"
+          "proof": "__VALID_JWT__"
         },
         "manifest": {
-          "version": "aitp/0.1",
+          "version": "aitp/0.2",
           "aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
           "handshake_endpoint": "https://a.agents.example.com/aitp/handshake",
           "accepted_trust_anchors": [
@@ -41,7 +42,7 @@
           "required_peer_capabilities": [],
           "proof_of_possession": {
             "challenge": "E1P1xitRfiKsGDoeyKCI0w",
-            "signature": "F20pIWS0eVafhkASofMiTKFwfBLR3IDnFXSQAzPMT20UCVb2UMoi7LtARhCwIaPwAlQCWNRvv61hl-3aNkPiCg"
+            "signature": "__INVALID_POP_SIG__"
           },
           "published_at": 1711899000,
           "expires_at": 1711985400,
@@ -50,14 +51,14 @@
             "issuer": "https://auth.openai.com",
             "subject": "agent-A"
           },
-          "signature": "-UVVNNEGpz_wA6Gqv6xgWooSQ4hrZp_Fayi78apdb47W4D6Wr-44tHEperFn2dC1ldwizX_sTehIv45bp_hWAg"
+          "signature": "__VALID_MANIFEST_SIG__"
         },
         "requested_grants": [
           "macp.mode.task.v1"
         ],
         "pop_nonce": "77oyy4kURdYkp8ZkmWjAhQ"
       },
-      "signature": "T1Hh-fpYjDAOe94uSHG1Ib8xxFPXMifXYVTUC3UdRd38RAkeOnJdpy1t8MF3wP_CtDONAF5JESaeX40RoIizCQ"
+      "signature": "__VALID_ENVELOPE_SIG__"
     },
     "operation": "verify_handshake_payload"
   },
