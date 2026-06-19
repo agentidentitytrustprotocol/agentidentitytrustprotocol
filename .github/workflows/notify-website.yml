@@ -17,5 +17,5 @@ jobs:
       - uses: peter-evans/repository-dispatch@v3
         with:
           token: ${{ secrets.AITP_WEBSITE_SYNC_TOKEN }}
-          repository: agentidentitytrustprotocol/website
+          repository: agentidentitytrustprotocol/aitp-website
           event-type: docs-updated
