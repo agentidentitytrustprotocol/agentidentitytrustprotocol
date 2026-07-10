@@ -1,0 +1,10 @@
+version: 2
+updates:
+  # The spec repo ships no package manifest — only GitHub Actions to keep fresh.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
