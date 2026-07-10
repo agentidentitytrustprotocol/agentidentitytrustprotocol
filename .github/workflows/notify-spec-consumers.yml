@@ -1,0 +1,45 @@
+name: Notify spec consumers
+
+# On a conformance-relevant change to the spec, dispatch `spec-released {sha}`
+# to every repo that pins the spec by git SHA. Today that is aitp-rs (it pins
+# the spec in tests/schemas/SPEC_VERSION). aitp-verifier-py tracks the spec on
+# `main` (floating), so it is intentionally not notified.
+#
+# The consumer's bump-spec.yml calls aitp-ci/bump-spec-ref, which opens a HELD
+# PR (never auto-merged): adopting a new spec is a deliberate review decision,
+# and the PR's own conformance CI runs against the new fixtures.
+#
+# Auth: the aitp-deps-bot GitHub App (org secrets AITP_BOT_APP_ID /
+# AITP_BOT_PRIVATE_KEY) — a short-lived installation token, no PAT.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'schemas/**'
+      - 'examples/**'
+      - 'rfcs/**'
+      - 'registries/**'
+      - 'docs/**'
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mint GitHub App token (scoped to aitp-rs)
+        id: app
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.AITP_BOT_APP_ID }}
+          private-key: ${{ secrets.AITP_BOT_PRIVATE_KEY }}
+          owner: agentidentitytrustprotocol
+          repositories: aitp-rs
+
+      - name: Dispatch spec-released to aitp-rs
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ steps.app.outputs.token }}
+          repository: agentidentitytrustprotocol/aitp-rs
+          event-type: spec-released
+          client-payload: '{"sha": "${{ github.sha }}"}'
