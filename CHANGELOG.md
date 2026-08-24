@@ -40,9 +40,11 @@ not overshoot.
 **Version bump.** `known-answer/README.md` requires that "an existing vector's
 output MUST NOT change without an RFC bump", and this changes three. The four
 RFCs whose text moves are bumped **`0.2.0-draft` → `0.2.1-draft`**:
-RFC-AITP-0001, RFC-AITP-0003, RFC-AITP-0008, RFC-AITP-0010. The other nine stay
-at `0.2.0-draft` — their text is unchanged, and VERSIONING.md now records that
-document versions may diverge within one protocol revision.
+RFC-AITP-0001, RFC-AITP-0003, RFC-AITP-0008, RFC-AITP-0010. The other nine
+documents are untouched — the seven other Draft-stage RFCs stay at
+`0.2.0-draft`, and RFC-AITP-0012 / RFC-AITP-0013 keep their `0.2.0-reserved` /
+`0.2.0-planned` placeholders — and VERSIONING.md now records that document
+versions may diverge within one protocol revision.
 
 Patch level, per VERSIONING.md's *Editorial / clarification* class, because the
 normative requirement did not change — the artifacts were wrong. RFC-AITP-0003
@@ -97,7 +99,9 @@ noticing.
 - **Fixture `$comment` corrections**: `rev-001`, `rev-002` and `rev-003` asserted
   "the JCS-profile snapshot signing input is unchanged in v0.2", which was false
   and is a plausible reason the migration was never made; `bundle-001` described
-  the input as the bundle bytes "excluding nothing".
+  the input as the bundle bytes "excluding nothing"; `tct-004` and `del-mh-004`
+  used the same "context-dependent" placeholder language and now name the inner
+  `revocation_list` body explicitly.
 
 ### Conformance: pinned values are now executed, not just parsed
 

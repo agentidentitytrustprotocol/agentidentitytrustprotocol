@@ -194,8 +194,12 @@ function declaredSigningInput(vector) {
 // Returns { signed, alternative, wrapperKey } for a vector's `object`.
 function shapes(vector) {
   const obj = vector.object;
-  const keys = Object.keys(obj);
-  const wrapperKey = keys.length >= 1 && ARTIFACT_WRAPPERS.has(keys[0]) ? keys[0] : null;
+  // A wrapper key counts wherever it appears, not only in first position: the
+  // wire revocation envelope is {"revocation_list": …, "signature": …} and JSON
+  // member order is not significant, so a pasted-in envelope must be caught
+  // regardless of which member happens to come first. No inner artifact body
+  // has a member named after an artifact, so this cannot false-positive.
+  const wrapperKey = Object.keys(obj).find((k) => ARTIFACT_WRAPPERS.has(k)) ?? null;
   const decl = declaredSigningInput(vector);
 
   if (decl === 'envelope') {
