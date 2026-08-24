@@ -1,4 +1,4 @@
-.PHONY: help validate json-validate json-schema-validate clean install-tools docs release
+.PHONY: help validate json-validate json-schema-validate kat-verify clean install-tools docs release
 
 # AITP ships as JSON only. The canonical wire format and signing input
 # is RFC 8785 (JCS) canonical JSON. See RFC-AITP-0001 §5.4.1.
@@ -12,6 +12,7 @@ help:
 	@echo "  make validate              Run all v0.2 validations (JSON only)"
 	@echo "  make json-schema-validate  Validate JSON Schemas (meta-validation)"
 	@echo "  make json-validate         Validate JSON examples and conformance fixtures"
+	@echo "  make kat-verify            Recompute and verify every pinned known-answer value"
 	@echo
 	@echo "Docs:"
 	@echo "  make docs                  Print the docs reading order"
@@ -23,7 +24,7 @@ help:
 
 # ── Validation ────────────────────────────────────────────────────────────────
 
-validate: json-schema-validate json-validate
+validate: json-schema-validate json-validate kat-verify
 	@echo "✓ All v0.2 validations passed"
 
 json-schema-validate:
@@ -33,6 +34,13 @@ json-schema-validate:
 json-validate:
 	@echo "Validating JSON examples and conformance fixtures..."
 	@./scripts/validate-json.sh
+
+# Schema validation proves these files are well-formed. This proves the values
+# inside them are correct: canonical bytes recomputed, keys re-derived, every
+# pinned signature verified. Requires Node (already needed for ajv).
+kat-verify:
+	@echo "Verifying pinned known-answer values (canonical bytes + signatures)..."
+	@node scripts/verify-known-answer.mjs --quiet
 
 # ── Docs ─────────────────────────────────────────────────────────────────────
 

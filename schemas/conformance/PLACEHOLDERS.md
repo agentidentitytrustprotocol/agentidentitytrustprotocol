@@ -111,16 +111,45 @@ the next section.
 | Token | Signing key | Signing input |
 |---|---|---|
 | `__VALID_ENVELOPE_SIG__` | Sender's pinned signing key | Envelope signing input per RFC-AITP-0001 §5.4 |
-| `__VALID_MANIFEST_SIG__` | Manifest agent's signing key | JCS canonical Manifest body excluding `signature` (RFC-AITP-0003 §6.1) |
+| `__VALID_MANIFEST_SIG__` | Manifest agent's signing key | JCS canonical **inner** Manifest body excluding `signature` — never the `{"manifest": …}` wrapper (RFC-AITP-0003 §6.1) |
 | `__VALID_POP_SIG__` | Manifest agent's signing key | `sha256(decoded_bytes(challenge))` (RFC-AITP-0003 §3.1) |
-| `__VALID_A_SIG__` | Initiating peer (A)'s signing key | Context-dependent — typically an envelope signing input; minting tool resolves from surrounding fixture shape. |
-| `__VALID_B_SIG__` | Target peer (B)'s signing key | Same; context-dependent. |
-| `__LEGACY_PINNED_PROOF__` | Pinned-key holder's signing key (legacy two-field input) | Pre-v0.1 pinned-key proof signed over the two-field input `message_id "|" timestamp` (no domain prefix, no receiver, no `pop_nonce`). Used by `id-005` to assert rejection when the verifier replays the five-field reconstruction (RFC-AITP-0002 §3.1). The signature alphabet is real (Ed25519 over the legacy bytes) so the failure surfaces only at the input-reconstruction step, not at base64url decode. |
+| `__VALID_A_SIG__` | Initiating peer (A)'s signing key | Resolved from the enclosing artifact, per the table below — **never** "whatever the minting tool decides". |
+| `__VALID_B_SIG__` | Target peer (B)'s signing key | Same resolution table, signed by B. |
+| `__LEGACY_PINNED_PROOF__` | Pinned-key holder's signing key (legacy two-field input) | Pre-v0.1 pinned-key proof signed over the two-field input `message_id`, a literal pipe, then `timestamp` (no domain prefix, no receiver, no `pop_nonce`). Used by `id-005` to assert rejection when the verifier replays the five-field reconstruction (RFC-AITP-0002 §3.1). The signature alphabet is real (Ed25519 over the legacy bytes) so the failure surfaces only at the input-reconstruction step, not at base64url decode. |
 | `__VALID_JWT__` | Identity issuer's key | Compact JWT serialization with claims pinned by the surrounding fixture context. |
 | `__VALID_JWT_FROM_UNKNOWN_ISSUER__` | Untrusted issuer's key | Same shape as `__VALID_JWT__` but signed by an issuer NOT in the verifier's `trust_anchors`. The signature is cryptographically valid; the policy check is what fails. |
 | `__VALID_NONCE__` | n/a | Random 128-bit base64url string (22 chars, unpadded). The minting tool MAY use a per-fixture deterministic seed for reproducibility. |
 | `__VALID_NONCE_ECHO__` | n/a | The exact `__VALID_NONCE__` value from the corresponding earlier message in the same handshake. |
 | `__VALID_DOWNSTREAM_POP_SIG__` | TCT subject's signing key (the holder; the key encoded in the TCT's `sub` AID) | `sha256(base64url_decode(nonce))` where `nonce` is the `__VALID_NONCE__` issued by the verifier in the matching `pop_challenge` (RFC-AITP-0005 §6.1). Same convention as `__VALID_POP_SIG__`; named separately to disambiguate the downstream PoP exchange from Manifest PoP in fixtures that include both. |
+
+### Resolving `__VALID_A_SIG__` / `__VALID_B_SIG__`
+
+These two placeholders appear in more than one kind of artifact, so the signing
+input depends on which artifact encloses them. It is **fully determined** by that
+artifact — it is not a minting-tool choice. An earlier revision of this file
+described them as "context-dependent … minting tool resolves from surrounding
+fixture shape," which licensed two minting tools to pick different conventions.
+Both then verified their own output and passed, while their wire formats
+disagreed. That is exactly how the revocation and session-bundle signing inputs
+diverged between implementations (see the signing-input entry in
+[`CHANGELOG.md`](../../CHANGELOG.md)).
+
+| Enclosing artifact | Signing input |
+|---|---|
+| `snapshot` (a `{"revocation_list": …, "signature": …}` object) | JCS canonical form of the **inner `revocation_list` body**. The `signature` is a sibling of the body, not a member of it, so nothing is removed before canonicalizing. RFC-AITP-0008 §1.5. |
+| `session_bundle` (a `{"session_bundle": …}` object) | JCS canonical form of the **inner `session_bundle` body**, excluding its `signature` member. RFC-AITP-0010 §3. |
+| an envelope | The envelope signing input of RFC-AITP-0001 §5.4 — a pipe-composed string, *not* canonical JSON of the envelope. |
+
+**General rule for every JCS-profile artifact carried inside an artifact-name
+wrapper** (`{"manifest": …}`, `{"revocation_list": …}`, `{"session_bundle": …}`):
+the wrapper key is transport routing metadata and is never part of the signing
+bytes (RFC-AITP-0001 §5.4.1). Sign the inner body; add the wrapper only when
+transmitting. A minting tool that canonicalizes the wrapper produces artifacts
+that verify only against itself.
+
+Pinned signing inputs for all three live in
+[`known-answer/jcs-sha256.json`](known-answer/jcs-sha256.json), each declaring
+`signing_input: "body"`, and are executed by `make kat-verify`.
 
 **Retired in v0.2** (used only by fixtures frozen in the v0.1 token
 shape, e.g. `del-004`): `__VALID_TCT_SIG__`,

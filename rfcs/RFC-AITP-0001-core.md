@@ -2,7 +2,7 @@
 # Agent Identity & Trust Protocol (AITP) — Core
 
 **Document:** RFC-AITP-0001
-**Version:** 0.2.0-draft
+**Version:** 0.2.1-draft
 **Status:** Community Standards Track (v0.2 Draft)
 **Canonical wire format:** JSON
 **Normative transport:** HTTPS (any HTTP/1.1+ runtime)
@@ -358,6 +358,12 @@ Implementations MAY transport AITP messages over any binary or text frame (raw J
 
 A signed object that round-trips through any transport MUST produce identical canonical JSON when verified. If a transport adds wrappers or renames fields, the implementation MUST strip them before reconstructing the canonical form.
 
+> **The artifact-name wrapper is such a wrapper.** Three JCS-profile artifacts are carried inside a JSON object whose key names the artifact: `{"manifest": {…}}` (RFC-AITP-0003 §6.1), `{"revocation_list": {…}, "signature": "…"}` (RFC-AITP-0008 §1.5), and `{"session_bundle": {…}}` (RFC-AITP-0010 §3). The artifact-naming key is **routing metadata for the transport** — it tells a recipient what kind of document arrived — and is never part of the signing bytes. Issuers sign, and verifiers reconstruct, the **inner artifact body**; the wrapper is added on the way out and stripped on the way in.
+>
+> The two profiles differ only in where the signature sits, and neither placement changes the rule. For the Manifest and the session bundle the `signature` member lives *inside* the body and is excluded from the signing input (`canonical_json(body_without_signature)`). For the revocation snapshot the `signature` is a *sibling of* the wrapped body, not a member of it — so the body is signed as-is, with nothing to strip, and the sibling is discarded along with the wrapper. In every case the signing input is the inner artifact body carrying no signature of its own.
+>
+> Stated once here because it holds for every JCS-profile artifact that uses an artifact-name wrapper, present and future; restated at each artifact's own signing section. JCS-profile artifacts that are *not* wrapped — the envelope (§5) and handshake payloads — carry no artifact-name wrapper, so this note does not apply to them; their signing inputs are defined in §5.4.
+
 > **URL canonicalization.** String fields holding URLs (e.g.
 > `accepted_trust_anchors`, `handshake_endpoint`,
 > `identity_hint.issuer`) are signed as the **verbatim wire string** —
@@ -379,7 +385,7 @@ A signed object that round-trips through any transport MUST produce identical ca
 > `Option<Vec<T>>` (or equivalent) so the signing view emits the
 > same bytes the issuer signed.
 
-> **Known-answer test.** Pinned (object → JCS canonical bytes → SHA-256 digest) vectors for the JCS-profile artifacts (Manifest, revocation snapshot) live at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json). Implementations MUST reproduce both the canonical byte sequence and the digest byte-for-byte. Mismatches typically indicate JCS sort-order, number-formatting, or Unicode-escaping bugs. (The v0.1 TCT and delegation JCS vectors are retired with the move to compact JWS; JWS KAT vectors are pinned under `known-answer/signed-examples/`.)
+> **Known-answer test.** Pinned (signing input → JCS canonical bytes → SHA-256 digest) vectors for the JCS-profile artifacts (Manifest, revocation snapshot, session bundle) live at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json). **Each vector's `object` is the signing input itself — the inner artifact body, wrapper stripped and `signature` excluded — not the transport shape;** every vector states this explicitly in its `signing_input` field, whose value for these artifacts is `"body"`. Implementations MUST reproduce both the canonical byte sequence and the digest byte-for-byte, and MUST take the pinned bytes as the thing they sign, not merely as a canonicalization exercise. Mismatches typically indicate JCS sort-order, number-formatting, or Unicode-escaping bugs — or signing the wrapper. (The v0.1 TCT and delegation JCS vectors are retired with the move to compact JWS; JWS KAT vectors are pinned under `known-answer/signed-examples/`.)
 
 #### 5.4.2 PoP signing input convention
 
@@ -602,7 +608,7 @@ A conformant AITP v0.2 implementation MUST:
 5. Implement the Mutual Handshake defined in [RFC-AITP-0004](RFC-AITP-0004-mutual-handshake.md).
 6. Issue and verify peer-issued TCTs and grant vouchers as defined in [RFC-AITP-0005](RFC-AITP-0005-tct.md), enforcing the §5.4.5 algorithm-pinning and explicit-typing rules.
 7. Reject expired, mismatched-audience, or revoked TCTs, and reject tokens failing `alg`/`typ` enforcement with `TOKEN_ALG_MISMATCH` / `TOKEN_TYP_MISMATCH`.
-8. Reproduce the canonical-bytes and digest pins in [`schemas/conformance/known-answer/`](../schemas/conformance/known-answer/) byte-for-byte. The v0.2-mandatory KATs are: the JCS canonicalization vectors for the JCS-profile artifacts (`kat-manifest-001`, `kat-revocation-001`), the unified PoP signing-input vector `kat-manifest-pop-001`, and the compact-JWS vectors under `known-answer/signed-examples/` (TCT, grant voucher, delegation). Implementations MUST run `kat-manifest-pop-001` through every PoP code path (Manifest PoP, handshake PoP, downstream TCT PoP, pinned-key identity proof) and confirm each produces the pinned signature — see §5.4.2. Implementations that opt into the post-v0.2 draft RFCs MUST additionally reproduce the multi-hop chain vectors (RFC-AITP-0011) and the session-bundle vector (RFC-AITP-0010); core-only implementations MAY skip those.
+8. Reproduce the canonical-bytes and digest pins in [`schemas/conformance/known-answer/`](../schemas/conformance/known-answer/) byte-for-byte. The v0.2-mandatory KATs are: the JCS signing-input vectors for the JCS-profile artifacts (`kat-manifest-001`, `kat-revocation-001`; each pins the inner artifact body per §5.4.1), the unified PoP signing-input vector `kat-manifest-pop-001`, the compact-JWS vectors under `known-answer/signed-examples/` (TCT, grant voucher, delegation), and the JCS-profile signed examples there (Manifest, revocation snapshot) — verified as committed, without re-minting (RFC-AITP-0003 §6.1, RFC-AITP-0008 §1.5). Implementations MUST run `kat-manifest-pop-001` through every PoP code path (Manifest PoP, handshake PoP, downstream TCT PoP, pinned-key identity proof) and confirm each produces the pinned signature — see §5.4.2. Implementations that opt into the post-v0.2 draft RFCs MUST additionally reproduce the multi-hop chain vectors (RFC-AITP-0011) and the session-bundle vector (RFC-AITP-0010); core-only implementations MAY skip those.
 9. Pass the conformance fixtures in [`schemas/conformance/`](../schemas/conformance/). The v0.2 fixture surface is the `env-*`, `man-*`, `mh-*`, `id-*`, `tct-*`, `vch-*`, `del-*`, and `rev-*` IDs. The `del-mh-*` and `bundle-*` fixtures are draft opt-in (RFC-AITP-0010 / RFC-AITP-0011) — core implementations are expected to reject `del-mh-*` tokens with `DELEGATION_MULTIHOP_NOT_SUPPORTED` and to skip the `bundle-*` operations (`SKIP` rather than `FAIL`).
 
 ---

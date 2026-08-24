@@ -2,7 +2,7 @@
 # Session Trust Bundle
 
 **Document:** RFC-AITP-0010
-**Version:** 0.2.0-draft
+**Version:** 0.2.1-draft
 **Status:** Draft
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0004 Mutual Handshake](RFC-AITP-0004-mutual-handshake.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md), [RFC-AITP-0008 Revocation](RFC-AITP-0008-revocation.md)
 
@@ -74,7 +74,7 @@ The bundle itself is a **JCS-signed JSON object** — a protocol-internal artifa
         "tct": "<compact JWS string — peer-issued TCT, coordinator → participant>"
       }
     ],
-    "signature": "<base64url sig over canonical session_bundle JSON excluding signature>"
+    "signature": "<base64url sig over the canonical INNER session_bundle body, excluding signature and excluding this wrapper>"
   }
 }
 ```
@@ -87,7 +87,7 @@ The bundle itself is a **JCS-signed JSON object** — a protocol-internal artifa
 | `issued_at` | REQUIRED | Unix timestamp when this bundle was signed. |
 | `expires_at` | REQUIRED | Unix timestamp after which the bundle MUST NOT be used. MUST equal the minimum `exp` claim across the embedded participant TCTs (see §6). |
 | `participants` | REQUIRED | Array of participant entries. Each entry pairs a participant AID with the peer-issued TCT (compact JWS string) the coordinator issued to that participant during the bilateral handshake that fed into this bundle. |
-| `signature` | REQUIRED | Coordinator's signature over the canonical `session_bundle` JSON (excluding `signature`). Same JCS rules as RFC-AITP-0001 §5.4.1. |
+| `signature` | REQUIRED | Coordinator's signature over the canonical **inner** `session_bundle` body, excluding the `signature` member itself. The `{"session_bundle": {…}}` form shown throughout this RFC is the **HTTP/transport envelope only**; the signed object is the inner `session_bundle` value, never the wrapper. Consumers MUST unwrap to the inner object before computing the signing input. Same JCS rules as RFC-AITP-0001 §5.4.1, whose wrapper-stripping requirement this restates for the bundle. |
 
 The participant `tct` field is a verbatim peer-issued TCT compact JWS (RFC-AITP-0005 §1) — coordinator-issued, with the `aud` claim set to the participant's AID. Per RFC-AITP-0001 §5.4.5, the bundle never parses, transforms, or re-encodes the embedded string; consumers that need a TCT's claims base64url-decode its payload segment but MUST NOT re-serialize it. The bundle distributes the participant's *own* TCT back to that participant alongside everyone else's, so a single fetch reveals the full session roster.
 
@@ -104,7 +104,7 @@ The coordinator MUST have completed a Mutual Handshake (RFC-AITP-0004) with ever
 1. For each participant `P_i`, take the peer-issued TCT compact JWS the coordinator issued during the handshake (`coordinator → P_i`), verbatim.
 2. Compute `expires_at = min(TCT_i.exp)` across all participants, reading each TCT's `exp` claim from its decoded payload.
 3. Assemble the `session_bundle` body with `version`, fresh `session_id`, `coordinator`, `issued_at`, this `expires_at`, and the `participants` array (each `tct` an opaque string).
-4. Sign the canonical JCS bytes of the body (excluding `signature`) with the coordinator's private key. The embedded TCT strings are covered verbatim by this signature.
+4. Sign the canonical JCS bytes of the **inner** `session_bundle` body — excluding the `signature` member, and excluding the `{"session_bundle": …}` transport wrapper — with the coordinator's private key. Concretely: `sig_input = sha256(canonical_json(session_bundle_without_signature))`, then `signature = base64url(sign(coordinator_private_key, sig_input))`. Add the wrapper only when transmitting. The embedded TCT strings are covered verbatim by this signature.
 
 ### 4.3 Distribution
 
@@ -147,7 +147,7 @@ A participant receiving a bundle MUST, in order:
 3. **Expiry-window invariant** — `session_bundle.expires_at` MUST equal the minimum `exp` claim across the embedded participant TCTs (§6). Failure ⇒ `BUNDLE_EXPIRY_WINDOW_INVARIANT`.
 4. **Participants non-empty** — `participants` MUST contain at least one entry. Failure ⇒ `BUNDLE_EMPTY_PARTICIPANTS`.
 5. **Coordinator key resolution** — fetch and verify the coordinator's Manifest per RFC-AITP-0003 §5; resolve the coordinator's public key from `manifest.aid`.
-6. **Bundle signature** — verify `session_bundle.signature` against the coordinator's key over the canonical body (the embedded TCT strings are covered verbatim). Failure ⇒ `BUNDLE_INVALID_SIGNATURE`.
+6. **Bundle signature** — unwrap to the inner `session_bundle` object, then verify `session_bundle.signature` against the coordinator's key over the canonical inner body with `signature` excluded (the embedded TCT strings are covered verbatim). A verifier that canonicalizes the `{"session_bundle": …}` wrapper computes different bytes than the coordinator signed and will reject every valid bundle. Failure ⇒ `BUNDLE_INVALID_SIGNATURE`.
 7. **Per-participant TCT verification** — for each `participants[i].tct`, run the standard TCT verification order (RFC-AITP-0005 §7.2: strict parse, `typ`, AID-pinned `alg`, signature, claims). Every embedded TCT MUST have an `iss` claim equal to `session_bundle.coordinator` (failure ⇒ `BUNDLE_COORDINATOR_ISSUER_MISMATCH`) and an `aud` claim equal to `participants[i].aid` (failure ⇒ `BUNDLE_AUDIENCE_MISMATCH`); other TCT-level failures — including `TOKEN_TYP_MISMATCH` / `TOKEN_ALG_MISMATCH` rejections of an embedded token — surface as `BUNDLE_PARTICIPANT_TCT_INVALID`. The participant SHOULD verify its own TCT first.
 8. **Self-membership check** — the receiving participant MUST find its own AID in `participants[*].aid` and confirm the embedded TCT's `aud` claim equals its own AID. Failure ⇒ `BUNDLE_NOT_MEMBER`.
 
@@ -202,7 +202,7 @@ The aggregate code `SESSION_BUNDLE_INVALID` is a fallback for implementations th
 
 A conformant v0.2 implementation that opts into RFC-AITP-0010 MUST expose both operations in its conformance harness. Implementations that do not expose them MUST report SKIP for any `bundle-*` fixture rather than FAIL.
 
-KAT vector `kat-session-bundle-001` lives in [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json) and pins (coordinator key kat-keypair-001 + 2 participant TCT compact JWS strings → canonical bundle body → SHA-256 → Ed25519 signature). The vector is reworked for `aitp/0.2`: the bundle's own JCS form survives, but its embedded TCT members are opaque compact JWS strings (minted per the RFC-AITP-0005 signed-example vectors), covered verbatim by the JCS body. Conformance fixtures exercising the bundle verification path live at [`schemas/conformance/bundle-001-success.json`](../schemas/conformance/bundle-001-success.json), [`bundle-002-not-member.json`](../schemas/conformance/bundle-002-not-member.json), and [`bundle-003-expired.json`](../schemas/conformance/bundle-003-expired.json).
+KAT vector `kat-session-bundle-001` lives in [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json) and pins (coordinator key kat-keypair-001 + one participant TCT compact JWS string → canonical **inner** bundle body → SHA-256 → Ed25519 signature). Its `object` is the signing input itself, as its `signing_input: "body"` field records — not the `{"session_bundle": {…}}` transport form — and its pinned `coordinator_signature_b64url` verifies over exactly those bytes. Implementations MUST reproduce the canonical bytes and the digest byte-for-byte and MUST verify the pinned signature. **Note for implementers holding an earlier copy:** through v0.2-draft this vector pinned the *wrapped* form and its signature was minted over it; both were corrected (see `CHANGELOG.md` for the old and new digests). The vector is reworked for `aitp/0.2`: the bundle's own JCS form survives, but its embedded TCT members are opaque compact JWS strings (minted per the RFC-AITP-0005 signed-example vectors), covered verbatim by the JCS body. Conformance fixtures exercising the bundle verification path live at [`schemas/conformance/bundle-001-success.json`](../schemas/conformance/bundle-001-success.json), [`bundle-002-not-member.json`](../schemas/conformance/bundle-002-not-member.json), and [`bundle-003-expired.json`](../schemas/conformance/bundle-003-expired.json).
 
 ---
 

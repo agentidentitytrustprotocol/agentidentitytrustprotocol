@@ -2,7 +2,7 @@
 # Revocation
 
 **Document:** RFC-AITP-0008
-**Version:** 0.2.0-draft
+**Version:** 0.2.1-draft
 **Status:** Community Standards Track (v0.2 Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md)
 
@@ -52,13 +52,31 @@ Distribution is pull-based in v0.2. A consuming peer SHOULD poll the issuing pee
 
 `ListRevoked` responses MUST be signed by the issuing peer to prevent a network attacker from forging or suppressing entries:
 
-> **Format unchanged in v0.2.** The revocation snapshot is a
-> protocol-internal artifact, exchanged only between full AITP stacks,
-> and it remains under the **JCS embedded-signature profile**
-> (RFC-AITP-0001 §5.4) in v0.2. It is NOT re-serialized as compact JWS —
-> the v0.2 JWS migration covers only the portable trust artifacts (TCT,
-> grant voucher, delegation token; RFC-AITP-0001 §5.4.5). The only v0.2
-> change to the snapshot is the `version` literal.
+> **Serialization unchanged in v0.2; the signing input is not.** The
+> revocation snapshot is a protocol-internal artifact, exchanged only
+> between full AITP stacks, and it remains under the **JCS
+> embedded-signature profile** (RFC-AITP-0001 §5.4) in v0.2. It is NOT
+> re-serialized as compact JWS — the v0.2 JWS migration covers only the
+> portable trust artifacts (TCT, grant voucher, delegation token;
+> RFC-AITP-0001 §5.4.5).
+>
+> Several things did change, and an implementation carrying rc.3-era
+> code must act on all of them:
+>
+> - the `version` literal (`aitp/0.1` → `aitp/0.2`);
+> - the **algorithm-tagged grammars** for `issuer` and `signature`
+>   (RFC-AITP-0001 §5.4.3) — `issuer` now also accepts the
+>   `aid:pubkey:ed25519:` and `aid:pubkey:p256:` forms, `signature` now
+>   also accepts an `ed25519.` / `p256.` tag prefix, and verification of
+>   **both** Ed25519 and P-256 is mandatory in v0.2;
+> - **the signing input**. rc.3 signed the wrapped
+>   `{"revocation_list": …}` form; v0.2 signs the inner
+>   `revocation_list` body (see the `signature` row in the field table
+>   below).
+>
+> Do not read "the profile is unchanged" as "there is nothing to
+> migrate" — the serialization is unchanged, the grammar is wider, and
+> the bytes an issuer signs are different.
 
 ```json
 {
@@ -84,7 +102,7 @@ The canonical schema is [`schemas/json/aitp-revocation-list.schema.json`](../sch
 | `published_at` | REQUIRED | Unix timestamp when this list snapshot was signed. |
 | `expires_at` | REQUIRED | Unix timestamp after which this snapshot MUST NOT be cached. |
 | `entries` | REQUIRED | Array of revoked-entry records (may be empty). |
-| `signature` | REQUIRED | base64url signature over canonical `revocation_list` JSON (excluding `signature`), signed by the issuing peer's private key. Canonical JSON MUST be produced per [RFC 8785 (JCS)](https://datatracker.ietf.org/doc/html/rfc8785); see [RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature). The signing input is the **inner** `revocation_list` body — the `{"revocation_list": {...}, "signature": "..."}` envelope is the wire / HTTP transport shape, NOT part of the canonical signing bytes. (This matches the RFC-AITP-0010 session-bundle and RFC-AITP-0011 multi-hop conventions: the wrapper key names the artifact for transport routing but the issuer signs the inner body.) A worked example (`kat-revocation-001`) showing the canonical bytes and SHA-256 digest of a fixed revocation snapshot body lives at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json); implementations MUST reproduce it byte-for-byte. Implementations migrating from rc.3-era code (which signed the wrapped form) MAY accept either canonical shape during a transition window but MUST emit the inner form going forward. |
+| `signature` | REQUIRED | base64url signature over canonical `revocation_list` JSON (excluding `signature`), signed by the issuing peer's private key. Canonical JSON MUST be produced per [RFC 8785 (JCS)](https://datatracker.ietf.org/doc/html/rfc8785); see [RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature). The signing input is the **inner** `revocation_list` body — the `{"revocation_list": {...}, "signature": "..."}` envelope is the wire / HTTP transport shape, NOT part of the canonical signing bytes. (This matches the RFC-AITP-0010 session-bundle and RFC-AITP-0011 multi-hop conventions: the wrapper key names the artifact for transport routing but the issuer signs the inner body.) A worked example (`kat-revocation-001`) lives at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json). Its `object` is **the signing input defined above** — the inner `revocation_list` body — as its `signing_input: "body"` field records; implementations MUST reproduce its canonical bytes and digest byte-for-byte, and MUST use that same input when they sign. A real signed snapshot is pinned at [`known-answer/signed-examples/revocation/`](../schemas/conformance/known-answer/signed-examples/revocation/); conformant implementations MUST verify it as committed, without re-minting. **Note for implementers holding an earlier copy:** through v0.2-draft both artifacts pinned the *wrapped* form, contradicting this row; they were corrected to the inner body (see `CHANGELOG.md`, which carries the old and new digests). Implementations migrating from rc.3-era code (which signed the wrapped form) MAY accept either canonical shape during a transition window but MUST emit the inner form going forward. |
 
 **Verification.** A consuming peer MUST verify the signature against the issuing peer's public key (resolved from the issuing peer's Manifest, RFC-AITP-0003). A snapshot whose `expires_at` is in the past, or whose signature does not validate, MUST be discarded; the peer SHOULD treat the absence of a fresh snapshot per its configured `revocation_policy.mode` (§3).
 

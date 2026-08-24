@@ -2,6 +2,127 @@
 
 ## Unreleased
 
+### JCS signing input: the artifact-name wrapper is not signed
+
+**Breaking for anything pinning the known-answer digests.** Three JCS-profile
+known-answer vectors pinned the transport wrapper as their canonical bytes
+instead of the inner artifact body. One of them — `kat-session-bundle-001` —
+pinned a real signature over those wrapped bytes, as did the committed
+`signed-examples/revocation/` snapshot; `kat-manifest-001` and
+`kat-revocation-001` carry no signature member, so for those two only the
+canonical bytes and digest were wrong. RFC-AITP-0003 §6.1, RFC-AITP-0008 §1.5 and RFC-AITP-0001 §5.4.1 all
+specified the inner body; the vectors were the outlier. RFC-AITP-0008 §1.5
+already required implementations to emit the inner form going forward, so this is
+that migration applied to the vectors.
+
+Old and new values, so a consumer can tell which copy they hold:
+
+| Vector | Old canonical bytes / SHA-256 | New canonical bytes / SHA-256 |
+|---|---|---|
+| `kat-manifest-001` | 636 B · `cef51854ee7b83bb0da9e0c274a5da88255fa69657cf62939cb43cdd9746c5ae` | 623 B · `b93915e980ebca05a68a81465ac36e416bc3dec40e068f21770cba6c415884af` |
+| `kat-revocation-001` | 241 B · `739feb36cc2530ad3188f6c3a9ee7459820533382ee24387a8c261787397e0d9` | 221 B · `dad7eb6db48c924ef30de7c20a6702715b512dd8aee12c9eed33139ba7008bfb` |
+| `kat-session-bundle-001` | 941 B · `dc99e7252ab25d2896eb2468d32b8d33b48a62150525ece727038cc29b4f2640` | 922 B · `c577854d144c912e145e8ec6cbab09361ceb709a43be5cbd1ef538085b1aa5e5` |
+
+Re-minted signatures — the bundle vector and the revocation signed example, the
+only two pinned signatures that covered wrapped bytes (RFC-AITP-0008 §1.5 notes
+that both revocation artifacts, the vector and the signed example, were
+corrected):
+
+| Signature | Old | New |
+|---|---|---|
+| `kat-session-bundle-001.coordinator_signature_b64url` | `Su2JiXGiOhxs-StL7NLhT9-yZVHi-4SSiMSLRFu_Kkmh1ZPu7GxKJ0OX2hJ7P6NXFiQM6Uy4rXF7WTpr2M2_AA` | `czzmjpVf5rtZ2-FvfMcviSUCeY2WSu69v2ZECpflHAKVaEikz4w6m5fOVuBZkCL8DXX-lkY905NvYxjQTg_TBw` |
+| `signed-examples/revocation/kat-keypair-001-snapshot.json` `signature` | `2OYmur9NnrFsrz4Qeso_fGj2Bk0g2y6yNf4H7dqrqEvKZ-YfndY3GavquOIodWGs4EFdgmaHoer0NWc7sPF1DQ` | `DTmCoELd0lIRCRBdhDuLmEqvFK1VqpTSGyPEG6-C0InTOeF8LB4a-Rf4ercCvhLYD6H1t9_T-7FgQ1ufBfKkCQ` |
+
+`signed-examples/manifest/kat-keypair-001-manifest.json` is **unchanged** — it was
+already signed over the inner body, and is the control showing the correction did
+not overshoot.
+
+**Version bump.** `known-answer/README.md` requires that "an existing vector's
+output MUST NOT change without an RFC bump", and this changes three. The four
+RFCs whose text moves are bumped **`0.2.0-draft` → `0.2.1-draft`**:
+RFC-AITP-0001, RFC-AITP-0003, RFC-AITP-0008, RFC-AITP-0010. The other nine
+documents are untouched — the seven other Draft-stage RFCs stay at
+`0.2.0-draft`, and RFC-AITP-0012 / RFC-AITP-0013 keep their `0.2.0-reserved` /
+`0.2.0-planned` placeholders — and VERSIONING.md now records that document
+versions may diverge within one protocol revision.
+
+Patch level, per VERSIONING.md's *Editorial / clarification* class, because the
+normative requirement did not change — the artifacts were wrong. RFC-AITP-0003
+§6.1 and RFC-AITP-0008 §1.5 already specified the inner body, and RFC-AITP-0008
+§1.5 already required implementations to emit it going forward; RFC-AITP-0010
+gains an explicit statement of a rule RFC-AITP-0001 §5.4.1 already imposed on
+every JCS-profile artifact. The vectors are being brought into line with
+requirements that already shipped.
+
+**Two layers deliberately do NOT move.** The protocol literal stays `aitp/0.2`:
+no message shape changed, every `version` field and `ver` claim is untouched, and
+RFC-AITP-0008 §1.5's transition clause presumes issuers and verifiers remain on
+the same protocol revision while they migrate. The JSON Schema namespace stays
+`https://aitp.dev/schema/v0.2/`: no schema shape changed — only two `description`
+strings in the revocation schema, and descriptions are not part of the contract.
+Moving either would signal a break that did not occur and would invalidate every
+fixture and both implementations for no benefit.
+
+The alternative — keeping the digests and amending three RFCs to bless the
+wrapper — would have contradicted RFC-AITP-0003 §6.1 and both implementations'
+Manifest behaviour, and would have required re-minting the *correct* Manifest
+signed example to match a wrong vector.
+
+**Migration.** RFC-AITP-0008 §1.5 permits accepting either canonical shape during
+a transition window while emitting the inner form. Implementations that signed
+the wrapper for revocation snapshots or session bundles will fail against these
+vectors until they move; that failure is the intended signal. The Manifest is
+unaffected in practice — implementations already signed its inner body, which is
+why `kat-manifest-001` was wrong for the whole of v0.2-draft without anything
+noticing.
+
+- **RFC-AITP-0001 §5.4.1**: states that the artifact-name wrapper
+  (`{"manifest": …}`, `{"revocation_list": …}`, `{"session_bundle": …}`) is a
+  transport wrapper covered by the section's existing requirement to strip
+  wrappers before canonicalizing, and covers both signature placements — a member
+  of the body for the Manifest and session bundle, a sibling of the wrapper for
+  the revocation snapshot. Scoped away from the unwrapped JCS artifacts.
+- **RFC-AITP-0010**: gains the unwrap rule it never stated, in §3's `signature`
+  row, §4.2 step 4 and §5 step 6. §9's KAT paragraph also claimed the vector pins
+  two participant TCTs; it pins one.
+- **RFC-AITP-0003 §6.1, RFC-AITP-0008 §1.5**: "MUST reproduce it byte-for-byte"
+  now names the signing input, and both require the committed signed examples be
+  verified as committed, without re-minting.
+- **Known-answer vectors** carry a `signing_input` member so the file states its
+  own convention.
+- **`schemas/conformance/PLACEHOLDERS.md`**: `__VALID_A_SIG__` had been defined as
+  "context-dependent — minting tool resolves from surrounding fixture shape",
+  which let two minting tools choose different conventions and each verify its own
+  output. Replaced with a table resolving it per enclosing artifact. This narrows
+  an ambiguity rather than renaming a placeholder, so it does not require the RFC
+  process under this file's own Stability section.
+- **Fixture `$comment` corrections**: `rev-001`, `rev-002` and `rev-003` asserted
+  "the JCS-profile snapshot signing input is unchanged in v0.2", which was false
+  and is a plausible reason the migration was never made; `bundle-001` described
+  the input as the bundle bytes "excluding nothing"; `tct-004` and `del-mh-004`
+  used the same "context-dependent" placeholder language and now name the inner
+  `revocation_list` body explicitly.
+
+### Conformance: pinned values are now executed, not just parsed
+
+`make validate` and CI run `scripts/verify-known-answer.mjs`, which recomputes
+every pinned canonical byte sequence and digest, re-derives every public key and
+JWK thumbprint, and verifies every pinned signature — including the two
+JCS-profile signed examples, which no implementation's test suite executed
+cross-implementation. Previously nothing in this repository checked any pinned
+cryptographic value; validation was JSON syntax and schema only.
+
+For each JCS artifact it asserts both that the signature verifies over the inner
+body **and** that it fails over the wrapped form, and it hard-codes the
+inner-body rule rather than trusting each vector's own declaration — so the
+wrapped form cannot be reintroduced even by a self-consistent change. Node
+standard library only, no new dependency.
+
+`scripts/regen-known-answer.py` regenerates the vectors by executing
+`aitp-verifier-py`; the checker verifies them with an independent implementation.
+Vectors are generated, never hand-transcribed.
+
+
 ### v0.2.0-draft — JWS-TCT migration
 
 **Breaking revision**: the
@@ -37,7 +158,9 @@ verification) under the same version literal.
   and optional `grant_voucher` as opaque compact JWS strings; TCT
   verification steps restated per RFC-0005 §7.2.
 - **RFC-AITP-0008**: terminology sweep (`jti` claim, `voucher.src_jti`);
-  snapshot format explicitly unchanged (JCS profile); §3.3
+  snapshot stays on the JCS profile, though its signing input is
+  **not** unchanged from rc.3 — see the signing-input correction under
+  Unreleased; §3.3
   verify-before-revocation-lookup re-affirmed for JWS artifacts.
 - **RFC-AITP-0009**: new threat entries §1.12 algorithm confusion,
   §1.13 token-type confusion, §1.14 `alg: none`; reconstruction

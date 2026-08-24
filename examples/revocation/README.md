@@ -15,7 +15,7 @@ not cryptographically valid.
 
 For cross-implementation interop testing — i.e. an artifact that
 actually verifies — see
-[`schemas/conformance/known-answer/signed-examples/revocation/`](../../schemas/conformance/known-answer/signed-examples/)
-once minted, and the canonical-bytes vector
-`kat-revocation-001` in
+[`schemas/conformance/known-answer/signed-examples/revocation/`](../../schemas/conformance/known-answer/signed-examples/revocation/),
+which carries a real Ed25519 signature over the inner `revocation_list`
+body, and the pinned signing input `kat-revocation-001` in
 [`schemas/conformance/known-answer/jcs-sha256.json`](../../schemas/conformance/known-answer/jcs-sha256.json).
