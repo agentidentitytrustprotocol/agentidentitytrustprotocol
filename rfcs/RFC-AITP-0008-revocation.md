@@ -52,13 +52,31 @@ Distribution is pull-based in v0.2. A consuming peer SHOULD poll the issuing pee
 
 `ListRevoked` responses MUST be signed by the issuing peer to prevent a network attacker from forging or suppressing entries:
 
-> **Format unchanged in v0.2.** The revocation snapshot is a
-> protocol-internal artifact, exchanged only between full AITP stacks,
-> and it remains under the **JCS embedded-signature profile**
-> (RFC-AITP-0001 §5.4) in v0.2. It is NOT re-serialized as compact JWS —
-> the v0.2 JWS migration covers only the portable trust artifacts (TCT,
-> grant voucher, delegation token; RFC-AITP-0001 §5.4.5). The only v0.2
-> change to the snapshot is the `version` literal.
+> **Serialization unchanged in v0.2; the signing input is not.** The
+> revocation snapshot is a protocol-internal artifact, exchanged only
+> between full AITP stacks, and it remains under the **JCS
+> embedded-signature profile** (RFC-AITP-0001 §5.4) in v0.2. It is NOT
+> re-serialized as compact JWS — the v0.2 JWS migration covers only the
+> portable trust artifacts (TCT, grant voucher, delegation token;
+> RFC-AITP-0001 §5.4.5).
+>
+> Several things did change, and an implementation carrying rc.3-era
+> code must act on all of them:
+>
+> - the `version` literal (`aitp/0.1` → `aitp/0.2`);
+> - the **algorithm-tagged grammars** for `issuer` and `signature`
+>   (RFC-AITP-0001 §5.4.3) — `issuer` now also accepts the
+>   `aid:pubkey:ed25519:` and `aid:pubkey:p256:` forms, `signature` now
+>   also accepts an `ed25519.` / `p256.` tag prefix, and verification of
+>   **both** Ed25519 and P-256 is mandatory in v0.2;
+> - **the signing input**. rc.3 signed the wrapped
+>   `{"revocation_list": …}` form; v0.2 signs the inner
+>   `revocation_list` body (see the `signature` row in the field table
+>   below).
+>
+> Do not read "the profile is unchanged" as "there is nothing to
+> migrate" — the serialization is unchanged, the grammar is wider, and
+> the bytes an issuer signs are different.
 
 ```json
 {

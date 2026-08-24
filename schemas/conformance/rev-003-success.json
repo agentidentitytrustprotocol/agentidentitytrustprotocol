@@ -5,7 +5,7 @@
   "required_for_v0_1": false,
   "required_for_v0_2": true,
   "feature": null,
-  "$comment": "The snapshot signature placeholder is the context-dependent __VALID_A_SIG__ (issuing peer is agentA / kat-keypair-001 per the PLACEHOLDERS.md AID role table); the JCS-profile snapshot signing input is unchanged in v0.2. The `jti` entry references a revoked TCT's jti claim; jti values are unchanged between v0.1 and v0.2 (still the revocation handle).",
+  "$comment": "The snapshot signature placeholder is __VALID_A_SIG__ (issuing peer is agentA / kat-keypair-001 per the PLACEHOLDERS.md AID role table). Its signing input is the JCS canonical form of the INNER `revocation_list` body \u2014 the `{\"revocation_list\": ..., \"signature\": ...}` envelope is the wire shape and is never signed (RFC-AITP-0008 \u00a71.5, RFC-AITP-0001 \u00a75.4.1). Note the signature is a sibling of the body, not a member of it, so nothing is stripped before canonicalizing. This is NOT unchanged from rc.3, which signed the wrapped form; v0.2 mandates the inner form. The `jti` entry references a revoked TCT's jti claim; jti values are unchanged between v0.1 and v0.2 (still the revocation handle).",
   "description": "Revocation snapshot happy path. A signed snapshot from the issuing peer (kat-keypair-001) is fresh (published_at within `max_staleness_secs`), its signature validates under the issuing peer's Manifest key, and a queried JTI is NOT in `entries`. Verifier returns 'not revoked' and the surrounding TCT verification continues. (RFC-AITP-0008 §1.5.) Counterpart to rev-001 (stale snapshot, fail-closed) and rev-002 (stale snapshot, soft-fail).",
   "tags": [
     "success",

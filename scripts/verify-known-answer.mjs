@@ -184,7 +184,8 @@ function declaredSigningInput(vector) {
       `signing_input is "envelope", but this is a JCS-profile artifact whose signing ` +
       `input is the inner body (RFC-AITP-0001 §5.4.1, RFC-AITP-0003 §6.1, ` +
       `RFC-AITP-0008 §1.5, RFC-AITP-0010 §3). Pinning the transport wrapper is the ` +
-      `defect corrected by errata 3 and 4; it must not be reintroduced. If the wrapper ` +
+      `defect corrected in the v0.2 signing-input change (see CHANGELOG.md); it must ` +
+      `not be reintroduced. If the wrapper ` +
       `really must be pinned, that is an RFC change, not a vector change.`);
   }
   return decl;
