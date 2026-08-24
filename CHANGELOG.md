@@ -37,18 +37,34 @@ corrected):
 already signed over the inner body, and is the control showing the correction did
 not overshoot.
 
-**On the vector Stability rule.** `known-answer/README.md` states that "an
-existing vector's output MUST NOT change without an RFC bump", and this changes
-three. No bump is taken, for three reasons: v0.2 is still `draft`; RFC-AITP-0008
-§1.5 already specified this exact migration ("MUST emit the inner form going
-forward"), so the vectors are being brought into line with a requirement that
-already shipped rather than having their contract changed under them; and the
-old and new values are published above so a consumer pinning digests can
-identify and update their copy deterministically. The alternative — keeping the
-digests and amending three RFCs to bless the wrapper — would have contradicted
-RFC-AITP-0003 §6.1 and both implementations' Manifest behaviour, and would have
-required re-minting the *correct* Manifest signed example to match a wrong
-vector.
+**Version bump.** `known-answer/README.md` requires that "an existing vector's
+output MUST NOT change without an RFC bump", and this changes three. The four
+RFCs whose text moves are bumped **`0.2.0-draft` → `0.2.1-draft`**:
+RFC-AITP-0001, RFC-AITP-0003, RFC-AITP-0008, RFC-AITP-0010. The other nine stay
+at `0.2.0-draft` — their text is unchanged, and VERSIONING.md now records that
+document versions may diverge within one protocol revision.
+
+Patch level, per VERSIONING.md's *Editorial / clarification* class, because the
+normative requirement did not change — the artifacts were wrong. RFC-AITP-0003
+§6.1 and RFC-AITP-0008 §1.5 already specified the inner body, and RFC-AITP-0008
+§1.5 already required implementations to emit it going forward; RFC-AITP-0010
+gains an explicit statement of a rule RFC-AITP-0001 §5.4.1 already imposed on
+every JCS-profile artifact. The vectors are being brought into line with
+requirements that already shipped.
+
+**Two layers deliberately do NOT move.** The protocol literal stays `aitp/0.2`:
+no message shape changed, every `version` field and `ver` claim is untouched, and
+RFC-AITP-0008 §1.5's transition clause presumes issuers and verifiers remain on
+the same protocol revision while they migrate. The JSON Schema namespace stays
+`https://aitp.dev/schema/v0.2/`: no schema shape changed — only two `description`
+strings in the revocation schema, and descriptions are not part of the contract.
+Moving either would signal a break that did not occur and would invalidate every
+fixture and both implementations for no benefit.
+
+The alternative — keeping the digests and amending three RFCs to bless the
+wrapper — would have contradicted RFC-AITP-0003 §6.1 and both implementations'
+Manifest behaviour, and would have required re-minting the *correct* Manifest
+signed example to match a wrong vector.
 
 **Migration.** RFC-AITP-0008 §1.5 permits accepting either canonical shape during
 a transition window while emitting the inner form. Implementations that signed

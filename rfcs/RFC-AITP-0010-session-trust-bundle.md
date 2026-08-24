@@ -2,7 +2,7 @@
 # Session Trust Bundle
 
 **Document:** RFC-AITP-0010
-**Version:** 0.2.0-draft
+**Version:** 0.2.1-draft
 **Status:** Draft
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0004 Mutual Handshake](RFC-AITP-0004-mutual-handshake.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md), [RFC-AITP-0008 Revocation](RFC-AITP-0008-revocation.md)
 

@@ -17,11 +17,20 @@ and the CHANGELOG for the migration record).
 | JSON Schema namespace | `$id` URI on each canonical schema | `https://aitp.dev/schema/v0.2/...` | Breaking changes bump the path segment (`v0.1/` → `v0.2/`). The repo keeps a single flat `schemas/json/` directory tracking the current namespace; frozen earlier namespaces are available via the `schema-vX.Y.Z` git tags below, not via parallel directories. |
 | TCT version | `ver` claim inside the TCT JWS payload | `aitp/0.2` | Mirrors the protocol version. Consumers MUST reject unknown versions. |
 | Manifest version | `version` inside the Manifest | `aitp/0.2` | Mirrors the protocol version. |
-| RFC version | RFC document `Version:` header | `0.2.0-draft` | Tracks status (`-draft`, `-rc.N`, `-final`). |
+| RFC version | RFC document `Version:` header | `0.2.1-draft` | Tracks status (`-draft`, `-rc.N`, `-final`) **and each document's own editorial history**. Versions may diverge between documents within one protocol revision — a patch bump on one RFC does not move the others. The protocol literal is a separate layer and does not follow it. |
 
 ## Change classes
 
 - **Editorial / clarification** — patch-level RFC bump. No schema or wire change.
+  This class also covers **correcting a conformance artifact to match what the RFC
+  already required**: if a known-answer vector or signed example contradicts the
+  normative text, bringing the artifact into line is a patch bump on the RFCs whose
+  citations move, not a breaking change — the requirement did not change, the
+  artifact was wrong. Such a bump is what
+  [`schemas/conformance/known-answer/README.md`](schemas/conformance/known-answer/README.md)'s
+  Stability rule ("an existing vector's output MUST NOT change without an RFC bump")
+  requires, and the CHANGELOG MUST publish the old and new values so a consumer
+  pinning them can identify their copy.
 - **Backward-compatible addition** — minor RFC bump. New optional fields, new error codes, new identity types. Unknown JSON fields outside explicit `extensions` namespaces MUST be rejected. Unknown keys *inside* `extensions` MUST be ignored. See RFC-AITP-0001 §7.
 - **Breaking change** — major RFC bump and a new schema namespace. Migration notes required.
 

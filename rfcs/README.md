@@ -53,6 +53,8 @@ Planned (RFC number reserved, no document yet):
 
 `Draft → Review → Release Candidate → Final Comment Period → Accepted` (or `Rejected`).
 
-The `aitp/0.2` revision is a breaking change (compact-JWS trust artifacts, cryptographic agility), so RFCs 0001–0009 returned to **Draft** (shown as "v0.2 Draft" above, version `0.2.0-draft`) and re-progress through the lifecycle; the v0.1 line completed Release Candidate at `0.1.0-rc.3`.
+The `aitp/0.2` revision is a breaking change (compact-JWS trust artifacts, cryptographic agility), so RFCs 0001–0009 returned to **Draft** (shown as "v0.2 Draft" above) and re-progress through the lifecycle; the v0.1 line completed Release Candidate at `0.1.0-rc.3`.
+
+Document versions within a protocol revision **may diverge**: the `Version:` header tracks each RFC's own editorial history, not the protocol literal, which stays `aitp/0.2` for all of them. RFC-AITP-0001, 0003, 0008 and 0010 are at `0.2.1-draft` after the JCS signing-input correction (see [`CHANGELOG.md`](../CHANGELOG.md)); the rest remain at `0.2.0-draft`. Check the header of the document you are reading rather than assuming a shared version.
 
 **Release Candidate** is the editorial stage after Review and before FCP: the RFC text is substantively complete, the version carries an `rc.N` suffix (e.g. `0.2.0-rc.1`; the v0.1 line reached `0.1.0-rc.3`), and further changes are limited to clarifications, KAT vectors, and conformance fixtures. RC can iterate (rc.1, rc.2, …) as implementer feedback surfaces issues. Promotion to FCP requires all required KAT vectors present, the conformance fixture set complete for the RFC's normative surfaces, and at least one implementation passing the core conformance tier. See [governance/RFC-PROCESS.md](../governance/RFC-PROCESS.md) for the full stage definitions.

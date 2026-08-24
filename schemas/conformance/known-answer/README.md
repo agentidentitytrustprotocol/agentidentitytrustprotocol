@@ -125,3 +125,13 @@ These vectors are stable for AITP v0.2. New vectors MAY be added; an
 existing vector's output MUST NOT change without an RFC bump. If JCS
 or JWK Thumbprint specifications change in a way that breaks these
 vectors, AITP will issue a major version bump.
+
+**Invoked once so far.** `kat-manifest-001`, `kat-revocation-001` and
+`kat-session-bundle-001` were regenerated when it was found that they
+pinned the transport wrapper rather than the signing input the RFCs
+specified. That correction carries a patch bump of the four RFCs whose
+citations moved (`0.2.0-draft` → `0.2.1-draft`), and `CHANGELOG.md`
+publishes the old and new bytes, digests and signatures so a consumer
+pinning them can tell which copy they hold. Note the direction: the
+requirement did not change, the artifacts were wrong — which is why it
+is a patch bump and not a protocol or schema-namespace break.
