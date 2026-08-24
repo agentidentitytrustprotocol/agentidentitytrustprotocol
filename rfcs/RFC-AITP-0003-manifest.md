@@ -185,7 +185,7 @@ sig_input  = sha256(canonical_json(manifest_without_signature))
 signature  = base64url(sign(agent_private_key, sig_input))
 ```
 
-Canonical JSON MUST be produced per [RFC 8785 (JCS)](https://datatracker.ietf.org/doc/html/rfc8785). See [RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature) for the unified canonicalization and base64url encoding rules. A worked example (`kat-manifest-001`) showing the canonical bytes and SHA-256 digest of a fixed Manifest body lives at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json); implementations MUST reproduce it byte-for-byte.
+Canonical JSON MUST be produced per [RFC 8785 (JCS)](https://datatracker.ietf.org/doc/html/rfc8785). See [RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature) for the unified canonicalization and base64url encoding rules. A worked example (`kat-manifest-001`) lives at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json). Its `object` is **the signing input defined above** — the inner Manifest body with `signature` excluded, not the `{"manifest": {…}}` transport form — as its `signing_input: "body"` field records; implementations MUST reproduce its canonical bytes and digest byte-for-byte, and MUST use that same input when they sign. A real signed Manifest carrying a verifiable signature over those bytes is pinned at [`known-answer/signed-examples/manifest/`](../schemas/conformance/known-answer/signed-examples/manifest/); conformant implementations MUST verify it as committed, without re-minting.
 
 ### 6.2 Signing algorithm
 
