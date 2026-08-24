@@ -32,6 +32,9 @@ jobs:
           chmod +x scripts/validate-json.sh
           ./scripts/validate-json.sh
 
+      - name: Verify pinned known-answer values (canonical bytes + signatures)
+        run: node scripts/verify-known-answer.mjs
+
       - name: Check for release junk (.DS_Store, __MACOSX)
         run: |
           set -e
@@ -70,5 +73,6 @@ jobs:
           echo "  - JSON Schemas valid"
           echo "  - JSON examples valid"
           echo "  - Conformance fixtures + KAT vectors valid"
+          echo "  - Every pinned canonical byte sequence and signature verified"
           echo "  - No release junk in tree"
           echo "  - Release archive dry-run clean"

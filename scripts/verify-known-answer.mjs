@@ -163,6 +163,11 @@ const compress = ([x, y]) =>
 
 const ARTIFACT_WRAPPERS = new Set(['manifest', 'revocation_list', 'session_bundle']);
 
+// The three JCS-profile artifact vectors. For these the answer is not a matter of
+// declaration: RFC-AITP-0001 §5.4.1 requires the inner artifact body, so anything
+// else is non-conformant however the vector describes itself.
+const JCS_ARTIFACT_VECTORS = new Set(['kat-manifest-001', 'kat-revocation-001', 'kat-session-bundle-001']);
+
 function declaredSigningInput(vector) {
   const decl = vector.signing_input;
   if (decl === undefined) {
@@ -173,6 +178,14 @@ function declaredSigningInput(vector) {
   }
   if (decl !== 'body' && decl !== 'envelope') {
     throw new Error(`signing_input must be "body" or "envelope", got ${JSON.stringify(decl)}`);
+  }
+  if (decl === 'envelope' && JCS_ARTIFACT_VECTORS.has(vector.id)) {
+    throw new Error(
+      `signing_input is "envelope", but this is a JCS-profile artifact whose signing ` +
+      `input is the inner body (RFC-AITP-0001 §5.4.1, RFC-AITP-0003 §6.1, ` +
+      `RFC-AITP-0008 §1.5, RFC-AITP-0010 §3). Pinning the transport wrapper is the ` +
+      `defect corrected by errata 3 and 4; it must not be reintroduced. If the wrapper ` +
+      `really must be pinned, that is an RFC change, not a vector change.`);
   }
   return decl;
 }
