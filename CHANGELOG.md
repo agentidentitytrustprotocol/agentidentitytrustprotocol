@@ -20,8 +20,10 @@ bus and push transports RFC-AITP-0010 §4.3.3 contemplates. A signature that sit
 beside the transport wrapper is lost the moment a hop strips that wrapper, so the
 proof has to travel inside the signed body. This is deliberately not the
 convention used by the revocation snapshot, which is fetched point-to-point from
-a well-known endpoint and never relayed, and which keeps its sibling signature —
-RFC-AITP-0001 §5.4.1 now states the rule that decides between the two.
+a well-known endpoint and never relayed, and which keeps its sibling signature.
+RFC-AITP-0001 §5.4.1 records which artifact uses which placement, and now also
+states the rule that decides between them, so the next artifact author does not
+have to infer it from the examples.
 
 **No pinned cryptographic value changes.** The signing input was never in
 dispute: both readings canonicalize the bundle body with the `signature` member
