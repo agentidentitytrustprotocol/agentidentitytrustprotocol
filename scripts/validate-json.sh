@@ -93,12 +93,20 @@ fi
 #     starts validating fails the build exactly as a valid one that stops does
 #   * a fixture with no artifacts MUST say so explicitly, with a reason
 #   * an unrecognized placeholder token is an ERROR (see normalize-fixture-input.py)
+#   * every schema the map names must compile before anything is validated
+#     against it — ajv exits 1 for both "schema is broken" and "document is
+#     invalid", so a schema that stopped compiling would otherwise satisfy every
+#     negative expectation vacuously
+#   * every decoded-claims companion the normalizer strips must itself be
+#     validated somewhere in the map — this is what stops an artifact added
+#     inside an existing fixture from going unchecked, which the unmapped-file
+#     check above cannot see
 #   * at least FIXTURE_INPUT_MIN_CHECKS validations must actually run
 #
 # Lower FIXTURE_INPUT_MIN_CHECKS only in the same commit that removes fixtures,
 # and say why in the commit message — the same rule verify-known-answer.mjs uses
 # for EXPECTED_MIN_CHECKS.
-FIXTURE_INPUT_MIN_CHECKS=102
+FIXTURE_INPUT_MIN_CHECKS=104
 FIXTURE_MAP="${SCRIPT_DIR}/fixture-validation-map.json"
 NORMALIZER="${SCRIPT_DIR}/normalize-fixture-input.py"
 
@@ -138,7 +146,7 @@ for path in sorted(glob.glob(os.path.join(conformance_dir, "*.json"))):
     # filename that does not start with its id means one of the two was renamed
     # without the other, and the map is keyed by id.
     stem = os.path.basename(path)[:-len(".json")]
-    if not stem.startswith(fixture_id):
+    if not (stem == fixture_id or stem.startswith(fixture_id + "-")):
         sys.exit(f"    \u2717 {os.path.basename(path)}: fixture id {fixture_id!r} is not a "
                  f"prefix of the filename; rename one to match the other")
 
@@ -153,6 +161,38 @@ if unmapped:
 stale = sorted(set(entries) - set(fixtures))
 if stale:
     sys.exit("    \u2717 map entr(ies) naming a fixture that does not exist: " + ", ".join(stale))
+
+# Every `<x>_claims` companion the normalizer strips must be validated in its
+# own right, or stripping it would be a silent exemption — the precise failure
+# this stage exists to prevent, and one that no other check here would notice.
+# Auditing the fixture tree rather than trusting the map also closes the gap the
+# unmapped-file check cannot see: artifacts added *inside* an existing fixture.
+def companion_pointers(node, path):
+    found = []
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key.endswith("_claims") and key[: -len("_claims")] in node:
+                target = node[key]
+                if isinstance(target, list):
+                    found.extend(f"{path}/{key}/{i}" for i in range(len(target)))
+                else:
+                    found.append(f"{path}/{key}")
+            found.extend(companion_pointers(value, f"{path}/{key}"))
+    elif isinstance(node, list):
+        for index, item in enumerate(node):
+            found.extend(companion_pointers(item, f"{path}/{index}"))
+    return found
+
+for fixture_id, path in sorted(fixtures.items()):
+    with open(path, encoding="utf-8") as handle:
+        declared = {a.get("pointer") for a in entries[fixture_id].get("artifacts", [])}
+        uncovered = [p for p in companion_pointers(json.load(handle).get("input", {}), "/input")
+                     if p not in declared]
+    if uncovered:
+        sys.exit(f"    \u2717 {fixture_id}: decoded-claims companion(s) stripped during "
+                 f"normalization but never validated: {', '.join(uncovered)}\n"
+                 f"      Add a map entry pointing each at its claims schema. A companion that is "
+                 f"stripped\n      and unvalidated is exempt from checking entirely.")
 
 rows = []
 for fixture_id, entry in sorted(entries.items()):
@@ -184,16 +224,32 @@ MAPEOF
         exit 1
     fi
 
+    # Compile every schema the map names before validating anything against it.
+    # ajv-cli exits 1 for "schema failed to compile" exactly as it does for
+    # "document is invalid", so the two are indistinguishable inside the loop —
+    # and a schema that stops compiling would otherwise satisfy every negative
+    # expectation vacuously, which is the failure mode this stage exists to
+    # prevent. Checking compilability up front removes the ambiguity entirely.
+    for schema_file in $(cut -f4 "$WORKLIST" | sort -u); do
+        schema_path="${PROJECT_ROOT}/schemas/json/${schema_file}"
+        if [ ! -f "$schema_path" ]; then
+            echo "    ✗ map names a schema that does not exist: ${schema_file}"
+            rm -f "$WORKLIST"
+            exit 1
+        fi
+        if ! ajv compile -s "$schema_path" --spec=draft2020 --strict=false -c ajv-formats >/dev/null 2>&1; then
+            echo "    ✗ ${schema_file} does not compile — every validation against it would be meaningless"
+            ajv compile -s "$schema_path" --spec=draft2020 --strict=false -c ajv-formats 2>&1 | sed 's/^/      /' || true
+            rm -f "$WORKLIST"
+            exit 1
+        fi
+    done
+
     FIXTURE_CHECKS=0
     KNOWN_DEFECTS=0
     while IFS=$'\t' read -r fid fpath pointer schema expect wrap; do
         [ -n "$fid" ] || continue
         schema_path="${PROJECT_ROOT}/schemas/json/${schema}"
-        if [ ! -f "$schema_path" ]; then
-            echo "    ✗ ${fid} ${pointer}: no such schema ${schema}"
-            rm -f "$WORKLIST"
-            exit 1
-        fi
         # ajv-cli infers its parser from the extension; the temp file must be .json.
         art_base="$(mktemp)"
         art="${art_base}.json"
@@ -210,10 +266,25 @@ MAPEOF
                 exit 1
                 ;;
         esac
-        if ajv validate -s "$schema_path" -d "$art" --spec=draft2020 --strict=false -c ajv-formats >/dev/null 2>&1; then
+        # ajv-cli exits 1 for "document is invalid" and 2 for "could not run"
+        # (schema failed to compile, bad flags). Only the former is an outcome;
+        # conflating them would let a schema that stops compiling satisfy every
+        # negative expectation vacuously.
+        # `set -e` aborts on a failing command substitution in an assignment, and
+        # a nonzero ajv exit is an expected outcome here, not a script failure.
+        set +e
+        ajv_err="$(ajv validate -s "$schema_path" -d "$art" --spec=draft2020 --strict=false -c ajv-formats 2>&1 >/dev/null)"
+        ajv_status=$?
+        set -e
+        if [ "$ajv_status" -eq 0 ]; then
             observed="valid"
-        else
+        elif [ "$ajv_status" -eq 1 ]; then
             observed="invalid"
+        else
+            echo "    ✗ ${fid} ${pointer}: ajv failed to run against ${schema} (exit ${ajv_status})"
+            echo "${ajv_err}" | sed 's/^/      /'
+            rm -f "$art" "$WORKLIST"
+            exit 1
         fi
         expected_outcome="invalid"
         [ "$expect" = "valid" ] && expected_outcome="valid"

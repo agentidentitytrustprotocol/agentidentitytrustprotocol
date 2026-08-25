@@ -605,6 +605,11 @@
           "expect": "valid"
         },
         {
+          "pointer": "/input/peer_a/received_payload/grant_voucher_claims",
+          "schema": "aitp-grant-voucher.schema.json",
+          "expect": "valid"
+        },
+        {
           "pointer": "/input/peer_b/received_payload",
           "schema": "aitp-mutual-handshake.schema.json",
           "expect": "invalid_known_defect",
@@ -613,6 +618,11 @@
         {
           "pointer": "/input/peer_b/received_payload/tct_claims",
           "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/peer_b/received_payload/grant_voucher_claims",
+          "schema": "aitp-grant-voucher.schema.json",
           "expect": "valid"
         }
       ]
