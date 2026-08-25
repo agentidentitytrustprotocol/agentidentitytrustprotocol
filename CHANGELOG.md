@@ -15,8 +15,9 @@ implementation could satisfy both. The schema and the fixtures move; the RFC
 prose was already correct and is unchanged.
 
 The bundle is a **redistributable** artifact: a coordinator signs it once and it
-is forwarded, cached and relayed to every participant, including over the message
-bus and push transports RFC-AITP-0010 §4.3.3 contemplates. A signature that sits
+is forwarded, cached and relayed to every participant over any transport that
+preserves the canonical JSON — RFC-AITP-0010 §4.3 names a signed message bus
+alongside HTTPS POST. A signature that sits
 beside the transport wrapper is lost the moment a hop strips that wrapper, so the
 proof has to travel inside the signed body. This is deliberately not the
 convention used by the revocation snapshot, which is fetched point-to-point from
@@ -53,6 +54,20 @@ schema and the fixtures describing it can no longer disagree unnoticed.
 - `schemas/conformance/bundle-001-success.json`,
   `bundle-002-not-member.json`, `bundle-003-expired.json` — `signature` moved
   inside the body, placeholder value unchanged.
+- `rfcs/RFC-AITP-0001-core.md` §5.4.1 — states the rule that decides signature
+  placement, so it no longer reads as a list of precedents: redistributable
+  artifacts carry the proof inside the signed body, point-to-point artifacts MAY
+  carry it as a sibling of the wrapper.
+- `rfcs/RFC-AITP-0010-session-trust-bundle.md` §3 — erratum sentence recording
+  that earlier schemas mis-stated the placement.
+
+**Version bump.** `RFC-AITP-0001-core.md` and
+`RFC-AITP-0010-session-trust-bundle.md` move `0.2.1-draft` → `0.2.2-draft`. No
+other RFC's `Version:` header changes: the correction is to a schema and its
+fixtures matching what RFC-AITP-0010 already required, which VERSIONING.md
+places in the editorial class, and RFC-AITP-0001 moves only because the
+placement principle is added to it. The JSON Schema namespace stays at `v0.2` —
+`$id` is unchanged — and no `schema-vX.Y.Z` tag is implied.
 
 ### JCS signing input: the artifact-name wrapper is not signed
 

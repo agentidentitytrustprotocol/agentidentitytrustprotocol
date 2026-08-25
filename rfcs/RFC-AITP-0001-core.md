@@ -2,7 +2,7 @@
 # Agent Identity & Trust Protocol (AITP) — Core
 
 **Document:** RFC-AITP-0001
-**Version:** 0.2.1-draft
+**Version:** 0.2.2-draft
 **Status:** Community Standards Track (v0.2 Draft)
 **Canonical wire format:** JSON
 **Normative transport:** HTTPS (any HTTP/1.1+ runtime)
@@ -361,6 +361,8 @@ A signed object that round-trips through any transport MUST produce identical ca
 > **The artifact-name wrapper is such a wrapper.** Three JCS-profile artifacts are carried inside a JSON object whose key names the artifact: `{"manifest": {…}}` (RFC-AITP-0003 §6.1), `{"revocation_list": {…}, "signature": "…"}` (RFC-AITP-0008 §1.5), and `{"session_bundle": {…}}` (RFC-AITP-0010 §3). The artifact-naming key is **routing metadata for the transport** — it tells a recipient what kind of document arrived — and is never part of the signing bytes. Issuers sign, and verifiers reconstruct, the **inner artifact body**; the wrapper is added on the way out and stripped on the way in.
 >
 > The two profiles differ only in where the signature sits, and neither placement changes the rule. For the Manifest and the session bundle the `signature` member lives *inside* the body and is excluded from the signing input (`canonical_json(body_without_signature)`). For the revocation snapshot the `signature` is a *sibling of* the wrapped body, not a member of it — so the body is signed as-is, with nothing to strip, and the sibling is discarded along with the wrapper. In every case the signing input is the inner artifact body carrying no signature of its own.
+>
+> **Which placement a new artifact takes follows from how far it travels, not from precedent.** An artifact that is *redistributable* — forwarded, cached, or relayed beyond the connection it was fetched over — MUST carry its `signature` as a member of the signed body, so that the proof survives every hop that strips the transport wrapper. An artifact that is *point-to-point* — pulled fresh from the issuing peer by the party that verifies it, and never relayed onward — MAY instead carry the signature as a sibling of the wrapper, since no hop separates the body from its proof. This is why the two placements above are what they are: a Manifest is cacheable and may be handed on inline during a handshake (RFC-AITP-0003 §1), and a session bundle is signed once by the coordinator and distributed to every participant over any canonical-JSON-preserving transport (RFC-AITP-0010 §4.3), while a revocation snapshot is pulled by the consuming peer directly from the issuer and not passed along (RFC-AITP-0008 §1.4). A new artifact derives its placement from this rule; it MUST NOT be chosen by copying whichever existing artifact it happens to resemble.
 >
 > Stated once here because it holds for every JCS-profile artifact that uses an artifact-name wrapper, present and future; restated at each artifact's own signing section. JCS-profile artifacts that are *not* wrapped — the envelope (§5) and handshake payloads — carry no artifact-name wrapper, so this note does not apply to them; their signing inputs are defined in §5.4.
 

@@ -2,7 +2,7 @@
 # Session Trust Bundle
 
 **Document:** RFC-AITP-0010
-**Version:** 0.2.1-draft
+**Version:** 0.2.2-draft
 **Status:** Draft
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0004 Mutual Handshake](RFC-AITP-0004-mutual-handshake.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md), [RFC-AITP-0008 Revocation](RFC-AITP-0008-revocation.md)
 
@@ -88,6 +88,8 @@ The bundle itself is a **JCS-signed JSON object** — a protocol-internal artifa
 | `expires_at` | REQUIRED | Unix timestamp after which the bundle MUST NOT be used. MUST equal the minimum `exp` claim across the embedded participant TCTs (see §6). |
 | `participants` | REQUIRED | Array of participant entries. Each entry pairs a participant AID with the peer-issued TCT (compact JWS string) the coordinator issued to that participant during the bilateral handshake that fed into this bundle. |
 | `signature` | REQUIRED | Coordinator's signature over the canonical **inner** `session_bundle` body, excluding the `signature` member itself. The `{"session_bundle": {…}}` form shown throughout this RFC is the **HTTP/transport envelope only**; the signed object is the inner `session_bundle` value, never the wrapper. Consumers MUST unwrap to the inner object before computing the signing input. Same JCS rules as RFC-AITP-0001 §5.4.1, whose wrapper-stripping requirement this restates for the bundle. |
+
+> **Erratum.** Session-bundle JSON schemas published before this correction placed `signature` as a *sibling* of the `{"session_bundle": …}` transport wrapper, contradicting this section, and the `bundle-*` conformance fixtures followed the schema. The schema and the fixtures were corrected to the member placement this RFC has always specified. No signing bytes changed: both readings canonicalize the bundle body with the `signature` member excluded, so pinned known-answer values are unaffected.
 
 The participant `tct` field is a verbatim peer-issued TCT compact JWS (RFC-AITP-0005 §1) — coordinator-issued, with the `aud` claim set to the participant's AID. Per RFC-AITP-0001 §5.4.5, the bundle never parses, transforms, or re-encodes the embedded string; consumers that need a TCT's claims base64url-decode its payload segment but MUST NOT re-serialize it. The bundle distributes the participant's *own* TCT back to that participant alongside everyone else's, so a single fetch reveals the full session roster.
 
