@@ -62,9 +62,9 @@
               }
             }
           }
-        ]
-      },
-      "signature": "__VALID_A_SIG__"
+        ],
+        "signature": "__VALID_A_SIG__"
+      }
     },
     "operation": "verify_session_bundle"
   },
