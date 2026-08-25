@@ -77,6 +77,178 @@ if [ -d "$CONFORMANCE_DIR" ]; then
     echo
 fi
 
+# ── Conformance fixture INPUTS: validate each artifact against its schema ────
+# The metadata loop above checks a fixture's id/rfc/status block. It never looks
+# at `input`, which is where the artifacts live — and that gap is why a schema
+# and the fixtures it describes were able to disagree about the session bundle's
+# signature placement through a full release. This stage closes it.
+#
+# The contract is fail-closed, because a validator that silently skips is worse
+# than no validator at all — it reports success over the thing it did not look at:
+#
+#   * every fixture MUST have an entry in scripts/fixture-validation-map.json;
+#     a new fixture with no entry is an ERROR, not a skip
+#   * every map entry MUST name a fixture that exists; stale entries are an ERROR
+#   * `expect` is checked BIDIRECTIONALLY — an artifact declared invalid that
+#     starts validating fails the build exactly as a valid one that stops does
+#   * a fixture with no artifacts MUST say so explicitly, with a reason
+#   * an unrecognized placeholder token is an ERROR (see normalize-fixture-input.py)
+#   * at least FIXTURE_INPUT_MIN_CHECKS validations must actually run
+#
+# Lower FIXTURE_INPUT_MIN_CHECKS only in the same commit that removes fixtures,
+# and say why in the commit message — the same rule verify-known-answer.mjs uses
+# for EXPECTED_MIN_CHECKS.
+FIXTURE_INPUT_MIN_CHECKS=102
+FIXTURE_MAP="${SCRIPT_DIR}/fixture-validation-map.json"
+NORMALIZER="${SCRIPT_DIR}/normalize-fixture-input.py"
+
+if [ -d "$CONFORMANCE_DIR" ]; then
+    echo "── Conformance fixture inputs vs artifact schemas (${CONFORMANCE_DIR}) ──"
+
+    # Integrity-check the map against the fixture directory and emit the
+    # worklist. Any structural problem exits non-zero here, before a single
+    # artifact is validated.
+    WORKLIST_BASE="$(mktemp)"
+    WORKLIST="${WORKLIST_BASE}.tsv"
+    mv "$WORKLIST_BASE" "$WORKLIST"
+    if ! python3 - "$FIXTURE_MAP" "$CONFORMANCE_DIR" "$WORKLIST" <<'MAPEOF'
+import glob, json, os, sys
+
+map_path, conformance_dir, worklist_path = sys.argv[1], sys.argv[2], sys.argv[3]
+
+try:
+    with open(map_path, encoding="utf-8") as handle:
+        entries = json.load(handle)["fixtures"]
+except (OSError, KeyError, json.JSONDecodeError) as exc:
+    sys.exit(f"    \u2717 cannot read fixture validation map: {exc}")
+
+fixtures = {}
+for path in sorted(glob.glob(os.path.join(conformance_dir, "*.json"))):
+    try:
+        with open(path, encoding="utf-8") as handle:
+            fixture_id = json.load(handle)["id"]
+    except (OSError, KeyError, json.JSONDecodeError) as exc:
+        sys.exit(f"    \u2717 {os.path.basename(path)}: cannot read fixture id: {exc}")
+    if fixture_id in fixtures:
+        sys.exit(f"    \u2717 duplicate fixture id {fixture_id!r}: "
+                 f"{os.path.basename(fixtures[fixture_id])} and {os.path.basename(path)}")
+    fixtures[fixture_id] = path
+    # Fixture ids are short and filenames are descriptive (bundle-001 ->
+    # bundle-001-success.json), so they are not required to be equal — but a
+    # filename that does not start with its id means one of the two was renamed
+    # without the other, and the map is keyed by id.
+    stem = os.path.basename(path)[:-len(".json")]
+    if not stem.startswith(fixture_id):
+        sys.exit(f"    \u2717 {os.path.basename(path)}: fixture id {fixture_id!r} is not a "
+                 f"prefix of the filename; rename one to match the other")
+
+unmapped = sorted(set(fixtures) - set(entries))
+if unmapped:
+    sys.exit("    \u2717 fixture(s) with no entry in fixture-validation-map.json: "
+             + ", ".join(unmapped)
+             + "\n      Every fixture must declare which artifacts its input carries, or say"
+               "\n      explicitly that it carries none (\"no_artifacts\" with a reason). Refusing"
+               "\n      to skip: an unmapped fixture would be silently unchecked.")
+
+stale = sorted(set(entries) - set(fixtures))
+if stale:
+    sys.exit("    \u2717 map entr(ies) naming a fixture that does not exist: " + ", ".join(stale))
+
+rows = []
+for fixture_id, entry in sorted(entries.items()):
+    artifacts = entry.get("artifacts", [])
+    if not artifacts:
+        reason = (entry.get("no_artifacts") or {}).get("reason")
+        if not reason:
+            sys.exit(f"    \u2717 {fixture_id}: no artifacts and no \"no_artifacts\" reason. "
+                     f"State why this fixture carries no validatable artifact.")
+        continue
+    for artifact in artifacts:
+        pointer = artifact.get("pointer")
+        schema = artifact.get("schema")
+        expect = artifact.get("expect")
+        if not pointer or not schema or expect not in ("valid", "invalid", "invalid_known_defect"):
+            sys.exit(f"    \u2717 {fixture_id}: artifact needs pointer, schema and "
+                     f"expect in valid|invalid|invalid_known_defect; got {artifact!r}")
+        if expect != "valid" and not artifact.get("reason"):
+            sys.exit(f"    \u2717 {fixture_id} {pointer}: expect={expect} requires a "
+                     f"\"reason\" naming why this artifact does not validate.")
+        rows.append("\t".join([fixture_id, fixtures[fixture_id], pointer, schema,
+                               expect, artifact.get("wrap", "")]))
+
+with open(worklist_path, "w", encoding="utf-8") as handle:
+    handle.write("\n".join(rows) + ("\n" if rows else ""))
+MAPEOF
+    then
+        rm -f "$WORKLIST"
+        exit 1
+    fi
+
+    FIXTURE_CHECKS=0
+    KNOWN_DEFECTS=0
+    while IFS=$'\t' read -r fid fpath pointer schema expect wrap; do
+        [ -n "$fid" ] || continue
+        schema_path="${PROJECT_ROOT}/schemas/json/${schema}"
+        if [ ! -f "$schema_path" ]; then
+            echo "    ✗ ${fid} ${pointer}: no such schema ${schema}"
+            rm -f "$WORKLIST"
+            exit 1
+        fi
+        # ajv-cli infers its parser from the extension; the temp file must be .json.
+        art_base="$(mktemp)"
+        art="${art_base}.json"
+        mv "$art_base" "$art"
+        if [ -n "$wrap" ]; then
+            norm_ok=$(python3 "$NORMALIZER" "$fpath" "$pointer" "$art" --wrap "$wrap" 2>&1) || norm_ok="FAILED:${norm_ok}"
+        else
+            norm_ok=$(python3 "$NORMALIZER" "$fpath" "$pointer" "$art" 2>&1) || norm_ok="FAILED:${norm_ok}"
+        fi
+        case "$norm_ok" in
+            FAILED:*)
+                echo "    ✗ ${fid} ${pointer}: ${norm_ok#FAILED:}"
+                rm -f "$art" "$WORKLIST"
+                exit 1
+                ;;
+        esac
+        if ajv validate -s "$schema_path" -d "$art" --spec=draft2020 --strict=false -c ajv-formats >/dev/null 2>&1; then
+            observed="valid"
+        else
+            observed="invalid"
+        fi
+        expected_outcome="invalid"
+        [ "$expect" = "valid" ] && expected_outcome="valid"
+        if [ "$observed" != "$expected_outcome" ]; then
+            echo "    ✗ ${fid} ${pointer} vs ${schema}: expected ${expect}, got ${observed}"
+            if [ "$observed" = "invalid" ]; then
+                ajv validate -s "$schema_path" -d "$art" --spec=draft2020 --strict=false -c ajv-formats || true
+            else
+                echo "      This artifact was declared ${expect} and now validates. Either the"
+                echo "      defect was fixed (update fixture-validation-map.json) or the schema"
+                echo "      was weakened. A negative expectation that silently starts passing is"
+                echo "      exactly the vacuous pass this stage exists to prevent."
+            fi
+            rm -f "$art" "$WORKLIST"
+            exit 1
+        fi
+        rm -f "$art"
+        FIXTURE_CHECKS=$((FIXTURE_CHECKS + 1))
+        [ "$expect" = "invalid_known_defect" ] && KNOWN_DEFECTS=$((KNOWN_DEFECTS + 1))
+    done < "$WORKLIST"
+    rm -f "$WORKLIST"
+
+    if [ "$FIXTURE_CHECKS" -lt "$FIXTURE_INPUT_MIN_CHECKS" ]; then
+        echo "    ✗ only ${FIXTURE_CHECKS} fixture-input checks ran; expected at least ${FIXTURE_INPUT_MIN_CHECKS}"
+        echo "      Coverage went backwards. If artifacts were deliberately removed, lower"
+        echo "      FIXTURE_INPUT_MIN_CHECKS in the same commit and say why."
+        exit 1
+    fi
+    echo "  ✓ ${FIXTURE_CHECKS} fixture artifacts validated against their schemas"
+    if [ "$KNOWN_DEFECTS" -gt 0 ]; then
+        echo "    (${KNOWN_DEFECTS} recorded as known defects — see \"reason\" in fixture-validation-map.json)"
+    fi
+    echo
+fi
+
 # ── Examples: validate by directory against the matching schema ──────────────
 # v0.2: example files MAY carry top-level documentation companions whose keys
 # start with "_" (e.g. `_decoded_claims`, `_wire_note`); these are stripped
