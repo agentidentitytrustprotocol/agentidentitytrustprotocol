@@ -115,6 +115,25 @@ RELATIVE_CLOCK = re.compile(r"^__NOW_(PLUS|MINUS)_([0-9]+)__$")
 PLACEHOLDER_SHAPE = re.compile(r"^__[A-Z][A-Z0-9_]*__$")
 
 
+def companion_keys(node: dict) -> set:
+    """Keys in `node` that are decoded-claims companions of a sibling member.
+
+    A `<x>_claims` member sitting beside an `<x>` member carries the decoded
+    claims of the opaque compact JWS next to it — documentation relative to the
+    artifact being validated, so it is stripped before validation.
+
+    This is the single definition of that rule. `validate-json.sh`'s map audit
+    imports it rather than restating it, so the set of members that get stripped
+    and the set the map is required to cover cannot drift apart: a companion that
+    is stripped but not declared is a silent exemption, which is the failure this
+    whole stage exists to prevent.
+    """
+    return {
+        key for key in node
+        if key.endswith("_claims") and key[: -len("_claims")] in node
+    }
+
+
 class NormalizeError(Exception):
     """A fixture could not be normalized. Always fatal — never a skip."""
 
@@ -182,10 +201,7 @@ def normalize(node: object, where: str = "") -> object:
       own claims schema in its own right.
     """
     if isinstance(node, dict):
-        drop = {
-            key for key in node
-            if key.endswith("_claims") and key[: -len("_claims")] in node
-        }
+        drop = companion_keys(node)
         return {
             key: normalize(value, f"{where}/{key}")
             for key, value in node.items()

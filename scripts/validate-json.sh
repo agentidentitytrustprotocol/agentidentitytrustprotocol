@@ -98,9 +98,15 @@ fi
 #     invalid", so a schema that stopped compiling would otherwise satisfy every
 #     negative expectation vacuously
 #   * every decoded-claims companion the normalizer strips must itself be
-#     validated somewhere in the map — this is what stops an artifact added
-#     inside an existing fixture from going unchecked, which the unmapped-file
-#     check above cannot see
+#     validated somewhere in the map — a companion that is stripped and never
+#     checked is exempt from validation entirely
+#
+# One gap remains, and is named here rather than papered over: the unmapped-file
+# check sees a new fixture *file*, and the companion audit sees a new
+# decoded-claims companion inside an existing one — but a plain JCS artifact
+# (envelope, manifest, bundle, snapshot) added as a new key inside an
+# already-mapped fixture trips neither, since the floor only ever rises. That
+# case is caught by review, not by this stage.
 #   * at least FIXTURE_INPUT_MIN_CHECKS validations must actually run
 #
 # Lower FIXTURE_INPUT_MIN_CHECKS only in the same commit that removes fixtures,
@@ -119,10 +125,10 @@ if [ -d "$CONFORMANCE_DIR" ]; then
     WORKLIST_BASE="$(mktemp)"
     WORKLIST="${WORKLIST_BASE}.tsv"
     mv "$WORKLIST_BASE" "$WORKLIST"
-    if ! python3 - "$FIXTURE_MAP" "$CONFORMANCE_DIR" "$WORKLIST" <<'MAPEOF'
-import glob, json, os, sys
+    if ! python3 - "$FIXTURE_MAP" "$CONFORMANCE_DIR" "$WORKLIST" "$NORMALIZER" <<'MAPEOF'
+import glob, importlib.util, json, os, sys
 
-map_path, conformance_dir, worklist_path = sys.argv[1], sys.argv[2], sys.argv[3]
+map_path, conformance_dir, worklist_path, normalizer_path = sys.argv[1:5]
 
 try:
     with open(map_path, encoding="utf-8") as handle:
@@ -165,13 +171,25 @@ if stale:
 # Every `<x>_claims` companion the normalizer strips must be validated in its
 # own right, or stripping it would be a silent exemption — the precise failure
 # this stage exists to prevent, and one that no other check here would notice.
-# Auditing the fixture tree rather than trusting the map also closes the gap the
-# unmapped-file check cannot see: artifacts added *inside* an existing fixture.
+# Auditing the fixture tree rather than trusting the map extends that guarantee
+# to companions added *inside* an already-mapped fixture, which the unmapped-file
+# check cannot see. It does NOT cover a non-companion artifact added the same way
+# (see the stage's comment block).
+#
+# The predicate is imported from the normalizer rather than restated, so the set
+# of members that get stripped and the set the map must cover are the same set by
+# construction.
+spec = importlib.util.spec_from_file_location("normalizer", normalizer_path)
+normalizer = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(normalizer)
+
+
 def companion_pointers(node, path):
     found = []
     if isinstance(node, dict):
+        companions = normalizer.companion_keys(node)
         for key, value in node.items():
-            if key.endswith("_claims") and key[: -len("_claims")] in node:
+            if key in companions:
                 target = node[key]
                 if isinstance(target, list):
                     found.extend(f"{path}/{key}/{i}" for i in range(len(target)))
