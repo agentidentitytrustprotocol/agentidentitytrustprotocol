@@ -59,7 +59,11 @@ schema and the fixtures describing it can no longer disagree unnoticed.
   artifacts carry the proof inside the signed body, point-to-point artifacts MAY
   carry it as a sibling of the wrapper.
 - `rfcs/RFC-AITP-0010-session-trust-bundle.md` §3 — erratum sentence recording
-  that earlier schemas mis-stated the placement.
+  that earlier schemas mis-stated the placement, and an `extensions` row so the
+  field table documents every property the schema defines. The slot was already
+  in the schema and reserved for every signed object by RFC-AITP-0001 §7; only
+  the table omitted it. `aitp-rs` rejects bundles carrying it and is tracked
+  separately.
 
 **Version bump.** `RFC-AITP-0001-core.md` and
 `RFC-AITP-0010-session-trust-bundle.md` move `0.2.1-draft` → `0.2.2-draft`, and
