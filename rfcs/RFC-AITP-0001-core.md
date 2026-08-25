@@ -259,8 +259,9 @@ verification.
 #### 5.4.3 Algorithm-tagged signature wire format (JCS profile only)
 
 This section applies to **JCS-profile signature fields only**
-(envelope `signature`, manifest `signature`, revocation `signature`, session bundle `signature`,
-PoP `pop_signature`, identity `proof`). Compact-JWS artifacts
+(envelope `signature`, manifest `signature`, revocation `signature`,
+session bundle `signature`, PoP `pop_signature`, identity `proof`).
+Compact-JWS artifacts
 (§5.4.5) carry their algorithm in the JOSE protected header `alg`
 parameter instead, pinned by the same AID-derived rule.
 

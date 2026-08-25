@@ -22,10 +22,9 @@ the moment a hop strips that wrapper, so the proof has to travel inside the
 signed body. This is deliberately not the
 convention used by the revocation snapshot, which is polled point-to-point from
 the issuing peer's `ListRevoked` endpoint and never relayed, and which keeps its
-sibling signature.
-RFC-AITP-0001 §5.4.1 records which artifact uses which placement, and now also
-states the rule that decides between them, so the next artifact author does not
-have to infer it from the examples.
+sibling signature. RFC-AITP-0001 §5.4.1 records which artifact uses which
+placement, and now also states the rule that decides between them, so the next
+artifact author does not have to infer it from the examples.
 
 **No pinned cryptographic value changes.** The signing input was never in
 dispute: both readings canonicalize the bundle body with the `signature` member
@@ -66,21 +65,20 @@ schema and the fixtures describing it can no longer disagree unnoticed.
 `RFC-AITP-0010-session-trust-bundle.md` move `0.2.1-draft` → `0.2.2-draft`, and
 no other RFC's `Version:` header changes.
 
-The two bold claims above are not in conflict, and the distinction is worth
-stating in VERSIONING.md's own vocabulary. **The protocol did not change.** The
-wire artifact RFC-AITP-0010 specifies is exactly what it always was; what moved
-is a schema that described it incorrectly, plus the fixtures that copied the
-schema. Breakage falls on consumers who validated against the incorrect schema —
-real, and named plainly at the top of this entry — not on anything that follows
-the RFC. So this is not a breaking protocol change in the sense VERSIONING.md's
-table means, and it does not bump the JSON Schema namespace path segment: `$id`
-stays at `v0.2` and no `schema-vX.Y.Z` tag is implied. VERSIONING.md's editorial
-clause names known-answer vectors and signed examples rather than the canonical
-schemas, so the closest-fitting rule is applied by analogy rather than quoted:
-an artifact corrected to match what the RFC already required is a patch bump on
-the RFCs whose text moves. RFC-AITP-0001 moves only because the placement
-principle is added to it. The JSON Schema namespace stays at `v0.2` —
-`$id` is unchanged — and no `schema-vX.Y.Z` tag is implied.
+Calling this both *breaking* and a *patch bump* is not a contradiction, and the
+distinction is worth stating in VERSIONING.md's own vocabulary. **The protocol
+did not change.** The wire artifact RFC-AITP-0010 specifies is exactly what it
+always was; what moved is a schema that described it incorrectly, plus the
+fixtures that copied the schema. Breakage falls on consumers who validated
+against the incorrect schema — real, and named plainly at the top of this entry
+— not on anything that follows the RFC. So this is not a breaking protocol
+change in the sense VERSIONING.md's table means, and it does not bump the JSON
+Schema namespace path segment: `$id` stays at `v0.2` and no `schema-vX.Y.Z` tag
+is implied. VERSIONING.md's editorial clause names known-answer vectors and
+signed examples rather than the canonical schemas, so the closest-fitting rule
+is applied by analogy rather than quoted: an artifact corrected to match what
+the RFC already required is a patch bump on the RFCs whose text moves.
+RFC-AITP-0001 moves only because the placement principle is added to it.
 
 ### JCS signing input: the artifact-name wrapper is not signed
 
