@@ -2,6 +2,88 @@
 
 ## Unreleased
 
+### Session bundle: the signature is a member of the signed body
+
+**Breaking for anything validating a session bundle against the published JSON
+schema.** RFC-AITP-0010 §3 places `signature` inside the inner `session_bundle`
+body — its example, its field table, its construction steps and its verification
+steps all agree — while `aitp-session-bundle.schema.json` required it as a
+sibling of the `{"session_bundle": …}` wrapper and forbade it inside the body.
+The three `bundle-*` conformance fixtures followed the schema. An artifact could
+therefore satisfy the RFC and fail the schema, or the reverse, and no
+implementation could satisfy both. The schema and the fixtures move; the RFC
+prose was already correct and is unchanged.
+
+The bundle is a **redistributable** artifact: a coordinator signs it once and it
+is forwarded, cached and relayed to every participant over any transport that
+preserves the canonical JSON — RFC-AITP-0010 §4.3 names a signed message bus
+alongside HTTPS POST. A signature that sits beside the transport wrapper is lost
+the moment a hop strips that wrapper, so the proof has to travel inside the
+signed body. This is deliberately not the
+convention used by the revocation snapshot, which is polled point-to-point from
+the issuing peer's `ListRevoked` endpoint and never relayed, and which keeps its
+sibling signature. RFC-AITP-0001 §5.4.1 records which artifact uses which
+placement, and now also states the rule that decides between them, so the next
+artifact author does not have to infer it from the examples.
+
+**No pinned cryptographic value changes.** The signing input was never in
+dispute: both readings canonicalize the bundle body with the `signature` member
+excluded, so the bytes are identical. `kat-session-bundle-001` was re-verified
+after the change — 922 canonical bytes, SHA-256
+`c577854d144c912e145e8ec6cbab09361ceb709a43be5cbd1ef538085b1aa5e5`, and its
+pinned `coordinator_signature_b64url` still verifies — and is byte-identical to
+its previous state. Nothing was re-minted; the fixtures' `__VALID_A_SIG__`
+placeholder simply moved position.
+
+Why the break is acceptable: RFC-AITP-0010 declares its schema Draft, and the
+session-bundle fixtures are opt-in (`required_for_v0_2: false`). `aitp-rs`
+already serializes and parses the inner shape, so its output becomes
+schema-valid with this change rather than being broken by it. `aitp-verifier-py`
+reads and mints the sibling shape and will need the matching correction; that is
+tracked as an issue against that repository.
+
+Conformance tooling now checks this class of divergence mechanically: every
+fixture's `input` is validated against the artifact schemas on each run, so a
+schema and the fixtures describing it can no longer disagree unnoticed.
+
+- `schemas/json/aitp-session-bundle.schema.json` — `signature` moves into the
+  inner body's `properties` and `required`; the top level requires only
+  `session_bundle`. Its description now states the signing input and the
+  placement rule inline, instead of deferring to the revocation list's
+  convention — that cross-reference was how the wrong shape propagated.
+- `schemas/conformance/bundle-001-success.json`,
+  `bundle-002-not-member.json`, `bundle-003-expired.json` — `signature` moved
+  inside the body, placeholder value unchanged.
+- `rfcs/RFC-AITP-0001-core.md` §5.4.1 — states the rule that decides signature
+  placement, so it no longer reads as a list of precedents: redistributable
+  artifacts carry the proof inside the signed body, point-to-point artifacts MAY
+  carry it as a sibling of the wrapper.
+- `rfcs/RFC-AITP-0010-session-trust-bundle.md` §3 — erratum sentence recording
+  that earlier schemas mis-stated the placement, and an `extensions` row so the
+  field table documents every property the schema defines. The slot was already
+  in the schema and reserved for every signed object by RFC-AITP-0001 §7; only
+  the table omitted it. `aitp-rs` rejects bundles carrying it and is tracked
+  separately.
+
+**Version bump.** `RFC-AITP-0001-core.md` and
+`RFC-AITP-0010-session-trust-bundle.md` move `0.2.1-draft` → `0.2.2-draft`, and
+no other RFC's `Version:` header changes.
+
+Calling this both *breaking* and a *patch bump* is not a contradiction, and the
+distinction is worth stating in VERSIONING.md's own vocabulary. **The protocol
+did not change.** The wire artifact RFC-AITP-0010 specifies is exactly what it
+always was; what moved is a schema that described it incorrectly, plus the
+fixtures that copied the schema. Breakage falls on consumers who validated
+against the incorrect schema — real, and named plainly at the top of this entry
+— not on anything that follows the RFC. So this is not a breaking protocol
+change in the sense VERSIONING.md's table means, and it does not bump the JSON
+Schema namespace path segment: `$id` stays at `v0.2` and no `schema-vX.Y.Z` tag
+is implied. VERSIONING.md's editorial clause names known-answer vectors and
+signed examples rather than the canonical schemas, so the closest-fitting rule
+is applied by analogy rather than quoted: an artifact corrected to match what
+the RFC already required is a patch bump on the RFCs whose text moves.
+RFC-AITP-0001 moves only because the placement principle is added to it.
+
 ### JCS signing input: the artifact-name wrapper is not signed
 
 **Breaking for anything pinning the known-answer digests.** Three JCS-profile

@@ -77,6 +77,267 @@ if [ -d "$CONFORMANCE_DIR" ]; then
     echo
 fi
 
+# ── Conformance fixture INPUTS: validate each artifact against its schema ────
+# The metadata loop above checks a fixture's id/rfc/status block. It never looks
+# at `input`, which is where the artifacts live — and that gap is why a schema
+# and the fixtures it describes were able to disagree about the session bundle's
+# signature placement through a full release. This stage closes it.
+#
+# The contract is fail-closed, because a validator that silently skips is worse
+# than no validator at all — it reports success over the thing it did not look at:
+#
+#   * every fixture MUST have an entry in scripts/fixture-validation-map.json;
+#     a new fixture with no entry is an ERROR, not a skip
+#   * every map entry MUST name a fixture that exists; stale entries are an ERROR
+#   * `expect` is checked BIDIRECTIONALLY — an artifact declared invalid that
+#     starts validating fails the build exactly as a valid one that stops does
+#   * a fixture with no artifacts MUST say so explicitly, with a reason
+#   * an unrecognized placeholder token is an ERROR (see normalize-fixture-input.py)
+#   * every schema the map names must compile before anything is validated
+#     against it — ajv exits 1 for both "schema is broken" and "document is
+#     invalid", so a schema that stopped compiling would otherwise satisfy every
+#     negative expectation vacuously
+#   * every decoded-claims companion the normalizer strips must itself be
+#     validated somewhere in the map — a companion that is stripped and never
+#     checked is exempt from validation entirely
+#
+# One gap remains, and is named here rather than papered over: the unmapped-file
+# check sees a new fixture *file*, and the companion audit sees a new
+# decoded-claims companion inside an existing one — but a plain JCS artifact
+# (envelope, manifest, bundle, snapshot) added as a new key inside an
+# already-mapped fixture trips neither, since the floor only ever rises. That
+# case is caught by review, not by this stage.
+#   * at least FIXTURE_INPUT_MIN_CHECKS validations must actually run
+#
+# Lower FIXTURE_INPUT_MIN_CHECKS only in the same commit that removes fixtures,
+# and say why in the commit message — the same rule verify-known-answer.mjs uses
+# for EXPECTED_MIN_CHECKS.
+FIXTURE_INPUT_MIN_CHECKS=104
+FIXTURE_MAP="${SCRIPT_DIR}/fixture-validation-map.json"
+NORMALIZER="${SCRIPT_DIR}/normalize-fixture-input.py"
+
+if [ -d "$CONFORMANCE_DIR" ]; then
+    echo "── Conformance fixture inputs vs artifact schemas (${CONFORMANCE_DIR}) ──"
+
+    # Integrity-check the map against the fixture directory and emit the
+    # worklist. Any structural problem exits non-zero here, before a single
+    # artifact is validated.
+    WORKLIST_BASE="$(mktemp)"
+    WORKLIST="${WORKLIST_BASE}.tsv"
+    mv "$WORKLIST_BASE" "$WORKLIST"
+    if ! python3 - "$FIXTURE_MAP" "$CONFORMANCE_DIR" "$WORKLIST" "$NORMALIZER" <<'MAPEOF'
+import glob, importlib.util, json, os, sys
+
+map_path, conformance_dir, worklist_path, normalizer_path = sys.argv[1:5]
+
+try:
+    with open(map_path, encoding="utf-8") as handle:
+        entries = json.load(handle)["fixtures"]
+except (OSError, KeyError, json.JSONDecodeError) as exc:
+    sys.exit(f"    \u2717 cannot read fixture validation map: {exc}")
+
+fixtures = {}
+for path in sorted(glob.glob(os.path.join(conformance_dir, "*.json"))):
+    try:
+        with open(path, encoding="utf-8") as handle:
+            fixture_id = json.load(handle)["id"]
+    except (OSError, KeyError, json.JSONDecodeError) as exc:
+        sys.exit(f"    \u2717 {os.path.basename(path)}: cannot read fixture id: {exc}")
+    if fixture_id in fixtures:
+        sys.exit(f"    \u2717 duplicate fixture id {fixture_id!r}: "
+                 f"{os.path.basename(fixtures[fixture_id])} and {os.path.basename(path)}")
+    fixtures[fixture_id] = path
+    # Fixture ids are short and filenames are descriptive (bundle-001 ->
+    # bundle-001-success.json), so they are not required to be equal — but a
+    # filename that does not start with its id means one of the two was renamed
+    # without the other, and the map is keyed by id.
+    stem = os.path.basename(path)[:-len(".json")]
+    if not (stem == fixture_id or stem.startswith(fixture_id + "-")):
+        sys.exit(f"    \u2717 {os.path.basename(path)}: fixture id {fixture_id!r} is not a "
+                 f"prefix of the filename; rename one to match the other")
+
+unmapped = sorted(set(fixtures) - set(entries))
+if unmapped:
+    sys.exit("    \u2717 fixture(s) with no entry in fixture-validation-map.json: "
+             + ", ".join(unmapped)
+             + "\n      Every fixture must declare which artifacts its input carries, or say"
+               "\n      explicitly that it carries none (\"no_artifacts\" with a reason). Refusing"
+               "\n      to skip: an unmapped fixture would be silently unchecked.")
+
+stale = sorted(set(entries) - set(fixtures))
+if stale:
+    sys.exit("    \u2717 map entr(ies) naming a fixture that does not exist: " + ", ".join(stale))
+
+# Every `<x>_claims` companion the normalizer strips must be validated in its
+# own right, or stripping it would be a silent exemption — the precise failure
+# this stage exists to prevent, and one that no other check here would notice.
+# Auditing the fixture tree rather than trusting the map extends that guarantee
+# to companions added *inside* an already-mapped fixture, which the unmapped-file
+# check cannot see. It does NOT cover a non-companion artifact added the same way
+# (see the stage's comment block).
+#
+# The predicate is imported from the normalizer rather than restated, so the set
+# of members that get stripped and the set the map must cover are the same set by
+# construction.
+spec = importlib.util.spec_from_file_location("normalizer", normalizer_path)
+normalizer = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(normalizer)
+
+
+def companion_pointers(node, path):
+    found = []
+    if isinstance(node, dict):
+        companions = normalizer.companion_keys(node)
+        for key, value in node.items():
+            if key in companions:
+                target = node[key]
+                if isinstance(target, list):
+                    found.extend(f"{path}/{key}/{i}" for i in range(len(target)))
+                else:
+                    found.append(f"{path}/{key}")
+            found.extend(companion_pointers(value, f"{path}/{key}"))
+    elif isinstance(node, list):
+        for index, item in enumerate(node):
+            found.extend(companion_pointers(item, f"{path}/{index}"))
+    return found
+
+for fixture_id, path in sorted(fixtures.items()):
+    with open(path, encoding="utf-8") as handle:
+        declared = {a.get("pointer") for a in entries[fixture_id].get("artifacts", [])}
+        uncovered = [p for p in companion_pointers(json.load(handle).get("input", {}), "/input")
+                     if p not in declared]
+    if uncovered:
+        sys.exit(f"    \u2717 {fixture_id}: decoded-claims companion(s) stripped during "
+                 f"normalization but never validated: {', '.join(uncovered)}\n"
+                 f"      Add a map entry pointing each at its claims schema. A companion that is "
+                 f"stripped\n      and unvalidated is exempt from checking entirely.")
+
+rows = []
+for fixture_id, entry in sorted(entries.items()):
+    artifacts = entry.get("artifacts", [])
+    if not artifacts:
+        reason = (entry.get("no_artifacts") or {}).get("reason")
+        if not reason:
+            sys.exit(f"    \u2717 {fixture_id}: no artifacts and no \"no_artifacts\" reason. "
+                     f"State why this fixture carries no validatable artifact.")
+        continue
+    for artifact in artifacts:
+        pointer = artifact.get("pointer")
+        schema = artifact.get("schema")
+        expect = artifact.get("expect")
+        if not pointer or not schema or expect not in ("valid", "invalid", "invalid_known_defect"):
+            sys.exit(f"    \u2717 {fixture_id}: artifact needs pointer, schema and "
+                     f"expect in valid|invalid|invalid_known_defect; got {artifact!r}")
+        if expect != "valid" and not artifact.get("reason"):
+            sys.exit(f"    \u2717 {fixture_id} {pointer}: expect={expect} requires a "
+                     f"\"reason\" naming why this artifact does not validate.")
+        rows.append("\t".join([fixture_id, fixtures[fixture_id], pointer, schema,
+                               expect, artifact.get("wrap", "")]))
+
+with open(worklist_path, "w", encoding="utf-8") as handle:
+    handle.write("\n".join(rows) + ("\n" if rows else ""))
+MAPEOF
+    then
+        rm -f "$WORKLIST"
+        exit 1
+    fi
+
+    # Compile every schema the map names before validating anything against it.
+    # ajv-cli exits 1 for "schema failed to compile" exactly as it does for
+    # "document is invalid", so the two are indistinguishable inside the loop —
+    # and a schema that stops compiling would otherwise satisfy every negative
+    # expectation vacuously, which is the failure mode this stage exists to
+    # prevent. Checking compilability up front removes the ambiguity entirely.
+    for schema_file in $(cut -f4 "$WORKLIST" | sort -u); do
+        schema_path="${PROJECT_ROOT}/schemas/json/${schema_file}"
+        if [ ! -f "$schema_path" ]; then
+            echo "    ✗ map names a schema that does not exist: ${schema_file}"
+            rm -f "$WORKLIST"
+            exit 1
+        fi
+        if ! ajv compile -s "$schema_path" --spec=draft2020 --strict=false -c ajv-formats >/dev/null 2>&1; then
+            echo "    ✗ ${schema_file} does not compile — every validation against it would be meaningless"
+            ajv compile -s "$schema_path" --spec=draft2020 --strict=false -c ajv-formats 2>&1 | sed 's/^/      /' || true
+            rm -f "$WORKLIST"
+            exit 1
+        fi
+    done
+
+    FIXTURE_CHECKS=0
+    KNOWN_DEFECTS=0
+    while IFS=$'\t' read -r fid fpath pointer schema expect wrap; do
+        [ -n "$fid" ] || continue
+        schema_path="${PROJECT_ROOT}/schemas/json/${schema}"
+        # ajv-cli infers its parser from the extension; the temp file must be .json.
+        art_base="$(mktemp)"
+        art="${art_base}.json"
+        mv "$art_base" "$art"
+        if [ -n "$wrap" ]; then
+            norm_ok=$(python3 "$NORMALIZER" "$fpath" "$pointer" "$art" --wrap "$wrap" 2>&1) || norm_ok="FAILED:${norm_ok}"
+        else
+            norm_ok=$(python3 "$NORMALIZER" "$fpath" "$pointer" "$art" 2>&1) || norm_ok="FAILED:${norm_ok}"
+        fi
+        case "$norm_ok" in
+            FAILED:*)
+                echo "    ✗ ${fid} ${pointer}: ${norm_ok#FAILED:}"
+                rm -f "$art" "$WORKLIST"
+                exit 1
+                ;;
+        esac
+        # ajv-cli exits 1 for "document is invalid" and 2 for "could not run"
+        # (schema failed to compile, bad flags). Only the former is an outcome;
+        # conflating them would let a schema that stops compiling satisfy every
+        # negative expectation vacuously.
+        # `set -e` aborts on a failing command substitution in an assignment, and
+        # a nonzero ajv exit is an expected outcome here, not a script failure.
+        set +e
+        ajv_err="$(ajv validate -s "$schema_path" -d "$art" --spec=draft2020 --strict=false -c ajv-formats 2>&1 >/dev/null)"
+        ajv_status=$?
+        set -e
+        if [ "$ajv_status" -eq 0 ]; then
+            observed="valid"
+        elif [ "$ajv_status" -eq 1 ]; then
+            observed="invalid"
+        else
+            echo "    ✗ ${fid} ${pointer}: ajv failed to run against ${schema} (exit ${ajv_status})"
+            echo "${ajv_err}" | sed 's/^/      /'
+            rm -f "$art" "$WORKLIST"
+            exit 1
+        fi
+        expected_outcome="invalid"
+        [ "$expect" = "valid" ] && expected_outcome="valid"
+        if [ "$observed" != "$expected_outcome" ]; then
+            echo "    ✗ ${fid} ${pointer} vs ${schema}: expected ${expect}, got ${observed}"
+            if [ "$observed" = "invalid" ]; then
+                ajv validate -s "$schema_path" -d "$art" --spec=draft2020 --strict=false -c ajv-formats || true
+            else
+                echo "      This artifact was declared ${expect} and now validates. Either the"
+                echo "      defect was fixed (update fixture-validation-map.json) or the schema"
+                echo "      was weakened. A negative expectation that silently starts passing is"
+                echo "      exactly the vacuous pass this stage exists to prevent."
+            fi
+            rm -f "$art" "$WORKLIST"
+            exit 1
+        fi
+        rm -f "$art"
+        FIXTURE_CHECKS=$((FIXTURE_CHECKS + 1))
+        [ "$expect" = "invalid_known_defect" ] && KNOWN_DEFECTS=$((KNOWN_DEFECTS + 1))
+    done < "$WORKLIST"
+    rm -f "$WORKLIST"
+
+    if [ "$FIXTURE_CHECKS" -lt "$FIXTURE_INPUT_MIN_CHECKS" ]; then
+        echo "    ✗ only ${FIXTURE_CHECKS} fixture-input checks ran; expected at least ${FIXTURE_INPUT_MIN_CHECKS}"
+        echo "      Coverage went backwards. If artifacts were deliberately removed, lower"
+        echo "      FIXTURE_INPUT_MIN_CHECKS in the same commit and say why."
+        exit 1
+    fi
+    echo "  ✓ ${FIXTURE_CHECKS} fixture artifacts validated against their schemas"
+    if [ "$KNOWN_DEFECTS" -gt 0 ]; then
+        echo "    (${KNOWN_DEFECTS} recorded as known defects — see \"reason\" in fixture-validation-map.json)"
+    fi
+    echo
+fi
+
 # ── Examples: validate by directory against the matching schema ──────────────
 # v0.2: example files MAY carry top-level documentation companions whose keys
 # start with "_" (e.g. `_decoded_claims`, `_wire_note`); these are stripped

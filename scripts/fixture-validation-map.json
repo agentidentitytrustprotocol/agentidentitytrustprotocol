@@ -1,0 +1,772 @@
+{
+  "$comment": "Fixture-input validation map for scripts/validate-json.sh. Keyed by conformance fixture `id` (NOT the filename stem \u2014 ids are short, e.g. `bundle-001` for bundle-001-success.json). Every fixture in schemas/conformance/*.json MUST appear here: an unmapped fixture is a build error, never a skip. Each artifact names a JSON pointer into the fixture, the schema under schemas/json/ it must satisfy, and the expected outcome. `expect` is checked BIDIRECTIONALLY \u2014 an `invalid` artifact that starts validating fails the build just as an `expect: valid` one that stops does. `wrap` re-wraps the artifact as {KEY: artifact} for schemas that describe the wrapped transport form. `invalid_known_defect` records a real, tracked defect in a fixture or schema rather than papering over it; when the defect is fixed the build fails here until this entry is updated.",
+  "fixtures": {
+    "bundle-001": {
+      "artifacts": [
+        {
+          "pointer": "/input/session_bundle",
+          "schema": "aitp-session-bundle.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/session_bundle/session_bundle/participants/0/tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/session_bundle/session_bundle/participants/1/tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "bundle-002": {
+      "artifacts": [
+        {
+          "pointer": "/input/session_bundle",
+          "schema": "aitp-session-bundle.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/session_bundle/session_bundle/participants/0/tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/session_bundle/session_bundle/participants/1/tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "bundle-003": {
+      "artifacts": [
+        {
+          "pointer": "/input/session_bundle",
+          "schema": "aitp-session-bundle.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/session_bundle/session_bundle/participants/0/tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/session_bundle/session_bundle/participants/1/tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "del-001": {
+      "artifacts": [
+        {
+          "pointer": "/input/delegation_token_claims",
+          "schema": "aitp-delegation.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/delegation_token_claims/voucher_claims",
+          "schema": "aitp-grant-voucher.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "del-003": {
+      "artifacts": [
+        {
+          "pointer": "/input/delegation_token_claims",
+          "schema": "aitp-delegation.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/delegation_token_claims/voucher_claims",
+          "schema": "aitp-grant-voucher.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "del-004": {
+      "artifacts": [],
+      "no_artifacts": {
+        "reason": "v0.1-frozen delegation object (delegator/delegatee/issued_by/audience/scope/expires_at). No v0.2 schema describes this shape; the fixture exists to assert a v0.2 verifier REJECTS it, so validating it against the v0.2 delegation-claims schema would assert nothing about the fixture's intent."
+      }
+    },
+    "del-005": {
+      "artifacts": [
+        {
+          "pointer": "/input/delegation_token_claims",
+          "schema": "aitp-delegation.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/delegation_token_claims/voucher_claims",
+          "schema": "aitp-grant-voucher.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "del-006": {
+      "artifacts": [
+        {
+          "pointer": "/input/delegation_token_claims",
+          "schema": "aitp-delegation.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/delegation_token_claims/voucher_claims",
+          "schema": "aitp-grant-voucher.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "del-007": {
+      "artifacts": [
+        {
+          "pointer": "/input/delegation_token_claims",
+          "schema": "aitp-delegation.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "del-mh-001": {
+      "artifacts": [
+        {
+          "pointer": "/input/delegation_token_claims",
+          "schema": "aitp-delegation.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/delegation_token_claims/chain_claims/0",
+          "schema": "aitp-delegation.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/delegation_token_claims/chain_claims/0/voucher_claims",
+          "schema": "aitp-grant-voucher.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "del-mh-002": {
+      "artifacts": [
+        {
+          "pointer": "/input/delegation_token_claims",
+          "schema": "aitp-delegation.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/delegation_token_claims/chain_claims/0",
+          "schema": "aitp-delegation.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/delegation_token_claims/chain_claims/0/voucher_claims",
+          "schema": "aitp-grant-voucher.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "del-mh-003": {
+      "artifacts": [
+        {
+          "pointer": "/input/delegation_token_claims",
+          "schema": "aitp-delegation.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/delegation_token_claims/chain_claims/0",
+          "schema": "aitp-delegation.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/delegation_token_claims/chain_claims/0/voucher_claims",
+          "schema": "aitp-grant-voucher.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "del-mh-004": {
+      "artifacts": [
+        {
+          "pointer": "/input/delegation_token_claims",
+          "schema": "aitp-delegation.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/delegation_token_claims/chain_claims/0",
+          "schema": "aitp-delegation.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/delegation_token_claims/chain_claims/0/voucher_claims",
+          "schema": "aitp-grant-voucher.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/revocation_snapshots/0/snapshot",
+          "schema": "aitp-revocation-list.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "env-001": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "env-002": {
+      "artifacts": [
+        {
+          "pointer": "/input/active_tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "env-003": {
+      "artifacts": [],
+      "no_artifacts": {
+        "reason": "Key-resolution narrative: input carries fetch outcomes (manifest_fetch.status, oidc_discovery.status) and empty key lists, not a protocol artifact."
+      }
+    },
+    "env-004": {
+      "artifacts": [],
+      "no_artifacts": {
+        "reason": "Replay sequence: each entry is step/message_id/expected only. No envelope object is present to validate."
+      }
+    },
+    "env-005": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "id-001": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "id-002": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "id-003": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "id-004": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "invalid_known_defect",
+          "reason": "The fixture's pop_nonce/pop_nonce_echo literal is a hand-written illustrative string (base64 of readable ASCII) whose length violates $defs/PopNonce's ^[A-Za-z0-9_-]{22}$. This fixture asserts a SEMANTIC failure, not a malformed nonce, so the value is a fixture defect rather than intent."
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "id-005": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "invalid_known_defect",
+          "wrap": "manifest",
+          "reason": "The embedded manifest carries accepted_trust_anchors: [], which violates the manifest schema's minItems: 1. This is a pinned-key fixture, where accepting no OIDC issuer is the correct configuration \u2014 so either minItems: 1 wrongly assumes OIDC identity is always in play, or the fixture should name an anchor. That is a spec question; recording it as a known defect rather than silently encoding either answer."
+        }
+      ]
+    },
+    "id-006": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "invalid_known_defect",
+          "wrap": "manifest",
+          "reason": "The embedded manifest carries accepted_trust_anchors: [], which violates the manifest schema's minItems: 1. This is a pinned-key fixture, where accepting no OIDC issuer is the correct configuration \u2014 so either minItems: 1 wrongly assumes OIDC identity is always in play, or the fixture should name an anchor. That is a spec question; recording it as a known defect rather than silently encoding either answer."
+        }
+      ]
+    },
+    "id-007": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "invalid_known_defect",
+          "wrap": "manifest",
+          "reason": "The embedded manifest carries accepted_trust_anchors: [], which violates the manifest schema's minItems: 1. This is a pinned-key fixture, where accepting no OIDC issuer is the correct configuration \u2014 so either minItems: 1 wrongly assumes OIDC identity is always in play, or the fixture should name an anchor. That is a spec question; recording it as a known defect rather than silently encoding either answer."
+        }
+      ]
+    },
+    "man-001": {
+      "artifacts": [
+        {
+          "pointer": "/input/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "man-002": {
+      "artifacts": [
+        {
+          "pointer": "/input/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "invalid",
+          "wrap": "manifest",
+          "reason": "Deliberately schema-invalid: input.manifest.version is 'aitp/9.9', violating the schema's version const. The fixture asserts a verifier rejects an unknown protocol version, so schema rejection is the correct expected outcome."
+        }
+      ]
+    },
+    "man-003": {
+      "artifacts": [
+        {
+          "pointer": "/input/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "mh-001": {
+      "artifacts": [],
+      "no_artifacts": {
+        "reason": "Replay sequence: step/operation/message_id/expected only. No handshake artifact object is present."
+      }
+    },
+    "mh-002": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "mh-003": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "mh-004": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "mh-005": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "invalid_known_defect",
+          "reason": "The fixture's pop_nonce/pop_nonce_echo literal is a hand-written illustrative string (base64 of readable ASCII) whose length violates $defs/PopNonce's ^[A-Za-z0-9_-]{22}$. This fixture asserts a SEMANTIC failure, not a malformed nonce, so the value is a fixture defect rather than intent."
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "mh-006": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "invalid_known_defect",
+          "reason": "aitp-mutual-handshake.schema.json's top-level oneOf cannot match a commit payload: $defs/MutualCommitPayload and $defs/MutualCommitAckPayload are structurally identical (same required, same properties), so every commit payload matches BOTH branches and oneOf fails with passingSchemas=[2,3]. The payload is well-formed; the schema is defective. When the schema gains a discriminator this entry flips to valid and the build fails here until the map is updated."
+        },
+        {
+          "pointer": "/input/envelope/payload/tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "mh-007": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "invalid_known_defect",
+          "reason": "aitp-mutual-handshake.schema.json's top-level oneOf cannot match a commit payload: $defs/MutualCommitPayload and $defs/MutualCommitAckPayload are structurally identical (same required, same properties), so every commit payload matches BOTH branches and oneOf fails with passingSchemas=[2,3]. The payload is well-formed; the schema is defective. When the schema gains a discriminator this entry flips to valid and the build fails here until the map is updated."
+        },
+        {
+          "pointer": "/input/envelope/payload/tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "mh-008": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "invalid_known_defect",
+          "reason": "aitp-mutual-handshake.schema.json's top-level oneOf cannot match a commit payload: $defs/MutualCommitPayload and $defs/MutualCommitAckPayload are structurally identical (same required, same properties), so every commit payload matches BOTH branches and oneOf fails with passingSchemas=[2,3]. The payload is well-formed; the schema is defective. When the schema gains a discriminator this entry flips to valid and the build fails here until the map is updated. This payload additionally carries a pop_nonce_echo violating the PopNonce pattern."
+        },
+        {
+          "pointer": "/input/envelope/payload/tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "mh-009": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "mh-success-001": {
+      "artifacts": [
+        {
+          "pointer": "/input/peer_a/received_payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "invalid_known_defect",
+          "reason": "aitp-mutual-handshake.schema.json's top-level oneOf cannot match a commit payload: $defs/MutualCommitPayload and $defs/MutualCommitAckPayload are structurally identical (same required, same properties), so every commit payload matches BOTH branches and oneOf fails with passingSchemas=[2,3]. The payload is well-formed; the schema is defective. When the schema gains a discriminator this entry flips to valid and the build fails here until the map is updated."
+        },
+        {
+          "pointer": "/input/peer_a/received_payload/tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/peer_a/received_payload/grant_voucher_claims",
+          "schema": "aitp-grant-voucher.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/peer_b/received_payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "invalid_known_defect",
+          "reason": "aitp-mutual-handshake.schema.json's top-level oneOf cannot match a commit payload: $defs/MutualCommitPayload and $defs/MutualCommitAckPayload are structurally identical (same required, same properties), so every commit payload matches BOTH branches and oneOf fails with passingSchemas=[2,3]. The payload is well-formed; the schema is defective. When the schema gains a discriminator this entry flips to valid and the build fails here until the map is updated."
+        },
+        {
+          "pointer": "/input/peer_b/received_payload/tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/peer_b/received_payload/grant_voucher_claims",
+          "schema": "aitp-grant-voucher.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "rev-001": {
+      "artifacts": [
+        {
+          "pointer": "/input/snapshot",
+          "schema": "aitp-revocation-list.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "rev-002": {
+      "artifacts": [
+        {
+          "pointer": "/input/snapshot",
+          "schema": "aitp-revocation-list.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "rev-003": {
+      "artifacts": [
+        {
+          "pointer": "/input/snapshot",
+          "schema": "aitp-revocation-list.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "rev-004": {
+      "artifacts": [
+        {
+          "pointer": "/input/tct_token_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "tct-002": {
+      "artifacts": [
+        {
+          "pointer": "/input/tct_token_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "tct-003": {
+      "artifacts": [
+        {
+          "pointer": "/input/tct_token_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "tct-004": {
+      "artifacts": [
+        {
+          "pointer": "/input/tct_token_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/issuer_revocation_list/snapshot",
+          "schema": "aitp-revocation-list.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "tct-005": {
+      "artifacts": [
+        {
+          "pointer": "/input/tct_token_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "tct-006": {
+      "artifacts": [
+        {
+          "pointer": "/input/tct_token_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "tct-007": {
+      "artifacts": [
+        {
+          "pointer": "/input/tct_token_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "tct-008": {
+      "artifacts": [
+        {
+          "pointer": "/input/tct_token_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "tct-009": {
+      "artifacts": [
+        {
+          "pointer": "/input/tct_token_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "tct-010": {
+      "artifacts": [
+        {
+          "pointer": "/input/tct_token_claims",
+          "schema": "aitp-grant-voucher.schema.json",
+          "expect": "valid",
+          "reason": "The claims are grant-voucher claims by design: the fixture asserts a verifier rejects a voucher presented where a TCT is expected (typ mismatch). They are schema-valid AS A VOUCHER, which is what makes the fixture's point."
+        }
+      ]
+    },
+    "vch-001": {
+      "artifacts": [
+        {
+          "pointer": "/input/voucher_token_claims",
+          "schema": "aitp-grant-voucher.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "vch-002": {
+      "artifacts": [
+        {
+          "pointer": "/input/voucher_token_claims",
+          "schema": "aitp-grant-voucher.schema.json",
+          "expect": "valid"
+        }
+      ]
+    }
+  }
+}
