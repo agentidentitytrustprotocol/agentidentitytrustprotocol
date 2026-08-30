@@ -12,7 +12,7 @@ A one-line "what is X / where is it defined" lookup for the core AITP concepts. 
 |---|---|---|
 | **AID** | Cryptographic agent identifier (`aid:pubkey:<43-char base64url>`). | [RFC-AITP-0001 §5.3](../rfcs/RFC-AITP-0001-core.md#53-agent-id-aid) |
 | **Envelope** | Outer signed object every AITP message ships in. | [RFC-AITP-0001 §5](../rfcs/RFC-AITP-0001-core.md#5-message-envelope) |
-| **JCS signing input** | Canonical JSON form (RFC 8785) used as the signing input. | [RFC-AITP-0001 §5.4.1](../rfcs/RFC-AITP-0001-core.md#541-signing-input) |
+| **JCS signing input** | Canonical JSON form (RFC 8785) of the inner artifact body — transport wrapper stripped, `signature` member excluded. | [RFC-AITP-0001 §5.4.1](../rfcs/RFC-AITP-0001-core.md#541-signing-input-jcs-profile) |
 | **Replay protection** | `message_id` deduplication + `timestamp` tolerance window. | [RFC-AITP-0001 §5.5](../rfcs/RFC-AITP-0001-core.md#55-replay-protection) |
 | **Identity binding** | How an AID is bound to a verifiable claim from a trusted issuer. | [RFC-AITP-0002](../rfcs/RFC-AITP-0002-identity.md) |
 | **OIDC identity** | JWT proof with `aud` (verifying peer's AID) and `cnf.jkt` (AID key thumbprint). | [RFC-AITP-0002 §2](../rfcs/RFC-AITP-0002-identity.md#2-oidc-identity-type) |
@@ -23,7 +23,7 @@ A one-line "what is X / where is it defined" lookup for the core AITP concepts. 
 | **Grant intersection** | TCT grants are `requested_grants ∩ identity_policy ∩ offered_capabilities`. | [RFC-AITP-0004 §4.1](../rfcs/RFC-AITP-0004-mutual-handshake.md#41-grant-intersection) |
 | **TCT** | Signed, audience-bound, capability-scoped peer-issued grant. | [RFC-AITP-0005](../rfcs/RFC-AITP-0005-tct.md) |
 | **`binding.cnf`** | Subject's public key embedded in the TCT for downstream PoP. | [RFC-AITP-0005 §6](../rfcs/RFC-AITP-0005-tct.md#6-binding-proof-of-possession) |
-| **JTI** | UUID v4 token ID on a TCT; key for revocation lookups. | [RFC-AITP-0005 §2](../rfcs/RFC-AITP-0005-tct.md#2-required-fields) |
+| **JTI** | UUID v4 token ID on a TCT; key for revocation lookups. | [RFC-AITP-0005 §2](../rfcs/RFC-AITP-0005-tct.md#2-claims) |
 | **Delegation** | Single-hop subset grant (A → B → C) with embedded `grant_proof`. | [RFC-AITP-0006](../rfcs/RFC-AITP-0006-delegation.md) |
 | **Key resolution** | Manifest-first for peers; cache → pinned → well-known for issuers. | [RFC-AITP-0007](../rfcs/RFC-AITP-0007-key-resolution.md) |
 | **Revocation** | Per-issuing-peer JTI deny lists, pull-based. | [RFC-AITP-0008](../rfcs/RFC-AITP-0008-revocation.md) |
@@ -95,7 +95,7 @@ A one-line "what is X / where is it defined" lookup for the core AITP concepts. 
 
 ## J
 
-**JCS (RFC 8785, JSON Canonicalization Scheme).** The canonical JSON form used as the signing input across all v0.1 signed objects (envelope, Manifest, TCT, delegation token, revocation snapshot). See [RFC-AITP-0001 §5.4.1](../rfcs/RFC-AITP-0001-core.md).
+**JCS (RFC 8785, JSON Canonicalization Scheme).** The canonical JSON form used as the signing input across all v0.1 signed objects (envelope, Manifest, TCT, delegation token, revocation snapshot). See [RFC-AITP-0001 §5.4.1](../rfcs/RFC-AITP-0001-core.md). See also the *JCS embedded-signature profile* — the signing regime covering the envelope, Manifest, revocation snapshot, session bundle, and handshake payloads — as distinct from the Compact JWS profile (TCT, grant voucher, delegation token). See [RFC-AITP-0001 §5.4.1](../rfcs/RFC-AITP-0001-core.md#541-signing-input-jcs-profile).
 
 **`jkt` (JWK SHA-256 thumbprint).** RFC 7638 thumbprint of the agent's confirmation key, computed over the exact JWK form `{"crv":"Ed25519","kty":"OKP","x":"<aid-id>"}`.
 
@@ -133,6 +133,8 @@ A one-line "what is X / where is it defined" lookup for the core AITP concepts. 
 
 ## R
 
+**Redistributable.** An artifact that can reach a verifier by some path other than that verifier's own pull from the issuer — relayed, embedded in another party's message, or served from a third party's cache. Redistributable JCS-profile artifacts (Manifest, session bundle) MUST carry `signature` as a member of the signed body; a point-to-point artifact pulled directly from its issuer and never passed on (the revocation snapshot) MAY carry it as a sibling of the transport wrapper. A verifier caching what it pulled does not make an artifact redistributable — caching changes how long a verifier holds it, not who hands it over. See [RFC-AITP-0001 §5.4.1](../rfcs/RFC-AITP-0001-core.md#541-signing-input-jcs-profile).
+
 **Revocation.** Per-issuing-peer JTI deny lists. Each agent maintains the deny list for the TCTs it issued; verifiers consult the list belonging to the TCT's issuer. See [RFC-AITP-0008](../rfcs/RFC-AITP-0008-revocation.md).
 
 **RFC.** A normative document under `rfcs/`. AITP RFCs are numbered RFC-AITP-NNNN. See [governance/RFC-PROCESS.md](../governance/RFC-PROCESS.md) for the lifecycle.
@@ -150,6 +152,8 @@ A one-line "what is X / where is it defined" lookup for the core AITP concepts. 
 ## T
 
 **TCT (Trust Context Token).** The canonical AITP artifact: a signed, audience-bound, capability-scoped grant produced by a peer. Verified locally — no third-party lookup. See [RFC-AITP-0005](../rfcs/RFC-AITP-0005-tct.md).
+
+**Transport wrapper** (a.k.a. artifact-name wrapper). The outer JSON object whose single key names a JCS-profile artifact for routing — `{"manifest": …}`, `{"revocation_list": …}`, `{"session_bundle": …}`. It is routing metadata, never part of the signing bytes; issuers sign and verifiers reconstruct the inner artifact body. See [RFC-AITP-0001 §5.4.1](../rfcs/RFC-AITP-0001-core.md#541-signing-input-jcs-profile).
 
 **Trust anchor.** An identity-issuer URL (or pinned key reference) a peer is willing to accept. Listed in a Manifest's `accepted_trust_anchors`. The intersection across two Manifests determines whether a handshake is even worth attempting.
 

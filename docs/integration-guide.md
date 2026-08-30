@@ -89,7 +89,7 @@ loaded via `Ed25519PublicKey.from_public_bytes()`). v0.1 AIDs are exactly
 > where it is exchanged inline — additionally verify
 > `tct["expires_at"] <= issuer_manifest["expires_at"]` and reject with
 > `TCT_EXPIRES_AFTER_MANIFEST` on violation
-> ([RFC-AITP-0005 §9.4](../rfcs/RFC-AITP-0005-tct.md#94-manifest-expiry-bound-conditional)).
+> ([RFC-AITP-0005 §10.4](../rfcs/RFC-AITP-0005-tct.md#104-manifest-expiry-bound-conditional)).
 > A peer-issued TCT must not outlive the Manifest credential that
 > authenticates its issuer's key. This check is conditional — skip it if
 > the issuer Manifest is not on hand; do not fetch it solely for this
