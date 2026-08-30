@@ -34,6 +34,54 @@ reason — no section of the target document supports the claim.
 `0.2.4-draft` per VERSIONING.md:24's Editorial / clarification class (no
 schema or wire change).
 
+### Issue #17 erratum 1 / Issue #25: RFC-AITP-0002 §3.1 pinned-key `timestamp` encoding, §2.4 example nonce, and seven fixture nonces/one attacker AID
+
+**Two independent defects, fixed together because the second was found while re-minting the first's artifacts.**
+
+**1. `timestamp_be_8_bytes` → `timestamp_ascii_decimal` (signing-input change).** RFC-AITP-0002 §3.1 stated, through `0.2.0-draft`, that the pinned-key proof's `timestamp` field was an 8-byte big-endian signed 64-bit integer. `aitp-verifier-py` — the independent implementation the Draft-to-Final gate requires (issue #17) — could not reproduce the one pinned proof in the conformance pack, `id-007`, against that encoding. Both encodings were checked against `id-007`'s real Ed25519 signature (`kat-keypair-003`, seed `0xff×32`) before anything was changed: the ASCII-decimal string verifies, the big-endian packing does not. The byte-pinned artifact is the interop contract, so the prose moved to match it, not the reverse — the artifact has been ASCII-decimal since the original conformance commit; nothing was re-signed.
+
+`id-007` alone never exercised this: its expected outcome is rejection at §3.2 step 1 (the key is absent from the local `pinned_keys` store), reached *before* proof verification, so a big-endian implementation could pass `id-007` — and the rest of the v0.2 conformance pack — without the defect surfacing. New vector `kat-pinned-key-proof-001` (`schemas/conformance/known-answer/jcs-sha256.json`) closes that gap: it pins the `(sender, receiver, message_id, timestamp, pop_nonce)` tuple, the resulting `proof_input` bytes (193 bytes), `sha256(proof_input)`, and the signature — reusing `id-007`'s signature verbatim — and additionally pins that the *same* signature does NOT verify when `timestamp` is instead packed as an 8-byte big-endian integer, so the encoding is machine-checked rather than read from prose. See the erratum blockquote added to RFC-AITP-0002 §3.1.
+
+Old and new prose:
+
+| | Old (`0.2.0-draft` and earlier) | New (`0.2.1-draft`) |
+|---|---|---|
+| §3.1 `proof_input` field | `timestamp_be_8_bytes` — envelope `timestamp` as an 8-byte big-endian signed 64-bit integer | `timestamp_ascii_decimal` — envelope `timestamp` as its UTF-8 base-10 ASCII decimal string (e.g. `1711900000` → `b"1711900000"`) |
+
+**Classification: Editorial / patch bump, by analogy to the JCS-wrapper correction above — with a caveat.** No schema shape and no pinned bytes changed; the correction brings the prose into line with an artifact that was always right, which is the same shape of fix VERSIONING.md's editorial clause names for a vector that contradicts normative text. The caveat: that clause is written for the *opposite* direction (artifact was wrong, prose was right) and VERSIONING.md's "no schema or wire change" description does not cleanly cover this direction, because an implementation that correctly followed the *old* prose is producing wrong-by-the-real-contract signatures today and must change its wire behavior to interoperate — this is documented explicitly in the new erratum blockquote so it isn't missed. See the recommendation below on extending VERSIONING.md.
+
+RFC-AITP-0002 moves `0.2.0-draft` → `0.2.1-draft` for this change.
+
+**2. §2.4 example nonce, and seven fixture `pop_nonce`/`pop_nonce_echo` literals (issue #25).** Independently, seven `pop_nonce` literals across three handshake conformance fixtures violated the 22-character unpadded-base64url `PopNonce` pattern the schema enforces. All seven sit in semantic-failure fixtures where the nonce's specific value is incidental to the scenario; they are replaced with valid deterministic 22-character values, preserving the relation each fixture tests: `id-004`'s captured-vs-fresh nonces must differ, `mh-005`'s echoed nonce must differ from what was sent, `mh-008`'s echoed nonce must equal what was sent. RFC-AITP-0002 §2.4's worked OIDC example pins the same `nonce` value as `id-004`'s corrected fresh `pop_nonce` (both represent "the fresh nonce for this handshake") and moves with it — leaving the fixture alone would have recreated the prose-vs-artifact divergence pattern this repository keeps closing.
+
+Also independently, `mh-002`'s attacker `sender.agent_id` / `manifest.aid` used an AID whose signing seed was never published, so no independent implementation could re-mint the fixture's `MANIFEST_SIGNATURE_INVALID` scenario (reaching it requires first producing a *valid* attacker PoP, per RFC-AITP-0003 §5's check ordering). A documented attacker keypair, `kat-keypair-006-attacker` (seed `0xAA×32`, `schemas/conformance/known-answer/keypairs.json`), replaces it. Nothing pinned elsewhere referenced the old AID.
+
+Old and new values:
+
+| Fixture / field | Old | New |
+|---|---|---|
+| RFC-AITP-0002 §2.4 example `nonce` | `Tm9uY2VfRnJlc2hfRm9yX1RoaXNfSGFuZHNoYWtl` | `AxwAx0m1v63X7ZsDG-3Npg` |
+| `id-004` `original_pop_nonce` | `Tm9uY2VfQ2FwdHVyZWRfRnJvbV9PbGRfSGFuZHNoYWtl` | `xwCb5ctck4W8hev_1sxkEw` |
+| `id-004` `pop_nonce` | `Tm9uY2VfRnJlc2hfRm9yX1RoaXNfSGFuZHNoYWtl` | `AxwAx0m1v63X7ZsDG-3Npg` |
+| `mh-005` `sent_pop_nonce` | `QWdlbnRBUG9wTm9uY2VFeHBlY3RlZA` | `fRVe56NIsF6e0msvD0ORaQ` |
+| `mh-005` `pop_nonce` | `QWdlbnRCUG9wTm9uY2VOZXcxMjhiaXQ` | `Vl4YHtl6OQcOdQiSlkaHhg` |
+| `mh-005` `pop_nonce_echo` | `QXR0YWNrZXJTd2FwcGVkTm9uY2VWYWx1ZQ` | `xatQKgEJw3UX1Wu0PkqHOA` |
+| `mh-008` `self_pop_nonce_sent_in_hello_ack` / `pop_nonce_echo` (same value, two fields) | `Yl9wb3Bfbm9uY2VfMTI4Yml0X2Jhc2U2NHVybA` | `awVp2Fly6Is8p899W-ALmw` |
+| `mh-002` `sender.agent_id` / `manifest.aid` (same value, two fields) | `aid:pubkey:OzIbdL3LFp9yYMYFkru2PZtNYpQkoMWK_0ZAp18KKwY` | `aid:pubkey:5zTqbCtiV95yNV5HKqBaTEh-a0Y8Ap7TBt8vAbVja1g` (`kat-keypair-006-attacker`) |
+
+None of these are pinned cryptographic values — no signature covers any of the seven nonces or the attacker AID in these fixtures (`mh-002`, `mh-005`, `mh-008` carry only placeholder signatures; `id-004`'s real signature is over the *captured* proof context, whose sender/receiver/message_id/timestamp did not change, only `original_pop_nonce`, and that signature is likewise a placeholder in the fixture). This is fixture hygiene restoring schema conformance and re-mintability, not a correction to a normative requirement.
+
+**Classification: Editorial / patch bump.** No requirement changed; invalid example literals were replaced with valid ones carrying the same test relations. RFC-AITP-0002 moves `0.2.1-draft` → `0.2.2-draft` for the §2.4 nonce correction specifically (the fixture-only changes in `id-004`, `mh-002`, `mh-005`, `mh-008` do not themselves move any RFC's `Version:` header).
+
+- `rfcs/RFC-AITP-0002-identity.md` §3.1 — `timestamp_be_8_bytes` → `timestamp_ascii_decimal`; new **Erratum** blockquote; **Replay resistance** blockquote qualified (the five *bound fields* are unchanged from v0.1, not the encoding) and its tuple corrected from four fields to five (`sender, receiver, message, timestamp, nonce`) — it previously omitted `timestamp` even though §3.1 binds it; new **Known-answer test** blockquote citing `kat-pinned-key-proof-001`. §2.4 example `nonce` corrected.
+- `schemas/conformance/known-answer/jcs-sha256.json` — new vector `kat-pinned-key-proof-001`.
+- `schemas/conformance/id-004-pinned-key-cross-peer-replay.json`, `mh-002-manifest-signature-invalid.json`, `mh-005-nonce-mismatch.json`, `mh-008-pop-verification-failed.json` — nonce/AID literals corrected per the tables above.
+- `schemas/conformance/known-answer/keypairs.json` — new `kat-keypair-006-attacker` entry.
+
+**Version bump summary.** RFC-AITP-0002 moves `0.2.0-draft` → `0.2.1-draft` (§3.1 timestamp erratum) → `0.2.2-draft` (§2.4 nonce correction), both Editorial / clarification per VERSIONING.md:24 (see the classification caveat on the first change, above). `rfcs/README.md`'s version sentence updated to name both corrections instead of only the §2.4 one.
+
+**Recommendation on VERSIONING.md (not acted on — flagged for separate decision).** VERSIONING.md:24's editorial clause is written unidirectionally: it blesses a patch bump when "a known-answer vector or signed example contradicts the normative text" and "the artifact was wrong." The §3.1 change runs the other way — the artifact (the real, previously-committed `id-007` signature) was always right; the *prose* was wrong. I patch-bumped it here by analogy, consistent with how this same class of question was resolved for the JCS-wrapper correction earlier in this file, but recommend VERSIONING.md be reworded to state the rule bidirectionally — "whichever of the normative text or the pinned artifact is wrong moves to match the other" — rather than leaving the reverse direction to be inferred by analogy each time it recurs. This is a recommendation only; VERSIONING.md is unchanged by this entry.
+
 ### RFC-AITP-0001 §5.4: subsection order, enumeration drift, and a bad citation
 
 **Editorial.** RFC-AITP-0001 §5.4's subsections were physically out of order —

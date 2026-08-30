@@ -64,6 +64,6 @@ jobs:
           echo "  - JSON examples valid"
           echo "  - Conformance fixtures + KAT vectors valid"
           echo "  - Every pinned canonical byte sequence and signature verified"
-          echo "  - RFC version claims and intra-repo anchor links coherent"
+          echo "  - RFC version claims, intra-repo anchor links, and section citations coherent"
           echo "  - No release junk in tree"
           echo "  - Release archive dry-run clean"

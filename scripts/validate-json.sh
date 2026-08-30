@@ -14,6 +14,7 @@ DELEGATION_SCHEMA="${PROJECT_ROOT}/schemas/json/aitp-delegation.schema.json"
 TRUST_ANCHORS_SCHEMA="${PROJECT_ROOT}/schemas/json/aitp-trust-anchors.schema.json"
 MANIFEST_SCHEMA="${PROJECT_ROOT}/schemas/json/aitp-manifest.schema.json"
 REVOCATION_LIST_SCHEMA="${PROJECT_ROOT}/schemas/json/aitp-revocation-list.schema.json"
+SESSION_BUNDLE_SCHEMA="${PROJECT_ROOT}/schemas/json/aitp-session-bundle.schema.json"
 FIXTURE_META_SCHEMA="${PROJECT_ROOT}/schemas/json/aitp-conformance-fixture.schema.json"
 NON_NORMATIVE_DIR="${PROJECT_ROOT}/examples/non-normative"
 
@@ -527,6 +528,7 @@ validate_jws_dir    "${KAT_SIGNED_DIR}/tct"           "${TCT_SCHEMA}"           
 validate_jws_dir    "${KAT_SIGNED_DIR}/grant-voucher" "${GRANT_VOUCHER_SCHEMA}"   "grant-voucher"
 validate_jws_dir    "${KAT_SIGNED_DIR}/delegation"    "${DELEGATION_SCHEMA}"      "delegation"
 validate_signed_kat "${KAT_SIGNED_DIR}/revocation"    "${REVOCATION_LIST_SCHEMA}" "revocation"
+validate_signed_kat "${KAT_SIGNED_DIR}/session-bundle" "${SESSION_BUNDLE_SCHEMA}"  "session-bundle"
 
 if [ $TOTAL -eq 0 ]; then
     echo "Warning: No JSON example or fixture files found"

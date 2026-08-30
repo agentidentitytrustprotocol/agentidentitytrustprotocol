@@ -74,8 +74,14 @@ with open(readme, encoding="utf-8") as fh:
 # immediately followed by "is/are at" and a backtick-quoted version. This
 # deliberately does NOT fire on prose that merely mentions an RFC (e.g. a
 # citation or an index-table row) without asserting its version this way.
+# The joiner allows a bare comma, "and", or an Oxford ", and" between list
+# items -- `,\s*(?:and\s+)?|\s+and\s+` -- so "A, B and C", "A, B, and C", and
+# "A and B" all match in full. (The old `(?:,\s*|\s+and\s+)` alternation had
+# no branch for ", and ", so on an Oxford-comma list the regex backtracked
+# to matching only the final RFC-AITP-NNNN, silently dropping every earlier
+# RFC in the list from both the match and the "checked" count.)
 assertion_re = re.compile(
-    r'((?:RFC-AITP-\d{4}(?:,\s*|\s+and\s+))*RFC-AITP-\d{4})'
+    r'((?:RFC-AITP-\d{4}(?:,\s*(?:and\s+)?|\s+and\s+))*RFC-AITP-\d{4})'
     r'\s+(?:is|are)\s+at\s+`([0-9]+\.[0-9]+\.[0-9]+-[A-Za-z0-9.]+)`'
 )
 
@@ -369,7 +375,14 @@ for src in scan_files:
 
     for m in prefixed_matches:
         num = m.group(1)
-        secs = [g for g in m.groups()[1:] if g]
+        # Python's re keeps only the LAST capture of a repeated group
+        # (`(?:...§(...))*`), so reading m.groups() would silently drop every
+        # section but the first and the last in a 3+-part compound citation
+        # like "§5.1, §99.9, §5.2" -- and since the whole match span still
+        # gets recorded in spans_covered, the dropped section would also be
+        # excluded from the bare-cite pass below and checked by nothing.
+        # re.findall over the matched span sees every repetition instead.
+        secs = re.findall(SEC, m.group(0))
         total_prefixed += len(secs)
         line_no = text.count("\n", 0, m.start()) + 1
         entry = rfc_headings.get(num)

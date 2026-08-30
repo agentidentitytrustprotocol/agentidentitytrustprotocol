@@ -3,13 +3,17 @@ name: Notify Website of Doc Changes
 on:
   push:
     branches: [main]
+    # aitp-website only republishes docs/rfcs/registries/schemas content — it
+    # does not consume the conformance tooling. Deliberately narrower than
+    # notify-spec-consumers.yml's path filter, which also includes
+    # `scripts/**` and `Makefile` because aitp-rs pins that tooling; a
+    # tooling-only change here (e.g. scripts/zip-source.sh) has nothing for
+    # the website to pick up, so don't dispatch on it.
     paths:
       - 'docs/**'
       - 'rfcs/**'
       - 'registries/**'
       - 'schemas/**'
-      - 'scripts/**'
-      - 'Makefile'
   workflow_dispatch:
 
 jobs:
