@@ -2,7 +2,7 @@
 
 AITP error codes returned in error envelopes (`AitpError.code`). AITP is JSON-only; codes are string constants in the canonical JSON wire format (see [RFC-AITP-0001 §5.6](../rfcs/RFC-AITP-0001-core.md#56-error-envelope)).
 
-> **Stability:** The codes listed below are stable for v0.2. Implementations MUST treat unknown codes as opaque failures and MUST NOT key behavior off codes that are not in this registry. New codes can be added without an RFC; renaming or removing an existing code is a breaking change and requires the RFC process. (v0.2 renamed `DELEGATION_INVALID_GRANT_PROOF` → `DELEGATION_INVALID_VOUCHER` via that process, as part of the JWS migration — see the delegation table below.) "Without an RFC" waives the need for a new RFC *document*, not [VERSIONING.md](../VERSIONING.md)'s change classes: adding a code is a **backward-compatible addition** there, so the existing RFCs whose normative text gains the new code take a minor `Version:` bump. The two policies answer different questions — whether a new document is required (no) and how the version numbers move (minor) — and compose rather than conflict.
+> **Stability:** The codes listed below are stable for v0.2. Implementations MUST treat unknown codes as opaque failures and MUST NOT key behavior off codes that are not in this registry. New codes can be added without an RFC; renaming or removing an existing code is a breaking change and requires the RFC process. (v0.2 renamed `DELEGATION_INVALID_GRANT_PROOF` → `DELEGATION_INVALID_VOUCHER` via that process, as part of the JWS migration — see the delegation table below.) "Without an RFC" waives the need for a new RFC *document*, not [VERSIONING.md](../VERSIONING.md)'s change classes: adding a code is a **backward-compatible addition** there. Note that the change *class* and the version *position* are separate questions: pre-1.0, VERSIONING.md reserves the minor position for the protocol revision, so a backward-compatible addition made inside an existing protocol revision takes a **patch-position** bump on the RFCs whose normative text gains the code, and records its minor class in the CHANGELOG. The two policies answer different questions — whether a new document is required (no) and how the version numbers move (patch position, minor class) — and compose rather than conflict.
 
 > **`spec_status` column.** Each code below carries a `spec_status` of either `core` or `draft`. `core` codes are part of v0.2 conformance and MAY be emitted by any conformant implementation. `draft` codes are reserved for the opt-in draft RFCs (currently RFC-AITP-0010 Session Trust Bundle and RFC-AITP-0011 Multi-hop Delegation) and MUST NOT be used except when implementing the cited draft RFC. Conformance runners MUST treat receipt of a `draft` code from an implementation that does not opt into the corresponding draft as a non-conformance.
 
@@ -18,6 +18,50 @@ that something failed. Codes that apply uniformly across objects —
 failing object is whichever one was being verified, and prefixed
 variants per object would multiply names without adding information.
 New codes proposed via the RFC process MUST follow this convention.
+
+## Structural rejection
+
+A verifier rejects an artifact **structurally** when the object does not match its
+schema at all — a missing REQUIRED member, a member of the wrong type, a value
+outside its grammar. Every artifact RFC positions this check before the
+cryptographic steps, so a malformed object is rejected before any signature work is
+spent on it. This table is normative: implementations MUST use the code named here
+so that two independent implementations reject the same malformed artifact with the
+same code.
+
+| Artifact | Structural rejection code |
+|---|---|
+| Envelope | `INVALID_ENVELOPE` |
+| Handshake payload | `INVALID_ENVELOPE` — the payload is a member of the envelope, and RFC-AITP-0004 §5.2 step 3 and §6 already map payload-level defects this way |
+| Manifest | `MANIFEST_INVALID` |
+| Identity descriptor | `IDENTITY_FAILED` |
+| Revocation snapshot | `REVOCATION_SNAPSHOT_INVALID` |
+| Session Trust Bundle | `SESSION_BUNDLE_INVALID` (`draft`) |
+| TCT | `TCT_SIGNATURE_INVALID` |
+| Grant voucher | `DELEGATION_INVALID_VOUCHER` |
+| Delegation token | `DELEGATION_INVALID_SIGNATURE` |
+
+Two rules govern the table:
+
+- **`UNKNOWN_FIELD` is more specific and wins.** When the object's *only* defect is
+  a member outside its schema and outside its `extensions` / `ext` namespace, the
+  code is `UNKNOWN_FIELD` ([RFC-AITP-0001 §7](../rfcs/RFC-AITP-0001-core.md#7-compatibility-model)),
+  not the code above. The codes above cover every other structural defect.
+- **The compact-JWS artifacts deliberately collapse onto their signature-family
+  code.** A TCT, voucher, or delegation token is verified by decoding a JWS; a
+  payload that will not decode into the expected claim set is indistinguishable, to
+  the caller, from one whose signature does not verify — in both cases the artifact
+  failed to produce a trustworthy claim set, and distinguishing them would leak
+  parse detail about an unauthenticated token. This collapse is intentional; it is
+  written down here because it was previously only a convention, which let two
+  implementations diverge and both believe they were conformant (issue #39).
+
+The JCS-profile artifacts do **not** collapse this way: they are verified as JSON
+objects against a published schema, the caller is expected to fix the object, and a
+misleading code sends an operator looking in the wrong place. `MANIFEST_INVALID` and
+`REVOCATION_SNAPSHOT_INVALID` exist so that a Manifest or snapshot with a shape
+defect is not reported as a *signature* failure — the mapping two implementations
+were previously forced to invent for themselves.
 
 ## Envelope-level codes
 
@@ -68,6 +112,7 @@ Returned when a peer evaluates a TCT outside the handshake context — e.g. via 
 |---|---|---|---|
 | `MANIFEST_EXPIRED` | `expires_at` is in the past. | false | core |
 | `MANIFEST_SIGNATURE_INVALID` | Signature verification failed. | false | core |
+| `MANIFEST_INVALID` | Manifest failed schema validation — a missing REQUIRED member, a member of the wrong type, or a value outside its grammar ([RFC-AITP-0003 §5](../rfcs/RFC-AITP-0003-manifest.md#5-manifest-verification) step 2). Mirrors `INVALID_ENVELOPE` for the Manifest. MUST NOT be reported as `MANIFEST_SIGNATURE_INVALID`: the signature was never reached. When the only defect is an unknown member outside `extensions`, use the more specific `UNKNOWN_FIELD` instead. | false | core |
 | `MANIFEST_POP_FAILED` | Proof-of-possession verification failed. | false | core |
 | `INCOMPATIBLE_TRUST_ANCHORS` | No overlap in accepted trust anchors. | false | core |
 | `INCOMPATIBLE_IDENTITY_TYPE` | Peer's `identity.type` is not present in the receiver's `accepted_identity_types`. More specific than `INCOMPATIBLE_TRUST_ANCHORS`: signals identity-type incompatibility (e.g. `pinned_key` vs. `oidc`) rather than trust-anchor incompatibility. | false | core |
@@ -81,6 +126,7 @@ Returned in error envelopes during the four-message handshake.
 |---|---|---|
 | `INCOMPATIBLE_TRUST_ANCHORS` | No trust-anchor overlap. | core |
 | `INCOMPATIBLE_IDENTITY_TYPE` | Peer's identity type not in `accepted_identity_types`. | core |
+| `MANIFEST_INVALID` | Peer's Manifest failed schema validation. | core |
 | `MANIFEST_SIGNATURE_INVALID` | Peer's Manifest signature invalid. | core |
 | `MANIFEST_POP_FAILED` | Peer's Manifest PoP failed. | core |
 | `POP_VERIFICATION_FAILED` | Round-2 PoP signature failed. | core |
@@ -105,8 +151,30 @@ Returned by an HTTP endpoint serving `/.well-known/aitp-manifest` or by an out-o
 | `MANIFEST_EXPIRED` | `expires_at` in the past. | core |
 | `MANIFEST_SIGNATURE_INVALID` | Signature verification failed. | core |
 | `MANIFEST_POP_FAILED` | Proof-of-possession failed. | core |
+| `MANIFEST_INVALID` | Manifest failed schema validation. | core |
 | `MANIFEST_VERSION_UNKNOWN` | Version not supported. | core |
 | `MANIFEST_NOT_FOUND` | No manifest for the requested AID. | core |
+
+## Revocation codes (RFC-AITP-0008)
+
+Returned when a consuming peer verifies a signed revocation snapshot pulled from an
+issuing peer's `ListRevoked` endpoint ([RFC-AITP-0008 §1.5](../rfcs/RFC-AITP-0008-revocation.md#15-signed-revocation-response)).
+Before these codes existed the registry had no revocation-specific family at all, and
+implementations borrowed `TCT_SIGNATURE_INVALID` — a code about a *token*, for a
+failure of the *snapshot* that lists tokens (issue #39).
+
+| Code | Meaning | Retryable | spec_status |
+|---|---|---|---|
+| `REVOCATION_SNAPSHOT_INVALID` | Revocation snapshot failed schema validation — the transport wrapper carried members other than `revocation_list` and `signature`, or the inner body has a missing/mistyped member. When the only defect is an unknown member outside `extensions`, use `UNKNOWN_FIELD` instead. | false | core |
+| `REVOCATION_SNAPSHOT_SIGNATURE_INVALID` | Snapshot signature does not validate under the issuing peer's key, resolved from that peer's Manifest. Distinct from `TCT_SIGNATURE_INVALID`, which is about a token's own JWS. | false | core |
+
+> **Not to be confused with `TCT_REVOKED`.** A snapshot that is merely *stale* or
+> *unreachable* is not invalid — it is absent, and what happens next is the consuming
+> peer's `revocation_policy.mode` decision ([RFC-AITP-0008 §3.1](../rfcs/RFC-AITP-0008-revocation.md#31-modes)),
+> not a snapshot-verification failure. Under `fail_closed` that decision surfaces as
+> `TCT_REVOKED` — unknown revocation status is treated as revoked, which is what
+> fail-closed means — and conformance fixture `rev-001` pins it. The two codes above
+> are for a snapshot the peer *did* obtain and could not trust.
 
 ## Delegation codes (RFC-AITP-0006)
 

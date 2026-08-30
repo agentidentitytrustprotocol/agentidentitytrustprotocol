@@ -2,7 +2,7 @@
 # Mutual Handshake
 
 **Document:** RFC-AITP-0004
-**Version:** 0.2.2-draft
+**Version:** 0.2.3-draft
 **Status:** Community Standards Track (v0.2 Draft)
 **Depends on:**
   [RFC-AITP-0001 Core](RFC-AITP-0001-core.md),
@@ -492,6 +492,9 @@ A MUST:
 | Scenario | Who fails | Error code |
 |---|---|---|
 | `payload.manifest.aid ≠ envelope.sender.agent_id` (step §5.1 #3) | Either | `INVALID_ENVELOPE` |
+| Payload does not match its schema — missing REQUIRED member, wrong type, value outside its grammar | Either | `INVALID_ENVELOPE` |
+| Peer's Manifest does not match its schema (RFC-AITP-0003 §5 step 2) | Either | `MANIFEST_INVALID` |
+| Peer's `identity` descriptor does not match its schema — including an `oidc` descriptor carrying `public_key` (RFC-AITP-0002 §1) | Either | `IDENTITY_FAILED` |
 | Payload carries a member outside its schema and outside `extensions` (step #2 of §5.1, §5.2, §5.3, and §5.4; RFC-AITP-0001 §7) | Either | `UNKNOWN_FIELD` |
 | Manifest PoP signature invalid (step §5.1 #4) | Either | `MANIFEST_POP_FAILED` |
 | A's Manifest signature invalid (step §5.1 #5) | B | `MANIFEST_SIGNATURE_INVALID` |

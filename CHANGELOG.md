@@ -2,6 +2,154 @@
 
 ## Unreleased
 
+### Issues #39 and #40: structural-rejection codes, and one identity descriptor instead of two
+
+Both issues came out of the same place — `aitp-verifier-py` implementing
+RFC-AITP-0001 §7 across every artifact — and both are the same defect this
+repo keeps finding: **one fact stated in two places with nothing checking
+they agree.** #39 is a rule stated in the RFCs but not in the registry; #40
+is an object defined in two schema files that had drifted apart.
+
+#### #39 — a shape defect was being reported as a signature failure
+
+**The gap.** The registry had a code meaning "this object's shape is wrong"
+for some artifacts and not others. The envelope has `INVALID_ENVELOPE`; the
+session bundle has `SESSION_BUNDLE_INVALID`. The Manifest had neither — the
+closest code was `MANIFEST_SIGNATURE_INVALID`, which says the signature
+failed when it was never reached, sending an operator to look at keys and
+signing while the real defect is a missing member. The revocation snapshot
+had no code family at all, for structure or signature, so implementations
+borrowed `TCT_SIGNATURE_INVALID` — a code about an individual *token's* JWS,
+used for the signed *list* that names tokens.
+
+**Three new core codes.**
+
+| Code | Artifact | Replaces the borrowed |
+|---|---|---|
+| `MANIFEST_INVALID` | Manifest failed schema validation | `MANIFEST_SIGNATURE_INVALID` |
+| `REVOCATION_SNAPSHOT_INVALID` | Snapshot failed schema validation | `TCT_SIGNATURE_INVALID` |
+| `REVOCATION_SNAPSHOT_SIGNATURE_INVALID` | Snapshot signature failed under the issuer's key | `TCT_SIGNATURE_INVALID` |
+
+**The convention is now written down, which was the actual ask.** Issue #39
+offered a fork: add codes, *or* state normatively that structural failures
+collapse onto signature-family codes. The answer is both, because the two
+apply to different artifacts. The registry gains a **Structural rejection**
+section with a normative per-artifact table, and it records why the split
+exists: the compact-JWS artifacts (TCT, voucher, delegation token) *do*
+collapse onto their signature-family code — a payload that will not decode
+into the expected claim set is indistinguishable to the caller from one
+whose signature failed, and separating them leaks parse detail about an
+unauthenticated token. The JCS-profile artifacts do not collapse, because
+they are validated against a published schema and the caller is expected to
+fix the object. That distinction was real in practice and written nowhere,
+which is exactly how two implementations diverge and both believe they are
+conformant.
+
+**What did *not* change, deliberately.** A snapshot that is stale or
+unreachable is **absent**, not invalid, so none of the new codes apply to
+it. Under `fail_closed` an absent snapshot means revocation status is
+unknown and unknown is treated as revoked — that is what fail-closed means —
+so the underlying TCT is still rejected with `TCT_REVOKED`, as conformance
+fixture `rev-001` has always pinned. `REVOCATION_UNAVAILABLE` was considered
+and rejected: it would have changed a pinned fixture's expected code, and
+"unknown ⇒ revoked" is the standard fail-closed reading rather than a defect.
+RFC-AITP-0008 §3.1 now states this explicitly, since it was previously only
+inferable from the fixture. `rev-001`'s own description also lost a hedge —
+it offered `KEY_RESOLUTION_FAILED` as an alternative "depending on the call
+site" while `expected.error_code` asserted exactly one code. A fixture that
+names two acceptable codes pins neither.
+
+#### #40 — the identity descriptor was defined twice and the copies disagreed
+
+**The gap.** `aitp-identity.schema.json` and the `$defs/IdentityDescriptor`
+inside `aitp-mutual-handshake.schema.json` describe the same object. Both set
+`additionalProperties: false`, so any divergence is load-bearing. The issue
+reported one: the canonical file reserves an `extensions` slot and the
+embedded copy did not, so a descriptor carrying `extensions` validated
+standalone and failed inside a handshake payload.
+
+**The copy had drifted further than reported.** It was also missing the
+`public_key` grammar and — the one that matters — the
+`not: {required: [public_key]}` guard on the `oidc` branch. RFC-AITP-0002 §1
+states that as a MUST ("v0.2 verifiers MUST reject an OIDC `identity`
+descriptor that carries `public_key`", because the key is already in the
+envelope's `sender.agent_id` and a second copy makes `cnf.jkt`'s binding
+ambiguous). The canonical schema enforced it; the embedded copy did not — so
+the MUST was unenforced in the only path where a descriptor actually
+travels.
+
+**Resolution: the canonical file wins, and the copy is now a mirror.**
+RFC-AITP-0002 §1 already names `aitp-identity.schema.json` as canonical, so
+the answer to "which is authoritative" was in the spec; nothing had ever
+checked the other file against it. The identity descriptor is **not** an
+exception to §7's "every signed object reserves an `extensions` slot" — the
+section's field table now carries the `extensions` row that was missing,
+which is what made the exception look plausible.
+
+The mirror stays a copy rather than becoming a `$ref`: no schema in this
+repo resolves a cross-file reference, so an offline validator needs exactly
+one fetch per artifact, and a network-resolvable `$ref` would make every
+schema's usability depend on `aitp.dev` serving each `$id`. Duplication is
+the deliberate trade; the new check below is what makes it safe.
+
+#### Tooling — a fifth coherence stage
+
+`scripts/check-doc-coherence.sh` gains **stage 5, shared-definition
+coherence**: an object mirrored into another schema's `$defs` must equal its
+canonical definition, modulo the file-level metadata a subschema cannot
+carry. Verified non-vacuous against three drift modes (slot removed, guard
+removed, whole `$defs` entry deleted); each fails the build with the
+specific key named. Stage 4 caught a fixture asserting an undefined code;
+stage 5 catches a schema disagreeing with another schema. Same bug class,
+one level further down.
+
+#### Conformance — five fixtures
+
+| Fixture | Asserts |
+|---|---|
+| `man-006` | Manifest missing REQUIRED `handshake_endpoint` ⇒ `MANIFEST_INVALID` |
+| `rev-007` | Snapshot missing REQUIRED `published_at` ⇒ `REVOCATION_SNAPSHOT_INVALID` |
+| `rev-008` | Snapshot signature invalid ⇒ `REVOCATION_SNAPSHOT_SIGNATURE_INVALID` |
+| `id-008` | OIDC descriptor carrying `public_key` ⇒ `IDENTITY_FAILED` |
+| `id-009` | Unknown key inside `identity.extensions` ⇒ **success** |
+
+`man-006`/`rev-007` are deliberately distinct from `man-004`/`rev-005`: those
+pin an *extra* member (`UNKNOWN_FIELD`, the more specific code), these pin a
+*missing* REQUIRED one. `id-009` is the load-bearing one — it is the only
+fixture that can catch an implementation that enforces §7 by rejecting every
+unrecognized member, which passes every reject fixture while violating §7's
+MUST-ignore half for this artifact. `id-008`'s map entry doubles as the
+regression guard for #40: before the mirror was aligned, that artifact
+validated. Fixture total 64 → 69 (core 53 → 58); fixture-input artifacts
+121 → 130.
+
+#### Version bumps — minor class, patch position
+
+Per VERSIONING.md's pinned pre-1.0 position mapping: new error codes are a
+backward-compatible addition (minor *class*), made inside protocol revision
+`aitp/0.2`, so they take a patch-position bump. The registry's own Stability
+note said "minor bump" without the class/position distinction — written
+before that mapping was pinned — and is corrected here.
+
+| RFC | Version | Change |
+|---|---|---|
+| RFC-AITP-0001 | `0.2.4-draft` → `0.2.5-draft` | §5.7 gains the three new codes |
+| RFC-AITP-0002 | `0.2.2-draft` → `0.2.3-draft` | §1 gains the `extensions` row and the canonical/mirror note |
+| RFC-AITP-0003 | `0.2.3-draft` → `0.2.4-draft` | §5 step 2 gains structural validation ⇒ `MANIFEST_INVALID` |
+| RFC-AITP-0004 | `0.2.2-draft` → `0.2.3-draft` | §6 failure matrix gains three structural rows |
+| RFC-AITP-0008 | `0.2.5-draft` → `0.2.6-draft` | §1.5 names both revocation codes; §3.1 states the fail-closed collapse |
+
+No schema namespace change, no protocol-literal change: `aitp/0.2` and
+`https://aitp.dev/schema/v0.2/` are unchanged. RFC-AITP-0003 §5's step
+*numbers* are unchanged too — structural validation folds into step 2
+alongside the member-set check rather than renumbering, because those
+numbers are cited from RFC-AITP-0001 §7 and RFC-AITP-0004.
+
+**Downstream.** Both implementations must adopt the new codes; issues filed
+in `aitp-verifier-py` and `aitp-rs`. The `id-009` accept case is the one to
+watch — an implementation modeling `identity.extensions` as anything other
+than an open map will over-reject and still pass every reject fixture.
+
 ### Issue #37: `UNKNOWN_FIELD` — RFC-AITP-0001 §7's unknown-member rejection gets an error code and a step in every verification algorithm
 
 **The gap.** RFC-AITP-0001 §7 has always stated a MUST with an explicit

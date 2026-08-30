@@ -2,7 +2,7 @@
 # Agent Manifest
 
 **Document:** RFC-AITP-0003
-**Version:** 0.2.3-draft
+**Version:** 0.2.4-draft
 **Status:** Community Standards Track (v0.2 Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0002 Identity](RFC-AITP-0002-identity.md)
 
@@ -141,7 +141,13 @@ Manifests are also exchanged inline at the start of the Mutual Handshake (in the
 Before a peer uses a Manifest to initiate a handshake, it MUST verify the following in order:
 
 1. **Version check** — `manifest.version` MUST be `"aitp/0.2"` or a later version this implementation supports.
-2. **Member-set check** — every member of the Manifest MUST be a field defined in §3 or sit inside `extensions`. Any unknown member outside `extensions` ⇒ `UNKNOWN_FIELD` ([RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model)); unknown keys *inside* `extensions` MUST be ignored. This structural check runs before the cryptographic steps below: a Manifest carrying an unknown member is rejected before any proof-of-possession or signature work is spent on it, and no unknown member survives into the JCS signing input to create the cross-implementation signature ambiguity RFC-AITP-0001 §7 describes.
+2. **Structural check** — the Manifest MUST validate against the canonical schema
+   [`schemas/json/aitp-manifest.schema.json`](../schemas/json/aitp-manifest.schema.json): every REQUIRED member
+   present, every member of the declared type, every value inside its grammar. Failure ⇒ `MANIFEST_INVALID`.
+   This code exists so a shape defect is not reported as `MANIFEST_SIGNATURE_INVALID`, which would send an
+   operator looking at keys and signing when the signature was never reached (see the
+   [registry's structural-rejection table](../registries/error-codes.md#structural-rejection)).
+   Then the **member-set check**: every member of the Manifest MUST be a field defined in §3 or sit inside `extensions`. Any unknown member outside `extensions` ⇒ `UNKNOWN_FIELD` ([RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model)); unknown keys *inside* `extensions` MUST be ignored. This structural check runs before the cryptographic steps below: a Manifest carrying an unknown member is rejected before any proof-of-possession or signature work is spent on it, and no unknown member survives into the JCS signing input to create the cross-implementation signature ambiguity RFC-AITP-0001 §7 describes.
 3. **Expiry check** — `manifest.expires_at` MUST be in the future.
 4. **Proof-of-possession** — Verify `proof_of_possession.signature`:
 
