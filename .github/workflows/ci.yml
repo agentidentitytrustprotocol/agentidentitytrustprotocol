@@ -22,18 +22,8 @@ jobs:
       - name: Install ajv-cli
         run: npm install -g ajv-cli ajv-formats
 
-      - name: Validate JSON Schemas (meta)
-        run: |
-          chmod +x scripts/validate-json-schema.sh
-          ./scripts/validate-json-schema.sh
-
-      - name: Validate JSON examples and conformance fixtures
-        run: |
-          chmod +x scripts/validate-json.sh
-          ./scripts/validate-json.sh
-
-      - name: Verify pinned known-answer values (canonical bytes + signatures)
-        run: node scripts/verify-known-answer.mjs
+      - name: make validate (schemas, examples, fixtures, known-answer, doc coherence)
+        run: make validate
 
       - name: Check for release junk (.DS_Store, __MACOSX)
         run: |
@@ -69,10 +59,11 @@ jobs:
 
       - name: Summary
         run: |
-          echo "✓ All AITP v0.1 validations passed"
+          echo "✓ All AITP v0.2 validations passed"
           echo "  - JSON Schemas valid"
           echo "  - JSON examples valid"
           echo "  - Conformance fixtures + KAT vectors valid"
           echo "  - Every pinned canonical byte sequence and signature verified"
+          echo "  - RFC version claims and intra-repo anchor links coherent"
           echo "  - No release junk in tree"
           echo "  - Release archive dry-run clean"

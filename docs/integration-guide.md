@@ -19,12 +19,15 @@ call, no shared secret.
 ## Step 1: Receive the TCT
 
 In a typical flow you already hold the TCT from the Mutual Handshake (RFC-
-AITP-0004 §3.4): the peer delivered it inline in `MUTUAL_COMMIT_ACK`. If you
-need to forward a TCT to a downstream consumer, pass it in a request header
-or metadata field:
+AITP-0004 §3.4): the peer delivered it inline, verbatim, as the `tct` field
+of `MUTUAL_COMMIT_ACK` — a compact JWS string, never decoded-and-re-encoded
+by the envelope layer. If you need to forward a TCT to a downstream
+consumer, pass the compact JWS itself in a request header or metadata
+field; it is already transport-safe verbatim (RFC-AITP-0001 §5.4.5) — no
+extra encoding layer is needed:
 
 ```
-x-aitp-tct: <base64url-encoded TCT JSON>
+x-aitp-tct: <compact JWS>
 ```
 
 ---
@@ -36,64 +39,112 @@ x-aitp-tct: <base64url-encoded TCT JSON>
 import time
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
-# AITP signatures are over RFC 8785 (JCS) canonical JSON. Use a JCS library
-# (e.g. `pyjcs`); `json.dumps(sort_keys=True, separators=(',', ':'))` is
-# NOT JCS-compliant for nested objects, Unicode, or numbers.
-from jcs import canonicalize as jcs_canonicalize  # pip install pyjcs
+# A TCT is a compact JWS (RFC-AITP-0005 §1): three base64url segments
+# joined by `.`. There is NO canonicalization step and nothing to strip —
+# the signature covers the exact transmitted `header.payload` bytes
+# (RFC-AITP-0005 §7.1). Do not reach for a JCS library here: that profile
+# governs the Manifest and the revocation snapshot (RFC-AITP-0001 §5.4.1),
+# never the TCT.
 
-# AITP base64url is unpadded (RFC 4648 §5). Reject padding rather than
-# normalizing it — padded inputs are non-conformant per RFC-AITP-0001 §5.4.
+# AITP base64url is unpadded (RFC 4648 §5); a JWS segment carrying `=`
+# padding or any character outside `[A-Za-z0-9_-]` MUST be rejected, not
+# normalized. For the header and payload segments the base64url TEXT
+# itself is part of the signing input, so silently normalizing it would
+# verify a different byte sequence than what was actually signed
+# (RFC-AITP-0001 §5.4.5 "Strict parsing").
 def b64url_decode_strict(s: str) -> bytes:
     if "=" in s:
         raise ValueError("base64url padding is forbidden in AITP")
     pad = (-len(s)) % 4
     return base64.urlsafe_b64decode(s + ("=" * pad))  # padding only for the decoder, never accepted on input
 
-def verify_tct(tct_b64: str, issuer_pubkey: Ed25519PublicKey, my_aid: str) -> list[str]:
-    tct = json.loads(b64url_decode_strict(tct_b64))["tct"]
+# The sole acceptable `alg` is derived from the issuer AID's method, never
+# read from the token itself — this is what forecloses `alg: none` and
+# algorithm-confusion attacks (RFC-AITP-0001 §5.4.5 "Algorithm pinning").
+def expected_alg_for_aid(aid: str) -> str:
+    if not aid.startswith("aid:pubkey:"):
+        raise ValueError(f"unsupported AID method: {aid}")
+    rest = aid[len("aid:pubkey:"):]
+    if rest.startswith("p256:"):
+        return "ES256"
+    if rest.startswith("ed25519:") or len(rest) == 43:  # legacy untagged form == Ed25519 (RFC-AITP-0001 §5.3)
+        return "EdDSA"
+    raise ValueError(f"unsupported AID method: {aid}")
 
-    # 1. Check version
-    assert tct["version"] == "aitp/0.1", "Unknown version"
+def verify_tct(tct_jws: str, issuer_aid: str, issuer_pubkey: Ed25519PublicKey, my_aid: str) -> list[str]:
+    # 1. Strict-parse: exactly three non-empty, dot-separated base64url
+    #    segments (RFC-AITP-0005 §7.2 step 1) — no unsecured JWS, no
+    #    detached payload, no JSON serialization.
+    parts = tct_jws.split(".")
+    if len(parts) != 3 or not all(parts):
+        raise ValueError("malformed compact JWS")
+    header_b64, payload_b64, sig_b64 = parts
 
-    # 2. Check expiry
-    assert tct["expires_at"] > time.time(), "TCT expired"
+    header = json.loads(b64url_decode_strict(header_b64))
 
-    # 3. Check audience (must equal my AID; no wildcards in v0.1)
-    assert tct["audience"] == my_aid, "Audience mismatch"
+    # 2. Enforce `typ` (RFC-AITP-0005 §7.2 step 2).
+    if header.get("typ") != "aitp-tct+jwt":
+        raise ValueError("TOKEN_TYP_MISMATCH")
 
-    # 4. Reject any unknown top-level field outside the `extensions` slot
-    #    (RFC-AITP-0001 §7). Silently ignoring unknown fields would create
-    #    signature ambiguity across implementations.
-    KNOWN = {"version","jti","issuer","subject","audience","issued_at",
-             "expires_at","grants","binding","signature","extensions"}
-    unknown = set(tct) - KNOWN
-    assert not unknown, f"Unknown TCT fields: {unknown}"
+    # 3. Pin `alg` from the issuer AID and reject everything else,
+    #    including "none" (RFC-AITP-0005 §7.2 step 3).
+    if header.get("alg") != expected_alg_for_aid(issuer_aid):
+        raise ValueError("TOKEN_ALG_MISMATCH")
+    if set(header) != {"alg", "typ"}:
+        raise ValueError("protected header must contain exactly alg and typ")
 
-    # 5. Verify signature against the issuing peer's public key
-    #    (resolved from the issuing peer's Manifest).
-    tct_without_sig = {k: v for k, v in tct.items() if k != "signature"}
-    canonical = jcs_canonicalize(tct_without_sig)  # bytes, JCS-canonical
-    sig = b64url_decode_strict(tct["signature"])
-    issuer_pubkey.verify(sig, canonical)  # raises on failure
+    # 4. Verify the signature over the exact transmitted bytes — NOT a
+    #    re-canonicalized or re-serialized form. There is no
+    #    canonicalization step for a compact JWS (RFC-AITP-0005 §7.1).
+    signing_input = f"{header_b64}.{payload_b64}".encode("ascii")
+    sig = b64url_decode_strict(sig_b64)
+    issuer_pubkey.verify(sig, signing_input)  # raises on failure
 
-    return tct["grants"]
+    # 5. Only now decode and validate claims (RFC-AITP-0005 §7.2 step 5) —
+    #    nothing above this line is trusted before the signature checks out.
+    claims = json.loads(b64url_decode_strict(payload_b64))
+
+    assert claims["ver"] == "aitp/0.2", "Unknown version"
+    assert claims["exp"] > time.time(), "TCT expired"
+    assert claims["aud"] == my_aid, "Audience mismatch"  # no wildcards (RFC-AITP-0005 §5.1)
+
+    # `cnf.jkt` MUST match the thumbprint of the key encoded in `sub` — the
+    # verifier derives the EXPECTED thumbprint from `sub` itself and never
+    # trusts `cnf.jkt` as freestanding (RFC-AITP-0001 §5.4.4). Pinned
+    # thumbprint vectors are at schemas/conformance/known-answer/jwk-thumbprints.json.
+    if claims["cnf"]["jkt"] != jwk_thumbprint_from_aid(claims["sub"]):
+        raise ValueError("cnf.jkt does not match sub")
+
+    # 6. Reject any unknown top-level claim outside the `ext` slot
+    #    (RFC-AITP-0001 §5.4.5 "Strict parsing"). Silently ignoring unknown
+    #    claims would create signature-scope ambiguity across implementations.
+    KNOWN = {"ver", "jti", "iss", "sub", "aud", "iat", "exp", "grants", "cnf", "ext"}
+    unknown = set(claims) - KNOWN
+    assert not unknown, f"Unknown TCT claims: {unknown}"
+
+    return claims["grants"]
 ```
 
-The `issuer_pubkey` is extracted from the issuing peer's `manifest.aid`
-(`aid:pubkey:<43-char-base64url>` → decode → 32-byte raw Ed25519 public key,
-loaded via `Ed25519PublicKey.from_public_bytes()`). v0.1 AIDs are exactly
-43 base64url characters; reject any AID of a different length.
+Both `issuer_aid` and `issuer_pubkey` come from the issuing peer's
+`manifest.aid` (`aid:pubkey:ed25519:<43-char-base64url>`, or the legacy
+untagged `aid:pubkey:<43-char-base64url>` form → decode → 32-byte raw
+Ed25519 public key, loaded via `Ed25519PublicKey.from_public_bytes()`).
+`issuer_aid` is what `expected_alg_for_aid()` pins the header `alg`
+against — the algorithm is never read from the token itself. A P-256
+issuer AID (`aid:pubkey:p256:<44-char-base64url>`) carries the same shape
+with `ES256` / SEC1-compressed key material instead; this walkthrough
+sticks to the Ed25519 case for brevity (RFC-AITP-0001 §5.3).
 
 > **Also check the Manifest-expiry bound when you can.** If you hold the
 > issuing peer's Manifest — you do immediately after a Mutual Handshake,
 > where it is exchanged inline — additionally verify
-> `tct["expires_at"] <= issuer_manifest["expires_at"]` and reject with
+> `claims["exp"] <= issuer_manifest["expires_at"]` and reject with
 > `TCT_EXPIRES_AFTER_MANIFEST` on violation
-> ([RFC-AITP-0005 §9.4](../rfcs/RFC-AITP-0005-tct.md#94-manifest-expiry-bound-conditional)).
+> ([RFC-AITP-0005 §10.4](../rfcs/RFC-AITP-0005-tct.md#104-manifest-expiry-bound-conditional)).
 > A peer-issued TCT must not outlive the Manifest credential that
 > authenticates its issuer's key. This check is conditional — skip it if
 > the issuer Manifest is not on hand; do not fetch it solely for this
-> purpose. The Step 2 expiry check (`expires_at` in the future) always
+> purpose. The Step 2 expiry check (`exp` in the future) always
 > applies regardless.
 
 ---
@@ -110,14 +161,18 @@ def check_grant(grants: list[str], required: str) -> None:
 
 ## Proof-of-possession
 
-`binding.cnf` is required on every v0.1 peer-issued TCT. Whether to verify
-PoP at consumption time is governed by the issuing peer's per-grant policy
-(RFC-AITP-0005 §6): consumers MUST verify PoP for any grant the issuing peer
-marks as requiring it, and SHOULD verify PoP for all grants unless the
-deployment provides equivalent channel binding (mTLS with bound client
-certs, an authenticated message bus, etc.).
+`cnf` — specifically `cnf.jkt`, the RFC 7638 thumbprint of the subject's
+public key — is required on every v0.2 peer-issued TCT (RFC-AITP-0005 §3).
+There is no bearer-TCT profile. The v0.1 raw-public-key `binding.cnf` form
+does **not** appear in v0.2 tokens (RFC-AITP-0001 §5.4.4) — if you are
+looking for it on a v0.2 TCT's claims, it is not there; use `cnf.jkt`.
+Whether to verify PoP at consumption time is governed by the issuing
+peer's per-grant policy (RFC-AITP-0005 §6): consumers MUST verify PoP for
+any grant the issuing peer marks as requiring it, and SHOULD verify PoP for
+all grants unless the deployment provides equivalent channel binding (mTLS
+with bound client certs, an authenticated message bus, etc.).
 
-The RECOMMENDED v0.1 marking convention is a `#pop_required` suffix on the
+The RECOMMENDED marking convention is a `#pop_required` suffix on the
 grant string (`<capability>#pop_required`): a consumer that recognizes the
 suffix MUST run the challenge/response below before authorizing that grant,
 and MUST reject the invocation if no valid `pop_response` arrives within the
@@ -128,11 +183,15 @@ ask the peer to sign `sha256(base64url_decode(nonce))` — the holder MUST
 hash the **decoded raw bytes** of the nonce, never the base64url ASCII
 string (the unified PoP signing-input convention is in
 [RFC-AITP-0001 §5.4.2](../rfcs/RFC-AITP-0001-core.md#542-pop-signing-input-convention))
-— and verify the response signature against `binding.cnf` using the same
-strict base64url + JCS rules as the TCT signature itself. The Mutual
-Handshake's round-2 PoP exchange already binds the TCT to a live key —
-downstream PoP is the same proof, repeated when a TCT is presented after
-the handshake.
+— then verify `pop_signature` against the subject's public key, i.e. the
+key encoded in the TCT's `sub` AID, and confirm `cnf.jkt` equals that same
+key's RFC 7638 thumbprint (RFC-AITP-0005 §6.2). `pop_signature` is a raw
+Ed25519/ECDSA signature over a hash, not a JCS-canonicalized object — it
+was never JCS-signed JSON, in v0.1 or v0.2, so there is nothing here to
+canonicalize; do not reuse the TCT's (JWS) verification code path for it,
+and do not reach for JCS either. The Mutual Handshake's round-2 PoP
+exchange already binds the TCT to a live key — downstream PoP is the same
+proof, repeated when a TCT is presented after the handshake.
 
 ---
 

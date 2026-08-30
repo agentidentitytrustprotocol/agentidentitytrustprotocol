@@ -2,7 +2,7 @@
 # Agent Manifest
 
 **Document:** RFC-AITP-0003
-**Version:** 0.2.1-draft
+**Version:** 0.2.2-draft
 **Status:** Community Standards Track (v0.2 Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0002 Identity](RFC-AITP-0002-identity.md)
 
@@ -186,6 +186,8 @@ signature  = base64url(sign(agent_private_key, sig_input))
 ```
 
 Canonical JSON MUST be produced per [RFC 8785 (JCS)](https://datatracker.ietf.org/doc/html/rfc8785). See [RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature) for the unified canonicalization and base64url encoding rules. A worked example (`kat-manifest-001`) lives at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json). Its `object` is **the signing input defined above** — the inner Manifest body with `signature` excluded, not the `{"manifest": {…}}` transport form — as its `signing_input: "body"` field records; implementations MUST reproduce its canonical bytes and digest byte-for-byte, and MUST use that same input when they sign. A real signed Manifest carrying a verifiable signature over those bytes is pinned at [`known-answer/signed-examples/manifest/`](../schemas/conformance/known-answer/signed-examples/manifest/); conformant implementations MUST verify it as committed, without re-minting.
+
+**Why the signature lives inside the body.** Per [RFC-AITP-0001 §5.4.1](RFC-AITP-0001-core.md#541-signing-input-jcs-profile), an artifact carries `signature` as a member of its signed body, rather than as a sibling of the wrapper, when it is *redistributable*. The Manifest is redistributable: it MAY be exchanged inline during the Mutual Handshake rather than always fetched from its own well-known origin (§1; §4.3 Inline exchange). Keeping `signature` inside the body lets the proof survive that hop — and any other relay or cache — intact.
 
 ### 6.2 Signing algorithm
 

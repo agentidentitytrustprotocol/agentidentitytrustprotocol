@@ -8,6 +8,8 @@ on:
       - 'rfcs/**'
       - 'registries/**'
       - 'schemas/**'
+      - 'scripts/**'
+      - 'Makefile'
   workflow_dispatch:
 
 jobs:

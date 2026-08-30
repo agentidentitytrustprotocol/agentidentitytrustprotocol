@@ -2,7 +2,7 @@
 # Revocation
 
 **Document:** RFC-AITP-0008
-**Version:** 0.2.1-draft
+**Version:** 0.2.3-draft
 **Status:** Community Standards Track (v0.2 Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md)
 
@@ -102,11 +102,14 @@ The canonical schema is [`schemas/json/aitp-revocation-list.schema.json`](../sch
 | `published_at` | REQUIRED | Unix timestamp when this list snapshot was signed. |
 | `expires_at` | REQUIRED | Unix timestamp after which this snapshot MUST NOT be cached. |
 | `entries` | REQUIRED | Array of revoked-entry records (may be empty). |
+| `extensions` | OPTIONAL | Extension namespace per [RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model) and [RFC-AITP-0012](RFC-AITP-0012-extensions.md). Unknown keys *inside* `extensions` MUST be ignored; unknown fields *outside* it are rejected. It is an ordinary member of the signed `revocation_list` body, so when present it is covered by the signature like any other member — and because absent and empty (`{}`) canonicalize differently, an implementation MUST NOT substitute one for the other when reconstructing the signing input ([RFC-AITP-0001 §5.4.1](RFC-AITP-0001-core.md#541-signing-input-jcs-profile)). |
 | `signature` | REQUIRED | base64url signature over canonical `revocation_list` JSON (excluding `signature`), signed by the issuing peer's private key. Canonical JSON MUST be produced per [RFC 8785 (JCS)](https://datatracker.ietf.org/doc/html/rfc8785); see [RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature). The signing input is the **inner** `revocation_list` body — the `{"revocation_list": {...}, "signature": "..."}` envelope is the wire / HTTP transport shape, NOT part of the canonical signing bytes. (This matches the RFC-AITP-0010 session-bundle and RFC-AITP-0011 multi-hop conventions: the wrapper key names the artifact for transport routing but the issuer signs the inner body.) A worked example (`kat-revocation-001`) lives at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json). Its `object` is **the signing input defined above** — the inner `revocation_list` body — as its `signing_input: "body"` field records; implementations MUST reproduce its canonical bytes and digest byte-for-byte, and MUST use that same input when they sign. A real signed snapshot is pinned at [`known-answer/signed-examples/revocation/`](../schemas/conformance/known-answer/signed-examples/revocation/); conformant implementations MUST verify it as committed, without re-minting. **Note for implementers holding an earlier copy:** through v0.2-draft both artifacts pinned the *wrapped* form, contradicting this row; they were corrected to the inner body (see `CHANGELOG.md`, which carries the old and new digests). Implementations migrating from rc.3-era code (which signed the wrapped form) MAY accept either canonical shape during a transition window but MUST emit the inner form going forward. |
 
 **Verification.** A consuming peer MUST verify the signature against the issuing peer's public key (resolved from the issuing peer's Manifest, RFC-AITP-0003). A snapshot whose `expires_at` is in the past, or whose signature does not validate, MUST be discarded; the peer SHOULD treat the absence of a fresh snapshot per its configured `revocation_policy.mode` (§3).
 
 **Empty lists are signed.** Even when an issuing peer has revoked nothing, it MUST publish a signed snapshot with an empty `entries` array. This prevents a network attacker from suppressing a fresh signed list and serving an older one with revocations stripped.
+
+> **Why the signature sits outside the body — what the rule produces, not an exception to it.** Per [RFC-AITP-0001 §5.4.1](RFC-AITP-0001-core.md#541-signing-input-jcs-profile), a *point-to-point* artifact — pulled by the verifier directly from the issuing peer and never passed on — MAY carry `signature` as a sibling of the wrapper instead of a member of the body. The revocation snapshot is point-to-point: a consuming peer polls it directly from the issuing peer's `ListRevoked` endpoint (§1.4) and never redistributes it onward. The consuming peer's own caching and staleness bound (§3.2) govern how long that peer holds the snapshot, not who hands it to whom, and per §5.4.1 do not make the snapshot redistributable. **The sibling placement here is deliberate, derived from the rule for this artifact's own redistribution path — not an exception to the rule — and MUST NOT be "corrected" to a member placement.**
 
 ---
 

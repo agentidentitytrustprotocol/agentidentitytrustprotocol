@@ -13,11 +13,11 @@ and the CHANGELOG for the migration record).
 
 | Layer | Identifier | Example | Compat rules |
 |---|---|---|---|
-| Protocol version | `version` field on JCS-profile objects (envelope, Manifest, revocation snapshot); `ver` claim on JWS-profile artifacts (TCT, grant voucher, delegation token) | `aitp/0.2` | Major mismatch ⇒ `UNKNOWN_VERSION`. Minor bumps are backward compatible. |
+| Protocol version | `version` field on JCS-profile objects (envelope, Manifest, revocation snapshot, session bundle); `ver` claim on JWS-profile artifacts (TCT, grant voucher, delegation token) | `aitp/0.2` | Major mismatch ⇒ `UNKNOWN_VERSION`. Minor bumps are backward compatible. |
 | JSON Schema namespace | `$id` URI on each canonical schema | `https://aitp.dev/schema/v0.2/...` | Breaking changes bump the path segment (`v0.1/` → `v0.2/`). The repo keeps a single flat `schemas/json/` directory tracking the current namespace; frozen earlier namespaces are available via the `schema-vX.Y.Z` git tags below, not via parallel directories. |
 | TCT version | `ver` claim inside the TCT JWS payload | `aitp/0.2` | Mirrors the protocol version. Consumers MUST reject unknown versions. |
 | Manifest version | `version` inside the Manifest | `aitp/0.2` | Mirrors the protocol version. |
-| RFC version | RFC document `Version:` header | `0.2.1-draft` | Tracks status (`-draft`, `-rc.N`, `-final`) **and each document's own editorial history**. Versions may diverge between documents within one protocol revision — a patch bump on one RFC does not move the others. The protocol literal is a separate layer and does not follow it. |
+| RFC version | RFC document `Version:` header | `0.2.3-draft` | Tracks status (`-draft`, `-rc.N`, `-final`) **and each document's own editorial history**. Versions may diverge between documents within one protocol revision — a patch bump on one RFC does not move the others. The protocol literal is a separate layer and does not follow it. |
 
 ## Change classes
 

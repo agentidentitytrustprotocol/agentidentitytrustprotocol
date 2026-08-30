@@ -2,7 +2,7 @@
 # Agent Identity & Trust Protocol (AITP) — Core
 
 **Document:** RFC-AITP-0001
-**Version:** 0.2.2-draft
+**Version:** 0.2.3-draft
 **Status:** Community Standards Track (v0.2 Draft)
 **Canonical wire format:** JSON
 **Normative transport:** HTTPS (any HTTP/1.1+ runtime)
@@ -206,7 +206,7 @@ AITP v0.2 defines **two signing profiles**:
 
 | Profile | Artifacts | Defined in |
 |---|---|---|
-| **JCS embedded-signature profile** — the signature is a field of the JSON object, computed over the object's RFC 8785 canonical form | envelopes, Agent Manifests, revocation snapshots, handshake payloads | §5.4.1–§5.4.4 |
+| **JCS embedded-signature profile** — the signature is a field of the JSON object, computed over the object's RFC 8785 canonical form | envelopes, Agent Manifests, revocation snapshots, session trust bundles, handshake payloads | §5.4.1–§5.4.4 |
 | **Compact JWS profile** — the artifact *is* an RFC 7515 compact JWS string; the signature covers the exact transmitted bytes | TCT, grant voucher, delegation token | §5.4.5 |
 
 The boundary rule is normative:
@@ -255,6 +255,66 @@ The canonical JSON Schemas under [`schemas/json/`](../schemas/json/)
 carry these constraints as `pattern` regexes; implementations MUST
 validate against the schema before attempting cryptographic
 verification.
+
+#### 5.4.1 Signing input (JCS profile)
+
+All JCS-profile signatures (envelope, Manifest, revocation snapshot, session bundle, handshake payloads) are computed over the **canonical JSON** form of the object per RFC 8785 (JCS). JSON is the only canonical form for the JCS profile: there is no Protobuf signing input, no CBOR signing input, no transport-specific signing input.
+
+The portable trust artifacts (TCT, grant voucher, delegation token) are **not** JCS-signed in v0.2 — they are compact JWS strings (§5.4.5) whose signatures cover the transmitted bytes directly. (In `aitp/0.1` the TCT and delegation token were JCS-signed; that profile is retired for those artifacts.)
+
+Implementations MAY transport AITP messages over any binary or text frame (raw JSON over HTTP, JSON inside a gRPC `bytes` field, MessagePack, CBOR, etc.) but MUST convert to canonical JSON before signing or verifying. Non-JSON transports are not part of the v0.1 conformance profile; their use is a deployment choice that does not affect the trust contract.
+
+A signed object that round-trips through any transport MUST produce identical canonical JSON when verified. If a transport adds wrappers or renames fields, the implementation MUST strip them before reconstructing the canonical form.
+
+> **The artifact-name wrapper is such a wrapper.** Three JCS-profile artifacts are carried inside a JSON object whose key names the artifact: `{"manifest": {…}}` (RFC-AITP-0003 §6.1), `{"revocation_list": {…}, "signature": "…"}` (RFC-AITP-0008 §1.5), and `{"session_bundle": {…}}` (RFC-AITP-0010 §3). The artifact-naming key is **routing metadata for the transport** — it tells a recipient what kind of document arrived — and is never part of the signing bytes. Issuers sign, and verifiers reconstruct, the **inner artifact body**; the wrapper is added on the way out and stripped on the way in.
+>
+> The two profiles differ only in where the signature sits, and neither placement changes the rule. For the Manifest and the session bundle the `signature` member lives *inside* the body and is excluded from the signing input (`canonical_json(body_without_signature)`). For the revocation snapshot the `signature` is a *sibling of* the wrapped body, not a member of it — so the body is signed as-is, with nothing to strip, and the sibling is discarded along with the wrapper. In every case the signing input is the inner artifact body carrying no signature of its own.
+>
+> **Which placement a new artifact takes follows from who hands it over, not from precedent.** An artifact is *redistributable* if it can reach a verifier by any path other than that verifier's own pull from the issuer — relayed by a third party, embedded in another party's message, or served onward from a cache someone else controls. A redistributable artifact MUST carry its `signature` as a member of the signed body, so that the proof survives every hop that strips the transport wrapper. An artifact that is *point-to-point* — pulled by the verifier directly from the issuing peer and never passed on — MAY instead carry the signature as a sibling of the wrapper, since no hop separates the body from its proof. **A verifier caching what it pulled does not make an artifact redistributable:** caching changes how long that verifier holds the artifact, not who hands it over, and the body and its sibling proof stay together. This includes a cache shared among the components of a single deployment — the deployment is still the party that pulled and verifies it. This is why the two placements above are what they are: a Manifest may be exchanged inline during the Mutual Handshake rather than fetched from its origin (RFC-AITP-0003 §1), and a session bundle is signed once by the coordinator and distributed to every participant (RFC-AITP-0010 §4.3), while a revocation snapshot is polled by the consuming peer directly from the issuing peer's `ListRevoked` endpoint and not passed along (RFC-AITP-0008 §1.4) — its consumer-side caching and staleness bounds (RFC-AITP-0008 §3.2) are private to that consumer and leave it point-to-point. A new artifact derives its placement from this rule; it MUST NOT be chosen by copying whichever existing artifact it happens to resemble.
+>
+> Stated once here because it holds for every JCS-profile artifact that uses an artifact-name wrapper, present and future; restated at each artifact's own signing section. JCS-profile artifacts that are *not* wrapped — the envelope (§5) and handshake payloads — carry no artifact-name wrapper, so this note does not apply to them; their signing inputs are defined in §5.4.
+
+> **URL canonicalization.** String fields holding URLs (e.g.
+> `accepted_trust_anchors`, `handshake_endpoint`,
+> `identity_hint.issuer`) are signed as the **verbatim wire string** —
+> NOT the RFC 3986 §6 canonical form. An implementation that
+> deserializes such fields into a typed URL value (which normalizes
+> trailing slashes, lowercases the scheme, etc.) MUST preserve the
+> original byte form for re-serialization, or it will compute a
+> different signing input than the issuer did. Implementations
+> SHOULD model URL fields as opaque strings at the serde layer and
+> validate URL syntax separately when transport-layer parsing is
+> needed.
+
+> **Optional-array round-trip.** Optional array fields (e.g.
+> `accepted_identity_types`, the `extensions` map) MUST preserve
+> the absent-vs-explicit-empty distinction in canonical bytes.
+> Implementations modeling such fields as `Vec<T>` with
+> `skip_serializing_if = "Vec::is_empty"` collapse the two states
+> and will diverge from issuers that wrote an explicit `[]`. Use
+> `Option<Vec<T>>` (or equivalent) so the signing view emits the
+> same bytes the issuer signed.
+
+> **Known-answer test.** Pinned (signing input → JCS canonical bytes → SHA-256 digest) vectors for the JCS-profile artifacts (Manifest, revocation snapshot, session bundle) live at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json). **Each vector's `object` is the signing input itself — the inner artifact body, wrapper stripped and `signature` excluded — not the transport shape;** every vector states this explicitly in its `signing_input` field, whose value for these artifacts is `"body"`. Implementations MUST reproduce both the canonical byte sequence and the digest byte-for-byte, and MUST take the pinned bytes as the thing they sign, not merely as a canonicalization exercise. Mismatches typically indicate JCS sort-order, number-formatting, or Unicode-escaping bugs — or signing the wrapper. (The v0.1 TCT and delegation JCS vectors are retired with the move to compact JWS; JWS KAT vectors are pinned under `known-answer/signed-examples/`.)
+
+#### 5.4.2 PoP signing input convention
+
+All AITP v0.1 proof-of-possession signing inputs follow a single rule:
+
+```
+hash_input = sha256(base64url_decode(nonce_or_challenge))
+```
+
+The hash input is always the raw bytes obtained by base64url-decoding the nonce or challenge — never the ASCII bytes of the encoded form. The rule applies uniformly to:
+
+- **Manifest PoP** — [RFC-AITP-0003 §3](RFC-AITP-0003-manifest.md) (`proof_of_possession.challenge`, 16 raw bytes / 22 base64url chars).
+- **Handshake round-2 PoP** — [RFC-AITP-0004 §3](RFC-AITP-0004-mutual-handshake.md) (`pop_nonce`, 16 raw bytes / 22 base64url chars).
+- **Downstream TCT PoP** — [RFC-AITP-0005 §6.1](RFC-AITP-0005-tct.md) (`nonce` in the `pop_challenge` / `pop_response` exchange).
+- **Pinned-key identity proof input** — [RFC-AITP-0002 §3.1](RFC-AITP-0002-identity.md) (via `pop_nonce_decoded_bytes`).
+
+Implementations MUST hash the decoded bytes; hashing the ASCII form is non-conformant. An implementation that consistently hashes the encoded string will be internally self-consistent but will fail cross-implementation verification — this is the most common interop bug observed in early AITP implementations.
+
+> **Known-answer test.** A pinned PoP signing-input vector (`kat-manifest-pop-001`) lives at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json). It pins (challenge → decoded bytes → SHA-256 digest → Ed25519 signature with `kat-keypair-001`). Implementations MUST add a KAT cross-check that runs the same input through every PoP code path and confirms each produces the pinned signature byte-for-byte.
 
 #### 5.4.3 Algorithm-tagged signature wire format (JCS profile only)
 
@@ -348,66 +408,6 @@ Pinned thumbprint vectors for the KAT keypairs live at
 [`schemas/conformance/known-answer/jwk-thumbprints.json`](../schemas/conformance/known-answer/jwk-thumbprints.json);
 they are load-bearing for v0.2 `cnf.jkt` verification and
 implementations MUST reproduce them byte-for-byte.
-
-#### 5.4.1 Signing input (JCS profile)
-
-All JCS-profile signatures (envelope, Manifest, revocation snapshot, handshake payloads) are computed over the **canonical JSON** form of the object per RFC 8785 (JCS). JSON is the only canonical form for the JCS profile: there is no Protobuf signing input, no CBOR signing input, no transport-specific signing input.
-
-The portable trust artifacts (TCT, grant voucher, delegation token) are **not** JCS-signed in v0.2 — they are compact JWS strings (§5.4.5) whose signatures cover the transmitted bytes directly. (In `aitp/0.1` the TCT and delegation token were JCS-signed; that profile is retired for those artifacts.)
-
-Implementations MAY transport AITP messages over any binary or text frame (raw JSON over HTTP, JSON inside a gRPC `bytes` field, MessagePack, CBOR, etc.) but MUST convert to canonical JSON before signing or verifying. Non-JSON transports are not part of the v0.1 conformance profile; their use is a deployment choice that does not affect the trust contract.
-
-A signed object that round-trips through any transport MUST produce identical canonical JSON when verified. If a transport adds wrappers or renames fields, the implementation MUST strip them before reconstructing the canonical form.
-
-> **The artifact-name wrapper is such a wrapper.** Three JCS-profile artifacts are carried inside a JSON object whose key names the artifact: `{"manifest": {…}}` (RFC-AITP-0003 §6.1), `{"revocation_list": {…}, "signature": "…"}` (RFC-AITP-0008 §1.5), and `{"session_bundle": {…}}` (RFC-AITP-0010 §3). The artifact-naming key is **routing metadata for the transport** — it tells a recipient what kind of document arrived — and is never part of the signing bytes. Issuers sign, and verifiers reconstruct, the **inner artifact body**; the wrapper is added on the way out and stripped on the way in.
->
-> The two profiles differ only in where the signature sits, and neither placement changes the rule. For the Manifest and the session bundle the `signature` member lives *inside* the body and is excluded from the signing input (`canonical_json(body_without_signature)`). For the revocation snapshot the `signature` is a *sibling of* the wrapped body, not a member of it — so the body is signed as-is, with nothing to strip, and the sibling is discarded along with the wrapper. In every case the signing input is the inner artifact body carrying no signature of its own.
->
-> **Which placement a new artifact takes follows from who hands it over, not from precedent.** An artifact is *redistributable* if it can reach a verifier by any path other than that verifier's own pull from the issuer — relayed by a third party, embedded in another party's message, or served onward from a cache someone else controls. A redistributable artifact MUST carry its `signature` as a member of the signed body, so that the proof survives every hop that strips the transport wrapper. An artifact that is *point-to-point* — pulled by the verifier directly from the issuing peer and never passed on — MAY instead carry the signature as a sibling of the wrapper, since no hop separates the body from its proof. **A verifier caching what it pulled does not make an artifact redistributable:** caching changes how long that verifier holds the artifact, not who hands it over, and the body and its sibling proof stay together. This includes a cache shared among the components of a single deployment (RFC-AITP-0008 §3.3) — the deployment is still the party that pulled and verifies it. This is why the two placements above are what they are: a Manifest may be exchanged inline during the Mutual Handshake rather than fetched from its origin (RFC-AITP-0003 §1), and a session bundle is signed once by the coordinator and distributed to every participant (RFC-AITP-0010 §4.3), while a revocation snapshot is polled by the consuming peer directly from the issuing peer's `ListRevoked` endpoint and not passed along (RFC-AITP-0008 §1.4) — its consumer-side caching and staleness bounds (RFC-AITP-0008 §3.2) are private to that consumer and leave it point-to-point. A new artifact derives its placement from this rule; it MUST NOT be chosen by copying whichever existing artifact it happens to resemble.
->
-> Stated once here because it holds for every JCS-profile artifact that uses an artifact-name wrapper, present and future; restated at each artifact's own signing section. JCS-profile artifacts that are *not* wrapped — the envelope (§5) and handshake payloads — carry no artifact-name wrapper, so this note does not apply to them; their signing inputs are defined in §5.4.
-
-> **URL canonicalization.** String fields holding URLs (e.g.
-> `accepted_trust_anchors`, `handshake_endpoint`,
-> `identity_hint.issuer`) are signed as the **verbatim wire string** —
-> NOT the RFC 3986 §6 canonical form. An implementation that
-> deserializes such fields into a typed URL value (which normalizes
-> trailing slashes, lowercases the scheme, etc.) MUST preserve the
-> original byte form for re-serialization, or it will compute a
-> different signing input than the issuer did. Implementations
-> SHOULD model URL fields as opaque strings at the serde layer and
-> validate URL syntax separately when transport-layer parsing is
-> needed.
-
-> **Optional-array round-trip.** Optional array fields (e.g.
-> `accepted_identity_types`, the `extensions` map) MUST preserve
-> the absent-vs-explicit-empty distinction in canonical bytes.
-> Implementations modeling such fields as `Vec<T>` with
-> `skip_serializing_if = "Vec::is_empty"` collapse the two states
-> and will diverge from issuers that wrote an explicit `[]`. Use
-> `Option<Vec<T>>` (or equivalent) so the signing view emits the
-> same bytes the issuer signed.
-
-> **Known-answer test.** Pinned (signing input → JCS canonical bytes → SHA-256 digest) vectors for the JCS-profile artifacts (Manifest, revocation snapshot, session bundle) live at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json). **Each vector's `object` is the signing input itself — the inner artifact body, wrapper stripped and `signature` excluded — not the transport shape;** every vector states this explicitly in its `signing_input` field, whose value for these artifacts is `"body"`. Implementations MUST reproduce both the canonical byte sequence and the digest byte-for-byte, and MUST take the pinned bytes as the thing they sign, not merely as a canonicalization exercise. Mismatches typically indicate JCS sort-order, number-formatting, or Unicode-escaping bugs — or signing the wrapper. (The v0.1 TCT and delegation JCS vectors are retired with the move to compact JWS; JWS KAT vectors are pinned under `known-answer/signed-examples/`.)
-
-#### 5.4.2 PoP signing input convention
-
-All AITP v0.1 proof-of-possession signing inputs follow a single rule:
-
-```
-hash_input = sha256(base64url_decode(nonce_or_challenge))
-```
-
-The hash input is always the raw bytes obtained by base64url-decoding the nonce or challenge — never the ASCII bytes of the encoded form. The rule applies uniformly to:
-
-- **Manifest PoP** — [RFC-AITP-0003 §3](RFC-AITP-0003-manifest.md) (`proof_of_possession.challenge`, 16 raw bytes / 22 base64url chars).
-- **Handshake round-2 PoP** — [RFC-AITP-0004 §3](RFC-AITP-0004-mutual-handshake.md) (`pop_nonce`, 16 raw bytes / 22 base64url chars).
-- **Downstream TCT PoP** — [RFC-AITP-0005 §6.1](RFC-AITP-0005-tct.md) (`nonce` in the `pop_challenge` / `pop_response` exchange).
-- **Pinned-key identity proof input** — [RFC-AITP-0002 §3.1](RFC-AITP-0002-identity.md) (via `pop_nonce_decoded_bytes`).
-
-Implementations MUST hash the decoded bytes; hashing the ASCII form is non-conformant. An implementation that consistently hashes the encoded string will be internally self-consistent but will fail cross-implementation verification — this is the most common interop bug observed in early AITP implementations.
-
-> **Known-answer test.** A pinned PoP signing-input vector (`kat-manifest-pop-001`) lives at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json). It pins (challenge → decoded bytes → SHA-256 digest → Ed25519 signature with `kat-keypair-001`). Implementations MUST add a KAT cross-check that runs the same input through every PoP code path and confirms each produces the pinned signature byte-for-byte.
 
 #### 5.4.5 Compact JWS profile (portable trust artifacts)
 

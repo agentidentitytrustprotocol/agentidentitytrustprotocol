@@ -21,6 +21,8 @@ on:
       - 'rfcs/**'
       - 'registries/**'
       - 'docs/**'
+      - 'scripts/**'
+      - 'Makefile'
   workflow_dispatch:
 
 jobs:
