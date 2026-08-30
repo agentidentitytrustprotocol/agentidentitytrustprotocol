@@ -22,11 +22,22 @@ and the CHANGELOG for the migration record).
 ## Change classes
 
 - **Editorial / clarification** — patch-level RFC bump. No schema or wire change.
-  This class also covers **correcting a conformance artifact to match what the RFC
-  already required**: if a known-answer vector or signed example contradicts the
-  normative text, bringing the artifact into line is a patch bump on the RFCs whose
-  citations move, not a breaking change — the requirement did not change, the
-  artifact was wrong. Such a bump is what
+  This class also covers **reconciling normative text with a pinned artifact when
+  the two contradict each other**, in either direction:
+    - *Artifact wrong, prose right* — a known-answer vector or signed example
+      contradicts the normative text, and the artifact is brought into line. The
+      requirement did not change; the artifact was wrong.
+    - *Prose wrong, artifact right* — the normative text misdescribes what the
+      pinned artifact has always encoded, and the text is brought into line. The
+      pinned bytes do not change, so no consumer's stored copy moves. **But this
+      direction is not a no-op for implementers:** anyone who implemented from the
+      incorrect prose produces different bytes and MUST change to interoperate. A
+      correction in this direction therefore additionally requires an **erratum note
+      in the affected section**, recording what the text used to say and that
+      implementations following it must switch. RFC-AITP-0002 §3.1's timestamp
+      encoding is the worked example.
+  Either direction is a patch bump on the RFCs whose citations move, not a breaking
+  change. Such a bump is what
   [`schemas/conformance/known-answer/README.md`](schemas/conformance/known-answer/README.md)'s
   Stability rule ("an existing vector's output MUST NOT change without an RFC bump")
   requires, and the CHANGELOG MUST publish the old and new values so a consumer
