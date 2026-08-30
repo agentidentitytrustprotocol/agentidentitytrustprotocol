@@ -80,6 +80,45 @@ re-deriving the rule:
 `0.2.2-draft` → `0.2.3-draft`. All three per VERSIONING.md's Editorial /
 clarification class (no schema or wire change).
 
+### Issue #27: five field tables catch up to the `extensions` member their schemas already define
+
+**Editorial.** `aitp-mutual-handshake.schema.json` defines an optional `extensions`
+object on all four handshake payloads (`MutualHelloPayload`, `MutualHelloAckPayload`,
+`MutualCommitPayload`, `MutualCommitAckPayload`), and `aitp-revocation-list.schema.json`
+defines one inside `revocation_list`, but the corresponding RFC field tables never
+mentioned it — a strict consumer validating against the RFC's own documented surface
+would reject a conformant message carrying `extensions`. This is the identical defect
+RFC-AITP-0010 §3 had, fixed there in PR #30; these are the five remaining instances,
+tracked as issue #27 and folded into this pass since it is the same defect class, not
+separate work.
+
+Each row was generated from its schema definition (`type`, `description`, and absence
+from `required`), not transcribed by hand, and diffed against the schema afterward —
+the four handshake payloads are structurally near-identical, which is exactly the
+condition under which copy-paste error is likely.
+
+- `rfcs/RFC-AITP-0004-mutual-handshake.md` §§3.1–3.4 — each payload's field table gains
+  an `extensions` row. RFC-AITP-0004's handshake payloads carry no `signature` member
+  of their own; the envelope signature covers `hex(sha256(payload_canonical_json))`
+  (RFC-AITP-0001 §5.4), so `extensions`, being a member of the canonicalized payload,
+  is covered by the signature through that hash rather than by direct member-stripping.
+  The row states this mechanism rather than reusing RFC-AITP-0010's "member of the
+  signed body" wording verbatim, since the signing mechanism differs.
+- `rfcs/RFC-AITP-0008-revocation.md` §1.5 — the revocation table gains an `extensions`
+  row. Here `signature` sits outside `revocation_list` as a sibling of the wrapper
+  (§1.5's existing "signature sits outside the body" note), so `revocation_list` — the
+  body actually signed — has no member to strip, and `extensions`, being a member of
+  that body, is covered by the signature directly, the same as RFC-AITP-0010 §3's row.
+- Both rows carry the absent-vs-empty (`{}`) canonicalize-differently note from
+  RFC-AITP-0010 §3's template, and cite RFC-AITP-0001 §7 and RFC-AITP-0012 for the
+  namespacing rules.
+
+**Version bump.** `RFC-AITP-0004-mutual-handshake.md` moves `0.2.0-draft` →
+`0.2.1-draft`; `RFC-AITP-0008-revocation.md` moves `0.2.2-draft` → `0.2.3-draft`.
+Both per VERSIONING.md:24's Editorial / clarification class (no schema or wire
+change — the schemas were already correct; the RFC tables are catching up).
+`rfcs/README.md`'s version sentence updated to match both new headers.
+
 ### Session bundle: the signature is a member of the signed body
 
 **Breaking for anything validating a session bundle against the published JSON
