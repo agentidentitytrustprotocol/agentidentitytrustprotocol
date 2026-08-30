@@ -297,6 +297,7 @@ const JCS_EXPECTED = new Map([
   ['kat-revocation-001', ['object', 'signing_input', 'jcs_canonical_hex', 'jcs_canonical_len_bytes', 'sha256_hex', 'sha256_b64url']],
   ['kat-session-bundle-001', ['object', 'signing_input', 'jcs_canonical_hex', 'jcs_canonical_len_bytes', 'sha256_hex', 'sha256_b64url', 'coordinator_signature_b64url']],
   ['kat-manifest-pop-001', ['challenge', 'decoded_hex', 'sha256_hex', 'sha256_b64url', 'signing_keypair_id', 'signer_aid', 'signature_b64url']],
+  ['kat-pinned-key-proof-001', ['sender_aid', 'receiver_aid', 'message_id', 'timestamp', 'pop_nonce', 'proof_input_hex', 'proof_input_len_bytes', 'sha256_hex', 'sha256_b64url', 'signing_keypair_id', 'signer_aid', 'signature_b64url']],
   ['kat-multihop-chain-001', ['voucher_jws', 'chain', 'chain_entry_sha256_b64url', 'digest_array_jcs', 'chain_hash', 'outer_delegation_jws']],
   ['kat-multihop-truncation-001', ['chain_hash_full', 'chain_truncated', 'chain_hash_truncated', 'must_differ']],
 ]);
@@ -307,6 +308,7 @@ const KEYPAIRS_EXPECTED = new Map([
   ['kat-keypair-003', ['seed_hex', 'pubkey_b64url', 'aid']],
   ['kat-keypair-004', ['seed_hex', 'pubkey_b64url', 'aid']],
   ['kat-keypair-005-p256', ['private_scalar_hex', 'pubkey_compressed_hex', 'pubkey_b64url', 'aid']],
+  ['kat-keypair-006-attacker', ['seed_hex', 'pubkey_b64url', 'aid']],
 ]);
 
 const THUMBPRINTS_EXPECTED = new Map([
@@ -326,6 +328,8 @@ const nonEmptyString = (x) => typeof x === 'string' && x.trim().length > 0;
 const MEMBER_TYPES = new Map([
   ['object', { ok: (x) => x !== null && typeof x === 'object' && !Array.isArray(x), want: 'a JSON object' }],
   ['jcs_canonical_len_bytes', { ok: (x) => Number.isInteger(x) && x > 0, want: 'a positive integer' }],
+  ['proof_input_len_bytes', { ok: (x) => Number.isInteger(x) && x > 0, want: 'a positive integer' }],
+  ['timestamp', { ok: (x) => Number.isInteger(x) && x > 0, want: 'a positive integer' }],
   ['must_differ', { ok: (x) => x === true, want: 'exactly true' }],
   ['chain', { ok: (x) => Array.isArray(x) && x.length > 0 && x.every(nonEmptyString), want: 'a non-empty array of strings' }],
   ['chain_entry_sha256_b64url', { ok: (x) => Array.isArray(x) && x.length > 0 && x.every(nonEmptyString), want: 'a non-empty array of strings' }],
@@ -441,6 +445,52 @@ function checkJcsVectors(keypairs) {
       });
     }
 
+    if (v.id === 'kat-pinned-key-proof-001') {
+      // RFC-AITP-0002 §3.1 pinned-key proof input. Fixes issue #17 erratum 1: the
+      // prose once called the timestamp field `timestamp_be_8_bytes` (an 8-byte
+      // big-endian signed 64-bit integer), but the only concrete pinned proof in
+      // the conformance pack (id-007) only verifies when the timestamp is instead
+      // its base-10 ASCII decimal string. This vector reuses id-007's real tuple
+      // and signature verbatim, so both the positive and negative encoding checks
+      // below are load-bearing, not merely descriptive.
+      const buildProofInput = (tsBytes) => Buffer.concat([
+        utf8('aitp-pinned-key-v1\0'),
+        utf8(v.sender_aid), utf8('\0'),
+        utf8(v.receiver_aid), utf8('\0'),
+        utf8(v.message_id), utf8('\0'),
+        tsBytes, utf8('\0'),
+        b64uDecode(v.pop_nonce, 16, 'pop_nonce'),
+      ]);
+      check(`${v.id} proof_input (ASCII-decimal timestamp) + digest + signature`, () => {
+        const asciiInput = buildProofInput(utf8(String(v.timestamp)));
+        eq(asciiInput.toString('hex'), v.proof_input_hex, 'proof_input_hex');
+        eq(asciiInput.length, v.proof_input_len_bytes, 'proof_input_len_bytes');
+        const digest = sha256(asciiInput);
+        eq(digest.toString('hex'), v.sha256_hex, 'sha256_hex');
+        eq(b64uEncode(digest), v.sha256_b64url, 'sha256_b64url');
+        const kp = keypairs.get(v.signing_keypair_id);
+        if (!kp) throw new Error(`signing_keypair_id ${v.signing_keypair_id} is not in keypairs.json`);
+        eq(v.signer_aid, kp.aid, `signer_aid does not match ${v.signing_keypair_id}`);
+        const pub = ed25519PublicFromRaw(aidRawKey(v.signer_aid));
+        const sig = b64uDecode(v.signature_b64url, 64, 'signature_b64url');
+        if (!ed25519Verify(pub, digest, sig)) throw new Error('proof signature does not verify over the ASCII-decimal proof_input');
+      });
+      check(`${v.id} proof signature does NOT verify over an 8-byte big-endian timestamp`, () => {
+        // The exact prose-vs-vector defect issue #17 reports: an implementer
+        // following the old "big-endian signed 64-bit integer" prose would fail
+        // this pinned vector. Pin that the vector actually distinguishes the two
+        // encodings, not just that ASCII happens to verify.
+        const beBytes = Buffer.alloc(8);
+        beBytes.writeBigInt64BE(BigInt(v.timestamp));
+        const beInput = buildProofInput(beBytes);
+        const pub = ed25519PublicFromRaw(aidRawKey(v.signer_aid));
+        const sig = b64uDecode(v.signature_b64url, 64, 'signature_b64url');
+        if (ed25519Verify(pub, sha256(beInput), sig)) {
+          throw new Error('signature verifies over the big-endian form too — the vector proves nothing');
+        }
+      });
+    }
+
     if (v.id === 'kat-multihop-chain-001') {
       check(`${v.id} digest-array chain_hash`, () => {
         const digests = v.chain.map((entry) => b64uEncode(sha256(utf8(entry))));
@@ -514,8 +564,13 @@ function checkSignedExamples() {
   // shipped. Both the positive and the negative assertion matter: the negative
   // is what makes a silent re-wrap impossible.
   const jcsArtifacts = [
-    { rel: 'manifest/kat-keypair-001-manifest.json', wrapper: 'manifest', sigInsideBody: true },
-    { rel: 'revocation/kat-keypair-001-snapshot.json', wrapper: 'revocation_list', sigInsideBody: false },
+    { rel: 'manifest/kat-keypair-001-manifest.json', wrapper: 'manifest', sigInsideBody: true, issuerField: 'aid' },
+    { rel: 'revocation/kat-keypair-001-snapshot.json', wrapper: 'revocation_list', sigInsideBody: false, issuerField: 'issuer' },
+    // The session bundle is the artifact whose signature placement was wrong in
+    // the schema through a full release (fixed by PR #30): the signature is a
+    // member of the `session_bundle` body, not a sibling of the wrapper (RFC-AITP-0001
+    // §5.4.1, RFC-AITP-0010 §3). This is the check that would have caught it.
+    { rel: 'session-bundle/kat-keypair-001-bundle.json', wrapper: 'session_bundle', sigInsideBody: true, issuerField: 'coordinator' },
   ];
 
   for (const art of jcsArtifacts) {
@@ -539,11 +594,11 @@ function checkSignedExamples() {
     if (art.sigInsideBody) {
       sigStr = wrapped.signature;
       body = Object.fromEntries(Object.entries(wrapped).filter(([k]) => k !== 'signature'));
-      issuerAid = wrapped.aid;
+      issuerAid = wrapped[art.issuerField];
     } else {
       sigStr = file.signature;
       body = wrapped;
-      issuerAid = wrapped.issuer;
+      issuerAid = wrapped[art.issuerField];
       check(`${art.rel} inner body carries no signature member`, () => {
         if ('signature' in body) {
           throw new Error('the revocation body must not contain a signature member; it is a sibling of the wrapper');
@@ -569,6 +624,25 @@ function checkSignedExamples() {
         throw new Error('signature verifies over the wrapper too — the artifact pins no convention');
       }
     });
+
+    // The session bundle's standalone signed example must be the SAME artifact
+    // as the pinned kat-session-bundle-001 vector in jcs-sha256.json, not a
+    // freshly-minted lookalike. Its 922-byte canonical form and
+    // c577854d… digest are load-bearing (referenced by CHANGELOG as a
+    // migration record); this check pins the new file to those existing
+    // values rather than letting it drift into a second, unpinned artifact.
+    if (art.rel === 'session-bundle/kat-keypair-001-bundle.json') {
+      check(`${art.rel} body agrees with pinned kat-session-bundle-001 (jcs-sha256.json)`, () => {
+        const { vectors } = readJson(join(KAT, 'jcs-sha256.json'));
+        const vector = vectors.find((v) => v.id === 'kat-session-bundle-001');
+        if (!vector) throw new Error('kat-session-bundle-001 is missing from jcs-sha256.json');
+        const bytes = utf8(jcs(body));
+        eq(bytes.toString('hex'), vector.jcs_canonical_hex, 'jcs_canonical_hex');
+        eq(bytes.length, vector.jcs_canonical_len_bytes, 'jcs_canonical_len_bytes');
+        eq(sha256(bytes).toString('hex'), vector.sha256_hex, 'sha256_hex');
+        eq(sigStr, vector.coordinator_signature_b64url, 'coordinator_signature_b64url');
+      });
+    }
   }
 
   // Compact-JWS artifacts.
@@ -615,7 +689,7 @@ checkSignedExamples();
 // emptied vector member; this catches coverage lost any other way — a check
 // commented out, a loop that stops early, a gate that stops matching. Coverage may
 // grow (raise this number in the same commit); it may never silently shrink.
-const EXPECTED_MIN_CHECKS = 50;
+const EXPECTED_MIN_CHECKS = 59;
 if (checks < EXPECTED_MIN_CHECKS) {
   failures.push(
     `coverage regression: ran ${checks} checks, expected at least ${EXPECTED_MIN_CHECKS}. ` +

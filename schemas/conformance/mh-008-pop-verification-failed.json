@@ -14,7 +14,7 @@
   ],
   "input": {
     "step": "target received MUTUAL_COMMIT",
-    "self_pop_nonce_sent_in_hello_ack": "Yl9wb3Bfbm9uY2VfMTI4Yml0X2Jhc2U2NHVybA",
+    "self_pop_nonce_sent_in_hello_ack": "awVp2Fly6Is8p899W-ALmw",
     "envelope": {
       "version": "aitp/0.2",
       "message_type": "mutual_commit",
@@ -41,7 +41,7 @@
           }
         },
         "pop_signature": "__INVALID_POP_SIG_OVER_WRONG_NONCE__",
-        "pop_nonce_echo": "Yl9wb3Bfbm9uY2VfMTI4Yml0X2Jhc2U2NHVybA"
+        "pop_nonce_echo": "awVp2Fly6Is8p899W-ALmw"
       },
       "signature": "__VALID_ENVELOPE_SIG__"
     },

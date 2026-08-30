@@ -62,7 +62,7 @@ RFC-AITP-0001 §5.3, implying Ed25519/`EdDSA`); P-256 fixtures use the
 | `issuingPeer` (alias of `agentA` in delegation fixtures) | `kat-keypair-001` | same as `agentA` |
 | `worker_pubkey_AID_v01_placeholder_wwwwwwwww` (Manifest example) | `kat-keypair-002` | same as `agentB` |
 | `verifier_pubkey_AID_v01_placeholder_vvvvvvv` / `victim_pubkey_AID_v01_placeholder_vvvvvvvvv` (verifier in `id-*`) | `kat-keypair-001` | same as `agentA` |
-| `attacker_pubkey_AID_v01_placeholder_XXXXXXX` (`mh-002`) | A separate one-shot keypair NOT in `keypairs.json`. Generated deterministically from a fixture-only seed (e.g. `0xff` × 32) and inlined where needed. Tests trust-anchor + signature checks against an unknown peer. | n/a |
+| `attacker_pubkey_AID_v01_placeholder_XXXXXXX` (`mh-002`) | [`kat-keypair-006-attacker`](known-answer/keypairs.json) — seed `0xAA` × 32 (**not** `0xff` × 32; that pattern is `kat-keypair-003`, a different, trusted-role AID — an earlier revision of this hint was wrong and unrecoverable, see issue #17). An UNTRUSTED non-role key published specifically so `mh-002` is independently re-mintable: RFC-AITP-0003 §5 verifies PoP before the signature, so reaching `mh-002`'s expected `MANIFEST_SIGNATURE_INVALID` requires a *valid* attacker PoP, which requires the attacker's private key. Tests trust-anchor + signature checks against an unknown peer. MUST NOT be added to any `trust_anchors` / `pinned_keys` fixture. | `aid:pubkey:5zTqbCtiV95yNV5HKqBaTEh-a0Y8Ap7TBt8vAbVja1g` |
 
 Identity-issuer keys (the OIDC issuers used by `__VALID_JWT__` and
 `__VALID_JWT_FROM_UNKNOWN_ISSUER__`) are NOT drawn from

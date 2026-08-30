@@ -103,10 +103,11 @@ fi
 #
 # One gap remains, and is named here rather than papered over: the unmapped-file
 # check sees a new fixture *file*, and the companion audit sees a new
-# decoded-claims companion inside an existing one — but a plain JCS artifact
-# (envelope, manifest, bundle, snapshot) added as a new key inside an
-# already-mapped fixture trips neither, since the floor only ever rises. That
-# case is caught by review, not by this stage.
+# decoded-claims companion anywhere in an existing fixture document — but a
+# plain JCS artifact (envelope, manifest, bundle, snapshot) added as a new key
+# inside an already-mapped fixture trips neither, since the floor only ever
+# rises and there is no naming convention (unlike `_claims`) to key a check
+# off of. That case is caught by review, not by this stage.
 #   * at least FIXTURE_INPUT_MIN_CHECKS validations must actually run
 #
 # Lower FIXTURE_INPUT_MIN_CHECKS only in the same commit that removes fixtures,
@@ -173,8 +174,10 @@ if stale:
 # this stage exists to prevent, and one that no other check here would notice.
 # Auditing the fixture tree rather than trusting the map extends that guarantee
 # to companions added *inside* an already-mapped fixture, which the unmapped-file
-# check cannot see. It does NOT cover a non-companion artifact added the same way
-# (see the stage's comment block).
+# check cannot see. The walk covers the WHOLE fixture document (not just
+# `input`), so a companion under `expected` or any other top-level key is caught
+# too. It does NOT cover a non-companion artifact added the same way (see the
+# stage's comment block).
 #
 # The predicate is imported from the normalizer rather than restated, so the set
 # of members that get stripped and the set the map must cover are the same set by
@@ -204,7 +207,7 @@ def companion_pointers(node, path):
 for fixture_id, path in sorted(fixtures.items()):
     with open(path, encoding="utf-8") as handle:
         declared = {a.get("pointer") for a in entries[fixture_id].get("artifacts", [])}
-        uncovered = [p for p in companion_pointers(json.load(handle).get("input", {}), "/input")
+        uncovered = [p for p in companion_pointers(json.load(handle), "")
                      if p not in declared]
     if uncovered:
         sys.exit(f"    \u2717 {fixture_id}: decoded-claims companion(s) stripped during "

@@ -19,7 +19,7 @@
       "message_id": "660e8400-e29b-41d4-a716-446655440101",
       "timestamp": 1711900000,
       "sender": {
-        "agent_id": "aid:pubkey:OzIbdL3LFp9yYMYFkru2PZtNYpQkoMWK_0ZAp18KKwY"
+        "agent_id": "aid:pubkey:5zTqbCtiV95yNV5HKqBaTEh-a0Y8Ap7TBt8vAbVja1g"
       },
       "payload": {
         "identity": {
@@ -30,7 +30,7 @@
         },
         "manifest": {
           "version": "aitp/0.2",
-          "aid": "aid:pubkey:OzIbdL3LFp9yYMYFkru2PZtNYpQkoMWK_0ZAp18KKwY",
+          "aid": "aid:pubkey:5zTqbCtiV95yNV5HKqBaTEh-a0Y8Ap7TBt8vAbVja1g",
           "handshake_endpoint": "https://attacker.example.com/aitp/handshake",
           "accepted_trust_anchors": [
             "https://auth.openai.com"

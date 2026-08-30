@@ -53,7 +53,6 @@
             "type": "string",
             "format": "uri"
           },
-          "minItems": 1,
           "uniqueItems": true,
           "description": "OIDC issuer URIs this agent accepts from peers. Peer's identity issuer MUST appear here for handshake to proceed."
         },

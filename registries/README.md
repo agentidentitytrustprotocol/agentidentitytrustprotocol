@@ -14,6 +14,7 @@ This directory tracks the well-known identifiers used in AITP. Each registry is 
 
 | Status | Meaning |
 |---|---|
+| `Reserved` | Identifier set aside for a named future mechanism. No normative spec yet; implementations MUST NOT use it. Enters the ladder at `Proposed` when a spec lands. |
 | `Proposed` | Suggested in an open RFC or PR. Not yet merged. |
 | `Provisional` | Merged but not yet shipped in two interoperating implementations. |
 | `Stable` | Two interoperating implementations confirmed. Backwards-compatible additions only. |

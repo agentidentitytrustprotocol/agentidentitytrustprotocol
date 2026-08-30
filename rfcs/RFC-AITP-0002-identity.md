@@ -2,7 +2,7 @@
 # Identity Binding
 
 **Document:** RFC-AITP-0002
-**Version:** 0.2.0-draft
+**Version:** 0.2.2-draft
 **Status:** Community Standards Track (v0.2 Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md)
 
@@ -109,7 +109,7 @@ A decoded JWT payload (claims) for an OIDC identity binding presented by Agent A
   "aud": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
   "iat": 1711900000,
   "exp": 1711903600,
-  "nonce": "Tm9uY2VfRnJlc2hfRm9yX1RoaXNfSGFuZHNoYWtl",
+  "nonce": "AxwAx0m1v63X7ZsDG-3Npg",
   "cnf": {
     "jkt": "9ZP03Nu8GrXPAUkbKNxHOKBzxPX83SShgFkRNK-f2lw"
   }
@@ -145,7 +145,7 @@ proof_input =
     || sender_aid_bytes      || "\0"
     || receiver_aid_bytes    || "\0"
     || message_id_bytes      || "\0"
-    || timestamp_be_8_bytes  || "\0"
+    || timestamp_ascii_decimal || "\0"
     || pop_nonce_decoded_bytes
 proof = base64url(sign(agent_private_key, sha256(proof_input)))
 ```
@@ -155,11 +155,13 @@ Where:
 - `sender_aid_bytes` is the UTF-8 encoding of the full `aid:pubkey:...` string of the signing peer.
 - `receiver_aid_bytes` is the UTF-8 encoding of the full `aid:pubkey:...` string of the receiving peer.
 - `message_id_bytes` is the UTF-8 encoding of the envelope's `message_id` UUID string in canonical lowercase form (RFC-AITP-0001 §5.2).
-- `timestamp_be_8_bytes` is the envelope's `timestamp` encoded as a big-endian signed 64-bit integer.
+- `timestamp_ascii_decimal` is the UTF-8 encoding of the envelope's `timestamp` as its base-10 ASCII decimal string (e.g. `1711900000` → `b"1711900000"`), matching how `message_id` is likewise encoded as a string rather than binary-packed.
 - `pop_nonce_decoded_bytes` is the raw bytes obtained by base64url-decoding the handshake's `pop_nonce` (NOT the base64url string itself).
 - `\0` is a single null byte separator.
 
 > **Replay resistance.** v0.2 pinned-key proofs are bound to the full handshake context (the proof input is unchanged from v0.1). A signature produced for one (sender, receiver, message, nonce) tuple cannot be replayed against a different tuple.
+
+> **Known-answer test.** The `kat-pinned-key-proof-001` vector in [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json) pins a concrete `(sender, receiver, message_id, timestamp, pop_nonce)` tuple, the resulting `proof_input` bytes, and the Ed25519 signature over `sha256(proof_input)` produced with `kat-keypair-003`. It also pins that the same signature does NOT verify when `timestamp` is instead encoded as an 8-byte big-endian integer, so the ASCII-decimal encoding is machine-checkable rather than a matter of prose interpretation.
 
 ### 3.2 Verification steps
 

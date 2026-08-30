@@ -8,11 +8,18 @@
 #   2. Anchor resolution — every intra-repo markdown link of the form
 #      `path.md#anchor` resolves to a heading that actually exists in the
 #      target file, using GitHub's slug algorithm.
+#   3. Section-citation resolution — every `RFC-AITP-NNNN §X.Y` citation
+#      resolves to a heading that actually exists in the named RFC, and
+#      every bare `§X.Y` self-reference inside an RFC resolves to a heading
+#      in that same RFC. See the stage's own comment below for exact scope.
 #
-# Both checks exist because the class of bug they catch — one fact asserted
-# in two places with nothing checking that they agree — is exactly the shape
-# of the bugs PR #22 and PR #30 fixed, one level up in the docs. See
-# RFC-AITP-0001 §5.4.1 and plans/docs-tests-followthrough-jcs-and-bundle-fixes.md.
+# All three checks exist because the class of bug they catch — one fact
+# asserted in two places with nothing checking that they agree — is exactly
+# the shape of the bugs PR #22 and PR #30 fixed, one level up in the docs.
+# See RFC-AITP-0001 §5.4.1 and plans/docs-tests-followthrough-jcs-and-bundle-fixes.md.
+# Stage 3 closes out issue #29: PR #34 added stages 1 and 2 (RFC version
+# coherence and markdown anchor resolution); the section-citation resolver
+# below is the remaining piece.
 
 set -e
 
@@ -227,9 +234,214 @@ then
 fi
 echo
 
+# ── 3. Section-citation resolution (RFC-AITP-NNNN §X.Y and bare §X.Y) ──────
+echo "── Section-citation resolution (RFC-AITP-NNNN §X.Y and bare §X.Y) ──"
+
+if ! python3 - "$ROOT" <<'PYEOF'
+import glob, os, re, sys
+
+root = sys.argv[1]
+rfc_dir = os.path.join(root, "rfcs")
+docs_dir = os.path.join(root, "docs")
+
+# Scope (issue #29). This resolves *citation existence*, not whether the
+# cited section supports the claim next to it -- that half is not
+# mechanizable ("does the target support the claim" requires reading both
+# sides) and remains issue #29's residue after this stage lands.
+#
+# IN SCOPE:
+#   (a) `RFC-AITP-NNNN §X.Y` (also §X, §X.Y.Z, and a `RFC-AITP-NNNN §X/§Y`
+#       or `RFC-AITP-NNNN §X, §Y` compound form for the same target RFC),
+#       anywhere under rfcs/ or docs/, checked against the named RFC's own
+#       heading numbers.
+#   (b) bare `§X.Y` self-references *inside an RFC file*, checked first
+#       against that file's own headings -- this is where most citations
+#       live, per hand audit of this corpus. If (and only if) that fails,
+#       and the nearest earlier explicit `RFC-AITP-MMMM §...` citation in
+#       the *same top-level (`## `) section* names a heading that MMMM
+#       does have, the bare cite is treated as continuing that citation
+#       (e.g. RFC-AITP-0008 §1.5's blockquote cites "RFC-AITP-0001 §5.4.1"
+#       once and then says "per §5.4.1" two sentences later in the same
+#       paragraph -- self-file RFC-AITP-0008 has no §5.4.1, but the
+#       fallback resolves it against RFC-AITP-0001, which does). This is
+#       a narrow, deterministic rule over an already-hand-verified corpus,
+#       not a guess: it only ever engages after self-file resolution has
+#       already failed, and only reaches for a target the surrounding
+#       prose named explicitly moments earlier.
+#
+# OUT OF SCOPE (deliberately, not an oversight):
+#   - bare `§X.Y` in non-RFC docs (docs/*.md). The target document is not
+#     reliably determinable from the citation alone there (unlike inside
+#     an RFC, there is no enclosing document with its own heading set to
+#     try first), and a guessed target produces false failures -- a
+#     checker that cries wolf gets switched off. See docs/discovery.md's
+#     "§1.3 (...), §1.4 (...)" and docs/GLOSSARY.md's "[§6](...)" for real
+#     examples of this pattern left unchecked on purpose.
+#   - external citations: `RFC <digits> §X` (e.g. `RFC 8785 §3.2.3`) and
+#     `SEC <digit> §X` (e.g. `SEC 1 §2.3.3`, SECG's SEC1). AITP citations
+#     always carry the hyphenated `RFC-AITP-NNNN` prefix, so these are
+#     lexically distinguishable and never resolved against local files.
+
+rfc_files = sorted(glob.glob(os.path.join(rfc_dir, "RFC-AITP-*.md")))
+scan_files = sorted(
+    glob.glob(os.path.join(rfc_dir, "*.md")) + glob.glob(os.path.join(docs_dir, "*.md"))
+)
+
+if not rfc_files or not scan_files:
+    print(f"Warning: no RFC or doc files found under {rfc_dir} / {docs_dir}")
+    sys.exit(1)
+
+# Same heading pattern as the anchor-resolution stage's headings, restricted
+# to the numbered form: `^#{2,4} X(.Y)*` optionally followed by `.` or a
+# space (so "5.4.10" isn't mistaken for a partial match of "5.4.1", and
+# unnumbered headings like RFC-AITP-0013's or RFC-AITP-0004's `#### Fields`
+# are silently skipped rather than crashing the parser).
+heading_re = re.compile(r'^(#{2,4})\s+(\d+(?:\.\d+)*)(?:[.\s]|$)')
+top_section_re = re.compile(r'^##\s')
+
+def headings_for(path):
+    nums = set()
+    in_fence = False
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            stripped = line.rstrip("\n")
+            if stripped.strip().startswith("```") or stripped.strip().startswith("~~~"):
+                in_fence = not in_fence
+                continue
+            if in_fence:
+                continue
+            m = heading_re.match(stripped)
+            if m:
+                nums.add(m.group(2))
+    return nums
+
+rfc_headings = {}
+for path in rfc_files:
+    m = re.search(r'RFC-AITP-(\d{4})', os.path.basename(path))
+    if m:
+        rfc_headings[m.group(1)] = (path, headings_for(path))
+
+SEC = r'§(\d+(?:\.\d+)*)'
+# `RFC-\s*AITP-` (not a literal `RFC-AITP-`) so a hard-wrapped citation like
+# "(RFC-\nAITP-0004 §3.4)" still matches once newlines are flattened to
+# spaces below -- the wrap lands mid-hyphen, not on a normal word boundary.
+prefixed_re = re.compile(r'RFC-\s*AITP-(\d{4})\s+' + SEC + r'(?:\s*[/,]\s*' + SEC + r')*')
+external_re = re.compile(r'(?:RFC|SEC)\s+\d+\s+' + SEC)
+bare_re = re.compile(SEC)
+
+def top_section_bounds(text):
+    bounds, pos = [], 0
+    for line in text.split("\n"):
+        if top_section_re.match(line):
+            bounds.append(pos)
+        pos += len(line) + 1
+    return bounds
+
+def section_index(bounds, pos):
+    idx = 0
+    for i, b in enumerate(bounds):
+        if b <= pos:
+            idx = i
+        else:
+            break
+    return idx
+
+total_prefixed = 0
+total_bare = 0
+unresolved = []
+
+for src in scan_files:
+    with open(src, encoding="utf-8") as fh:
+        text = fh.read()
+    # Citations can be line-wrapped by markdown; operate on the whole file
+    # with newlines flattened to spaces (same length, so char offsets --
+    # and therefore line numbers computed against the original text --
+    # stay valid) rather than scanning line by line.
+    flat = text.replace("\n", " ")
+    rel = os.path.relpath(src, root)
+
+    spans_covered = []
+    prefixed_matches = list(prefixed_re.finditer(flat))
+    for m in prefixed_matches:
+        spans_covered.append((m.start(), m.end()))
+    for m in external_re.finditer(flat):
+        spans_covered.append((m.start(), m.end()))
+
+    for m in prefixed_matches:
+        num = m.group(1)
+        secs = [g for g in m.groups()[1:] if g]
+        total_prefixed += len(secs)
+        line_no = text.count("\n", 0, m.start()) + 1
+        entry = rfc_headings.get(num)
+        if entry is None:
+            unresolved.append(f"    ✗ {rel}:{line_no}: cites RFC-AITP-{num}, which is not a known RFC")
+            continue
+        tpath, heads = entry
+        tname = os.path.relpath(tpath, root)
+        for sec in secs:
+            if sec not in heads:
+                unresolved.append(
+                    f"    ✗ {rel}:{line_no}: RFC-AITP-{num} §{sec} -- no heading §{sec} in {tname}"
+                )
+
+    self_match = re.search(r'RFC-AITP-(\d{4})', os.path.basename(src))
+    if src not in rfc_files or self_match is None:
+        continue  # bare §X.Y in non-RFC docs: out of scope, see comment above
+
+    self_num = self_match.group(1)
+    self_heads = rfc_headings[self_num][1]
+    bounds = top_section_bounds(text)
+    pref_events = sorted((m.start(), m.group(1), section_index(bounds, m.start())) for m in prefixed_matches)
+
+    idx = 0
+    last_foreign = None
+    last_foreign_section = None
+    for m in bare_re.finditer(flat):
+        s, e = m.start(), m.end()
+        if any(s < ce and e > cs for cs, ce in spans_covered):
+            continue  # already accounted for as part of a prefixed/external citation
+        while idx < len(pref_events) and pref_events[idx][0] < s:
+            last_foreign, last_foreign_section = pref_events[idx][1], pref_events[idx][2]
+            idx += 1
+        total_bare += 1
+        sec = m.group(1)
+        line_no = text.count("\n", 0, s) + 1
+        if sec in self_heads:
+            continue
+        if (
+            last_foreign
+            and last_foreign != self_num
+            and last_foreign_section == section_index(bounds, s)
+        ):
+            entry = rfc_headings.get(last_foreign)
+            if entry and sec in entry[1]:
+                continue  # continues the nearest earlier same-section citation
+        unresolved.append(f"    ✗ {rel}:{line_no}: bare §{sec} -- no heading §{sec} in this file")
+
+total = total_prefixed + total_bare
+if total == 0:
+    print(f"Warning: no RFC-AITP-NNNN §X.Y or bare §X.Y citations found under {root}")
+    sys.exit(1)
+
+if unresolved:
+    for u in sorted(set(unresolved)):
+        print(u)
+    print(f"    ({len(unresolved)} of {total} section citations are unresolved)")
+    sys.exit(1)
+
+print(
+    f"    ✓ all {total} section citations resolve "
+    f"({total_prefixed} RFC-AITP-NNNN §X.Y, {total_bare} bare self-reference)"
+)
+PYEOF
+then
+    FAIL=1
+fi
+echo
+
 echo "─────────────────────────────────────"
 if [ "$FAIL" -ne 0 ]; then
     echo "✗ Documentation coherence checks failed"
     exit 1
 fi
-echo "✓ Documentation is coherent (versions and anchors)"
+echo "✓ Documentation is coherent (versions, anchors, and section citations)"
