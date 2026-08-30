@@ -2,7 +2,7 @@
 # Trust Context Token (TCT)
 
 **Document:** RFC-AITP-0005
-**Version:** 0.2.0-draft
+**Version:** 0.2.1-draft
 **Status:** Community Standards Track (v0.2 Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0004 Mutual Handshake](RFC-AITP-0004-mutual-handshake.md)
 
@@ -278,7 +278,7 @@ There is no canonicalization step. The bytes the issuer transmitted are the byte
 
 A TCT verifier MUST, in order:
 
-1. **Parse strictly** — exactly three non-empty base64url segments (RFC-AITP-0001 §5.4.5 strict-parsing rules).
+1. **Parse strictly** — exactly three non-empty base64url segments (RFC-AITP-0001 §5.4.5 strict-parsing rules), and the decoded claims set MUST contain only the claims registered in §2. The TCT is a compact JWS, so RFC-AITP-0001 §7's unknown-field rule lands on the decoded *claims*, and the extension namespace is the `ext` claim — spelled `ext`, not `extensions`. Any unrecognized claim outside `ext` ⇒ `UNKNOWN_FIELD`; unknown keys *inside* `ext` MUST be ignored. (The protected header needs no separate unknown-member check here: §5.4.5 already pins it to exactly `alg` and `typ`.) This structural rejection is part of parsing, before any cryptographic step below.
 2. **Enforce `typ`** — header `typ` MUST be exactly `aitp-tct+jwt`; otherwise reject with `TOKEN_TYP_MISMATCH`.
 3. **Pin `alg`** — derive the sole acceptable `alg` from the issuer's AID (`iss` claim) and reject any other header value, including `none`, with `TOKEN_ALG_MISMATCH`.
 4. **Verify the signature** against the issuer's public key.

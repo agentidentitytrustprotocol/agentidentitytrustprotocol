@@ -2,7 +2,7 @@
 # Agent Identity & Trust Protocol (AITP) — Core
 
 **Document:** RFC-AITP-0001
-**Version:** 0.2.3-draft
+**Version:** 0.2.4-draft
 **Status:** Community Standards Track (v0.2 Draft)
 **Canonical wire format:** JSON
 **Normative transport:** HTTPS (any HTTP/1.1+ runtime)
@@ -151,6 +151,7 @@ Every AITP protocol message — `mutual_hello`, `mutual_hello_ack`, `mutual_comm
 | `sender.agent_id` | string | REQUIRED | AID of the sending agent. |
 | `payload` | object | REQUIRED | Message-type-specific content. |
 | `signature` | string | REQUIRED | base64url-encoded envelope signature. |
+| `extensions` | object | OPTIONAL | Extension namespace per §7 and [RFC-AITP-0012](RFC-AITP-0012-extensions.md). Unknown keys *inside* `extensions` MUST be ignored; an unknown member anywhere else in the envelope is rejected with `UNKNOWN_FIELD` (§7). An ordinary member of the envelope: when present it is covered by the envelope signature like any other member (§5.4.1). |
 
 The canonical schema is the JSON Schema at [`schemas/json/aitp-envelope.schema.json`](../schemas/json/aitp-envelope.schema.json).
 
@@ -479,10 +480,10 @@ versioning rides exclusively on `ver`.
 - a payload that is not a JSON object, or that contains duplicate
   keys.
 
-Unknown claims in the payload MUST be rejected, with one exception:
-the OPTIONAL `ext` private claim, an object with the same semantics
-as the `extensions` slot on JCS-profile objects (§7) — unknown keys
-*inside* `ext` MUST be ignored.
+Unknown claims in the payload MUST be rejected with `UNKNOWN_FIELD`
+(§7), with one exception: the OPTIONAL `ext` private claim, an object
+with the same semantics as the `extensions` slot on JCS-profile
+objects (§7) — unknown keys *inside* `ext` MUST be ignored.
 
 **ECDSA signature encoding.** `ES256` signatures use the JOSE raw
 `R || S` fixed-length 64-byte encoding (not ASN.1/DER), per
@@ -525,6 +526,7 @@ Verifiers MUST NOT reveal which specific policy check failed beyond the error co
 | `REPLAY_DETECTED` | Duplicate `message_id` | false |
 | `TIMESTAMP_EXPIRED` | Timestamp outside tolerance | true |
 | `UNKNOWN_VERSION` | Unsupported protocol version | false |
+| `UNKNOWN_FIELD` | A signed object carried a member outside its schema and outside its `extensions`/`ext` extension namespace (§7) | false |
 | `IDENTITY_FAILED` | Identity binding could not be verified | false |
 | `POLICY_VIOLATION` | Requested capability not granted | false |
 | `GRANT_OVERFLOW` | Peer-issued TCT grants exceed `offered_capabilities` | false |
@@ -566,7 +568,9 @@ AITP uses a layered compatibility model:
 
 Major protocol version mismatches are not compatible. Minor versions are expected to be backward compatible. Verifiers receiving an unknown `version` MUST respond with `UNKNOWN_VERSION`.
 
-Unknown JSON fields outside explicit `extensions` namespaces MUST be rejected. Signed AITP objects depend on canonical JCS representation; silently ignoring unknown fields would create signature ambiguity across implementations (one peer hashes the field in, another hashes it out, and the same wire bytes verify differently). Forward compatibility is provided exclusively through explicit `extensions` objects (see [RFC-AITP-0012](RFC-AITP-0012-extensions.md)) — every signed object reserves an `extensions` slot, and unknown keys *inside* `extensions` MUST be ignored.
+Unknown JSON fields outside explicit `extensions` namespaces MUST be rejected, with the error code `UNKNOWN_FIELD` ([registry](../registries/error-codes.md)). Signed AITP objects depend on canonical JCS representation; silently ignoring unknown fields would create signature ambiguity across implementations (one peer hashes the field in, another hashes it out, and the same wire bytes verify differently). Forward compatibility is provided exclusively through explicit `extensions` objects (see [RFC-AITP-0012](RFC-AITP-0012-extensions.md)) — every signed object reserves an `extensions` slot, and unknown keys *inside* `extensions` MUST be ignored, never rejected. The rule is asymmetric by design: an unknown member *beside* the namespace ⇒ reject with `UNKNOWN_FIELD`; an unknown key *inside* it ⇒ ignore. On the compact-JWS artifacts the namespace is the `ext` claim (§5.4.5; RFC-AITP-0005 §2) and the unknown member is an unknown *claim* in the decoded payload — same rule, same code.
+
+This check is not only stated here: each artifact RFC carries it as an explicit step in its own verification algorithm, positioned before the cryptographic steps so a malformed object is rejected before any signature verification is spent on it — RFC-AITP-0003 §5 step 2 (Manifest), RFC-AITP-0004 §5 step 2 of each of the four payload procedures (handshake), RFC-AITP-0005 §7.2 step 1 (TCT claims), RFC-AITP-0008 §1.5 (revocation snapshot), and RFC-AITP-0010 §5 (session bundle).
 
 ---
 

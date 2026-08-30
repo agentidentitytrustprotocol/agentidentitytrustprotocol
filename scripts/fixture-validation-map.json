@@ -97,6 +97,26 @@
         }
       ]
     },
+    "bundle-006-unknown-field-rejected": {
+      "artifacts": [
+        {
+          "pointer": "/input/session_bundle",
+          "schema": "aitp-session-bundle.schema.json",
+          "expect": "invalid",
+          "reason": "Deliberately schema-invalid: input.session_bundle.session_bundle.coordinator_note is an unknown member outside `extensions`. RFC-AITP-0001 \u00a77 requires rejection; the fixture asserts UNKNOWN_FIELD, so schema rejection (additionalProperties naming coordinator_note) is the correct expected outcome."
+        },
+        {
+          "pointer": "/input/session_bundle/session_bundle/participants/0/tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/session_bundle/session_bundle/participants/1/tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
     "del-001": {
       "artifacts": [
         {
@@ -288,6 +308,25 @@
         }
       ]
     },
+    "env-006": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "invalid",
+          "reason": "Deliberately schema-invalid: input.envelope.trace_id is an unknown top-level member outside `extensions`. RFC-AITP-0001 \u00a77 requires rejection; the fixture asserts UNKNOWN_FIELD, so schema rejection (additionalProperties naming trace_id) is the correct expected outcome."
+        }
+      ]
+    },
+    "env-007": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
     "id-001": {
       "artifacts": [
         {
@@ -450,6 +489,27 @@
       ]
     },
     "man-003": {
+      "artifacts": [
+        {
+          "pointer": "/input/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "man-004": {
+      "artifacts": [
+        {
+          "pointer": "/input/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "invalid",
+          "wrap": "manifest",
+          "reason": "Deliberately schema-invalid: input.manifest.deployment_region is an unknown member outside `extensions`. RFC-AITP-0001 \u00a77 requires rejection; the fixture asserts UNKNOWN_FIELD, so schema rejection (additionalProperties naming deployment_region) is the correct expected outcome."
+        }
+      ]
+    },
+    "man-005": {
       "artifacts": [
         {
           "pointer": "/input/manifest",
@@ -692,6 +752,25 @@
         }
       ]
     },
+    "rev-005": {
+      "artifacts": [
+        {
+          "pointer": "/input/snapshot",
+          "schema": "aitp-revocation-list.schema.json",
+          "expect": "invalid",
+          "reason": "Deliberately schema-invalid: input.snapshot.revocation_list.list_owner is an unknown member outside `extensions`. RFC-AITP-0001 \u00a77 requires rejection; the fixture asserts UNKNOWN_FIELD, so schema rejection (additionalProperties naming list_owner) is the correct expected outcome."
+        }
+      ]
+    },
+    "rev-006": {
+      "artifacts": [
+        {
+          "pointer": "/input/snapshot",
+          "schema": "aitp-revocation-list.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
     "tct-002": {
       "artifacts": [
         {
@@ -776,6 +855,25 @@
           "schema": "aitp-grant-voucher.schema.json",
           "expect": "valid",
           "reason": "The claims are grant-voucher claims by design: the fixture asserts a verifier rejects a voucher presented where a TCT is expected (typ mismatch). They are schema-valid AS A VOUCHER, which is what makes the fixture's point."
+        }
+      ]
+    },
+    "tct-011": {
+      "artifacts": [
+        {
+          "pointer": "/input/tct_token_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "invalid",
+          "reason": "Deliberately schema-invalid: input.tct_token_claims.device_id is an unknown claim outside `ext`. RFC-AITP-0001 \u00a77 requires rejection; the fixture asserts UNKNOWN_FIELD, so schema rejection (additionalProperties naming device_id) is the correct expected outcome."
+        }
+      ]
+    },
+    "tct-012": {
+      "artifacts": [
+        {
+          "pointer": "/input/tct_token_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
         }
       ]
     },

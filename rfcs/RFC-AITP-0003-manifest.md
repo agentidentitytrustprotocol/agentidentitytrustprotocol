@@ -2,7 +2,7 @@
 # Agent Manifest
 
 **Document:** RFC-AITP-0003
-**Version:** 0.2.2-draft
+**Version:** 0.2.3-draft
 **Status:** Community Standards Track (v0.2 Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0002 Identity](RFC-AITP-0002-identity.md)
 
@@ -101,7 +101,7 @@ The canonical schema is [`schemas/json/aitp-manifest.schema.json`](../schemas/js
 | `required_peer_capabilities` | array of string | Capabilities the peer MUST hold for this agent to accept a handshake. |
 | `accepted_identity_types` | array of string | Identity binding types this agent accepts from peers (RFC-AITP-0002). Allowed values: `"oidc"`, `"pinned_key"`. **Default semantics:** an *absent* `accepted_identity_types` field (omitted from the wire format entirely) is treated as `["oidc"]`. An *explicitly empty* array `[]` means no identity type is accepted and will cause `INCOMPATIBLE_IDENTITY_TYPE` for every peer. Publishers that want the `["oidc"]` default behavior SHOULD omit the field rather than publishing `["oidc"]` explicitly — this keeps the canonical JSON shorter and avoids confusion about whether an empty array is intentional. Used at discovery time to screen for compatibility when the peer's identity is not OIDC-based. **Canonical-form rule:** the absent / explicit-empty distinction MUST be preserved in the JCS canonical bytes used for signing — verifiers reconstruct the signing input from the wire form, so an issuer that signs an absent field must serialize an absent field at verification time, and one that signs `[]` must serialize `[]`. Implementations modeling this as a typed optional (e.g. `Option<Vec<String>>`) keep both states distinguishable through the round-trip; implementations that conflate absent with empty Vec will produce diverging signatures across peers. |
 | `accepted_signature_algorithms` | array of string | Signature algorithms this agent accepts from peers (RFC-AITP-0001 §5.4.3). Allowed values: `"ed25519"`, `"p256"`. **Default semantics:** absent → defaults to the **mandatory algorithm set for the Manifest's `version`** — `["ed25519"]` for `aitp/0.1` (Ed25519-only per [RFC-AITP-0009 §4](RFC-AITP-0009-security.md#4-cryptographic-agility)), `["ed25519", "p256"]` for `aitp/0.2`. An explicit empty array `[]` means "accept no algorithm" and will reject every peer's envelope signature. A publisher restricting to one algorithm publishes a single-element array. The same canonical-form rule applies — preserve absent vs explicit-empty in the JCS signing bytes. |
-| `extensions` | object | Reserved for future extension fields. Unknown extensions MUST be ignored. |
+| `extensions` | object | Extension namespace per [RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model) and [RFC-AITP-0012](RFC-AITP-0012-extensions.md). Unknown keys *inside* `extensions` MUST be ignored; an unknown member anywhere else in the Manifest is rejected with `UNKNOWN_FIELD` (§5 step 2). An ordinary member of the signed Manifest: when present it is covered by the signature like any other member. |
 
 ---
 
@@ -141,8 +141,9 @@ Manifests are also exchanged inline at the start of the Mutual Handshake (in the
 Before a peer uses a Manifest to initiate a handshake, it MUST verify the following in order:
 
 1. **Version check** — `manifest.version` MUST be `"aitp/0.2"` or a later version this implementation supports.
-2. **Expiry check** — `manifest.expires_at` MUST be in the future.
-3. **Proof-of-possession** — Verify `proof_of_possession.signature`:
+2. **Member-set check** — every member of the Manifest MUST be a field defined in §3 or sit inside `extensions`. Any unknown member outside `extensions` ⇒ `UNKNOWN_FIELD` ([RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model)); unknown keys *inside* `extensions` MUST be ignored. This structural check runs before the cryptographic steps below: a Manifest carrying an unknown member is rejected before any proof-of-possession or signature work is spent on it, and no unknown member survives into the JCS signing input to create the cross-implementation signature ambiguity RFC-AITP-0001 §7 describes.
+3. **Expiry check** — `manifest.expires_at` MUST be in the future.
+4. **Proof-of-possession** — Verify `proof_of_possession.signature`:
 
    ```
    expected_sig = base64url(sign(agent_private_key, sha256(base64url_decode(challenge))))
@@ -151,8 +152,8 @@ Before a peer uses a Manifest to initiate a handshake, it MUST verify the follow
    The hash input is the 16 raw bytes obtained by base64url-decoding `challenge` (not the ASCII bytes of the encoded form). Verification uses the public key encoded in `manifest.aid`.
 
    > **Note.** The pattern `sha256(base64url_decode(x))` appears in every PoP signing input in v0.2: Manifest PoP (here), handshake PoP (RFC-AITP-0004 §3), downstream TCT PoP (RFC-AITP-0005 §6.1), and the pinned-key identity proof input (RFC-AITP-0002 §3.1). Implementations that hash the ASCII string form instead of the decoded bytes will be internally consistent but will fail cross-implementation verification. Implementations SHOULD add a KAT cross-check that verifies a given (challenge → decoded → sha256 → signature) vector against all PoP code paths; the pinned `kat-manifest-pop-001` vector at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json) provides the reference inputs and outputs.
-4. **Manifest signature** — Verify `manifest.signature` using the public key from `manifest.aid` (see §6).
-5. **Identity-type and trust-anchor compatibility** — The fetching peer MUST screen the published Manifest against its own identity. Two cases, with **distinct error codes**:
+5. **Manifest signature** — Verify `manifest.signature` using the public key from `manifest.aid` (see §6).
+6. **Identity-type and trust-anchor compatibility** — The fetching peer MUST screen the published Manifest against its own identity. Two cases, with **distinct error codes**:
    - If the fetching peer's identity is `oidc`, the published Manifest's `accepted_trust_anchors` MUST contain at least one issuer that matches an issuer in the fetching peer's own `trust_anchors` configuration. Failure ⇒ `INCOMPATIBLE_TRUST_ANCHORS`.
    - If the fetching peer's identity is `pinned_key` (or any non-OIDC type), the published Manifest's `accepted_identity_types` (default `["oidc"]` when absent) MUST include the fetching peer's identity type. `accepted_trust_anchors` is not consulted in this case — pinned-key identities are not minted by an OIDC issuer. Failure ⇒ `INCOMPATIBLE_IDENTITY_TYPE`.
 
@@ -164,7 +165,7 @@ Manifest verification does NOT include identity-proof verification. The Manifest
 
 ### 5.1 Trust-anchor consistency requirement
 
-`accepted_trust_anchors` is a public commitment about which identity issuers this agent will verify peer identities against. The fetching peer uses it to pre-screen for compatibility (step 5 above) before initiating a handshake.
+`accepted_trust_anchors` is a public commitment about which identity issuers this agent will verify peer identities against. The fetching peer uses it to pre-screen for compatibility (step 6 above) before initiating a handshake.
 
 **Implementations MUST keep `accepted_trust_anchors` consistent with the agent's internal verification configuration.** If the published Manifest claims to accept `https://auth.example.com` but the agent's runtime `trust_anchors` config does not include `https://auth.example.com`, the discovery-time check will pass and the handshake will fail — wasting both peers' resources and obscuring the misconfiguration.
 
@@ -266,8 +267,10 @@ New error codes introduced by this RFC:
 | `MANIFEST_POP_FAILED` | Proof-of-possession verification failed | false |
 | `MANIFEST_NOT_FOUND` | No Manifest could be retrieved for the requested AID (the well-known endpoint returned a non-2xx response, the host is unreachable, or no inline Manifest is available). Distinct from `MANIFEST_EXPIRED` (a Manifest exists but is past `expires_at`) and from `KEY_RESOLUTION_FAILED` (which is the envelope-level rollup when no key can be obtained from any source — see RFC-AITP-0007 §3). | true |
 | `INCOMPATIBLE_TRUST_ANCHORS` | No OIDC trust-anchor overlap between the fetching peer's `trust_anchors` and the target Manifest's `accepted_trust_anchors`. Applies only when the fetching peer's identity is `oidc`. | false |
-| `INCOMPATIBLE_IDENTITY_TYPE` | The target Manifest's `accepted_identity_types` does not include the fetching peer's identity `type` (e.g. fetcher is `pinned_key`, target accepts only `oidc`). More specific than `INCOMPATIBLE_TRUST_ANCHORS`; see §5 step 5 for when each applies. | false |
+| `INCOMPATIBLE_IDENTITY_TYPE` | The target Manifest's `accepted_identity_types` does not include the fetching peer's identity `type` (e.g. fetcher is `pinned_key`, target accepts only `oidc`). More specific than `INCOMPATIBLE_TRUST_ANCHORS`; see §5 step 6 for when each applies. | false |
 | `MANIFEST_VERSION_UNKNOWN` | `version` not supported by this implementation | false |
+
+Manifest verification additionally returns the core code `UNKNOWN_FIELD` when the Manifest carries a member outside §3's fields and outside `extensions` (§5 step 2). That code is defined by [RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model) and listed in the [error-code registry](../registries/error-codes.md)'s core table, not introduced by this RFC.
 
 ---
 

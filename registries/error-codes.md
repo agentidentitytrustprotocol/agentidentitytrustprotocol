@@ -2,7 +2,7 @@
 
 AITP error codes returned in error envelopes (`AitpError.code`). AITP is JSON-only; codes are string constants in the canonical JSON wire format (see [RFC-AITP-0001 §5.6](../rfcs/RFC-AITP-0001-core.md#56-error-envelope)).
 
-> **Stability:** The codes listed below are stable for v0.2. Implementations MUST treat unknown codes as opaque failures and MUST NOT key behavior off codes that are not in this registry. New codes can be added without an RFC; renaming or removing an existing code is a breaking change and requires the RFC process. (v0.2 renamed `DELEGATION_INVALID_GRANT_PROOF` → `DELEGATION_INVALID_VOUCHER` via that process, as part of the JWS migration — see the delegation table below.)
+> **Stability:** The codes listed below are stable for v0.2. Implementations MUST treat unknown codes as opaque failures and MUST NOT key behavior off codes that are not in this registry. New codes can be added without an RFC; renaming or removing an existing code is a breaking change and requires the RFC process. (v0.2 renamed `DELEGATION_INVALID_GRANT_PROOF` → `DELEGATION_INVALID_VOUCHER` via that process, as part of the JWS migration — see the delegation table below.) "Without an RFC" waives the need for a new RFC *document*, not [VERSIONING.md](../VERSIONING.md)'s change classes: adding a code is a **backward-compatible addition** there, so the existing RFCs whose normative text gains the new code take a minor `Version:` bump. The two policies answer different questions — whether a new document is required (no) and how the version numbers move (minor) — and compose rather than conflict.
 
 > **`spec_status` column.** Each code below carries a `spec_status` of either `core` or `draft`. `core` codes are part of v0.2 conformance and MAY be emitted by any conformant implementation. `draft` codes are reserved for the opt-in draft RFCs (currently RFC-AITP-0010 Session Trust Bundle and RFC-AITP-0011 Multi-hop Delegation) and MUST NOT be used except when implementing the cited draft RFC. Conformance runners MUST treat receipt of a `draft` code from an implementation that does not opt into the corresponding draft as a non-conformance.
 
@@ -13,8 +13,11 @@ Object-level failures use the `<OBJECT>_<FAILURE>` form (e.g.
 `DELEGATION_SCOPE_EXCEEDED`). Envelope-level failures use bare codes
 (e.g. `INVALID_SIGNATURE`, `REPLAY_DETECTED`). This granularity is
 deliberate: a consumer needs to know *which* object failed, not only
-that something failed. New codes proposed via the RFC process MUST
-follow this convention.
+that something failed. Codes that apply uniformly across objects —
+`UNKNOWN_VERSION`, `UNKNOWN_FIELD` — also use the bare form: the
+failing object is whichever one was being verified, and prefixed
+variants per object would multiply names without adding information.
+New codes proposed via the RFC process MUST follow this convention.
 
 ## Envelope-level codes
 
@@ -25,6 +28,7 @@ follow this convention.
 | `REPLAY_DETECTED` | Duplicate `message_id`. | false | core | [RFC-AITP-0001 §5.5](../rfcs/RFC-AITP-0001-core.md#55-replay-protection) |
 | `TIMESTAMP_EXPIRED` | Timestamp outside tolerance. | true | core | [RFC-AITP-0001 §5.5](../rfcs/RFC-AITP-0001-core.md#55-replay-protection) |
 | `UNKNOWN_VERSION` | Unsupported `version` field. | false | core | [RFC-AITP-0001 §7](../rfcs/RFC-AITP-0001-core.md#7-compatibility-model) |
+| `UNKNOWN_FIELD` | A signed object carried a member outside its schema and outside its `extensions` / `ext` extension namespace. Unknown keys *inside* the namespace are ignored, never rejected — the asymmetry is deliberate (forward compatibility rides exclusively on the namespace). One generic code for every signed AITP object: the JCS-profile artifacts (envelope, Manifest, handshake payloads, revocation snapshot, session bundle) spell the namespace `extensions`; the compact-JWS artifacts (TCT, grant voucher, delegation token) spell it `ext`, and the unknown member is an unknown claim in the decoded payload. More specific than `INVALID_ENVELOPE` when an envelope's only defect is an unknown member. | false | core | [RFC-AITP-0001 §7](../rfcs/RFC-AITP-0001-core.md#7-compatibility-model) |
 | `IDENTITY_FAILED` | Identity binding could not be verified. | false | core | [RFC-AITP-0002](../rfcs/RFC-AITP-0002-identity.md) |
 | `POLICY_VIOLATION` | Requested capability not granted. | false | core | [RFC-AITP-0004 §4](../rfcs/RFC-AITP-0004-mutual-handshake.md#4-tct-issuance-rules) |
 | `GRANT_OVERFLOW` | Peer-issued TCT grants exceed `offered_capabilities`. | false | core | [RFC-AITP-0004](../rfcs/RFC-AITP-0004-mutual-handshake.md) |
@@ -90,6 +94,7 @@ Returned in error envelopes during the four-message handshake.
 | `IDENTITY_FAILED` | Peer identity verification failed. | core |
 | `REPLAY_DETECTED` | Duplicate `message_id`. | core |
 | `TIMESTAMP_EXPIRED` | Envelope timestamp outside tolerance. | core |
+| `UNKNOWN_FIELD` | A handshake payload (or other signed object in the exchange) carried a member outside its schema and outside `extensions` ([RFC-AITP-0001 §7](../rfcs/RFC-AITP-0001-core.md#7-compatibility-model)). | core |
 
 ## Manifest-service codes
 

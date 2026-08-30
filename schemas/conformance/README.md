@@ -250,11 +250,11 @@ The runner interface is implementation-defined.
 
 | Tier | Count | Required for v0.2 |
 |---|---|---|
-| `core` (v0.2-required) | 45 | ✅ Yes |
+| `core` (v0.2-required) | 53 | ✅ Yes |
 | `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (v0.1 runners only) |
-| `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 5 | ❌ No |
+| `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 6 | ❌ No |
 | `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 4 | ❌ No |
-| **Total** | **55** | |
+| **Total** | **64** | |
 
 Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A v0.2 conformance runner MUST execute every `required_for_v0_2` core fixture; `draft` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
@@ -271,6 +271,8 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | `env-003` | Issuer key cannot be resolved (Manifest unreachable, OIDC offline) | failure: KEY_RESOLUTION_FAILED |
 | `env-004` | Replayed envelope `message_id` rejected by deny list | failure: REPLAY_DETECTED |
 | `env-005` | P-256 sender (`aid:pubkey:p256:`) envelope with algorithm-tagged signature verifies (RFC-AITP-0001 §5.4.3) | success |
+| `env-006` | Envelope carries an unknown top-level member (`trace_id`) outside `extensions` | failure: UNKNOWN_FIELD |
+| `env-007` | Envelope carries an unrecognized, vendor-namespaced key inside `extensions` — ignored | success |
 
 ### Manifest (RFC-AITP-0003)
 
@@ -279,6 +281,8 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | `man-001` | Manifest `expires_at` is in the past at fetch time | failure: MANIFEST_EXPIRED |
 | `man-002` | Manifest declares an unsupported `version` | failure: MANIFEST_VERSION_UNKNOWN |
 | `man-003` | Cached Manifest past `expires_at` is rejected even if otherwise valid | failure: MANIFEST_EXPIRED |
+| `man-004` | Manifest body carries an unknown member (`deployment_region`) outside `extensions` | failure: UNKNOWN_FIELD |
+| `man-005` | Manifest body carries an unrecognized, vendor-namespaced key inside `extensions` — ignored | success |
 
 ### Mutual Handshake (RFC-AITP-0004)
 
@@ -320,6 +324,8 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | `tct-008` | JWS header `alg: none` rejected before any signature work (RFC-AITP-0001 §5.4.5) | failure: TOKEN_ALG_MISMATCH |
 | `tct-009` | ES256-signed token presented for an Ed25519 AID — AID-derived `alg` pin rejects | failure: TOKEN_ALG_MISMATCH |
 | `tct-010` | Cryptographically valid grant voucher (`typ: aitp-grant+jwt`) presented as a TCT — explicit typing rejects | failure: TOKEN_TYP_MISMATCH |
+| `tct-011` | TCT claims carry an unknown claim (`device_id`) outside `ext` | failure: UNKNOWN_FIELD |
+| `tct-012` | TCT claims carry an unrecognized, vendor-namespaced key inside `ext` — ignored | success |
 
 ### Grant voucher (RFC-AITP-0005 §8)
 
@@ -336,6 +342,8 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | `rev-002` | Stale revocation snapshot under `soft_fail` mode allows a configured safe-subset of grants | success (degraded) |
 | `rev-003` | Fresh signed snapshot, JTI not in entries → not revoked | success |
 | `rev-004` | TCT signature invalid → revocation source MUST NOT be consulted (asserts `side_effects.revocation_lookup_called == false`) | failure: TCT_SIGNATURE_INVALID |
+| `rev-005` | Snapshot's `revocation_list` body carries an unknown member (`list_owner`) outside `extensions` | failure: UNKNOWN_FIELD |
+| `rev-006` | Snapshot's `revocation_list` body carries an unrecognized, vendor-namespaced key inside `extensions` — ignored | success |
 
 ### Delegation (RFC-AITP-0006)
 
@@ -370,6 +378,7 @@ Bundle fixtures use the same opt-in posture as multi-hop. Core implementations a
 | `bundle-003` | Bundle's `expires_at` is in the past (with consistent embedded TCT expiry) | failure: BUNDLE_EXPIRED |
 | `bundle-004-signature-sibling-rejected` | Old, now-invalid shape: `signature` is a sibling of the `session_bundle` wrapper instead of a member of the inner body | failure: SESSION_BUNDLE_INVALID |
 | `bundle-005-extensions-accepted` | Bundle body carries an optional `extensions.tee` member (RFC-AITP-0010 §3 field table, RFC-AITP-0012) alongside a correctly-placed signature | success |
+| `bundle-006-unknown-field-rejected` | Bundle's inner `session_bundle` body carries an unknown member (`coordinator_note`) outside `extensions` | failure: UNKNOWN_FIELD |
 
 Additions and edge-case fixtures (replay during MUTUAL_COMMIT, identity-issuer key rotation, partial chain verification, etc.) are welcome via PR.
 
