@@ -1,4 +1,4 @@
-.PHONY: help validate json-validate json-schema-validate kat-verify clean install-tools docs release
+.PHONY: help validate json-validate json-schema-validate kat-verify doc-coherence clean install-tools docs release
 
 # AITP ships as JSON only. The canonical wire format and signing input
 # is RFC 8785 (JCS) canonical JSON. See RFC-AITP-0001 §5.4.1.
@@ -13,6 +13,7 @@ help:
 	@echo "  make json-schema-validate  Validate JSON Schemas (meta-validation)"
 	@echo "  make json-validate         Validate JSON examples and conformance fixtures"
 	@echo "  make kat-verify            Recompute and verify every pinned known-answer value"
+	@echo "  make doc-coherence         Check RFC version claims and intra-repo anchor links"
 	@echo
 	@echo "Docs:"
 	@echo "  make docs                  Print the docs reading order"
@@ -24,7 +25,7 @@ help:
 
 # ── Validation ────────────────────────────────────────────────────────────────
 
-validate: json-schema-validate json-validate kat-verify
+validate: json-schema-validate json-validate kat-verify doc-coherence
 	@echo "✓ All v0.2 validations passed"
 
 json-schema-validate:
@@ -41,6 +42,13 @@ json-validate:
 kat-verify:
 	@echo "Verifying pinned known-answer values (canonical bytes + signatures)..."
 	@node scripts/verify-known-answer.mjs --quiet
+
+# rfcs/README.md and VERSIONING.md are prose, not generated from the RFC
+# headers -- this is the mechanical check that stops them from drifting the
+# way schemas/fixtures did before PR #22 and PR #30.
+doc-coherence:
+	@echo "Checking RFC version claims and intra-repo anchor links..."
+	@./scripts/check-doc-coherence.sh
 
 # ── Docs ─────────────────────────────────────────────────────────────────────
 
