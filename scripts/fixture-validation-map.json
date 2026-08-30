@@ -58,6 +58,45 @@
         }
       ]
     },
+    "bundle-004-signature-sibling-rejected": {
+      "artifacts": [
+        {
+          "pointer": "/input/session_bundle",
+          "schema": "aitp-session-bundle.schema.json",
+          "expect": "invalid",
+          "reason": "Deliberately schema-invalid: `signature` is placed as a sibling of the `session_bundle` transport wrapper instead of as a member of the inner body (the pre-PR-#30 shape). The top-level wrapper's `additionalProperties: false` rejects the sibling `signature` member, and the inner body is missing its required `signature` member. Asserts RFC-AITP-0010 \u00a73's signature-placement rule directly (see the \u00a73 erratum)."
+        },
+        {
+          "pointer": "/input/session_bundle/session_bundle/participants/0/tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/session_bundle/session_bundle/participants/1/tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "bundle-005-extensions-accepted": {
+      "artifacts": [
+        {
+          "pointer": "/input/session_bundle",
+          "schema": "aitp-session-bundle.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/session_bundle/session_bundle/participants/0/tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/session_bundle/session_bundle/participants/1/tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
     "del-001": {
       "artifacts": [
         {

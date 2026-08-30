@@ -194,9 +194,9 @@ The runner interface is implementation-defined.
 |---|---|---|
 | `core` (v0.2-required) | 45 | ✅ Yes |
 | `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (v0.1 runners only) |
-| `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 3 | ❌ No |
+| `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 5 | ❌ No |
 | `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 4 | ❌ No |
-| **Total** | **53** | |
+| **Total** | **55** | |
 
 Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A v0.2 conformance runner MUST execute every `required_for_v0_2` core fixture; `draft` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
@@ -310,6 +310,8 @@ Bundle fixtures use the same opt-in posture as multi-hop. Core implementations a
 | `bundle-001` | 2-participant bundle, fresh, valid coordinator signature, receiver is in participants | success |
 | `bundle-002` | Bundle is byte-valid but receiver's AID is not in `participants[*].aid` | failure: BUNDLE_NOT_MEMBER |
 | `bundle-003` | Bundle's `expires_at` is in the past (with consistent embedded TCT expiry) | failure: BUNDLE_EXPIRED |
+| `bundle-004-signature-sibling-rejected` | Old, now-invalid shape: `signature` is a sibling of the `session_bundle` wrapper instead of a member of the inner body | failure: SESSION_BUNDLE_INVALID |
+| `bundle-005-extensions-accepted` | Bundle body carries an optional `extensions.tee` member (RFC-AITP-0010 §3 field table, RFC-AITP-0012) alongside a correctly-placed signature | success |
 
 Additions and edge-case fixtures (replay during MUTUAL_COMMIT, identity-issuer key rotation, partial chain verification, etc.) are welcome via PR.
 
