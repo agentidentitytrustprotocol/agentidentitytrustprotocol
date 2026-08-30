@@ -12,14 +12,20 @@
 #      resolves to a heading that actually exists in the named RFC, and
 #      every bare `§X.Y` self-reference inside an RFC resolves to a heading
 #      in that same RFC. See the stage's own comment below for exact scope.
+#   4. Error-code coherence — every `error_code` a conformance fixture
+#      asserts is defined in registries/error-codes.md. One-way by design:
+#      a registry code no fixture exercises is a coverage question, not a
+#      coherence defect.
 #
-# All three checks exist because the class of bug they catch — one fact
+# All four checks exist because the class of bug they catch — one fact
 # asserted in two places with nothing checking that they agree — is exactly
 # the shape of the bugs PR #22 and PR #30 fixed, one level up in the docs.
 # See RFC-AITP-0001 §5.4.1 and plans/docs-tests-followthrough-jcs-and-bundle-fixes.md.
 # Stage 3 closes out issue #29: PR #34 added stages 1 and 2 (RFC version
 # coherence and markdown anchor resolution); the section-citation resolver
-# below is the remaining piece.
+# below is the remaining piece. Stage 4 arrived with issue #37's
+# `UNKNOWN_FIELD` addition, which surfaced that a fixture could assert a
+# code the registry never defined and every other stage would stay green.
 
 set -e
 
@@ -452,9 +458,67 @@ then
 fi
 echo
 
+# ── 4. Error-code coherence (fixture error_code vs registries/error-codes.md) ─
+echo "── Error-code coherence (fixture \`error_code\` vs the registry) ──"
+
+# A conformance fixture asserts an error_code; the registry is where codes are
+# defined. Nothing checked that an asserted code actually exists, so a fixture
+# could pin a code no implementation could ever return -- a typo, or a code
+# renamed in the registry and left behind here -- and every stage would stay
+# green. Same one-fact-two-places shape as the version and citation stages.
+#
+# Direction is deliberately one-way: every code a fixture ASSERTS must exist in
+# the registry. The reverse (a registry code no fixture exercises) is a coverage
+# question, not a coherence defect, and is not checked here.
+if ! python3 - "$PROJECT_ROOT" <<'PYEOF'
+import json, glob, os, re, sys
+
+root = sys.argv[1]
+reg_path = os.path.join(root, "registries", "error-codes.md")
+if not os.path.isfile(reg_path):
+    print("    Warning: registries/error-codes.md not found")
+    sys.exit(1)
+
+defined = set(re.findall(r'^\|\s*`([A-Z][A-Z0-9_]*)`', open(reg_path).read(), re.M))
+if not defined:
+    print("    Warning: no error codes parsed from registries/error-codes.md")
+    sys.exit(1)
+
+fixtures = sorted(glob.glob(os.path.join(root, "schemas", "conformance", "*.json")))
+if not fixtures:
+    print("    Warning: no conformance fixtures found")
+    sys.exit(1)
+
+asserted, bad = set(), []
+for path in fixtures:
+    try:
+        doc = json.load(open(path))
+    except Exception:
+        continue
+    if not isinstance(doc, dict):
+        continue
+    code = (doc.get("expected") or {}).get("error_code")
+    if not isinstance(code, str) or not code:
+        continue
+    asserted.add(code)
+    if code not in defined:
+        bad.append((os.path.relpath(path, root), code))
+
+if bad:
+    for rel, code in sorted(bad):
+        print(f"    \u2717 {rel}: error_code `{code}` is not defined in registries/error-codes.md")
+    sys.exit(1)
+
+print(f"    \u2713 all {len(asserted)} distinct fixture error code(s) are defined in the registry")
+PYEOF
+then
+    FAIL=1
+fi
+
+
 echo "─────────────────────────────────────"
 if [ "$FAIL" -ne 0 ]; then
     echo "✗ Documentation coherence checks failed"
     exit 1
 fi
-echo "✓ Documentation is coherent (versions, anchors, and section citations)"
+echo "✓ Documentation is coherent (versions, anchors, section citations, and fixture error codes)"

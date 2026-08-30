@@ -2,6 +2,191 @@
 
 ## Unreleased
 
+### Issue #37: `UNKNOWN_FIELD` — RFC-AITP-0001 §7's unknown-member rejection gets an error code and a step in every verification algorithm
+
+**The gap.** RFC-AITP-0001 §7 has always stated a MUST with an explicit
+security rationale: unknown JSON fields outside explicit `extensions`
+namespaces MUST be rejected, because signed AITP objects depend on canonical
+JCS representation and silently ignoring unknown fields creates signature
+ambiguity across implementations (one peer hashes the field in, another
+hashes it out, and the same wire bytes verify differently). But no error
+code existed for the rejection — `INVALID_ENVELOPE` is envelope-scoped,
+`SESSION_BUNDLE_INVALID` is a bundle aggregate fallback, and Manifest, TCT,
+and revocation had nothing that fits — and no artifact RFC's numbered
+verification algorithm carried the check as a step. An implementer told to
+reject had no code to reject with and no step in the algorithm they actually
+follow. (Found via issue #37: `aitp-verifier-py` added §7 enforcement across
+every artifact and the entire conformance pack stayed green before and
+after.)
+
+**The code.** One deliberately generic core code, **`UNKNOWN_FIELD`** (not
+retryable): a signed object carried a member outside its schema and outside
+its `extensions` / `ext` extension namespace. One code for every signed
+object rather than per-object `<OBJECT>_UNKNOWN_FIELD` variants — like
+`UNKNOWN_VERSION`, the failing object is whichever one was being verified,
+and the registry's naming-convention section now says so. The asymmetry §7
+mandates is restated everywhere the code appears: sibling-of-namespace ⇒
+reject with `UNKNOWN_FIELD`; inside-namespace ⇒ ignore, never reject. The
+two spellings are called out explicitly: JCS-profile artifacts (envelope,
+Manifest, handshake payloads, revocation snapshot, session bundle) use
+`extensions`; the compact-JWS artifacts (TCT, grant voucher, delegation
+token) use the `ext` claim, where the unknown member is an unknown *claim*
+in the decoded payload.
+
+**Per-artifact verification steps.** §7 states the rule universally, but
+implementers follow each artifact's own numbered algorithm, so each one
+gains the check explicitly, positioned before the cryptographic steps —
+a malformed object is rejected before any signature verification is spent
+on it, and no unknown member survives into a reconstructed JCS signing
+input:
+
+- `rfcs/RFC-AITP-0003-manifest.md` §5 — new **step 2 (Member-set check)**;
+  old steps 2–5 renumber to 3–6. §3.2's `extensions` row upgraded from the
+  v0.1-era "Unknown extensions MUST be ignored" wording to the house
+  two-sided form naming the code; §10 notes that Manifest verification
+  additionally returns the core `UNKNOWN_FIELD`.
+- `rfcs/RFC-AITP-0004-mutual-handshake.md` §5 — **step 2 of each of the
+  four payload procedures** is now the member-set check: extended in place
+  in §5.1/§5.2 (which already had a "parse the payload" step 2), inserted
+  as a new step 2 in §5.3/§5.4 (which had none), renumbering §5.3 steps
+  2–7 → 3–8 and §5.4 steps 2–6 → 3–7. §6's failure-path table gains an
+  `UNKNOWN_FIELD` row and its shifted step citations are corrected. All
+  four payload `extensions` rows now name the code.
+- `rfcs/RFC-AITP-0005-tct.md` §7.2 — the check is folded into **step 1
+  (Parse strictly)** rather than inserted as a new step: the claims-set
+  membership check is parse-time work, and §7.2's step numbers 2–6 are
+  load-bearing (cited by RFC-AITP-0009 §1, RFC-AITP-0008 §3.3, and the
+  `tct-002/003/004/008/009/010` and `rev-004` conformance fixtures), so
+  folding avoids renumbering them. The step spells out the JWS mapping:
+  the unknown member is an unrecognized *claim*, the namespace is `ext`
+  (not `extensions`), and the protected header needs no separate check
+  because §5.4.5 already pins it to exactly `alg` + `typ`.
+- `rfcs/RFC-AITP-0008-revocation.md` §1.5 — the **Verification**
+  paragraph now begins with member-set validation (wrapper carries exactly
+  `revocation_list` + `signature`; body members are table fields or inside
+  `extensions`) before any signature work; the `extensions` row names the
+  code; §3.3's lookup-ordering parenthetical notes that "strict parse"
+  includes the §7.2 step 1 unknown-claim rejection (its "steps 1–5"
+  citation stays accurate).
+- `rfcs/RFC-AITP-0010-session-trust-bundle.md` §5 — member-set validation
+  is added as an explicit **unnumbered lead-in** that precedes every
+  numbered step, deliberately not a numbered step because §5's step
+  numbers are load-bearing (cited by §8's `BUNDLE_PARTICIPANT_TCT_INVALID`
+  row and pinned by the `bundle-002`/`bundle-003` fixtures). §8 records
+  that the rejection surfaces as the core `UNKNOWN_FIELD`, not a
+  `BUNDLE_*` code; the §3 `extensions` row names the code. The pre-v0.2
+  sibling-`signature` wrapper shape stays a §3/schema rejection
+  (`bundle-004` pins `SESSION_BUNDLE_INVALID` for it), distinct from an
+  unknown member inside the signed body.
+- `rfcs/RFC-AITP-0001-core.md` — §7 keeps its security rationale verbatim
+  and gains: the code itself, the explicit statement of the designed
+  asymmetry, the `ext` spelling note for compact-JWS artifacts, and an
+  index of the per-artifact steps above. §5.4.5's existing "unknown claims
+  MUST be rejected" sentence gains the code. §5.7's envelope-level table
+  gains the row. §5.2's field table gains the `extensions` row the
+  canonical envelope schema has always defined (`aitp-envelope.schema.json`
+  lists it; the prose table omitted it — the same prose/schema divergence
+  class this repo keeps closing, surfaced here because `env-006`/`env-007`
+  pin envelope-level behavior in both directions).
+
+**Step-citation fixes forced by the renumbering.** RFC-AITP-0003 §5.1's
+"step 5 above" and §10's "§5 step 5" → step 6; RFC-AITP-0004 §5.4's two
+"§5.3 step 4" references → step 5, and §6's failure-table citations of
+§5.3/§5.4 steps #2/#3/#4 → #3/#4/#5; and one citation outside the RFC set,
+`schemas/json/aitp-manifest.schema.json`'s `accepted_trust_anchors`
+description ("RFC-AITP-0003 §5 step 5" → "step 6" — a description string
+only; no schema constraint changed).
+
+**Registry and VERSIONING reconciliation.** `registries/error-codes.md`
+gains the `UNKNOWN_FIELD` row in the core (envelope-level) table and in the
+Mutual Handshake table, plus the naming-convention sentence covering bare
+cross-object codes. This change is also the first to sit on the seam
+between the registry's stability note ("new codes can be added without an
+RFC") and VERSIONING.md's change classes ("backward-compatible addition —
+minor RFC bump. … new error codes"), so both now state the relationship
+explicitly: the registry note waives the need for a new RFC *document*,
+while the change class governs how the `Version:` header moves on the
+existing RFCs whose normative text gains the code. The two compose — no
+new document, minor bump — and neither policy's substance changed.
+
+**Conformance coverage — nine fixtures, in matched pairs.** Issue #37 was
+opened because `aitp-verifier-py` added §7 enforcement across every artifact
+and *the entire conformance pack stayed green before and after* — the rule
+was normative but untested, so an implementation could ignore it and pass.
+Each artifact family now carries a **reject/accept pair** exercising both
+sides of the asymmetry with the placement of the unknown member as the only
+variable, which is what makes the pair a test of §7 rather than of schema
+strictness in general:
+
+| Artifact | Unknown member outside the namespace | Unrecognized key inside it |
+|---|---|---|
+| Envelope | `env-006` (`trace_id`) → `UNKNOWN_FIELD` | `env-007` → success |
+| Manifest | `man-004` (`deployment_region`) → `UNKNOWN_FIELD` | `man-005` → success |
+| TCT (claims) | `tct-011` (`device_id`) → `UNKNOWN_FIELD` | `tct-012` (`ext`) → success |
+| Revocation snapshot | `rev-005` (`list_owner`) → `UNKNOWN_FIELD` | `rev-006` → success |
+| Session bundle | `bundle-006` (`coordinator_note`) → `UNKNOWN_FIELD` | `bundle-005` (pre-existing) → success |
+
+The accept side is load-bearing, not padding: a runner that rejects *all*
+unrecognized members passes every reject fixture while violating the
+MUST-ignore half of §7, and only the accept fixture catches it. The TCT pair
+uses `ext` rather than `extensions`, pinning the compact-JWS spelling in an
+executable artifact. Each fixture is wired into
+`scripts/fixture-validation-map.json` with its expected schema verdict —
+`expect: "invalid"` with a stated reason for the five reject fixtures
+(schema `additionalProperties` is the mechanism, and the map records why
+that is the *correct* expected outcome rather than a defect), `expect:
+"valid"` for the accept fixtures, so a schema that silently started
+permitting unknown members would fail the map rather than pass it.
+`schemas/conformance/README.md`'s tier table moves 55 → 64 fixtures (core
+45 → 53, draft session-bundle 5 → 6) and every new fixture is listed in its
+family table. `scripts/validate-json.sh`'s `FIXTURE_INPUT_MIN_CHECKS` floor
+moves 110 → 121.
+
+**Tooling — the registry gets a coherence gate.** Adding an error code
+surfaced that nothing verified a fixture's asserted `error_code` actually
+exists in `registries/error-codes.md`. A fixture could pin a code no
+implementation could ever return — a typo, or a code renamed in the registry
+and left behind here — and every stage stayed green: the same
+one-fact-in-two-places-with-nothing-checking-they-agree shape as the version
+and citation stages. `scripts/check-doc-coherence.sh` gains a fourth stage
+cross-checking every fixture-asserted code against the registry (29 distinct
+codes today, all resolving), fail-closed on a zero-scan like its siblings.
+The direction is deliberately one-way: every code a fixture *asserts* must
+be defined. A registry code no fixture exercises is a coverage question, not
+a coherence defect, and is not checked here.
+
+
+**Version bump summary — minor class, patch position.** A new error code is
+a **backward-compatible addition** under VERSIONING.md's change classes,
+which prescribe a *minor* RFC bump — unlike every prior entry in this file,
+which was Editorial / patch. The position that bump lands in is a separate
+question from its class, and this change is the one that forced it to be
+answered: pre-1.0, the **minor position is reserved for the protocol
+revision**. It moved `0.1.x` → `0.2.x` only because `aitp/0.2` was itself a
+breaking revision. A minor-*class* change made **inside** an existing
+protocol revision therefore takes a **patch-position** bump and records its
+class here. Doing otherwise would put a `0.3.0-draft` document inside
+protocol `aitp/0.2` — readable as a protocol break — and leave document
+versions permanently offset once `aitp/0.3` arrives. VERSIONING.md now pins
+this mapping explicitly (its Pre-1.0 position mapping note), with this
+change as the worked example; the earlier draft of this entry flagged the
+question as unresolved policy, and it is now resolved rather than left open.
+
+The six RFCs whose normative text gains the code or a verification step
+move:
+`RFC-AITP-0001-core.md` `0.2.3-draft` → `0.2.4-draft`,
+`RFC-AITP-0003-manifest.md` `0.2.2-draft` → `0.2.3-draft`,
+`RFC-AITP-0004-mutual-handshake.md` `0.2.1-draft` → `0.2.2-draft`,
+`RFC-AITP-0005-tct.md` `0.2.0-draft` → `0.2.1-draft`,
+`RFC-AITP-0008-revocation.md` `0.2.4-draft` → `0.2.5-draft`,
+`RFC-AITP-0010-session-trust-bundle.md` `0.2.3-draft` → `0.2.4-draft`.
+The protocol literal is a separate layer and does **not** move: the wire
+version stays `aitp/0.2`, the schema namespace stays
+`https://aitp.dev/schema/v0.2/`, and each document's Status line still
+reads "v0.2 Draft" — VERSIONING.md's RFC-version layer says the `Version:`
+header "tracks each document's own editorial history, not the protocol
+literal."
+
 ### Issue #28: RFC-AITP-0008 §1.5 cited RFC-AITP-0011 for a wrapper convention it does not have
 
 **Editorial.** The `signature` field-table row in §1.5 stated that the

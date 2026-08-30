@@ -2,7 +2,7 @@
 # Session Trust Bundle
 
 **Document:** RFC-AITP-0010
-**Version:** 0.2.3-draft
+**Version:** 0.2.4-draft
 **Status:** Draft
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0004 Mutual Handshake](RFC-AITP-0004-mutual-handshake.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md), [RFC-AITP-0008 Revocation](RFC-AITP-0008-revocation.md)
 
@@ -87,7 +87,7 @@ The bundle itself is a **JCS-signed JSON object** — a protocol-internal artifa
 | `issued_at` | REQUIRED | Unix timestamp when this bundle was signed. |
 | `expires_at` | REQUIRED | Unix timestamp after which the bundle MUST NOT be used. MUST equal the minimum `exp` claim across the embedded participant TCTs (see §6). |
 | `participants` | REQUIRED | Array of participant entries. Each entry pairs a participant AID with the peer-issued TCT (compact JWS string) the coordinator issued to that participant during the bilateral handshake that fed into this bundle. |
-| `extensions` | OPTIONAL | Extension namespace per [RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model) and [RFC-AITP-0012](RFC-AITP-0012-extensions.md). Unknown keys *inside* `extensions` MUST be ignored; unknown fields *outside* it are rejected. It is an ordinary member of the signed body, so when present it is covered by the signature like any other member — and because absent and empty (`{}`) canonicalize differently, an implementation MUST NOT substitute one for the other when reconstructing the signing input (RFC-AITP-0001 §5.4.1). |
+| `extensions` | OPTIONAL | Extension namespace per [RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model) and [RFC-AITP-0012](RFC-AITP-0012-extensions.md). Unknown keys *inside* `extensions` MUST be ignored; unknown fields *outside* it are rejected with `UNKNOWN_FIELD` (§5). It is an ordinary member of the signed body, so when present it is covered by the signature like any other member — and because absent and empty (`{}`) canonicalize differently, an implementation MUST NOT substitute one for the other when reconstructing the signing input (RFC-AITP-0001 §5.4.1). |
 | `signature` | REQUIRED | Coordinator's signature over the canonical **inner** `session_bundle` body, excluding the `signature` member itself. The `{"session_bundle": {…}}` form shown throughout this RFC is the **HTTP/transport envelope only**; the signed object is the inner `session_bundle` value, never the wrapper. Consumers MUST unwrap to the inner object before computing the signing input. Same JCS rules as RFC-AITP-0001 §5.4.1, whose wrapper-stripping requirement this restates for the bundle. |
 
 > **Erratum.** Session-bundle JSON schemas published before this correction placed `signature` as a *sibling* of the `{"session_bundle": …}` transport wrapper, contradicting this section, and the `bundle-*` conformance fixtures followed the schema. The schema and the fixtures were corrected to the member placement this RFC has always specified. No signing bytes changed: both readings canonicalize the bundle body with the `signature` member excluded, so pinned known-answer values are unaffected.
@@ -145,6 +145,8 @@ HTTP transport is a delivery convenience, not a trust upgrade.
 
 ## 5. Verification
 
+Member-set validation comes first, before every numbered check below: every member of the received inner `session_bundle` body MUST be a field defined in §3 or sit inside `extensions`. Any unknown member of the signed body outside `extensions` ⇒ the **core** code `UNKNOWN_FIELD` ([RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model)); unknown keys *inside* `extensions` MUST be ignored. (A `signature` sitting beside the `session_bundle` wrapper key instead of inside the body is the distinct pre-v0.2 shape, rejected per §3 — the signed body is then also missing its required `signature` member.) This structural check is deliberately not a numbered step — the step numbers below are load-bearing, cited by §8 and by the pinned conformance fixtures — but it precedes them all: a bundle carrying an unknown member is rejected before coordinator key resolution (step 5) triggers any network fetch and before any signature verification (steps 6–7) is spent on it.
+
 A participant receiving a bundle MUST, in order:
 
 1. **Version check** — `session_bundle.version` MUST be `"aitp/0.2"` or a later supported version. Failure ⇒ `BUNDLE_VERSION_MISMATCH`.
@@ -195,6 +197,8 @@ A coordinator that wishes to terminate a session entirely MUST add every embedde
 | `BUNDLE_NOT_MEMBER` | Receiver's AID is not in `participants[*].aid` | false |
 
 The aggregate code `SESSION_BUNDLE_INVALID` is a fallback for implementations that do not distinguish the failure cases; new code SHOULD prefer the specific codes above. Implementations MAY return the aggregate when a deployment policy requires a single-error surface for bundles.
+
+An unknown member inside the signed `session_bundle` body, outside `extensions`, is rejected with the **core** code `UNKNOWN_FIELD` (§5's member-set check; [RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model)) — not with a `BUNDLE_*` code. It is listed in the [error-code registry](../registries/error-codes.md)'s core table rather than above, because it is a core RFC-AITP-0001 code that every signed AITP object shares, not a bundle-specific one.
 
 ---
 

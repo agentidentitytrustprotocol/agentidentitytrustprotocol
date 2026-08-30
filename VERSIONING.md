@@ -42,8 +42,19 @@ and the CHANGELOG for the migration record).
   Stability rule ("an existing vector's output MUST NOT change without an RFC bump")
   requires, and the CHANGELOG MUST publish the old and new values so a consumer
   pinning them can identify their copy.
-- **Backward-compatible addition** — minor RFC bump. New optional fields, new error codes, new identity types. Unknown JSON fields outside explicit `extensions` namespaces MUST be rejected. Unknown keys *inside* `extensions` MUST be ignored. See RFC-AITP-0001 §7.
+- **Backward-compatible addition** — minor RFC bump. New optional fields, new error codes, new identity types. Unknown JSON fields outside explicit `extensions` namespaces MUST be rejected with `UNKNOWN_FIELD`. Unknown keys *inside* `extensions` MUST be ignored. See RFC-AITP-0001 §7.
+  For error codes, this class composes with [`registries/error-codes.md`](registries/error-codes.md)'s stability note ("new codes can be added without an RFC") rather than contradicting it: the registry note waives the need for a new RFC *document*, while this class governs how the `Version:` header moves on the existing RFCs whose normative text gains the code. One addition, two policies, different questions — no new document, minor bump.
 - **Breaking change** — major RFC bump and a new schema namespace. Migration notes required.
+
+> **Pre-1.0 position mapping.** While the protocol literal is `aitp/0.M`, RFC document
+> versions stay in the `0.M.x` line. The **minor position is reserved for the protocol
+> revision** — it moved `0.1.x` → `0.2.x` only because `aitp/0.2` was itself a breaking
+> revision. A change whose *class* is a backward-compatible addition, made **inside** an
+> existing protocol revision, therefore takes a **patch-position** bump and records its
+> class in the CHANGELOG; it does not move the minor position. Doing otherwise would put
+> a `0.3.0-draft` document inside protocol `aitp/0.2` — readable as a protocol break, and
+> leaving document versions permanently offset once `aitp/0.3` arrives. The
+> `UNKNOWN_FIELD` addition is the worked example: minor class, patch position.
 
 ## Forward / backward compatibility
 

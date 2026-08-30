@@ -114,7 +114,7 @@ fi
 # Lower FIXTURE_INPUT_MIN_CHECKS only in the same commit that removes fixtures,
 # and say why in the commit message — the same rule verify-known-answer.mjs uses
 # for EXPECTED_MIN_CHECKS.
-FIXTURE_INPUT_MIN_CHECKS=110
+FIXTURE_INPUT_MIN_CHECKS=121
 FIXTURE_MAP="${SCRIPT_DIR}/fixture-validation-map.json"
 NORMALIZER="${SCRIPT_DIR}/normalize-fixture-input.py"
 

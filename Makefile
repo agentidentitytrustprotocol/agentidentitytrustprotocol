@@ -50,7 +50,7 @@ kat-verify:
 # headers -- this is the mechanical check that stops them from drifting the
 # way schemas/fixtures did before PR #22 and PR #30.
 doc-coherence:
-	@echo "Checking RFC version claims, intra-repo anchor links, and section citations..."
+	@echo "Checking RFC version claims, intra-repo anchor links, section citations, and fixture error codes..."
 	@./scripts/check-doc-coherence.sh
 
 # ── Docs ─────────────────────────────────────────────────────────────────────
