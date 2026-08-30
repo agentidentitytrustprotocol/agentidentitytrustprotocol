@@ -13,7 +13,7 @@
   ],
   "input": {
     "step": "initiator received MUTUAL_HELLO_ACK",
-    "sent_pop_nonce": "QWdlbnRBUG9wTm9uY2VFeHBlY3RlZA",
+    "sent_pop_nonce": "fRVe56NIsF6e0msvD0ORaQ",
     "envelope": {
       "version": "aitp/0.2",
       "message_type": "mutual_hello_ack",
@@ -57,8 +57,8 @@
         "requested_grants": [
           "macp.mode.task.v1"
         ],
-        "pop_nonce": "QWdlbnRCUG9wTm9uY2VOZXcxMjhiaXQ",
-        "pop_nonce_echo": "QXR0YWNrZXJTd2FwcGVkTm9uY2VWYWx1ZQ"
+        "pop_nonce": "Vl4YHtl6OQcOdQiSlkaHhg",
+        "pop_nonce_echo": "xatQKgEJw3UX1Wu0PkqHOA"
       },
       "signature": "__VALID_ENVELOPE_SIG__"
     },

@@ -358,8 +358,7 @@
         {
           "pointer": "/input/envelope/payload",
           "schema": "aitp-mutual-handshake.schema.json",
-          "expect": "invalid_known_defect",
-          "reason": "The fixture's pop_nonce/pop_nonce_echo literal is a hand-written illustrative string (base64 of readable ASCII) whose length violates $defs/PopNonce's ^[A-Za-z0-9_-]{22}$. This fixture asserts a SEMANTIC failure, not a malformed nonce, so the value is a fixture defect rather than intent."
+          "expect": "valid"
         },
         {
           "pointer": "/input/envelope/payload/manifest",
@@ -384,9 +383,8 @@
         {
           "pointer": "/input/envelope/payload/manifest",
           "schema": "aitp-manifest.schema.json",
-          "expect": "invalid_known_defect",
-          "wrap": "manifest",
-          "reason": "The embedded manifest carries accepted_trust_anchors: [], which violates the manifest schema's minItems: 1. This is a pinned-key fixture, where accepting no OIDC issuer is the correct configuration \u2014 so either minItems: 1 wrongly assumes OIDC identity is always in play, or the fixture should name an anchor. That is a spec question; recording it as a known defect rather than silently encoding either answer."
+          "expect": "valid",
+          "wrap": "manifest"
         }
       ]
     },
@@ -405,9 +403,8 @@
         {
           "pointer": "/input/envelope/payload/manifest",
           "schema": "aitp-manifest.schema.json",
-          "expect": "invalid_known_defect",
-          "wrap": "manifest",
-          "reason": "The embedded manifest carries accepted_trust_anchors: [], which violates the manifest schema's minItems: 1. This is a pinned-key fixture, where accepting no OIDC issuer is the correct configuration \u2014 so either minItems: 1 wrongly assumes OIDC identity is always in play, or the fixture should name an anchor. That is a spec question; recording it as a known defect rather than silently encoding either answer."
+          "expect": "valid",
+          "wrap": "manifest"
         }
       ]
     },
@@ -426,9 +423,8 @@
         {
           "pointer": "/input/envelope/payload/manifest",
           "schema": "aitp-manifest.schema.json",
-          "expect": "invalid_known_defect",
-          "wrap": "manifest",
-          "reason": "The embedded manifest carries accepted_trust_anchors: [], which violates the manifest schema's minItems: 1. This is a pinned-key fixture, where accepting no OIDC issuer is the correct configuration \u2014 so either minItems: 1 wrongly assumes OIDC identity is always in play, or the fixture should name an anchor. That is a spec question; recording it as a known defect rather than silently encoding either answer."
+          "expect": "valid",
+          "wrap": "manifest"
         }
       ]
     },
@@ -539,8 +535,7 @@
         {
           "pointer": "/input/envelope/payload",
           "schema": "aitp-mutual-handshake.schema.json",
-          "expect": "invalid_known_defect",
-          "reason": "The fixture's pop_nonce/pop_nonce_echo literal is a hand-written illustrative string (base64 of readable ASCII) whose length violates $defs/PopNonce's ^[A-Za-z0-9_-]{22}$. This fixture asserts a SEMANTIC failure, not a malformed nonce, so the value is a fixture defect rather than intent."
+          "expect": "valid"
         },
         {
           "pointer": "/input/envelope/payload/manifest",
@@ -560,8 +555,7 @@
         {
           "pointer": "/input/envelope/payload",
           "schema": "aitp-mutual-handshake.schema.json",
-          "expect": "invalid_known_defect",
-          "reason": "aitp-mutual-handshake.schema.json's top-level oneOf cannot match a commit payload: $defs/MutualCommitPayload and $defs/MutualCommitAckPayload are structurally identical (same required, same properties), so every commit payload matches BOTH branches and oneOf fails with passingSchemas=[2,3]. The payload is well-formed; the schema is defective. When the schema gains a discriminator this entry flips to valid and the build fails here until the map is updated."
+          "expect": "valid"
         },
         {
           "pointer": "/input/envelope/payload/tct_claims",
@@ -580,8 +574,7 @@
         {
           "pointer": "/input/envelope/payload",
           "schema": "aitp-mutual-handshake.schema.json",
-          "expect": "invalid_known_defect",
-          "reason": "aitp-mutual-handshake.schema.json's top-level oneOf cannot match a commit payload: $defs/MutualCommitPayload and $defs/MutualCommitAckPayload are structurally identical (same required, same properties), so every commit payload matches BOTH branches and oneOf fails with passingSchemas=[2,3]. The payload is well-formed; the schema is defective. When the schema gains a discriminator this entry flips to valid and the build fails here until the map is updated."
+          "expect": "valid"
         },
         {
           "pointer": "/input/envelope/payload/tct_claims",
@@ -600,8 +593,7 @@
         {
           "pointer": "/input/envelope/payload",
           "schema": "aitp-mutual-handshake.schema.json",
-          "expect": "invalid_known_defect",
-          "reason": "aitp-mutual-handshake.schema.json's top-level oneOf cannot match a commit payload: $defs/MutualCommitPayload and $defs/MutualCommitAckPayload are structurally identical (same required, same properties), so every commit payload matches BOTH branches and oneOf fails with passingSchemas=[2,3]. The payload is well-formed; the schema is defective. When the schema gains a discriminator this entry flips to valid and the build fails here until the map is updated. This payload additionally carries a pop_nonce_echo violating the PopNonce pattern."
+          "expect": "valid"
         },
         {
           "pointer": "/input/envelope/payload/tct_claims",
@@ -635,8 +627,7 @@
         {
           "pointer": "/input/peer_a/received_payload",
           "schema": "aitp-mutual-handshake.schema.json",
-          "expect": "invalid_known_defect",
-          "reason": "aitp-mutual-handshake.schema.json's top-level oneOf cannot match a commit payload: $defs/MutualCommitPayload and $defs/MutualCommitAckPayload are structurally identical (same required, same properties), so every commit payload matches BOTH branches and oneOf fails with passingSchemas=[2,3]. The payload is well-formed; the schema is defective. When the schema gains a discriminator this entry flips to valid and the build fails here until the map is updated."
+          "expect": "valid"
         },
         {
           "pointer": "/input/peer_a/received_payload/tct_claims",
@@ -651,8 +642,7 @@
         {
           "pointer": "/input/peer_b/received_payload",
           "schema": "aitp-mutual-handshake.schema.json",
-          "expect": "invalid_known_defect",
-          "reason": "aitp-mutual-handshake.schema.json's top-level oneOf cannot match a commit payload: $defs/MutualCommitPayload and $defs/MutualCommitAckPayload are structurally identical (same required, same properties), so every commit payload matches BOTH branches and oneOf fails with passingSchemas=[2,3]. The payload is well-formed; the schema is defective. When the schema gains a discriminator this entry flips to valid and the build fails here until the map is updated."
+          "expect": "valid"
         },
         {
           "pointer": "/input/peer_b/received_payload/tct_claims",

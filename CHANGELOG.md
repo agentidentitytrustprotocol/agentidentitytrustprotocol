@@ -2,6 +2,38 @@
 
 ## Unreleased
 
+### Issue #28: RFC-AITP-0008 §1.5 cited RFC-AITP-0011 for a wrapper convention it does not have
+
+**Editorial.** The `signature` field-table row in §1.5 stated that the
+inner-body signing convention "matches the RFC-AITP-0010 session-bundle and
+RFC-AITP-0011 multi-hop conventions: the wrapper key names the artifact for
+transport routing but the issuer signs the inner body." RFC-AITP-0011 has no
+artifact-name wrapper to cite: its multi-hop delegation token is a compact
+JWS string (RFC-AITP-0011 §1, per RFC-AITP-0006 §2), which by construction
+carries no JSON wrapper. RFC-AITP-0001 §5.4.1 is the authoritative
+enumeration of artifact-name-wrapped JCS artifacts — exactly three:
+`{"manifest": …}`, `{"revocation_list": …}`, `{"session_bundle": …}` — and
+groups the delegation token with the compact-JWS profile instead. The
+RFC-AITP-0010 half of the citation is correct and unaffected.
+
+The `RFC-AITP-0011 multi-hop` half is deleted rather than retargeted:
+there is no RFC-AITP-0011 section that supports the claim, because the
+convention the sentence describes does not exist in that document. This is
+the same resolution already used for the sibling defect earlier in this
+file, where §5.4.1's `(RFC-AITP-0008 §3.3)` citation was deleted outright
+rather than pointed at a different RFC-AITP-0008 section, for the same
+reason — no section of the target document supports the claim.
+
+- `rfcs/RFC-AITP-0008-revocation.md` §1.5 — the `signature` row's
+  parenthetical now reads "This matches the RFC-AITP-0010 session-bundle
+  convention: the wrapper key names the artifact for transport routing but
+  the issuer signs the inner body," dropping the RFC-AITP-0011 clause and
+  the now-inaccurate "conventions" plural.
+
+**Version bump.** `RFC-AITP-0008-revocation.md` moves `0.2.3-draft` →
+`0.2.4-draft` per VERSIONING.md:24's Editorial / clarification class (no
+schema or wire change).
+
 ### RFC-AITP-0001 §5.4: subsection order, enumeration drift, and a bad citation
 
 **Editorial.** RFC-AITP-0001 §5.4's subsections were physically out of order —

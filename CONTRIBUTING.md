@@ -7,7 +7,7 @@ AITP is an agent-to-agent trust standard. All changes MUST preserve the core inv
 - TCTs are signed, peer-issued, audience-bound (peer AID), capability-scoped, and self-contained.
 - Verification is stateless on the consuming peer's side.
 - Every agent publishes a signed Manifest at `/.well-known/aitp-manifest` (RFC-AITP-0003).
-- Delegation is single-hop in v0.1; chains are rejected.
+- Delegation is single-hop in v0.2 core; chains are RFC-AITP-0011, an opt-in draft outside core conformance.
 - Replay protection is dual-controlled (`message_id` deduplication + `timestamp` window) and the Mutual Handshake binds rounds via PoP nonce echoes.
 - Identity binding is pluggable; peers MUST NOT accept issuers outside `trust_anchors`.
 
@@ -15,7 +15,7 @@ AITP is an agent-to-agent trust standard. All changes MUST preserve the core inv
 
 - Specification clarifications (non-normative)
 - New RFCs or amendments to existing RFCs
-- JSON Schema updates (canonical for v0.1)
+- JSON Schema updates (canonical for v0.2)
 - Conformance fixtures
 - Tooling and CI improvements
 - Documentation
