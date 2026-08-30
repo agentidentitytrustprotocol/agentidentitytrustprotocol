@@ -2,6 +2,47 @@
 
 ## Unreleased
 
+### RFC-AITP-0001 §5.4: subsection order, enumeration drift, and a bad citation
+
+**Editorial.** RFC-AITP-0001 §5.4's subsections were physically out of order —
+5.4.3, 5.4.4, 5.4.1, 5.4.2, 5.4.5 — so a reader following the numbering met the
+algorithm-tag section (§5.4.3) before the signing-input section (§5.4.1) that
+defines what is being signed. §5.4.1 and §5.4.2 move to sit before §5.4.3,
+producing the plain ascending order 5.4.1–5.4.5. This is a pure block move: the
+moved text is byte-identical to its pre-move form, and no heading text changed,
+so every existing `#541-signing-input-jcs-profile`-style anchor link still
+resolves — Markdown anchors are derived from heading text, not position.
+
+Two of RFC-AITP-0001's four enumerations of JCS-profile artifacts omitted the
+session bundle while the other two already included it — PR #22/#30 wrote
+bundle handling into §5.4.1's body without retrofitting its own opening lines.
+Both are corrected to name the session bundle, bringing all four enumerations
+(the §5.4 profile table, the §5.4.1 opening sentence, the §5.4.3 field list,
+and the §5.4.1 known-answer callout) into agreement:
+
+- §5.4 profile table, JCS embedded-signature profile row — Artifacts cell gains
+  "session trust bundles".
+- §5.4.1 opening sentence — the parenthetical artifact list gains "session
+  bundle".
+
+Separately, §5.4.1's wrapper-note blockquote cited RFC-AITP-0008 §3.3 for the
+claim that a cache shared among the components of a single deployment does not
+make an artifact redistributable. §3.3 is "Revocation lookup ordering" —
+signature checks before network-adjacent revocation lookup — and does not
+discuss multi-component cache-sharing within a single deployment; no section of
+RFC-AITP-0008 supports this specific claim. The `(RFC-AITP-0008 §3.3)`
+parenthetical is deleted outright rather than retargeted; the sentence stands
+on its own. The following sentence's `(RFC-AITP-0008 §3.2)` citation, which
+supports a different and correctly-scoped claim, is unchanged.
+
+- `rfcs/RFC-AITP-0001-core.md` §5.4 — subsections reordered to 5.4.1–5.4.5; the
+  profile table and §5.4.1's opening sentence now name the session bundle; the
+  unsupported RFC-AITP-0008 §3.3 citation removed.
+
+**Version bump.** `RFC-AITP-0001-core.md` moves `0.2.2-draft` → `0.2.3-draft`
+per VERSIONING.md's Editorial / clarification class (no schema or wire
+change). No other RFC's `Version:` header changes.
+
 ### Session bundle: the signature is a member of the signed body
 
 **Breaking for anything validating a session bundle against the published JSON
