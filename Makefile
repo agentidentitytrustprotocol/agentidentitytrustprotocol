@@ -11,7 +11,9 @@ help:
 	@echo "Validation:"
 	@echo "  make validate              Run all v0.2 validations (JSON only)"
 	@echo "  make json-schema-validate  Validate JSON Schemas (meta-validation)"
-	@echo "  make json-validate         Validate JSON examples and conformance fixtures"
+	@echo "  make json-validate         Validate JSON examples and conformance fixtures,"
+	@echo "                             incl. the map-driven fixture-input cross-check"
+	@echo "                             (scripts/fixture-validation-map.json)"
 	@echo "  make kat-verify            Recompute and verify every pinned known-answer value"
 	@echo "  make doc-coherence         Check RFC version claims and intra-repo anchor links"
 	@echo

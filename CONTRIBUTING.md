@@ -41,10 +41,80 @@ Breaking changes require:
 
 To add an entry to a registry (`registries/identity-types.md`, `registries/capabilities.md`, `registries/error-codes.md`, `registries/media-types.md`), submit a PR adding a row to the relevant table. Each entry MUST include a `Status` (`Proposed`, `Provisional`, `Stable`, `Deprecated`). New identifiers MUST NOT conflict with existing entries.
 
+## Conformance fixtures
+
+Every fixture under `schemas/conformance/*.json` MUST have a matching entry
+in `scripts/fixture-validation-map.json`, keyed by the fixture's `id` field
+(not its filename). `make json-validate` (`scripts/validate-json.sh`) treats
+an unmapped fixture as a build failure, never a silent skip — a validator
+that quietly skips what it does not recognize is worse than no validator at
+all.
+
+When you add a fixture:
+
+1. Add the fixture JSON under `schemas/conformance/`.
+2. Add a matching entry to `scripts/fixture-validation-map.json`. For each
+   artifact embedded in the fixture's `input` (a session bundle, TCT claims,
+   a manifest, …), name:
+   - `pointer` — the RFC 6901 JSON pointer to the artifact inside the fixture.
+   - `schema` — the schema filename under `schemas/json/` it must satisfy.
+   - `expect` — `valid`, `invalid`, or `invalid_known_defect`.
+   - `reason` — required whenever `expect` is not `valid`; explains why the
+     artifact is expected to fail validation.
+   - `wrap` — optional; re-wraps the artifact as `{KEY: artifact}` for a
+     schema that describes the wrapped transport form rather than the body.
+
+   A fixture with no embedded artifacts to validate MUST say so explicitly
+   with a `no_artifacts` entry naming a reason, instead of being omitted.
+
+`expect` is checked in **both directions**: an artifact declared `invalid`
+that starts validating fails the build exactly as loudly as one declared
+`valid` that stops validating. If you fix a fixture's underlying defect,
+update its map entry in the same commit — otherwise the build fails there
+instead.
+
+Example entry:
+
+```json
+"bundle-002": {
+  "artifacts": [
+    {
+      "pointer": "/input/session_bundle",
+      "schema": "aitp-session-bundle.schema.json",
+      "expect": "valid"
+    }
+  ]
+}
+```
+
+See [`schemas/conformance/README.md`](schemas/conformance/README.md) for the
+fixture format itself, and `scripts/normalize-fixture-input.py` for how
+placeholder tokens (`__VALID_A_SIG__`, `__NOW_PLUS_3600__`, …) are substituted
+before an artifact is checked against its schema.
+
+## Prerequisites
+
+- **`python3`** — a hard prerequisite. `scripts/validate-json.sh` calls it
+  unconditionally, both for JSON syntax checking and for the fixture-input
+  cross-check described above; there is no fallback path for that stage.
+- **Node.js 20+** for local development, matching what CI pins
+  (`.github/workflows/ci.yml` sets `node-version: '20'`). The hard technical
+  floor is lower — `scripts/verify-known-answer.mjs` relies on `Buffer`'s
+  `base64url` encoding, added in Node.js 15.7.0 (backported to 14.18.0) — but
+  those lines are long past end-of-life, so match CI's Node 20 rather than
+  the historical minimum.
+- **`ajv-cli`** and **`ajv-formats`** — install with `make install-tools`
+  (requires `npm`).
+
 ## Technical requirements
 
 - JSON Schemas MUST themselves be valid (`make json-schema-validate`).
-- JSON examples MUST validate against the relevant JSON Schema (`make json-validate`).
+- JSON examples and conformance fixture inputs MUST validate against the
+  relevant JSON Schema (`make json-validate`; see "Conformance fixtures"
+  above for the fixture-input map requirement).
+- Documentation MUST stay coherent with itself — RFC version claims in
+  `rfcs/README.md` MUST match each RFC's own `Version:` header, and every
+  intra-repo `path.md#anchor` link MUST resolve (`make doc-coherence`).
 - Backward compatibility MUST be addressed explicitly in the PR description.
 
 ## Style

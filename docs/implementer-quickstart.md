@@ -117,6 +117,21 @@ When implementing, verify against:
 
 - [`schemas/json/`](../schemas/json/) — canonical JSON Schemas.
 - [`schemas/conformance/`](../schemas/conformance/) — pass/fail behavioral
-  fixtures (`env-*`, `man-*`, `mh-*`, `id-*`, `tct-*`, `rev-*`, `del-*`).
+  fixtures (`env-*`, `man-*`, `mh-*`, `id-*`, `tct-*`, `vch-*`, `rev-*`,
+  `del-*`, `del-mh-*`, `bundle-*`).
 
-`make validate` runs the schema and example checks locally.
+`make validate` runs, locally and in CI:
+
+- `json-schema-validate` — the JSON Schemas are themselves well-formed.
+- `json-validate` — JSON examples validate against their schemas, each
+  fixture's metadata block validates against
+  `aitp-conformance-fixture.schema.json`, **and** every artifact embedded in
+  a fixture's `input` (session bundle, TCT claims, manifest, …) is
+  cross-checked against the schema it claims to satisfy, per the map at
+  [`scripts/fixture-validation-map.json`](../scripts/fixture-validation-map.json)
+  — see [`schemas/conformance/README.md`](../schemas/conformance/README.md)
+  for the contract if you're adding a fixture.
+- `kat-verify` — every pinned known-answer value (canonical bytes, derived
+  keys, signatures) recomputes correctly.
+- `doc-coherence` — RFC version claims in `rfcs/README.md` match each RFC's
+  own `Version:` header, and intra-repo `path.md#anchor` links resolve.

@@ -213,18 +213,26 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the release workflow.
 ## Repository highlights
 
 - **Canonical JSON Schemas** under `schemas/json/`.
-- **Conformance fixtures** under `schemas/conformance/`, validated in CI.
+- **Conformance fixtures** under `schemas/conformance/`, validated in CI —
+  both the fixture's own metadata block and every artifact embedded in its
+  `input` (session bundle, TCT claims, manifest, …) are validated against
+  the matching JSON Schema.
 - **Registries** under `registries/` evolve without destabilizing the core.
 - **Examples** under `examples/` are validated against the canonical schemas.
-- **GitHub Actions CI** validates JSON Schemas, examples, and conformance fixtures on every PR.
+- **GitHub Actions CI** validates JSON Schemas, examples, conformance
+  fixtures (including their embedded artifacts), pinned known-answer
+  vectors, and doc coherence (RFC version claims + intra-repo anchor links)
+  on every PR.
 
 ---
 
 ## Development
 
 ```bash
-make install-tools    # ajv-cli (one-time)
-make validate         # v0.1 conformance: JSON Schemas + examples + fixtures
+make install-tools    # ajv-cli, ajv-formats (one-time); also requires python3 and Node.js 20+
+make validate         # v0.2 conformance: JSON Schemas + examples + fixtures
+                       # (incl. fixture-input cross-check) + known-answer
+                       # vectors + doc coherence
 make release          # Build the sanctioned release archive
 make help             # Show all targets
 ```

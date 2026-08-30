@@ -8,16 +8,23 @@ specified outcome for each fixture.
 
 ## Structure
 
+The prefix list below is generated from the fixture files actually present
+(`ls schemas/conformance/*.json`), not hand-transcribed — regenerate it the
+same way if fixtures are added or renamed:
+
 ```
 conformance/
 ├── README.md
-├── env-*.json   Envelope-level checks (RFC-AITP-0001, RFC-AITP-0007)
-├── man-*.json   Manifest verification (RFC-AITP-0003)
-├── mh-*.json    Mutual Handshake scenarios (RFC-AITP-0004)
-├── id-*.json    Identity binding failures (RFC-AITP-0002)
-├── tct-*.json   Trust Context Token verification (RFC-AITP-0005, RFC-AITP-0008)
-├── vch-*.json   Grant voucher verification (RFC-AITP-0005 §8)
-└── del-*.json   Single-hop delegation (RFC-AITP-0006)
+├── env-*.json      Envelope-level checks (RFC-AITP-0001, RFC-AITP-0007)
+├── man-*.json      Manifest verification (RFC-AITP-0003)
+├── mh-*.json       Mutual Handshake scenarios (RFC-AITP-0004; includes mh-success-*)
+├── id-*.json       Identity binding failures (RFC-AITP-0002)
+├── tct-*.json      Trust Context Token verification (RFC-AITP-0005, RFC-AITP-0008)
+├── vch-*.json      Grant voucher verification (RFC-AITP-0005 §8)
+├── rev-*.json      Revocation checks (RFC-AITP-0008)
+├── del-*.json      Single-hop delegation (RFC-AITP-0006)
+├── del-mh-*.json   Multi-hop delegation, opt-in (RFC-AITP-0011)
+└── bundle-*.json   Session Trust Bundle, opt-in (RFC-AITP-0010)
 ```
 
 ---
@@ -173,6 +180,57 @@ syntactically valid base64url signature that fails Ed25519
 verification, so the crypto layer is genuinely exercised. A runner
 that rejects `rev-004` at base64url decode — rather than at signature
 verification — is testing the wrong code path.
+
+---
+
+## Fixture-input validation
+
+The metadata block described above (`id`, `rfc`, `status`, …) is checked
+against `aitp-conformance-fixture.schema.json` for every fixture. That check
+never looks inside `input`, which is where the actual artifacts — the
+session bundle, the TCT claims, the manifest — live. `make json-validate`
+(`scripts/validate-json.sh`) closes that gap with a second, map-driven stage
+that validates each embedded artifact against the schema it claims to
+satisfy.
+
+**If you add a fixture, you MUST add a matching entry to
+[`scripts/fixture-validation-map.json`](../../scripts/fixture-validation-map.json),
+keyed by the fixture's `id`.** This is fail-closed: an unmapped fixture is a
+build error, never a silently-skipped one — see the check's own error text
+for what it demands.
+
+Each artifact entry names:
+
+- `pointer` — the RFC 6901 JSON pointer to the artifact inside the fixture
+  (e.g. `/input/session_bundle`).
+- `schema` — the schema filename under `schemas/json/` the artifact must
+  satisfy.
+- `expect` — `valid`, `invalid`, or `invalid_known_defect`.
+- `reason` — required whenever `expect` is not `valid`, naming why the
+  artifact is expected to fail.
+- `wrap` — optional; re-wraps the artifact as `{KEY: artifact}` for a schema
+  that describes the wrapped transport form rather than the bare body.
+
+`expect` is checked **bidirectionally**: a fixture whose artifact is declared
+`invalid` and starts validating fails the build exactly as loudly as one
+declared `valid` that stops validating — a negative expectation that
+silently starts passing is the vacuous-pass failure mode this stage exists
+to prevent. If you fix the underlying defect a fixture was demonstrating,
+update its map entry in the same commit, or the build will fail there
+instead.
+
+A fixture with no artifacts to validate MUST say so explicitly with a
+`no_artifacts` entry naming a reason, rather than being left out of the map.
+
+Fixture `input` values carry placeholder tokens (`__VALID_A_SIG__`,
+`__NOW_PLUS_3600__`, …) rather than minted values, because minting needs key
+material this repository deliberately does not use at validation time.
+[`scripts/normalize-fixture-input.py`](../../scripts/normalize-fixture-input.py)
+substitutes a shape-conformant dummy per placeholder family before an
+artifact is handed to the schema validator; an unrecognized placeholder is a
+hard error there too, for the same reason an unmapped fixture is a hard
+error here. See [`PLACEHOLDERS.md`](PLACEHOLDERS.md) for the placeholder
+registry.
 
 ---
 
