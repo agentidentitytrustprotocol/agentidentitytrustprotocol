@@ -16,8 +16,13 @@
 #      asserts is defined in registries/error-codes.md. One-way by design:
 #      a registry code no fixture exercises is a coverage question, not a
 #      coherence defect.
+#   5. Shared-definition coherence — an object defined canonically in one
+#      schema and mirrored into another's `$defs` must match its canonical
+#      definition. The schemas are deliberately self-contained (no cross-file
+#      `$ref` anywhere), so mirroring is the mechanism and this stage is what
+#      keeps it honest.
 #
-# All four checks exist because the class of bug they catch — one fact
+# All five checks exist because the class of bug they catch — one fact
 # asserted in two places with nothing checking that they agree — is exactly
 # the shape of the bugs PR #22 and PR #30 fixed, one level up in the docs.
 # See RFC-AITP-0001 §5.4.1 and plans/docs-tests-followthrough-jcs-and-bundle-fixes.md.
@@ -26,6 +31,8 @@
 # below is the remaining piece. Stage 4 arrived with issue #37's
 # `UNKNOWN_FIELD` addition, which surfaced that a fixture could assert a
 # code the registry never defined and every other stage would stay green.
+# Stage 5 arrived with issue #40, which found the handshake schema's embedded
+# identity descriptor missing a MUST that its canonical schema states.
 
 set -e
 
@@ -515,10 +522,86 @@ then
     FAIL=1
 fi
 
+# ── 5. Shared-definition coherence (embedded $defs vs the canonical schema) ──
+echo "── Shared-definition coherence (embedded \$defs vs canonical schema) ──"
+
+# One object, defined in two schema files, with nothing checking they agree --
+# the same shape of bug as every stage above, one level down in the schemas.
+# `aitp-mutual-handshake.schema.json` carries its own copy of the identity
+# descriptor because no schema here resolves a cross-file $ref (each file is
+# self-contained by design, so an offline validator needs exactly one fetch).
+# The copy had drifted: it was missing `extensions`, the `public_key` pattern,
+# and -- load-bearing -- the `not: {required: [public_key]}` guard that
+# RFC-AITP-0002 §1 states as a MUST ("v0.2 verifiers MUST reject an OIDC
+# identity descriptor that carries public_key"). An OIDC descriptor carrying
+# public_key validated inside a handshake payload, which is the only place the
+# descriptor actually travels. See issue #40.
+#
+# The canonical file is authoritative (RFC-AITP-0002 §1 names it as such); the
+# embedded copy MUST equal it minus the file-level metadata keys that cannot
+# appear in a $defs subschema ($schema/$id/title/examples) and minus the
+# $comment marking it as a mirror.
+if ! python3 - "$PROJECT_ROOT" <<'PYEOF'
+import json, os, sys
+
+root = sys.argv[1]
+
+# (canonical schema, embedding schema, $defs name)
+MIRRORS = [
+    ("aitp-identity.schema.json", "aitp-mutual-handshake.schema.json", "IdentityDescriptor"),
+]
+META = {"$schema", "$id", "title", "examples", "$comment"}
+
+if not MIRRORS:
+    print("    Warning: no mirrored definitions configured")
+    sys.exit(1)
+
+def load(name):
+    path = os.path.join(root, "schemas", "json", name)
+    if not os.path.isfile(path):
+        print(f"    ✗ {name} not found")
+        sys.exit(1)
+    return json.load(open(path))
+
+def strip(node):
+    return {k: v for k, v in node.items() if k not in META}
+
+failed = False
+for canon_name, host_name, def_name in MIRRORS:
+    canon = load(canon_name)
+    host = load(host_name)
+    embedded = (host.get("$defs") or {}).get(def_name)
+    if embedded is None:
+        print(f"    ✗ {host_name}: $defs/{def_name} is missing (expected a mirror of {canon_name})")
+        failed = True
+        continue
+    want, got = strip(canon), strip(embedded)
+    if want != got:
+        failed = True
+        print(f"    ✗ {host_name} $defs/{def_name} has drifted from {canon_name}:")
+        for key in sorted(set(want) | set(got)):
+            if want.get(key) != got.get(key):
+                if key not in got:
+                    print(f"        - `{key}` missing from the embedded copy")
+                elif key not in want:
+                    print(f"        - `{key}` present only in the embedded copy")
+                else:
+                    print(f"        - `{key}` differs")
+        print(f"      {canon_name} is canonical (RFC-AITP-0002 §1); edit it, not the copy.")
+
+if failed:
+    sys.exit(1)
+
+print(f"    ✓ all {len(MIRRORS)} embedded definition(s) match their canonical schema")
+PYEOF
+then
+    FAIL=1
+fi
+
 
 echo "─────────────────────────────────────"
 if [ "$FAIL" -ne 0 ]; then
     echo "✗ Documentation coherence checks failed"
     exit 1
 fi
-echo "✓ Documentation is coherent (versions, anchors, section citations, and fixture error codes)"
+echo "✓ Documentation is coherent (versions, anchors, section citations, fixture error codes, and mirrored schema definitions)"

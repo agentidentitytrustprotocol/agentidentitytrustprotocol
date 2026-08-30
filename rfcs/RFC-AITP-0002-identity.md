@@ -2,7 +2,7 @@
 # Identity Binding
 
 **Document:** RFC-AITP-0002
-**Version:** 0.2.2-draft
+**Version:** 0.2.3-draft
 **Status:** Community Standards Track (v0.2 Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md)
 
@@ -39,8 +39,24 @@ v0.2 supports two identity types: `oidc` and `pinned_key`. Future identity types
 | `subject` | string | REQUIRED | Agent subject identifier. |
 | `proof` | string | REQUIRED | JWT for OIDC; base64url signature for pinned_key. |
 | `public_key` | string | REQUIRED for `pinned_key`; MUST be absent for `oidc` | base64url-encoded public key. For `pinned_key`, this is the key the verifier looks up in its `pinned_keys` configuration (§3.2). For `oidc`, the agent's public key is already encoded in the verifying-peer envelope's `sender.agent_id` (the AID-identifier component) — there is no second copy in the descriptor, and including one would create an ambiguity over which key the JWT's `cnf.jkt` is meant to bind. The identity-descriptor schema (`schemas/json/aitp-identity.schema.json`) enforces this: its `oidc` branch forbids `public_key`, mirroring the `IdentityHint` rule that the Manifest schema applies to `identity_hint`. v0.2 verifiers MUST reject an OIDC `identity` descriptor that carries `public_key`. |
+| `extensions` | object | OPTIONAL | Extension namespace per [RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model) and [RFC-AITP-0012](RFC-AITP-0012-extensions.md). Unknown keys *inside* `extensions` MUST be ignored; unknown members *outside* it are rejected with `UNKNOWN_FIELD`. The identity descriptor is **not** an exception to §7's "every signed object reserves an `extensions` slot" — it reserves one like every other signed object, in both the standalone and the handshake-embedded form. |
 
 The canonical JSON Schema is [`schemas/json/aitp-identity.schema.json`](../schemas/json/aitp-identity.schema.json).
+
+> **One descriptor, two schema files.** The canonical schema above is authoritative.
+> [`schemas/json/aitp-mutual-handshake.schema.json`](../schemas/json/aitp-mutual-handshake.schema.json)
+> carries a `$defs/IdentityDescriptor` **mirror** of it, because every schema in this repo is
+> self-contained — none resolves a cross-file `$ref`, so an offline validator needs exactly one
+> fetch per artifact. The mirror is a copy, not a second definition: it MUST equal the canonical
+> file minus that file's `$schema`/`$id`/`title`/`examples` metadata, and
+> [`scripts/check-doc-coherence.sh`](../scripts/check-doc-coherence.sh) stage 5 fails the build if
+> the two drift. Implementers MUST follow the canonical file; a descriptor that validates
+> standalone validates identically inside a handshake payload.
+>
+> The two had drifted (issue #40). The embedded copy was missing the `extensions` slot, the
+> `public_key` grammar, and the `not: {required: [public_key]}` guard that enforces this section's
+> MUST-reject rule for an OIDC descriptor carrying `public_key` — so that MUST went unenforced in
+> the only path where the descriptor actually travels. Both are now the same object.
 
 > **Note on `proof` inputs.** The proof input differs by type. For `oidc`, `proof` is a self-contained JWT (§2). For `pinned_key`, `proof` is a signature whose input binds fields drawn from the surrounding handshake envelope (§3.1) — including the `pop_nonce` carried on `MUTUAL_HELLO` / `MUTUAL_HELLO_ACK` (RFC-AITP-0004 §3). The descriptor itself does NOT carry the nonce; verifiers reconstruct the proof input from the envelope plus the descriptor's `subject` and the local `receiver_aid`.
 

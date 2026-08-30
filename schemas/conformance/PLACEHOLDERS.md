@@ -221,7 +221,7 @@ property should be broken.
 
 | Token | What's broken | Expected error path |
 |---|---|---|
-| `__TAMPERED_SIGNATURE__` | Sign properly, then flip the **least-significant bit of the last raw signature byte** before base64url-encoding. | `MANIFEST_SIGNATURE_INVALID` (manifest), `INVALID_SIGNATURE` (envelope). |
+| `__TAMPERED_SIGNATURE__` | Sign properly, then flip the **least-significant bit of the last raw signature byte** before base64url-encoding. | `MANIFEST_SIGNATURE_INVALID` (manifest), `INVALID_SIGNATURE` (envelope), `REVOCATION_SNAPSHOT_SIGNATURE_INVALID` (revocation snapshot — `rev-008`). The expected code is per-artifact: the snapshot's own code, not the `TCT_SIGNATURE_INVALID` implementations previously borrowed for it (issue #39). |
 | `__TAMPERED_SIG__` | Same recipe; shorter alias used by older fixtures. | `TCT_SIGNATURE_INVALID`. |
 
 The tamper recipe is pinned so re-mints reproduce byte-for-byte. Any

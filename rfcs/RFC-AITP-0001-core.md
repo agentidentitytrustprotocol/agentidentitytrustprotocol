@@ -2,7 +2,7 @@
 # Agent Identity & Trust Protocol (AITP) — Core
 
 **Document:** RFC-AITP-0001
-**Version:** 0.2.4-draft
+**Version:** 0.2.5-draft
 **Status:** Community Standards Track (v0.2 Draft)
 **Canonical wire format:** JSON
 **Normative transport:** HTTPS (any HTTP/1.1+ runtime)
@@ -533,11 +533,14 @@ Verifiers MUST NOT reveal which specific policy check failed beyond the error co
 | `INSUFFICIENT_GRANTS` | Received TCT lacks a capability listed in own `required_peer_capabilities` | false |
 | `KEY_RESOLUTION_FAILED` | Could not resolve issuer or peer keys | true |
 | `MANIFEST_EXPIRED` | Peer's Manifest is past `expires_at` | false |
+| `MANIFEST_INVALID` | Peer's Manifest failed schema validation | false |
 | `MANIFEST_SIGNATURE_INVALID` | Peer's Manifest signature failed | false |
 | `MANIFEST_POP_FAILED` | Peer's Manifest proof-of-possession failed | false |
 | `MANIFEST_VERSION_UNKNOWN` | Peer's Manifest `version` not supported | false |
 | `INCOMPATIBLE_TRUST_ANCHORS` | No trust-anchor overlap | false |
 | `POP_VERIFICATION_FAILED` | Mutual-handshake PoP signature failed | false |
+| `REVOCATION_SNAPSHOT_INVALID` | Revocation snapshot failed schema validation | false |
+| `REVOCATION_SNAPSHOT_SIGNATURE_INVALID` | Revocation snapshot signature failed under the issuing peer's key | false |
 | `POP_CHALLENGE_INVALID` | Downstream `pop_challenge` envelope malformed, replayed, or expired | false |
 | `POP_RESPONSE_INVALID` | Downstream `pop_response` envelope or `pop_signature` failed verification | false |
 | `NONCE_MISMATCH` | `pop_nonce_echo` did not match the sent nonce | false |

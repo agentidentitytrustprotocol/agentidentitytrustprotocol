@@ -250,11 +250,11 @@ The runner interface is implementation-defined.
 
 | Tier | Count | Required for v0.2 |
 |---|---|---|
-| `core` (v0.2-required) | 53 | ✅ Yes |
+| `core` (v0.2-required) | 58 | ✅ Yes |
 | `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (v0.1 runners only) |
 | `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 6 | ❌ No |
 | `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 4 | ❌ No |
-| **Total** | **64** | |
+| **Total** | **69** | |
 
 Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A v0.2 conformance runner MUST execute every `required_for_v0_2` core fixture; `draft` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
@@ -283,6 +283,7 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | `man-003` | Cached Manifest past `expires_at` is rejected even if otherwise valid | failure: MANIFEST_EXPIRED |
 | `man-004` | Manifest body carries an unknown member (`deployment_region`) outside `extensions` | failure: UNKNOWN_FIELD |
 | `man-005` | Manifest body carries an unrecognized, vendor-namespaced key inside `extensions` — ignored | success |
+| `man-006` | Manifest missing the REQUIRED `handshake_endpoint` — structural rejection, not a signature failure | failure: MANIFEST_INVALID |
 
 ### Mutual Handshake (RFC-AITP-0004)
 
@@ -310,6 +311,8 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | `id-005` | Pinned-key legacy proof (pre-rc.3 binding) rejected | failure: IDENTITY_FAILED |
 | `id-006` | Pinned-key proof signed over the wrong `pop_nonce` rejected | failure: IDENTITY_FAILED |
 | `id-007` | Pinned-key proof from an untrusted public key rejected | failure: IDENTITY_FAILED |
+| `id-008` | OIDC identity descriptor also carries `public_key`, which RFC-AITP-0002 §1 forbids | failure: IDENTITY_FAILED |
+| `id-009` | Identity descriptor carries an unrecognized, vendor-namespaced key inside `extensions` — ignored | success |
 
 ### Trust Context Token (RFC-AITP-0005, RFC-AITP-0008)
 
@@ -344,6 +347,8 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | `rev-004` | TCT signature invalid → revocation source MUST NOT be consulted (asserts `side_effects.revocation_lookup_called == false`) | failure: TCT_SIGNATURE_INVALID |
 | `rev-005` | Snapshot's `revocation_list` body carries an unknown member (`list_owner`) outside `extensions` | failure: UNKNOWN_FIELD |
 | `rev-006` | Snapshot's `revocation_list` body carries an unrecognized, vendor-namespaced key inside `extensions` — ignored | success |
+| `rev-007` | Snapshot's `revocation_list` body missing the REQUIRED `published_at` — structural rejection | failure: REVOCATION_SNAPSHOT_INVALID |
+| `rev-008` | Snapshot signature does not validate under the issuing peer's key — the snapshot failed, not any token it lists | failure: REVOCATION_SNAPSHOT_SIGNATURE_INVALID |
 
 ### Delegation (RFC-AITP-0006)
 

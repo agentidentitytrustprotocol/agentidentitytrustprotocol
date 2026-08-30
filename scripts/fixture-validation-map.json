@@ -1,5 +1,5 @@
 {
-  "$comment": "Fixture-input validation map for scripts/validate-json.sh. Keyed by conformance fixture `id` (NOT the filename stem \u2014 ids are short, e.g. `bundle-001` for bundle-001-success.json). Every fixture in schemas/conformance/*.json MUST appear here: an unmapped fixture is a build error, never a skip. Each artifact names a JSON pointer into the fixture, the schema under schemas/json/ it must satisfy, and the expected outcome. `expect` is checked BIDIRECTIONALLY \u2014 an `invalid` artifact that starts validating fails the build just as an `expect: valid` one that stops does. `wrap` re-wraps the artifact as {KEY: artifact} for schemas that describe the wrapped transport form. `invalid_known_defect` records a real, tracked defect in a fixture or schema rather than papering over it; when the defect is fixed the build fails here until this entry is updated.",
+  "$comment": "Fixture-input validation map for scripts/validate-json.sh. Keyed by conformance fixture `id` (NOT the filename stem — ids are short, e.g. `bundle-001` for bundle-001-success.json). Every fixture in schemas/conformance/*.json MUST appear here: an unmapped fixture is a build error, never a skip. Each artifact names a JSON pointer into the fixture, the schema under schemas/json/ it must satisfy, and the expected outcome. `expect` is checked BIDIRECTIONALLY — an `invalid` artifact that starts validating fails the build just as an `expect: valid` one that stops does. `wrap` re-wraps the artifact as {KEY: artifact} for schemas that describe the wrapped transport form. `invalid_known_defect` records a real, tracked defect in a fixture or schema rather than papering over it; when the defect is fixed the build fails here until this entry is updated.",
   "fixtures": {
     "bundle-001": {
       "artifacts": [
@@ -64,7 +64,7 @@
           "pointer": "/input/session_bundle",
           "schema": "aitp-session-bundle.schema.json",
           "expect": "invalid",
-          "reason": "Deliberately schema-invalid: `signature` is placed as a sibling of the `session_bundle` transport wrapper instead of as a member of the inner body (the pre-PR-#30 shape). The top-level wrapper's `additionalProperties: false` rejects the sibling `signature` member, and the inner body is missing its required `signature` member. Asserts RFC-AITP-0010 \u00a73's signature-placement rule directly (see the \u00a73 erratum)."
+          "reason": "Deliberately schema-invalid: `signature` is placed as a sibling of the `session_bundle` transport wrapper instead of as a member of the inner body (the pre-PR-#30 shape). The top-level wrapper's `additionalProperties: false` rejects the sibling `signature` member, and the inner body is missing its required `signature` member. Asserts RFC-AITP-0010 §3's signature-placement rule directly (see the §3 erratum)."
         },
         {
           "pointer": "/input/session_bundle/session_bundle/participants/0/tct_claims",
@@ -103,7 +103,7 @@
           "pointer": "/input/session_bundle",
           "schema": "aitp-session-bundle.schema.json",
           "expect": "invalid",
-          "reason": "Deliberately schema-invalid: input.session_bundle.session_bundle.coordinator_note is an unknown member outside `extensions`. RFC-AITP-0001 \u00a77 requires rejection; the fixture asserts UNKNOWN_FIELD, so schema rejection (additionalProperties naming coordinator_note) is the correct expected outcome."
+          "reason": "Deliberately schema-invalid: input.session_bundle.session_bundle.coordinator_note is an unknown member outside `extensions`. RFC-AITP-0001 §7 requires rejection; the fixture asserts UNKNOWN_FIELD, so schema rejection (additionalProperties naming coordinator_note) is the correct expected outcome."
         },
         {
           "pointer": "/input/session_bundle/session_bundle/participants/0/tct_claims",
@@ -314,7 +314,7 @@
           "pointer": "/input/envelope",
           "schema": "aitp-envelope.schema.json",
           "expect": "invalid",
-          "reason": "Deliberately schema-invalid: input.envelope.trace_id is an unknown top-level member outside `extensions`. RFC-AITP-0001 \u00a77 requires rejection; the fixture asserts UNKNOWN_FIELD, so schema rejection (additionalProperties naming trace_id) is the correct expected outcome."
+          "reason": "Deliberately schema-invalid: input.envelope.trace_id is an unknown top-level member outside `extensions`. RFC-AITP-0001 §7 requires rejection; the fixture asserts UNKNOWN_FIELD, so schema rejection (additionalProperties naming trace_id) is the correct expected outcome."
         }
       ]
     },
@@ -467,6 +467,47 @@
         }
       ]
     },
+    "id-008": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "invalid",
+          "reason": "Deliberately schema-invalid: input.envelope.payload.identity is an `oidc` descriptor carrying `public_key`, which RFC-AITP-0002 §1 forbids and both the canonical identity schema and the handshake schema's mirror of it encode as `then.not.required: [public_key]`. The fixture asserts IDENTITY_FAILED, so schema rejection is the correct expected outcome. This entry is also the regression guard for issue #40: before the mirror was aligned, this artifact validated."
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "id-009": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
     "man-001": {
       "artifacts": [
         {
@@ -505,7 +546,7 @@
           "schema": "aitp-manifest.schema.json",
           "expect": "invalid",
           "wrap": "manifest",
-          "reason": "Deliberately schema-invalid: input.manifest.deployment_region is an unknown member outside `extensions`. RFC-AITP-0001 \u00a77 requires rejection; the fixture asserts UNKNOWN_FIELD, so schema rejection (additionalProperties naming deployment_region) is the correct expected outcome."
+          "reason": "Deliberately schema-invalid: input.manifest.deployment_region is an unknown member outside `extensions`. RFC-AITP-0001 §7 requires rejection; the fixture asserts UNKNOWN_FIELD, so schema rejection (additionalProperties naming deployment_region) is the correct expected outcome."
         }
       ]
     },
@@ -516,6 +557,17 @@
           "schema": "aitp-manifest.schema.json",
           "expect": "valid",
           "wrap": "manifest"
+        }
+      ]
+    },
+    "man-006": {
+      "artifacts": [
+        {
+          "pointer": "/input/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "invalid",
+          "wrap": "manifest",
+          "reason": "Deliberately schema-invalid: input.manifest omits the REQUIRED `handshake_endpoint`. The fixture asserts MANIFEST_INVALID, so schema rejection is the correct expected outcome — this fixture and this map entry are the same assertion made from both directions."
         }
       ]
     },
@@ -758,11 +810,30 @@
           "pointer": "/input/snapshot",
           "schema": "aitp-revocation-list.schema.json",
           "expect": "invalid",
-          "reason": "Deliberately schema-invalid: input.snapshot.revocation_list.list_owner is an unknown member outside `extensions`. RFC-AITP-0001 \u00a77 requires rejection; the fixture asserts UNKNOWN_FIELD, so schema rejection (additionalProperties naming list_owner) is the correct expected outcome."
+          "reason": "Deliberately schema-invalid: input.snapshot.revocation_list.list_owner is an unknown member outside `extensions`. RFC-AITP-0001 §7 requires rejection; the fixture asserts UNKNOWN_FIELD, so schema rejection (additionalProperties naming list_owner) is the correct expected outcome."
         }
       ]
     },
     "rev-006": {
+      "artifacts": [
+        {
+          "pointer": "/input/snapshot",
+          "schema": "aitp-revocation-list.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "rev-007": {
+      "artifacts": [
+        {
+          "pointer": "/input/snapshot",
+          "schema": "aitp-revocation-list.schema.json",
+          "expect": "invalid",
+          "reason": "Deliberately schema-invalid: input.snapshot.revocation_list omits the REQUIRED `published_at`. The fixture asserts REVOCATION_SNAPSHOT_INVALID, so schema rejection is the correct expected outcome."
+        }
+      ]
+    },
+    "rev-008": {
       "artifacts": [
         {
           "pointer": "/input/snapshot",
@@ -864,7 +935,7 @@
           "pointer": "/input/tct_token_claims",
           "schema": "aitp-tct.schema.json",
           "expect": "invalid",
-          "reason": "Deliberately schema-invalid: input.tct_token_claims.device_id is an unknown claim outside `ext`. RFC-AITP-0001 \u00a77 requires rejection; the fixture asserts UNKNOWN_FIELD, so schema rejection (additionalProperties naming device_id) is the correct expected outcome."
+          "reason": "Deliberately schema-invalid: input.tct_token_claims.device_id is an unknown claim outside `ext`. RFC-AITP-0001 §7 requires rejection; the fixture asserts UNKNOWN_FIELD, so schema rejection (additionalProperties naming device_id) is the correct expected outcome."
         }
       ]
     },
