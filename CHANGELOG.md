@@ -43,6 +43,43 @@ supports a different and correctly-scoped claim, is unchanged.
 per VERSIONING.md's Editorial / clarification class (no schema or wire
 change). No other RFC's `Version:` header changes.
 
+### §5.4.1's restatement promise, kept at each artifact's signing section
+
+**Editorial.** RFC-AITP-0001 §5.4.1 states the member-vs-sibling signature
+placement rule and says it is "restated at each artifact's own signing
+section" — a restatement that did not exist. All three artifact RFCs
+restated only the wrapper-stripping *mechanic* (strip the artifact-name key
+before canonicalizing), never the *placement* rule or its rationale, so
+`redistributable` and `point-to-point` appeared only in RFC-AITP-0001. Each
+artifact RFC now carries a short paragraph, at its own signing section,
+naming which placement it uses, why, and that artifact's actual
+redistribution path, citing back to RFC-AITP-0001 §5.4.1 rather than
+re-deriving the rule:
+
+- `rfcs/RFC-AITP-0003-manifest.md` §6.1 — the Manifest carries `signature`
+  as a member of the body because it is redistributable: it MAY be
+  exchanged inline during the Mutual Handshake (§1; §4.3) rather than
+  always fetched from its own origin.
+- `rfcs/RFC-AITP-0008-revocation.md` §1.5 — the revocation snapshot carries
+  `signature` as a sibling of the wrapper because it is point-to-point: a
+  consuming peer polls it directly from the issuing peer's `ListRevoked`
+  endpoint (§1.4) and never redistributes it onward. The consumer's own
+  caching and staleness bound (§3.2) are private to that consumer and do
+  not make the snapshot redistributable. The added paragraph is explicit
+  that this sibling placement is **deliberate** — what §5.4.1's rule
+  produces for a point-to-point artifact, not an exception carved out from
+  it — so a future editor does not "fix" it into a member placement and
+  break every deployed verifier.
+- `rfcs/RFC-AITP-0010-session-trust-bundle.md` §3 — the bundle carries
+  `signature` as a member of the body because it is signed once by the
+  coordinator and distributed to every participant (§4.3).
+
+**Version bump.** `RFC-AITP-0003-manifest.md` moves `0.2.1-draft` →
+`0.2.2-draft`; `RFC-AITP-0008-revocation.md` moves `0.2.1-draft` →
+`0.2.2-draft`; `RFC-AITP-0010-session-trust-bundle.md` moves
+`0.2.2-draft` → `0.2.3-draft`. All three per VERSIONING.md's Editorial /
+clarification class (no schema or wire change).
+
 ### Session bundle: the signature is a member of the signed body
 
 **Breaking for anything validating a session bundle against the published JSON
