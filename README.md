@@ -1,10 +1,10 @@
 # Agent Identity & Trust Protocol (AITP)
 
-**Version:** 0.1.0-rc.3
-**Status:** Community Standards Track (Release Candidate)
+**Version:** 0.2.0-draft
+**Status:** Community Standards Track (Draft)
 **Canonical wire format:** JSON
 **Normative transport:** HTTPS
-**Canonical signing input:** RFC 8785 (JCS) canonical JSON
+**Canonical signing input:** RFC 8785 (JCS) canonical JSON (protocol-internal artifacts); RFC 7515 compact JWS (portable trust artifacts, §5.4.5)
 
 AITP is an **agent-to-agent (A2A) trust protocol**. It lets two autonomous agents — running in different organizations, behind different identity providers, with no shared verifier — establish bidirectional trust before they exchange any binding work.
 
@@ -14,7 +14,7 @@ AITP introduces one strict invariant:
 
 There is no central verifier. Each agent is its own verifier for the peer it is authenticating. The output of the handshake is a TCT each peer holds about the other. A TCT is verified locally — its signature is checked against the issuing peer's public key, resolved from the peer's signed Agent Manifest.
 
-This is the **first published version** of AITP and it is A2A-native. The service-consumer trust pattern (agent → verifier → service) is intentionally out of scope.
+AITP has been **A2A-native since its first published version** (`aitp/0.1`); there is no earlier service-consumer version to migrate from. The service-consumer trust pattern (agent → verifier → service) is intentionally out of scope.
 
 ---
 
@@ -59,9 +59,10 @@ agentidentitytrustprotocol/
     RFC-AITP-0007-key-resolution.md
     RFC-AITP-0008-revocation.md
     RFC-AITP-0009-security.md
-    RFC-AITP-0010-session-trust-bundle.md   # Draft (post-v0.1)
-    RFC-AITP-0011-multihop-delegation.md    # Draft (post-v0.1)
+    RFC-AITP-0010-session-trust-bundle.md   # Opt-in draft (not part of v0.2 core conformance)
+    RFC-AITP-0011-multihop-delegation.md    # Opt-in draft (not part of v0.2 core conformance)
     RFC-AITP-0012-extensions.md             # Reserved
+    RFC-AITP-0013-tct-renewal-extension.md  # Planned
 
   docs/
     architecture.md
@@ -99,6 +100,7 @@ agentidentitytrustprotocol/
   examples/
     manifest/        agent-b-manifest.json
     tct/             tct-peer-issued.json
+    grant-voucher/   voucher.json
     delegation/      single-hop.json
     revocation/      empty-list.json, with-entry.json
     non-normative/   peer-signed-full-flow.json   (transcript, not schema-valid)
@@ -140,9 +142,9 @@ If you are new to AITP, read in this order:
 
 | Profile | Required RFCs | Description |
 |---|---|---|
-| `aitp-a2a-peer` *(default)* | 0001–0009 | Every AITP v0.1 agent. Implements Manifest, Mutual Handshake, peer-issued TCTs, single-hop delegation. |
-| `aitp-session-participant` | 0001–0010 | Adds Session Trust Bundle issuance/verification (post-v0.1; RFC-AITP-0010 Draft). Not part of v0.1 conformance. |
-| `aitp-full` | 0001–0011 | Adds multi-hop delegation (post-v0.1; RFC-AITP-0011 Draft). Not part of v0.1 conformance. |
+| `aitp-a2a-peer` *(default)* | 0001–0009 | Every AITP v0.2 agent. Implements Manifest, Mutual Handshake, peer-issued TCTs, single-hop delegation. |
+| `aitp-session-participant` | 0001–0010 | Adds Session Trust Bundle issuance/verification (opt-in draft; RFC-AITP-0010). NOT part of v0.2 core conformance. |
+| `aitp-full` | 0001–0011 | Adds multi-hop delegation (opt-in draft; RFC-AITP-0011). NOT part of v0.2 core conformance. |
 
 There is no service-consumer profile. AITP is peer-to-peer.
 
@@ -151,16 +153,16 @@ There is no service-consumer profile. AITP is peer-to-peer.
 ## Standards posture
 
 - **RFC-AITP-0001 Core** — envelope, replay, signatures, error codes, capability negotiation, registry hooks.
-- **RFC-AITP-0002 Identity** — pluggable identity-binding (OIDC and pinned key in v0.1).
+- **RFC-AITP-0002 Identity** — pluggable identity-binding (OIDC and pinned key in v0.2).
 - **RFC-AITP-0003 Manifest** — signed self-description with `/.well-known/aitp-manifest`.
 - **RFC-AITP-0004 Mutual Handshake** — four-message peer auth + bilateral TCT issuance.
-- **RFC-AITP-0005 TCT** — canonical peer-issued capability grant.
-- **RFC-AITP-0006 Delegation** — stateless single-hop delegation.
+- **RFC-AITP-0005 TCT** — canonical peer-issued capability grant, plus the grant voucher consumed by delegation; both compact JWS.
+- **RFC-AITP-0006 Delegation** — stateless single-hop delegation as a compact JWS embedding the issuing peer's grant voucher.
 - **RFC-AITP-0007 Key Resolution** — peer key from Manifest; issuer key cache → pinned → well-known.
 - **RFC-AITP-0008 Revocation** — JTI deny lists, key revocation, fail modes.
 - **RFC-AITP-0009 Security** — A2A threat model and required defenses.
-- **RFC-AITP-0010 Session Trust Bundle** *(Draft, post-v0.1)* — multi-agent session scaling.
-- **RFC-AITP-0011 Multi-hop Delegation** *(Draft, post-v0.1)* — chains beyond a single hop.
+- **RFC-AITP-0010 Session Trust Bundle** *(Draft, opt-in — not part of v0.2 core conformance)* — multi-agent session scaling.
+- **RFC-AITP-0011 Multi-hop Delegation** *(Draft, opt-in — not part of v0.2 core conformance)* — chains beyond a single hop.
 - **RFC-AITP-0012 Extensions** *(reserved)* — `extensions.zk` and `extensions.tee` namespaces.
 - **RFC-AITP-0013 TCT Renewal Extension** *(Planned)* — standardization of the non-normative shortened renewal endpoint described in RFC-AITP-0004 §8.1.
 
@@ -185,8 +187,8 @@ Reserved namespaces (see [registries/capabilities.md](registries/capabilities.md
 
 ## Compatibility model
 
-- **Protocol version** governs the envelope (`version: aitp/0.1`).
-- **JSON Schema namespace** governs canonical schema compatibility (`https://aitp.dev/schema/v0.1/`).
+- **Protocol version** governs the envelope (`version: aitp/0.2`).
+- **JSON Schema namespace** governs canonical schema compatibility (`https://aitp.dev/schema/v0.2/`).
 - **TCT version** governs the canonical token contract.
 - **Manifest version** governs the agent self-description format.
 
@@ -196,7 +198,7 @@ Major mismatches are not compatible. Minor versions are expected to be backward 
 
 ## Using AITP
 
-The canonical v0.1 surface is JSON. Implementations consume the JSON Schemas directly using whatever tooling fits the target language:
+The canonical v0.2 surface is JSON. Implementations consume the JSON Schemas directly using whatever tooling fits the target language — this covers the JCS-profile artifacts (envelope, Manifest, revocation snapshot, session bundle, handshake payloads) in full, and the decoded-claims shape of the compact-JWS portable trust artifacts (TCT, grant voucher, delegation token); producing and verifying the JWS itself still needs an RFC 7515 JOSE library, not schema codegen alone:
 
 - `quicktype` — https://quicktype.io
 - `json-schema-to-typescript` (TypeScript)
