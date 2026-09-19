@@ -2,6 +2,39 @@
 
 ## Unreleased
 
+### Issue #44: RFC-AITP-0005 §7.2 states the TCT's `typ`-before-claims-membership order explicitly
+
+Editorial. No wire, schema, or fixture change; the ordering being clarified was already what `tct-010` tested.
+
+**The ambiguity.** §7.2 step 1 ("Parse strictly") folded in the claims-set
+membership check (the `UNKNOWN_FIELD` rule) and closed with "before any
+cryptographic step below" — read literally, that places the membership
+check ahead of step 2's `typ` enforcement, since `typ` enforcement isn't a
+cryptographic step either. But `tct-010` requires the opposite: a grant
+voucher presented as a TCT must be rejected with `TOKEN_TYP_MISMATCH`
+*before* its non-TCT claims (e.g. `src_jti`) ever reach the membership
+check, which would otherwise fire `UNKNOWN_FIELD` first. Both documents
+were correct about *what* is checked; only the relative order between two
+of step 1's own clauses was left to be reinterpreted per-implementation —
+exactly the gap `aitp-rs`'s delegation code fell into on `/reconcile`
+before being caught against `aitp-verifier-py` (no fixture exists for the
+equivalent ordering on delegation tokens, RFC-AITP-0006 §4 — noted, not
+fixed here).
+
+**The fix.** Step 1's claims-membership clause now states explicitly that
+it executes *after* step 2's `typ` enforcement, and step 2 cross-references
+the same note, citing `tct-010` as the pinned example. Step numbers are
+unchanged — RFC-AITP-0001 §7, RFC-AITP-0008 §3.3, RFC-AITP-0009 §1 and six
+conformance fixtures cite them by number, and the PR that added the
+`UNKNOWN_FIELD` check (see the "Issues #39 and #40" entry in this file)
+already chose to fold the membership check into step 1 rather than
+renumber for exactly this reason. RFC-AITP-0008 §3.3's own restatement of
+the verification order is corrected to match (it had listed the membership
+check ahead of `typ`, the same latent ambiguity from the other direction).
+
+**Version bump.** RFC-AITP-0005: `0.2.1-draft` → `0.2.2-draft` (editorial /
+clarification, per `VERSIONING.md`). No other RFC's header moves.
+
 ### Issues #39 and #40: structural-rejection codes, and one identity descriptor instead of two
 
 Both issues came out of the same place — `aitp-verifier-py` implementing
