@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+### Issue #45: the three JCS signed examples now declare their own `signing_input`
+
+Non-breaking, tooling only — no vector output, digest or signature changes.
+
+The W-P5 signing-input convention ("the signing input is the inner artifact
+body") was machine-readable on the `jcs-sha256.json` vectors via their
+`signing_input` member, but not on the three real-signature fixtures under
+`signed-examples/` (`manifest/`, `revocation/`, `session-bundle/`) that are
+the actual cross-implementation regression detector. A reader holding one of
+those files alone had to trust `scripts/verify-known-answer.mjs`'s hardcoded
+`jcsArtifacts` table to know what was signed — the same kind of undeclared
+convention that let `aitp-rs` read a wrapped object as the signing input in
+the first place.
+
+Each of the three files now carries a top-level `"signing_input": "body"`
+companion, matching the vocabulary already established in `jcs-sha256.json`.
+`verify-known-answer.mjs` reads and asserts it (three new checks;
+`EXPECTED_MIN_CHECKS` 59 → 62) instead of only assuming the convention
+in code, and `scripts/validate-json.sh`'s signed-example schema check now
+strips `signing_input` alongside `_kat_input` before validating the fixture
+against its wire schema. `signed-examples/README.md` documents the new
+companion.
+
 ### Issues #39 and #40: structural-rejection codes, and one identity descriptor instead of two
 
 Both issues came out of the same place — `aitp-verifier-py` implementing

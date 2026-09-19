@@ -480,10 +480,12 @@ if [ -d "$KAT_DIR" ]; then
     echo
 fi
 
-# ── Signed-example KAT artifacts: schema-validate after stripping _kat_input ─
-# Files under signed-examples/ carry a top-level `_kat_input` companion that
-# documents the minting parameters. The signed object beside it MUST validate
-# against the canonical schema. We strip `_kat_input` to a temp file, then
+# ── Signed-example KAT artifacts: schema-validate after stripping companions ─
+# Files under signed-examples/ carry top-level companions that document the
+# fixture but are not part of the wire artifact: `_kat_input` (the minting
+# parameters) and `signing_input` (the self-certifying declaration read by
+# scripts/verify-known-answer.mjs). The signed object beside them MUST
+# validate against the canonical schema. We strip both to a temp file, then
 # validate the remainder.
 validate_signed_kat() {
     local dir="$1"
@@ -500,9 +502,9 @@ validate_signed_kat() {
         tmp_base="$(mktemp)"
         tmp="${tmp_base}.json"
         mv "$tmp_base" "$tmp"
-        if ! python3 -c "import json,sys;d=json.load(open(sys.argv[1]));d.pop('_kat_input',None);json.dump(d,open(sys.argv[2],'w'))" "$f" "$tmp"; then
+        if ! python3 -c "import json,sys;d=json.load(open(sys.argv[1]));d.pop('_kat_input',None);d.pop('signing_input',None);json.dump(d,open(sys.argv[2],'w'))" "$f" "$tmp"; then
             rm -f "$tmp"
-            echo "    ✗ Could not strip _kat_input"
+            echo "    ✗ Could not strip _kat_input / signing_input"
             exit 1
         fi
         if ajv validate -s "${schema}" -d "${tmp}" --spec=draft2020 --strict=false -c ajv-formats >/dev/null 2>&1; then
@@ -510,7 +512,7 @@ validate_signed_kat() {
             echo "    ✓ Valid (signed payload)"
             rm -f "$tmp"
         else
-            echo "    ✗ Invalid against ${label} schema (after stripping _kat_input)"
+            echo "    ✗ Invalid against ${label} schema (after stripping _kat_input / signing_input)"
             ajv validate -s "${schema}" -d "${tmp}" --spec=draft2020 --strict=false -c ajv-formats || true
             rm -f "$tmp"
             exit 1

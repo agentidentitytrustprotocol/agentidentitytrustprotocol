@@ -586,6 +586,21 @@ function checkSignedExamples() {
       continue;
     }
 
+    // Self-certifying, same as jcs-sha256.json's `signing_input` vectors (see
+    // declaredSigningInput above): a reader holding only this file must be able
+    // to tell what was signed without consulting this script. JCS-profile
+    // artifacts sign the inner body (RFC-AITP-0001 §5.4.1), so "envelope" is not
+    // a legal value here — it would mean pinning the transport wrapper, the
+    // defect corrected by the v0.2 signing-input change.
+    check(`${art.rel} declares signing_input`, () => {
+      if (file.signing_input !== 'body') {
+        throw new Error(
+          `"signing_input" must be "body" (RFC-AITP-0001 §5.4.1: JCS-profile ` +
+          `artifacts sign the inner artifact body, never the transport wrapper), ` +
+          `got ${JSON.stringify(file.signing_input)}`);
+      }
+    });
+
     // The signing input, per RFC-AITP-0001 §5.4.1: the inner artifact body,
     // carrying no signature of its own. For the manifest the signature is a
     // member of the body and is removed; for the revocation snapshot it is a
@@ -689,7 +704,7 @@ checkSignedExamples();
 // emptied vector member; this catches coverage lost any other way — a check
 // commented out, a loop that stops early, a gate that stops matching. Coverage may
 // grow (raise this number in the same commit); it may never silently shrink.
-const EXPECTED_MIN_CHECKS = 59;
+const EXPECTED_MIN_CHECKS = 62;
 if (checks < EXPECTED_MIN_CHECKS) {
   failures.push(
     `coverage regression: ran ${checks} checks, expected at least ${EXPECTED_MIN_CHECKS}. ` +
