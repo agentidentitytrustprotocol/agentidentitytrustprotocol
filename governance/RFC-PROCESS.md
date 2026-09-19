@@ -7,28 +7,77 @@ the process for proposing, reviewing, and accepting changes.
 
 ## RFC Lifecycle
 
+Every RFC in this repository is published under the **Community Standards
+Track** — a community-governed process with no external standards-body
+backing (see [CHARTER.md](CHARTER.md) for governance structure). This repo
+defines no other track today; if one is ever added, it gets its own name
+here rather than a second meaning for "Community Standards Track."
+
+A numbered RFC file's `**Status:**` header MUST read exactly
+`Community Standards Track (<Stage>)`, where `<Stage>` is one of the named
+stages below — or, for the two placeholder states that precede a numbered
+RFC having any content at all, the bare word `Reserved` or `Planned` (no
+track prefix, since a reserved or merely-planned number has not entered
+the track yet). `scripts/check-doc-coherence.sh`'s status-ladder stage
+enforces this across all 13 RFC files.
+
 ```
-Idea → Draft → Review → Release Candidate → Final Comment Period → Accepted | Rejected
+Reserved → Planned → Idea → Draft → Review → Release Candidate → Final Comment Period → Accepted | Rejected
 ```
 
+**Reserved**
+- An RFC number is allocated and a document exists at its path — possibly
+  written in real detail, with examples and worked cases (RFC-AITP-0012 is
+  145 lines) — but its contents are explicitly non-normative for the
+  current protocol revision (`aitp/0.2`): a future revision of *this same
+  document* is expected to make it normative, rather than a new RFC
+  superseding it.
+- `**Status:**` reads bare `Reserved`.
+
+**Planned**
+- A stub document exists at the RFC's path — materially thinner than a
+  Reserved document, explicitly self-described as a stub — naming what it
+  will cover and pointing at the non-normative sketch (elsewhere in the
+  spec, or inline) it will eventually formalize. Existing enough that
+  other documents have a stable link to point at before the real document
+  is written.
+- `**Status:**` reads bare `Planned`.
+- The distinction from Reserved is a matter of degree (how much of the
+  mechanism is actually written down), not a bright line like "a file
+  exists" — both RFC-AITP-0012 (Reserved) and RFC-AITP-0013 (Planned)
+  have files, and both currently carry a handful of real MUST/MAY
+  constraints on v0.2 implementations despite each calling itself
+  non-normative. Neither is a numbered RFC's usual all-or-nothing
+  normative/non-normative split; that pre-existing wrinkle is noted here
+  rather than resolved, since resolving it changes those RFCs' actual
+  content, which is out of scope for a status-vocabulary cleanup.
+
 ### Stages
+
+**Idea**
+- Discussed informally (an issue, a discussion thread) before any RFC file
+  exists. No number is assigned yet.
+- Not a numbered-RFC `**Status:**` value — an Idea has no file to carry one.
 
 **Draft**
 - Author opens a PR with a new file in `rfcs/RFC-AITP-XXXX-title.md`
 - RFC is numbered sequentially
 - Anyone may comment
+- `**Status:**` reads `Community Standards Track (Draft)`
 
 **Review**
 - RFC is discussed for a minimum of 14 days
 - Core team triages and assigns a shepherd
 - Shepherd is responsible for driving the RFC to resolution
+- `**Status:**` reads `Community Standards Track (Review)`
 
 **Release Candidate (RC)**
 - RFC text is considered substantively complete; further changes are limited
   to clarifications, editorial fixes, conformance fixture additions, and KAT
   vectors required by the KAT-requirement rule below
 - Version header on the RFC file carries an `rc.N` suffix (e.g. `0.1.0-rc.3`);
-  the `Status:` header on the RFC file reads `Release Candidate`
+  the `**Status:**` header on the RFC file reads
+  `Community Standards Track (Release Candidate)`
 - RC can iterate (`rc.1`, `rc.2`, …) as implementer feedback surfaces issues
 - Multiple implementations SHOULD be in progress against the RC text
 - Promotion to FCP requires:
@@ -41,14 +90,17 @@ Idea → Draft → Review → Release Candidate → Final Comment Period → Acc
 - Announced with a 7-day window
 - No new substantive changes during FCP
 - Core team votes
+- `**Status:**` reads `Community Standards Track (Final Comment Period)`
 
 **Accepted**
 - RFC is merged
+- `**Status:**` reads `Community Standards Track (Accepted)`
 - Corresponding spec changes are tracked in the RFC
 
 **Rejected**
 - PR is closed with explanation
 - Rejected RFCs remain in the repository for reference
+- `**Status:**` reads `Community Standards Track (Rejected)`
 
 ---
 
@@ -57,7 +109,7 @@ Idea → Draft → Review → Release Candidate → Final Comment Period → Acc
 ```markdown
 # RFC-XXXX: Title
 
-- **Status:** Draft
+- **Status:** Community Standards Track (Draft)
 - **Authors:** @handle
 - **Created:** YYYY-MM-DD
 - **Spec sections affected:** rfcs/RFC-AITP-XXXX-*.md

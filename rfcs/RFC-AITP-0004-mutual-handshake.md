@@ -2,8 +2,8 @@
 # Mutual Handshake
 
 **Document:** RFC-AITP-0004
-**Version:** 0.2.3-draft
-**Status:** Community Standards Track (v0.2 Draft)
+**Version:** 0.2.4-draft
+**Status:** Community Standards Track (Draft)
 **Depends on:**
   [RFC-AITP-0001 Core](RFC-AITP-0001-core.md),
   [RFC-AITP-0002 Identity](RFC-AITP-0002-identity.md),

@@ -2,8 +2,8 @@
 # Trust Context Token (TCT)
 
 **Document:** RFC-AITP-0005
-**Version:** 0.2.1-draft
-**Status:** Community Standards Track (v0.2 Draft)
+**Version:** 0.2.2-draft
+**Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0004 Mutual Handshake](RFC-AITP-0004-mutual-handshake.md)
 
 ---

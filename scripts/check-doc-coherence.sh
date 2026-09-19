@@ -21,8 +21,13 @@
 #      definition. The schemas are deliberately self-contained (no cross-file
 #      `$ref` anywhere), so mirroring is the mechanism and this stage is what
 #      keeps it honest.
+#   6. Status-ladder coherence — every RFC's `**Status:**` header (and the
+#      repo `README.md`'s) is drawn from the single lifecycle ladder that
+#      governance/RFC-PROCESS.md defines, in the exact stage every RFC's
+#      current standing is expected to be — not merely "some recognized
+#      word," which would let RFC-AITP-0012 claim `Draft` and pass.
 #
-# All five checks exist because the class of bug they catch — one fact
+# All six checks exist because the class of bug they catch — one fact
 # asserted in two places with nothing checking that they agree — is exactly
 # the shape of the bugs PR #22 and PR #30 fixed, one level up in the docs.
 # See RFC-AITP-0001 §5.4.1 and plans/docs-tests-followthrough-jcs-and-bundle-fixes.md.
@@ -32,7 +37,10 @@
 # `UNKNOWN_FIELD` addition, which surfaced that a fixture could assert a
 # code the registry never defined and every other stage would stay green.
 # Stage 5 arrived with issue #40, which found the handshake schema's embedded
-# identity descriptor missing a MUST that its canonical schema states.
+# identity descriptor missing a MUST that its canonical schema states. Stage 6
+# arrived with issue #47, which found four incompatible RFC status ladders and
+# nine of thirteen RFCs using a status string ("Community Standards Track
+# (v0.2 Draft)") that appeared on none of them.
 
 set -e
 
@@ -597,11 +605,105 @@ PYEOF
 then
     FAIL=1
 fi
+echo
 
+# ── 6. Status-ladder coherence (RFC Status headers vs governance/RFC-PROCESS.md) ─
+echo "── Status-ladder coherence (RFC Status headers vs governance/RFC-PROCESS.md) ──"
+
+if ! python3 - "$ROOT" <<'PYEOF'
+import glob, os, re, sys
+
+root = sys.argv[1]
+rfc_dir = os.path.join(root, "rfcs")
+
+# Mirrors the ladder in governance/RFC-PROCESS.md. If that ladder changes,
+# update this set and EXPECTED below in the same PR.
+LADDER = {"Idea", "Draft", "Review", "Release Candidate", "Final Comment Period", "Accepted", "Rejected"}
+BARE_STAGES = {"Reserved", "Planned"}  # no track prefix -- see RFC-PROCESS.md
+TRACK = "Community Standards Track"
+status_re = re.compile(r'^\*\*Status:\*\*\s*(.+?)\s*$', re.MULTILINE)
+
+# The stage each numbered RFC is expected to declare today, so a status that
+# is merely "a recognized word" but the wrong one for that document still
+# fails (e.g. RFC-AITP-0012 claiming Draft instead of Reserved).
+EXPECTED = {
+    "0001": "Draft", "0002": "Draft", "0003": "Draft", "0004": "Draft",
+    "0005": "Draft", "0006": "Draft", "0007": "Draft", "0008": "Draft",
+    "0009": "Draft", "0010": "Draft", "0011": "Draft",
+    "0012": "Reserved", "0013": "Planned",
+}
+
+def extract_stage(raw, label, failures):
+    if raw in BARE_STAGES:
+        return raw
+    prefix = f"{TRACK} ("
+    if raw.startswith(prefix) and raw.endswith(")"):
+        stage = raw[len(prefix):-1]
+        if stage in LADDER:
+            return stage
+    failures.append(
+        f"    ✗ {label}: Status {raw!r} is not `{TRACK} (<Stage>)` for a "
+        f"ladder Stage, nor one of {sorted(BARE_STAGES)}"
+    )
+    return None
+
+rfc_files = sorted(glob.glob(os.path.join(rfc_dir, "RFC-AITP-*.md")))
+if not rfc_files:
+    sys.exit(f"    ✗ no RFC-AITP-*.md files found under {rfc_dir}")
+
+failures = []
+seen = set()
+for path in rfc_files:
+    m = re.search(r'RFC-AITP-(\d{4})', os.path.basename(path))
+    if not m:
+        continue
+    number = m.group(1)
+    seen.add(number)
+    with open(path, encoding="utf-8") as fh:
+        text = fh.read()
+    sm = status_re.search(text)
+    if not sm:
+        failures.append(f"    ✗ {os.path.basename(path)}: no **Status:** header found")
+        continue
+    stage = extract_stage(sm.group(1), os.path.basename(path), failures)
+    if stage is None:
+        continue
+    expected = EXPECTED.get(number)
+    if expected is not None and stage != expected:
+        failures.append(
+            f"    ✗ {os.path.basename(path)}: Status stage is {stage!r}, expected {expected!r}"
+        )
+
+missing = sorted(set(EXPECTED) - seen)
+if missing:
+    failures.append(f"    ✗ expected RFC-AITP-{{{','.join(missing)}}} not found under {rfc_dir}")
+
+# The repo README.md's own Status line uses the same vocabulary (bare Draft
+# stages only -- the root README describes the whole repo, never Reserved
+# or Planned).
+readme_path = os.path.join(root, "README.md")
+with open(readme_path, encoding="utf-8") as fh:
+    readme_text = fh.read()
+rm = status_re.search(readme_text)
+if not rm:
+    failures.append("    ✗ README.md: no **Status:** header found")
+else:
+    extract_stage(rm.group(1), "README.md", failures)
+
+if failures:
+    for f in failures:
+        print(f)
+    sys.exit(1)
+
+print(f"    ✓ all {len(seen)} RFC Status headers and README.md draw from the RFC-PROCESS.md ladder")
+PYEOF
+then
+    FAIL=1
+fi
 
 echo "─────────────────────────────────────"
 if [ "$FAIL" -ne 0 ]; then
     echo "✗ Documentation coherence checks failed"
     exit 1
 fi
-echo "✓ Documentation is coherent (versions, anchors, section citations, fixture error codes, and mirrored schema definitions)"
+echo "✓ Documentation is coherent (versions, anchors, section citations, fixture error codes, mirrored schema definitions, and the RFC status ladder)"
