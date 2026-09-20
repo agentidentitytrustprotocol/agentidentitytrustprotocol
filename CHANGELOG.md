@@ -112,6 +112,82 @@ what was found and why each fix was chosen. `README.md`'s repository-layout
 tree gains the two new entries. The rest of `plans/` stays gitignored; it is
 in-flight working analysis, not a tracked record.
 
+### Issue #47: one RFC status ladder, applied to all 13 RFCs, now CI-checked
+
+Editorial. No normative, schema, or wire change; only how each RFC's own current stage is spelled.
+
+**The defect.** Four incompatible status vocabularies existed across this
+repo (`governance/RFC-PROCESS.md`'s formal `Idea → Draft → Review →
+Release Candidate → Final Comment Period → Accepted | Rejected` ladder;
+`rfcs/README.md`'s near-duplicate of it; a third, informal "Reserved" /
+"Planned" pair used only in prose; and `registries/*.md`'s unrelated
+`Proposed` / `Provisional` / `Stable` / `Deprecated` axis for individual
+extension keys and capabilities — a genuinely different thing, left
+untouched here). Nine of the thirteen RFC files' `**Status:**` header read
+`Community Standards Track (v0.2 Draft)`, a string on **none** of the four
+ladders; two more read bare `Draft`; nothing checked any of it.
+
+**The fix.**
+- `governance/RFC-PROCESS.md` is now the single normative source: the
+  ladder diagram gains `Reserved` and `Planned` as named pre-`Idea`
+  placeholder states (with real definitions — RFC-AITP-0012 and
+  RFC-AITP-0013 both already have real, if non-normative, documents at
+  those states, so "no document exists yet" would have been false; see
+  the new stage descriptions for what actually distinguishes them), an
+  `Idea` stage description is added (the diagram named it but the stage
+  list never described it), and every stage now states the exact
+  `**Status:**` string it implies.
+- Every RFC's `**Status:**` header is normalized to
+  `Community Standards Track (<Stage>)` for the 11 RFCs with real
+  normative content, or bare `Reserved` / `Planned` for RFC-AITP-0012 and
+  RFC-AITP-0013 (a placeholder number hasn't entered the track yet, so no
+  track prefix). This drops the redundant `v0.2` — already recorded
+  precisely by each RFC's own `Version:` header — rather than trying to
+  make it part of the lifecycle vocabulary.
+- `scripts/check-doc-coherence.sh` gains a sixth stage: every one of the
+  13 RFC files, plus the repo `README.md`, must declare a `**Status:**`
+  drawn from this exact ladder — and the *specific* stage each is expected
+  to be at today (so RFC-AITP-0012 claiming `Draft` fails, not just an
+  unrecognized string).
+- `rfcs/README.md`'s status table, lifecycle section, and the version-
+  coherence prose are updated to match; its previously self-contradictory
+  "Planned (RFC number reserved, no document yet)" heading — followed
+  immediately by "A stub document exists" — is corrected to describe what
+  is actually true (a materially thinner stub than Reserved, not an
+  absent document).
+
+**Version bump.** All 11 non-placeholder RFCs take a patch bump (editorial
+per `VERSIONING.md`) since their `**Status:**` line's text changed:
+RFC-AITP-0008 `0.2.6-draft` → `0.2.7-draft`; RFC-AITP-0001 `0.2.5-draft` →
+`0.2.6-draft`; RFC-AITP-0003 and RFC-AITP-0010 `0.2.4-draft` →
+`0.2.5-draft`; RFC-AITP-0002 and RFC-AITP-0004 `0.2.3-draft` →
+`0.2.4-draft`; RFC-AITP-0005 `0.2.1-draft` → `0.2.2-draft`;
+RFC-AITP-0006, RFC-AITP-0007, RFC-AITP-0009, and RFC-AITP-0011
+`0.2.0-draft` → `0.2.1-draft`. RFC-AITP-0012 and RFC-AITP-0013 are
+unmoved — their `**Status:**` values did not change.
+
+**Merge-time renumbering.** This PR's branch computed the bumps above from
+`main` as it stood before issue #44 and issue #43 merged, so its own diff
+lands RFC-AITP-0005 and RFC-AITP-0010 on the same version numbers those two
+PRs *also* independently landed them on (`0.2.2-draft` and `0.2.5-draft`
+respectively) — two distinct editorial changes computed from the same
+starting point, not one. Collapsing them into a single bump would make a
+consumer pinning `0.2.2-draft` unable to tell whether they have the §7.2
+verification-order fix, the status-ladder normalization, or both.
+Reconciled at merge time per `VERSIONING.md`'s per-document editorial-history
+rule: RFC-AITP-0005 is `0.2.3-draft` (`0.2.1` → `0.2.2` issue #44 → `0.2.3`
+this issue) and RFC-AITP-0010 is `0.2.6-draft` (`0.2.4` → `0.2.5` issue #43
+→ `0.2.6` this issue). `rfcs/README.md`'s version-coherence sentence reflects
+the reconciled numbers, not the numbers this PR's own diff originally stated.
+
+**Not in scope.** `registries/extension-keys.md` and
+`registries/capabilities.md`'s `Proposed` / `Provisional` / `Stable` /
+`Deprecated` axis, and `registries/error-codes.md`'s `spec_status ∈
+{core, draft}` axis, measure the lifecycle of individual registry
+*entries* (one extension key, one capability string, one error code) —
+a different thing from an RFC *document's* lifecycle, and forcing them
+into this ladder would blur that distinction rather than fix anything.
+
 ### Issues #39 and #40: structural-rejection codes, and one identity descriptor instead of two
 
 Both issues came out of the same place — `aitp-verifier-py` implementing
