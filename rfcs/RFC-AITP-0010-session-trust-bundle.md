@@ -2,7 +2,7 @@
 # Session Trust Bundle
 
 **Document:** RFC-AITP-0010
-**Version:** 0.2.5-draft
+**Version:** 0.2.6-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0004 Mutual Handshake](RFC-AITP-0004-mutual-handshake.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md), [RFC-AITP-0008 Revocation](RFC-AITP-0008-revocation.md)
 
@@ -123,8 +123,21 @@ out-of-band configuration:
 
 | Path | Method | Purpose |
 |---|---|---|
-| `/aitp/session/bundle` | `POST` | Coordinator issues and stores a bundle. Request body is the `session_bundle` object defined in §3 (including the coordinator's `signature`). |
-| `/aitp/session/bundle/{session_id}` | `GET` | Participant fetches the bundle for a known `session_id`. Response body is the same `session_bundle` object. |
+| `/aitp/session/bundle` | `POST` | Coordinator issues and stores a bundle. Request body MUST be the wrapped transport envelope shown in §3's example — `{"session_bundle": {…, "signature": …}}` — never the bare inner object. |
+| `/aitp/session/bundle/{session_id}` | `GET` | Participant fetches the bundle for a known `session_id`. Response body is the same wrapped envelope. |
+
+> **Erratum.** This row previously described the request/response body as
+> "the `session_bundle` object defined in §3 (including the coordinator's
+> `signature`)" — read literally, that is ambiguous between the wrapped
+> envelope `{"session_bundle": {…}}` shown in §3's example and the bare
+> inner value the field table on that section documents field-by-field
+> (which, since the schema-placement correction above, already includes
+> `signature` as a required member, making the parenthetical read as
+> though it were distinguishing something). §4.2 step 4 settles it: the
+> coordinator signs the inner body, then "add[s] the wrapper only when
+> transmitting" — so what travels on the wire, at every transport
+> including this HTTP binding, is the wrapped form. A bare (unwrapped)
+> `session_bundle` body MUST be rejected at this endpoint.
 
 These paths are RECOMMENDED, not reserved. Coordinators offering an
 HTTPS bundle endpoint MUST advertise the **actual concrete URL** they

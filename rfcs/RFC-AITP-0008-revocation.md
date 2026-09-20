@@ -190,9 +190,10 @@ The schema default for `revocation_policy.mode` is **`fail_closed`** (see `aitp-
 ### 3.3 Revocation lookup ordering
 
 Implementations MUST complete the TCT's compact-JWS verification —
-strict parse (which per RFC-AITP-0005 §7.2 step 1 includes rejecting
-unrecognized claims outside `ext` with `UNKNOWN_FIELD`), `typ`
-enforcement, AID-pinned `alg`, signature, issuer key
+strict parse, `typ` enforcement, the claims-membership check (which per
+RFC-AITP-0005 §7.2 step 1 rejects unrecognized claims outside `ext` with
+`UNKNOWN_FIELD`, and which that section's ordering note places after `typ`
+enforcement, not before it), AID-pinned `alg`, signature, issuer key
 binding, audience, and `exp` (RFC-AITP-0005 §7.2 steps 1–5) — **before**
 consulting any network revocation source. The TCT claims `iss` and `jti`
 are used as lookup keys for the deny list; verifying the signature first

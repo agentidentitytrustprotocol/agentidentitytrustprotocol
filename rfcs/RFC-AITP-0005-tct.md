@@ -2,7 +2,7 @@
 # Trust Context Token (TCT)
 
 **Document:** RFC-AITP-0005
-**Version:** 0.2.2-draft
+**Version:** 0.2.3-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0004 Mutual Handshake](RFC-AITP-0004-mutual-handshake.md)
 
@@ -276,10 +276,14 @@ There is no canonicalization step. The bytes the issuer transmitted are the byte
 
 ### 7.2 Verification order
 
-A TCT verifier MUST, in order:
+A TCT verifier MUST, in order. Step numbers below are load-bearing (cited by
+RFC-AITP-0001 §7, RFC-AITP-0008 §3.3, RFC-AITP-0009 §1, and the `tct-002` /
+`tct-003` / `tct-004` / `tct-008` / `tct-009` / `tct-010` conformance
+fixtures) and are not renumbered here; instead, step 1's *sub-steps* are
+ordered explicitly, since they previously read as a single unordered clause:
 
-1. **Parse strictly** — exactly three non-empty base64url segments (RFC-AITP-0001 §5.4.5 strict-parsing rules), and the decoded claims set MUST contain only the claims registered in §2. The TCT is a compact JWS, so RFC-AITP-0001 §7's unknown-field rule lands on the decoded *claims*, and the extension namespace is the `ext` claim — spelled `ext`, not `extensions`. Any unrecognized claim outside `ext` ⇒ `UNKNOWN_FIELD`; unknown keys *inside* `ext` MUST be ignored. (The protected header needs no separate unknown-member check here: §5.4.5 already pins it to exactly `alg` and `typ`.) This structural rejection is part of parsing, before any cryptographic step below.
-2. **Enforce `typ`** — header `typ` MUST be exactly `aitp-tct+jwt`; otherwise reject with `TOKEN_TYP_MISMATCH`.
+1. **Parse strictly** — exactly three non-empty base64url segments (RFC-AITP-0001 §5.4.5 strict-parsing rules); this segment check alone precedes everything below, including step 2. Once decoded, this step also requires the claims set to contain only the claims registered in §2 — the TCT is a compact JWS, so RFC-AITP-0001 §7's unknown-field rule lands on the decoded *claims*, and the extension namespace is the `ext` claim, spelled `ext`, not `extensions`; any unrecognized claim outside `ext` ⇒ `UNKNOWN_FIELD`, unknown keys *inside* `ext` MUST be ignored. (The protected header needs no separate unknown-member check here: §5.4.5 already pins it to exactly `alg` and `typ`.) **This claims-membership check executes after step 2's `typ` enforcement, not before it** (see step 2's note) — it is kept under step 1's number, rather than given its own, only to avoid renumbering the load-bearing steps that follow. Full execution order: this step's segment-parsing, then step 2, then this step's claims-membership clause, then steps 3–4.
+2. **Enforce `typ`** — header `typ` MUST be exactly `aitp-tct+jwt`; otherwise reject with `TOKEN_TYP_MISMATCH`. This runs before step 1's claims-membership clause (see the note there): a `typ` mismatch is rejected as type confusion regardless of what the decoded claims contain, so that a grant voucher or delegation token — signed by the same issuer key as its companion TCT, and structurally a valid JWS carrying its own, different, registered claim set — is never evaluated as a TCT at all. `tct-010` pins exactly this ordering: a schema-valid, validly-signed grant voucher presented as a TCT MUST be rejected with `TOKEN_TYP_MISMATCH`, even though its claims (e.g. `src_jti`) are not TCT claims and would otherwise trigger `UNKNOWN_FIELD`.
 3. **Pin `alg`** — derive the sole acceptable `alg` from the issuer's AID (`iss` claim) and reject any other header value, including `none`, with `TOKEN_ALG_MISMATCH`.
 4. **Verify the signature** against the issuer's public key.
 5. **Check claims** — `ver` known; `aud` == own AID; `exp` in the future; `cnf.jkt` matches `sub` (§3); grants non-empty.

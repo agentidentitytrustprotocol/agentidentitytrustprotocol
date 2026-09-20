@@ -1,6 +1,116 @@
 # Changelog
 
-## Unreleased
+### Issue #43: RFC-AITP-0010 §4.3.1 states the bundle HTTP body MUST be the wrapped envelope
+
+Editorial. §4.3.1 is non-normative for Draft; this tightens its wording, it does not newly bind an unspecified surface.
+
+**The ambiguity.** §4.3.1's path table described the POST/GET body as "the
+`session_bundle` object defined in §3 (including the coordinator's
+`signature`)." Read against §3's own field-table row for `signature` —
+which states the `{"session_bundle": {…}}` form is "the HTTP/transport
+envelope only" and the *signed* object is the inner value — "the
+`session_bundle` object" could mean either the wrapped envelope or the
+bare inner object, and the parenthetical no longer distinguishes anything
+now that `signature` is a required member of the inner body (post the
+schema-placement correction). Two reference-adjacent implementations
+already disagree in practice: one accepts either shape at this endpoint,
+the other requires the wrapped form and rejects a bare body.
+
+**The fix.** §4.2 step 4 already settles this — the coordinator signs the
+inner body, then "add[s] the wrapper only when transmitting" — so the wire
+form, at every transport including this HTTP binding, is the wrapped
+envelope. The path table now says so directly (MUST be wrapped; a bare
+body MUST be rejected), and a new erratum blockquote records the
+correction and its reasoning.
+
+**Version bump.** RFC-AITP-0010: `0.2.4-draft` → `0.2.5-draft` (editorial
+per `VERSIONING.md`). No other RFC's header moves.
+
+### Issue #44: RFC-AITP-0005 §7.2 states the TCT's `typ`-before-claims-membership order explicitly
+
+Editorial. No wire, schema, or fixture change; the ordering being clarified was already what `tct-010` tested.
+
+**The ambiguity.** §7.2 step 1 ("Parse strictly") folded in the claims-set
+membership check (the `UNKNOWN_FIELD` rule) and closed with "before any
+cryptographic step below" — read literally, that places the membership
+check ahead of step 2's `typ` enforcement, since `typ` enforcement isn't a
+cryptographic step either. But `tct-010` requires the opposite: a grant
+voucher presented as a TCT must be rejected with `TOKEN_TYP_MISMATCH`
+*before* its non-TCT claims (e.g. `src_jti`) ever reach the membership
+check, which would otherwise fire `UNKNOWN_FIELD` first. Both documents
+were correct about *what* is checked; only the relative order between two
+of step 1's own clauses was left to be reinterpreted per-implementation —
+exactly the gap `aitp-rs`'s delegation code fell into on `/reconcile`
+before being caught against `aitp-verifier-py` (no fixture exists for the
+equivalent ordering on delegation tokens, RFC-AITP-0006 §4 — noted, not
+fixed here).
+
+**The fix.** Step 1's claims-membership clause now states explicitly that
+it executes *after* step 2's `typ` enforcement, and step 2 cross-references
+the same note, citing `tct-010` as the pinned example. Step numbers are
+unchanged — RFC-AITP-0001 §7, RFC-AITP-0008 §3.3, RFC-AITP-0009 §1 and six
+conformance fixtures cite them by number, and the PR that added the
+`UNKNOWN_FIELD` check (see the "Issues #39 and #40" entry in this file)
+already chose to fold the membership check into step 1 rather than
+renumber for exactly this reason. RFC-AITP-0008 §3.3's own restatement of
+the verification order is corrected to match (it had listed the membership
+check ahead of `typ`, the same latent ambiguity from the other direction).
+
+**Version bump.** RFC-AITP-0005: `0.2.1-draft` → `0.2.2-draft` (editorial /
+clarification, per `VERSIONING.md`). No other RFC's header moves.
+
+### Issue #50: README states its maintenance posture — single maintainer, best-effort, and what's actually stable
+
+The README had no maintenance statement anywhere in it — the closest thing
+was `governance/CHARTER.md`'s single sentence that the repository maintainer
+acts in the Core Team's place until one is seated, three clicks from the
+README and phrased as a fallback rule, not a status. A reader had no way to
+learn bus-factor or stability tier without independently reading the
+governance docs.
+
+Adds a **Maintenance posture** section (after "Standards posture", before
+"Capability negotiation"): status is maintained/single-maintainer/best-effort,
+stated plainly and linked to `governance/CHARTER.md` and
+`governance/RFC-PROCESS.md`; stability restates that the tagged `aitp/0.2`
+line (`v0.2.0-draft`, `schema-v0.2.0` — issue #46) is still `Draft` on every
+RFC per the status ladder (issue #47), with nothing yet at Release Candidate;
+cadence is "changes land when a consumer needs them," which is what the
+commit history actually shows.
+
+### Issue #49: recorded the decision not to spec the DPoP / token-exchange surface yet
+
+Docs only — no schema, RFC, vector, or tooling change.
+
+`aitp-rs` ships ~1.4 kLOC of DPoP (RFC 9449) and OAuth 2.0 Token Exchange
+(RFC 8693) code that no AITP RFC specifies, with no consumer, no conformance
+fixture, and no recorded decision about whether to spec it. `governance/DECISIONS.md`
+now records the decision explicitly: do not write an RFC for it now — the
+surface is unconsumed, unspecified, security-relevant, and the maintenance
+budget is one person — with the reversal trigger stated up front (a real
+consumer brings the surface back with an RFC, not a retroactive description of
+whatever shipped). The `aitp-rs`-side note is tracked there as `aitp-rs`#151.
+
+### Issue #48: the decision log and the W-P5 errata record are now tracked
+
+Docs only — no schema, RFC, vector, or tooling change.
+
+`DECISIONS.md` (repo root) and `plans/spec-errata-from-independent-verifier-2026-07.md`
+were both excluded from git — the first via `.git/info/exclude`, the second via
+`.gitignore`'s blanket `plans/` rule — so neither was visible to anyone who cloned
+this repo. The errata file is the canonical record of the W-P5 signing-input
+divergence and had gone stale in the same way: it still asserted a pre-fix world
+(errata "proposed", the cross-implementation gate "not satisfied") months after
+every item in it shipped, and its own invisibility is what let that go unnoticed.
+
+Both files move to `governance/` and are now tracked: `governance/DECISIONS.md`
+and `governance/spec-errata-from-independent-verifier-2026-07.md` (filename
+unchanged for the cross-repo tracking issues that already cite it by name). The
+errata file is re-statused against the current trees — a new "Current status"
+section up top corrects the stale claims, and every completed action item is
+checked off — while its historical narrative is left intact as the record of
+what was found and why each fix was chosen. `README.md`'s repository-layout
+tree gains the two new entries. The rest of `plans/` stays gitignored; it is
+in-flight working analysis, not a tracked record.
 
 ### Issue #47: one RFC status ladder, applied to all 13 RFCs, now CI-checked
 
@@ -55,6 +165,20 @@ RFC-AITP-0008 `0.2.6-draft` → `0.2.7-draft`; RFC-AITP-0001 `0.2.5-draft` →
 RFC-AITP-0006, RFC-AITP-0007, RFC-AITP-0009, and RFC-AITP-0011
 `0.2.0-draft` → `0.2.1-draft`. RFC-AITP-0012 and RFC-AITP-0013 are
 unmoved — their `**Status:**` values did not change.
+
+**Merge-time renumbering.** This PR's branch computed the bumps above from
+`main` as it stood before issue #44 and issue #43 merged, so its own diff
+lands RFC-AITP-0005 and RFC-AITP-0010 on the same version numbers those two
+PRs *also* independently landed them on (`0.2.2-draft` and `0.2.5-draft`
+respectively) — two distinct editorial changes computed from the same
+starting point, not one. Collapsing them into a single bump would make a
+consumer pinning `0.2.2-draft` unable to tell whether they have the §7.2
+verification-order fix, the status-ladder normalization, or both.
+Reconciled at merge time per `VERSIONING.md`'s per-document editorial-history
+rule: RFC-AITP-0005 is `0.2.3-draft` (`0.2.1` → `0.2.2` issue #44 → `0.2.3`
+this issue) and RFC-AITP-0010 is `0.2.6-draft` (`0.2.4` → `0.2.5` issue #43
+→ `0.2.6` this issue). `rfcs/README.md`'s version-coherence sentence reflects
+the reconciled numbers, not the numbers this PR's own diff originally stated.
 
 **Not in scope.** `registries/extension-keys.md` and
 `registries/capabilities.md`'s `Proposed` / `Provisional` / `Stable` /
