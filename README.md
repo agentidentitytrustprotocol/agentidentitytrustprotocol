@@ -170,6 +170,14 @@ There is no service-consumer profile. AITP is peer-to-peer.
 
 ---
 
+## Maintenance posture
+
+- **Status:** maintained, single maintainer, best-effort. Until a Core Team is seated, the repository maintainer acts in its place for editorial and registry matters (see [governance/CHARTER.md § Core Team](governance/CHARTER.md#core-team)); substantive RFC changes still go through the [RFC process](governance/RFC-PROCESS.md), not one person's judgment alone.
+- **What's stable vs. not:** the `aitp/0.2` revision is tagged (`v0.2.0-draft`, `schema-v0.2.0`) but every RFC in it is still at the `Draft` stage of the [RFC status ladder](governance/RFC-PROCESS.md#rfc-lifecycle) — see "Standards posture" above for the per-RFC breakdown. Nothing in this repository has reached Release Candidate yet.
+- **Cadence:** best-effort, driven by need. Changes land when a consumer needs them, not on a fixed schedule.
+
+---
+
 ## Capability negotiation
 
 Capabilities are negotiated in two layers:
