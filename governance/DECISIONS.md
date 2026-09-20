@@ -1,11 +1,19 @@
-# DECISIONS — w-p5-signing-input-divergence
+# DECISIONS
+
+Repo-wide decision log. Entries are dated and append-only; a superseded decision
+is marked so in place (see the version-bump entry below) rather than deleted, so
+the log stays a record of what was decided and when, not just what is currently
+true.
 
 > **Relocated 2026-09-19 (issue #48).** This file lived at the repo root, excluded
 > from git via `.git/info/exclude`, so no clone but the one that wrote it could ever
 > see it — including the entry directly below, which chose to keep the errata record
 > local for exactly the reason this relocation now reverses. It is tracked here
 > going forward; new decisions should be appended to this file, not to a
-> `.git/info/exclude`d one.
+> `.git/info/exclude`d one. The title above was `DECISIONS —
+> w-p5-signing-input-divergence`, reflecting the single plan that originated the
+> file; it has carried unrelated entries since 2026-08-29 and is retitled here to
+> match what it already is.
 
 ## Errata record stays in `plans/` (untracked), RFCs + CHANGELOG carry the published record
 
@@ -142,3 +150,50 @@ patch-level, no new signatures). It deserves its own review rather than riding a
   earns the same treatment, move it the same way rather than reopening this question.
 - **Blast radius if wrong:** low. Nothing depends on either file's path; both are read by humans
   cross-referencing decisions, not by any script in `scripts/` or by CI.
+
+---
+
+## 2026-09-19 — Do not spec `aitp-rs`'s DPoP / OAuth token-exchange surface yet (issue #49)
+
+- **Decided by:** me, applying the recommendation issue #49 already argued for on
+  verified facts; this entry supplies the tracked home the issue said was missing,
+  and records the decision itself.
+- **Context:** `aitp-rs` ships two OAuth/OIDC-adjacent implementations that no AITP
+  RFC specifies — DPoP (RFC 9449, `crates/aitp-transport-http/src/dpop.rs`, ~854
+  lines) and OAuth 2.0 Token Exchange (RFC 8693, `src/token_exchange.rs`, ~513
+  lines). Re-verified 2026-09-19: this repo still has exactly the two incidental,
+  non-normative hits issue #49 found — `RFC-AITP-0002-identity.md:81` (a
+  parenthetical citing RFC 9449 §6 to describe the *static* `cnf.jkt` binding,
+  which is not DPoP) and `:299` (a bibliography entry). Zero occurrences of `8693`
+  or "token exchange" anywhere in this repo. No conformance fixtures, no
+  RFC-AITP-0009 threat-model entry, no prior issue or PR on the subject.
+- **Chosen:** do not write an RFC for this surface now. No normative text, no
+  fixtures, no threat-model entry — the decision itself, not a spec, is the
+  deliverable. Explicitly rejected: a "descriptive" RFC that documents current
+  `aitp-rs` behavior without normative requirements. Issue #49's own framing is
+  exactly right on why — a document with the authority of a spec and the content
+  of a comment is the same failure mode that let the revocation signing-input
+  divergence (errata 3, above) go unnoticed for a full release: prose that reads
+  as settled but isn't actually checked against anything.
+- **Reasoning:** the surface is (a) unconsumed — `seam-runtime`, the only known
+  consumer, does not depend on `aitp-transport-http` at all; (b) unspecified —
+  covered by no RFC, fixture, or threat model; (c) security-relevant — DPoP and
+  token exchange both sit in the authentication path; and (d) the maintenance
+  budget is one person. Specifying it now means fixturing and threat-modeling two
+  IETF protocols' interaction with AITP for no current caller.
+- **Reversal trigger, stated up front so this isn't re-litigated from nothing:** a
+  real consumer. If an adopter needs OIDC/DPoP, the surface comes back *with* an
+  RFC at that point — normative text, conformance fixtures, and an
+  RFC-AITP-0009 threat-model entry, not a retroactive description of whatever
+  `aitp-rs` happened to ship.
+- **Not this repo's decision alone:** the `aitp-rs` side of this — a note in that
+  repo stating the surface is unspecified and unsupported by the AITP spec — is
+  tracked there as `aitp-rs`#151 (open as of this writing). This entry is the
+  spec-repo half; #151 is the implementation-repo half. Neither supersedes the
+  other.
+- **Blast radius if wrong:** low and reversible. Nothing is removed from
+  `aitp-rs` — its DPoP/token-exchange code keeps working for whoever already
+  uses it. The only cost of waiting is that an adopter who needs it today has to
+  ask for the RFC rather than finding one already written; the cost of writing
+  one now, unused, is a maintenance surface (two IETF RFCs' worth of interaction
+  semantics) with no one to tell if it's wrong.

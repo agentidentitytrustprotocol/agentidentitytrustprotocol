@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Issue #49: recorded the decision not to spec the DPoP / token-exchange surface yet
+
+Docs only — no schema, RFC, vector, or tooling change.
+
+`aitp-rs` ships ~1.4 kLOC of DPoP (RFC 9449) and OAuth 2.0 Token Exchange
+(RFC 8693) code that no AITP RFC specifies, with no consumer, no conformance
+fixture, and no recorded decision about whether to spec it. `governance/DECISIONS.md`
+now records the decision explicitly: do not write an RFC for it now — the
+surface is unconsumed, unspecified, security-relevant, and the maintenance
+budget is one person — with the reversal trigger stated up front (a real
+consumer brings the surface back with an RFC, not a retroactive description of
+whatever shipped). The `aitp-rs`-side note is tracked there as `aitp-rs`#151.
+
 ### Issue #48: the decision log and the W-P5 errata record are now tracked
 
 Docs only — no schema, RFC, vector, or tooling change.
