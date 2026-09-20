@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### Issue #50: README states its maintenance posture — single maintainer, best-effort, and what's actually stable
+
+The README had no maintenance statement anywhere in it — the closest thing
+was `governance/CHARTER.md`'s single sentence that the repository maintainer
+acts in the Core Team's place until one is seated, three clicks from the
+README and phrased as a fallback rule, not a status. A reader had no way to
+learn bus-factor or stability tier without independently reading the
+governance docs.
+
+Adds a **Maintenance posture** section (after "Standards posture", before
+"Capability negotiation"): status is maintained/single-maintainer/best-effort,
+stated plainly and linked to `governance/CHARTER.md` and
+`governance/RFC-PROCESS.md`; stability restates that the tagged `aitp/0.2`
+line (`v0.2.0-draft`, `schema-v0.2.0` — issue #46) is still `Draft` on every
+RFC per the status ladder (issue #47), with nothing yet at Release Candidate;
+cadence is "changes land when a consumer needs them," which is what the
+commit history actually shows.
+
 ### Issues #39 and #40: structural-rejection codes, and one identity descriptor instead of two
 
 Both issues came out of the same place — `aitp-verifier-py` implementing
