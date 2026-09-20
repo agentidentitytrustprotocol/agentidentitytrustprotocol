@@ -1,6 +1,30 @@
 # Changelog
 
-## Unreleased
+### Issue #43: RFC-AITP-0010 §4.3.1 states the bundle HTTP body MUST be the wrapped envelope
+
+Editorial. §4.3.1 is non-normative for Draft; this tightens its wording, it does not newly bind an unspecified surface.
+
+**The ambiguity.** §4.3.1's path table described the POST/GET body as "the
+`session_bundle` object defined in §3 (including the coordinator's
+`signature`)." Read against §3's own field-table row for `signature` —
+which states the `{"session_bundle": {…}}` form is "the HTTP/transport
+envelope only" and the *signed* object is the inner value — "the
+`session_bundle` object" could mean either the wrapped envelope or the
+bare inner object, and the parenthetical no longer distinguishes anything
+now that `signature` is a required member of the inner body (post the
+schema-placement correction). Two reference-adjacent implementations
+already disagree in practice: one accepts either shape at this endpoint,
+the other requires the wrapped form and rejects a bare body.
+
+**The fix.** §4.2 step 4 already settles this — the coordinator signs the
+inner body, then "add[s] the wrapper only when transmitting" — so the wire
+form, at every transport including this HTTP binding, is the wrapped
+envelope. The path table now says so directly (MUST be wrapped; a bare
+body MUST be rejected), and a new erratum blockquote records the
+correction and its reasoning.
+
+**Version bump.** RFC-AITP-0010: `0.2.4-draft` → `0.2.5-draft` (editorial
+per `VERSIONING.md`). No other RFC's header moves.
 
 ### Issue #44: RFC-AITP-0005 §7.2 states the TCT's `typ`-before-claims-membership order explicitly
 
