@@ -108,6 +108,8 @@ agentidentitytrustprotocol/
   governance/
     GOVERNANCE.md
     RFC-PROCESS.md
+    DECISIONS.md                                # decision log (issue #48)
+    spec-errata-from-independent-verifier-2026-07.md
 
   scripts/         # Validation scripts
   .github/         # CI, issue templates, PR template

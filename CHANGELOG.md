@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+### Issue #48: the decision log and the W-P5 errata record are now tracked
+
+Docs only — no schema, RFC, vector, or tooling change.
+
+`DECISIONS.md` (repo root) and `plans/spec-errata-from-independent-verifier-2026-07.md`
+were both excluded from git — the first via `.git/info/exclude`, the second via
+`.gitignore`'s blanket `plans/` rule — so neither was visible to anyone who cloned
+this repo. The errata file is the canonical record of the W-P5 signing-input
+divergence and had gone stale in the same way: it still asserted a pre-fix world
+(errata "proposed", the cross-implementation gate "not satisfied") months after
+every item in it shipped, and its own invisibility is what let that go unnoticed.
+
+Both files move to `governance/` and are now tracked: `governance/DECISIONS.md`
+and `governance/spec-errata-from-independent-verifier-2026-07.md` (filename
+unchanged for the cross-repo tracking issues that already cite it by name). The
+errata file is re-statused against the current trees — a new "Current status"
+section up top corrects the stale claims, and every completed action item is
+checked off — while its historical narrative is left intact as the record of
+what was found and why each fix was chosen. `README.md`'s repository-layout
+tree gains the two new entries. The rest of `plans/` stays gitignored; it is
+in-flight working analysis, not a tracked record.
+
 ### Issues #39 and #40: structural-rejection codes, and one identity descriptor instead of two
 
 Both issues came out of the same place — `aitp-verifier-py` implementing
