@@ -2,8 +2,8 @@
 # Multi-hop Delegation
 
 **Document:** RFC-AITP-0011
-**Version:** 0.2.0-draft
-**Status:** Draft
+**Version:** 0.2.1-draft
+**Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md), [RFC-AITP-0006 Single-Hop Delegation](RFC-AITP-0006-delegation.md), [RFC-AITP-0008 Revocation](RFC-AITP-0008-revocation.md)
 
 ---
