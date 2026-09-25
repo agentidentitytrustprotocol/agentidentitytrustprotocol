@@ -250,11 +250,11 @@ The runner interface is implementation-defined.
 
 | Tier | Count | Required for v0.2 |
 |---|---|---|
-| `core` (v0.2-required) | 58 | ✅ Yes |
+| `core` (v0.2-required) | 59 | ✅ Yes |
 | `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (v0.1 runners only) |
 | `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 6 | ❌ No |
 | `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 4 | ❌ No |
-| **Total** | **69** | |
+| **Total** | **70** | |
 
 Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A v0.2 conformance runner MUST execute every `required_for_v0_2` core fixture; `draft` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
@@ -284,6 +284,7 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | `man-004` | Manifest body carries an unknown member (`deployment_region`) outside `extensions` | failure: UNKNOWN_FIELD |
 | `man-005` | Manifest body carries an unrecognized, vendor-namespaced key inside `extensions` — ignored | success |
 | `man-006` | Manifest missing the REQUIRED `handshake_endpoint` — structural rejection, not a signature failure | failure: MANIFEST_INVALID |
+| `man-007` | Manifest `identity_hint` has `type: "oidc"` and also carries `public_key`, which RFC-AITP-0003 §3.1 forbids | failure: MANIFEST_INVALID |
 
 ### Mutual Handshake (RFC-AITP-0004)
 
