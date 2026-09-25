@@ -1,5 +1,15 @@
 # Changelog
 
+### Issue #59: RFC-AITP-0003 §3.1 states the oidc-side `identity_hint` MUST NOT carry `public_key`, and a conformance vector pins it
+
+Editorial. No schema or wire change — `aitp-manifest.schema.json`'s `$defs/IdentityHint` already forbade `public_key` on the `oidc` branch (`then.not.required`); the RFC's field table never said so.
+
+**The gap.** §3.1's `identity_hint` row stated the two MUST-contain rules ("for `oidc` it MUST also contain `issuer`"; "for `pinned_key` it MUST also contain `public_key`") but never stated the oidc-side MUST-NOT. RFC-AITP-0002 §1 states the equivalent rule for the handshake's identity *descriptor* — a different object, exchanged with a live JWT proof in `MUTUAL_HELLO` — but nothing in RFC-AITP-0003 cross-referenced it for the Manifest's static `identity_hint`. `id-008` conformance-tests the descriptor; nothing tested the hint. Found during an `aitp-verifier-py` hardening pass and filed as issue #59.
+
+**The fix.** §3.1's field table now states the oidc-side MUST NOT explicitly, with a cross-reference to RFC-AITP-0002 §1's rationale (the AID already encodes the public key, so a second copy is an ambiguity, not redundancy). New conformance vector `man-007-identity-hint-oidc-public-key-rejected` pins it: an otherwise well-formed Manifest whose `identity_hint` has `type: "oidc"` and also carries `public_key`, expected `MANIFEST_INVALID`. `schemas/conformance/README.md`'s fixture index and summary counts (`core` 58 → 59, total 69 → 70) and `scripts/fixture-validation-map.json` both updated to match.
+
+**Version bump.** RFC-AITP-0003: `0.2.5-draft` → `0.2.6-draft` (editorial per `VERSIONING.md`). `rfcs/README.md`'s version-summary sentence updated to match. No other RFC's header moves.
+
 ### Issue #43: RFC-AITP-0010 §4.3.1 states the bundle HTTP body MUST be the wrapped envelope
 
 Editorial. §4.3.1 is non-normative for Draft; this tightens its wording, it does not newly bind an unspecified surface.

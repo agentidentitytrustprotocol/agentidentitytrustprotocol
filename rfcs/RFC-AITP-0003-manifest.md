@@ -2,7 +2,7 @@
 # Agent Manifest
 
 **Document:** RFC-AITP-0003
-**Version:** 0.2.5-draft
+**Version:** 0.2.6-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0002 Identity](RFC-AITP-0002-identity.md)
 
@@ -82,7 +82,7 @@ The canonical schema is [`schemas/json/aitp-manifest.schema.json`](../schemas/js
 |---|---|---|
 | `version` | string | MUST be `"aitp/0.2"`. |
 | `aid` | string | The agent's AID. Format: `aid:<method>:<identifier>`. |
-| `identity_hint` | object | Static issuer/subject metadata. Tells peers which identity provider this agent uses, but does NOT contain a verifiable JWT. Fresh identity proof is exchanged in `MUTUAL_HELLO` (RFC-AITP-0004 §3). The hint MUST contain `type` and `subject`; for `oidc` it MUST also contain `issuer`; for `pinned_key` it MUST also contain `public_key`. The hint MUST NOT contain a `proof` field. |
+| `identity_hint` | object | Static issuer/subject metadata. Tells peers which identity provider this agent uses, but does NOT contain a verifiable JWT. Fresh identity proof is exchanged in `MUTUAL_HELLO` (RFC-AITP-0004 §3). The hint MUST contain `type` and `subject`; for `oidc` it MUST also contain `issuer` and MUST NOT contain `public_key` (mirroring the identity-descriptor rule in RFC-AITP-0002 §1: for OIDC the agent's public key is already encoded in `aid`, so a second copy in the hint creates an ambiguity over which key is authoritative); for `pinned_key` it MUST also contain `public_key`. The hint MUST NOT contain a `proof` field. |
 | `handshake_endpoint` | string | HTTPS URL where peer agents initiate the Mutual Handshake. |
 | `accepted_trust_anchors` | array of string | OIDC issuer URIs this agent accepts from peers. MUST be consistent with the agent's internal verification configuration (see §5.1). |
 | `offered_capabilities` | array of string | Capabilities this agent is willing to grant to authenticated peers. |

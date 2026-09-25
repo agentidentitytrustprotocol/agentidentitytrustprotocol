@@ -571,6 +571,17 @@
         }
       ]
     },
+    "man-007": {
+      "artifacts": [
+        {
+          "pointer": "/input/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "invalid",
+          "wrap": "manifest",
+          "reason": "Deliberately schema-invalid: input.manifest.identity_hint has type 'oidc' and also carries public_key, which the schema's if/then/else forbids on the oidc branch. The fixture asserts MANIFEST_INVALID, so schema rejection is the correct expected outcome — this fixture and this map entry are the same assertion made from both directions."
+        }
+      ]
+    },
     "mh-001": {
       "artifacts": [],
       "no_artifacts": {
