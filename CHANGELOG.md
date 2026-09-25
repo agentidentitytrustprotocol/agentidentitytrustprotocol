@@ -1,5 +1,13 @@
 # Changelog
 
+### Issue #60: RFC-AITP-0006 §4 step 7's source-TCT revocation lookup gets a vector on the core single-hop path
+
+No schema, RFC, or wire change — this closes a conformance-pack gap, not a spec ambiguity.
+
+**The gap.** No fixture anywhere in `schemas/conformance/` exercised RFC-AITP-0006 §4 step 7 (the source-TCT revocation lookup) on the core single-hop delegation path. The only fixture touching step 7 at all was `del-mh-004-revoked-hop`, a `draft`, opt-in RFC-AITP-0011 multi-hop vector (`required_for_v0_2: false`). A v0.2 implementation that opts out of multi-hop could pass the entire required pack with step 7 unimplemented on the one path every core runner must exercise. `del-002` was also a permanently free id — `del-001`, `del-003`–`del-007` shipped, `del-002` never did. Found during an `aitp-verifier-py` hardening pass and filed as issue #60.
+
+**The fix.** New conformance vector `del-002-source-tct-revoked`: `status: core`, `required_for_v0_2: true`, byte-identical to `del-001-success` except `voucher_claims.src_jti` is present in a `revocation_snapshots` record signed by A (the voucher issuer), using the same `{issuer_aid, snapshot}` shape `del-mh-004` already established. Expected `DELEGATION_SOURCE_TCT_REVOKED`. `PLACEHOLDERS.md`'s `del-*` row now documents `revocation_snapshots` (previously only the `del-mh-*` row did), with a note that core §4 names exactly one lookup — no per-hop sweep, no independent voucher revocation handle. `schemas/conformance/README.md`'s fixture index and summary counts (`core` 59 → 60, total 70 → 71) and `scripts/fixture-validation-map.json` updated to match.
+
 ### Issue #59: RFC-AITP-0003 §3.1 states the oidc-side `identity_hint` MUST NOT carry `public_key`, and a conformance vector pins it
 
 Editorial. No schema or wire change — `aitp-manifest.schema.json`'s `$defs/IdentityHint` already forbade `public_key` on the `oidc` branch (`then.not.required`); the RFC's field table never said so.

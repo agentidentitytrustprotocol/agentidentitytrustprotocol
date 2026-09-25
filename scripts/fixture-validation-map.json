@@ -131,6 +131,25 @@
         }
       ]
     },
+    "del-002": {
+      "artifacts": [
+        {
+          "pointer": "/input/delegation_token_claims",
+          "schema": "aitp-delegation.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/delegation_token_claims/voucher_claims",
+          "schema": "aitp-grant-voucher.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/revocation_snapshots/0/snapshot",
+          "schema": "aitp-revocation-list.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
     "del-003": {
       "artifacts": [
         {

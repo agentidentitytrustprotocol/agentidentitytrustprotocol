@@ -250,11 +250,11 @@ The runner interface is implementation-defined.
 
 | Tier | Count | Required for v0.2 |
 |---|---|---|
-| `core` (v0.2-required) | 59 | ✅ Yes |
+| `core` (v0.2-required) | 60 | ✅ Yes |
 | `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (v0.1 runners only) |
 | `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 6 | ❌ No |
 | `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 4 | ❌ No |
-| **Total** | **70** | |
+| **Total** | **71** | |
 
 Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A v0.2 conformance runner MUST execute every `required_for_v0_2` core fixture; `draft` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
@@ -356,6 +356,7 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | ID | Description | Outcome |
 |---|---|---|
 | `del-001` | Single-hop happy path — A→B→C with scope ⊆ voucher.grants | success |
+| `del-002` | Single-hop, otherwise identical to del-001, but `voucher.src_jti` is in A's own deny list (RFC-AITP-0006 §4 step 7, core path) | failure: DELEGATION_SOURCE_TCT_REVOKED |
 | `del-003` | Scope exceeds the embedded voucher's grants | failure: DELEGATION_SCOPE_EXCEEDED |
 | `del-004` | **Frozen in the v0.1 wire shape** (v0.1 runners only): a delegation token with a non-empty `chain` field MUST be rejected structurally, before any per-hop signature work | failure: DELEGATION_MULTIHOP_NOT_SUPPORTED |
 | `del-005` | Embedded voucher signed by a third party (`voucher.iss` ≠ verifier's AID) | failure: DELEGATION_INVALID_VOUCHER |
