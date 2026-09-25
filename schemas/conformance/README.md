@@ -250,11 +250,11 @@ The runner interface is implementation-defined.
 
 | Tier | Count | Required for v0.2 |
 |---|---|---|
-| `core` (v0.2-required) | 60 | ✅ Yes |
+| `core` (v0.2-required) | 61 | ✅ Yes |
 | `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (v0.1 runners only) |
 | `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 6 | ❌ No |
 | `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 4 | ❌ No |
-| **Total** | **71** | |
+| **Total** | **72** | |
 
 Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A v0.2 conformance runner MUST execute every `required_for_v0_2` core fixture; `draft` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
@@ -350,6 +350,7 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | `rev-006` | Snapshot's `revocation_list` body carries an unrecognized, vendor-namespaced key inside `extensions` — ignored | success |
 | `rev-007` | Snapshot's `revocation_list` body missing the REQUIRED `published_at` — structural rejection | failure: REVOCATION_SNAPSHOT_INVALID |
 | `rev-008` | Snapshot signature does not validate under the issuing peer's key — the snapshot failed, not any token it lists | failure: REVOCATION_SNAPSHOT_SIGNATURE_INVALID |
+| `rev-009` | Same stale snapshot as `rev-001`/`rev-002`, but under `fail_open` mode — allows the request, grants un-narrowed | success |
 
 ### Delegation (RFC-AITP-0006)
 

@@ -1,5 +1,13 @@
 # Changelog
 
+### Issue #61: `fail_open`, the third RFC-AITP-0008 §3.1 policy mode, gets a conformance vector
+
+No schema, RFC, or wire change — this closes a conformance-pack gap, not a spec ambiguity.
+
+**The gap.** RFC-AITP-0008 §3.1 defines three revocation-policy modes: `fail_closed`, `fail_open`, `soft_fail`. Only two had a pinned vector (`rev-001` for `fail_closed`, `rev-002` for `soft_fail`); the string `fail_open` appeared in no fixture at all. An implementation could alias `fail_open` to `fail_closed` (hard rejection instead of the degraded-but-successful verdict §3.1 describes) or treat it as unrecognized, and still pass the entire pack. Found during an `aitp-verifier-py` hardening pass and filed as issue #61.
+
+**The fix.** New conformance vector `rev-009-fail-open-stale-snapshot`: identical input to `rev-002-soft-fail-safe-subset` in every field except `policy.fail_mode`, so the `rev-001`/`rev-002`/`rev-009` trio now pins all three §3.1 modes against one stale-snapshot shape with exactly one field differing. Expected outcome `success`, grants un-narrowed (unlike `soft_fail`, which restricts to a safe subset). `schemas/conformance/README.md`'s fixture index and summary counts (`core` 60 → 61, total 71 → 72) and `scripts/fixture-validation-map.json` updated to match.
+
 ### Issue #60: RFC-AITP-0006 §4 step 7's source-TCT revocation lookup gets a vector on the core single-hop path
 
 No schema, RFC, or wire change — this closes a conformance-pack gap, not a spec ambiguity.

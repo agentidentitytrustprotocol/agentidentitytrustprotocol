@@ -872,6 +872,15 @@
         }
       ]
     },
+    "rev-009": {
+      "artifacts": [
+        {
+          "pointer": "/input/snapshot",
+          "schema": "aitp-revocation-list.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
     "tct-002": {
       "artifacts": [
         {
