@@ -2,7 +2,7 @@
 # Agent Manifest
 
 **Document:** RFC-AITP-0003
-**Version:** 0.2.6-draft
+**Version:** 0.2.7-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0002 Identity](RFC-AITP-0002-identity.md)
 
@@ -198,7 +198,7 @@ Canonical JSON MUST be produced per [RFC 8785 (JCS)](https://datatracker.ietf.or
 
 ### 6.2 Signing algorithm
 
-Ed25519. Future versions MAY add algorithms via the RFC process.
+The algorithm of the signing `aid` — Ed25519 or ECDSA on P-256 — in the JCS-profile signature wire format of [RFC-AITP-0001 §5.4.3](RFC-AITP-0001-core.md#543-algorithm-tagged-signature-wire-format-jcs-profile-only), which governs. Future versions MAY add algorithms via the RFC process.
 
 ---
 
@@ -215,10 +215,11 @@ Initiating Peer (A)              Target Peer (B)
        |                                 |
        | Apply §5 verification, in order:|
        | 1. Version check                |
-       | 2. expires_at in the future     |
-       | 3. proof_of_possession.signature|
-       | 4. manifest.signature           |
-       | 5. identity-type / trust-anchor |
+       | 2. Structural + member-set check|
+       | 3. expires_at in the future     |
+       | 4. proof_of_possession.signature|
+       | 5. manifest.signature           |
+       | 6. identity-type / trust-anchor |
        |    compatibility                |
        |                                 |
        |  [compatible] → proceed to      |
@@ -226,6 +227,7 @@ Initiating Peer (A)              Target Peer (B)
        |                                 |
        |  [incompatible] → abort;        |
        |  log INCOMPATIBLE_TRUST_ANCHORS |
+       |  or INCOMPATIBLE_IDENTITY_TYPE  |
 ```
 
 ---

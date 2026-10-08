@@ -2,7 +2,7 @@
 # Security & Threat Model
 
 **Document:** RFC-AITP-0009
-**Version:** 0.2.1-draft
+**Version:** 0.2.2-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** All preceding RFCs.
 
@@ -224,7 +224,7 @@ AITP v0.2 mandates two signature algorithms: **Ed25519** (RFC 8032; JOSE `EdDSA`
 
 `version: "aitp/0.2"` artifacts carry their algorithm in one of two ways, depending on the signing profile (RFC-AITP-0001 §5.4):
 
-- **JCS embedded-signature profile** (envelopes, Manifests, revocation snapshots, handshake payloads): the algorithm-tagged signature grammar `<alg>.<base64url-sig>` of [RFC-AITP-0001 §5.4.3](RFC-AITP-0001-core.md#543-algorithm-tagged-signature-wire-format-jcs-profile-only). The tag MUST match the signing AID's algorithm; the legacy untagged 86-char form remains valid and means Ed25519.
+- **JCS embedded-signature profile** (envelopes, Manifests, revocation snapshots, session trust bundles, handshake payloads): the algorithm-tagged signature grammar `<alg>.<base64url-sig>` of [RFC-AITP-0001 §5.4.3](RFC-AITP-0001-core.md#543-algorithm-tagged-signature-wire-format-jcs-profile-only). The tag MUST match the signing AID's algorithm; the legacy untagged 86-char form remains valid and means Ed25519.
 - **Compact JWS profile** (TCT, grant voucher, delegation token — v0.2 re-serializes these portable trust artifacts as compact JWS, [RFC-AITP-0001 §5.4.5](RFC-AITP-0001-core.md#545-compact-jws-profile-portable-trust-artifacts)): the JOSE protected-header `alg` parameter carries the algorithm, pinned by the same AID-derived rule — the verifier derives the sole acceptable value from the signer's AID before verification and rejects anything else with `TOKEN_ALG_MISMATCH` (§1.12, §1.14).
 
 The two mechanisms are the same rule stated per profile: the AID decides the algorithm, and the algorithm marker is bound to the signed bytes (the §5.4.3 tag is part of the canonical hash input; the JWS `alg` header is inside the signed segments). The v0.1 baseline was Ed25519-only, with the TCT and delegation token still JCS-signed; both the algorithm-tagged grammar and the JWS re-serialization arrive together in `aitp/0.2`.

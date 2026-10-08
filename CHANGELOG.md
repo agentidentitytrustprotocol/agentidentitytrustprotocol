@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Editorial: RFC-AITP-0001, RFC-AITP-0003 and RFC-AITP-0009 restate current v0.2 text
+
+Editorial. No schema, fixture or wire change, and no RFC 2119 keyword added, removed or changed: each edit restates a rule already normative elsewhere in the RFC set.
+
+- **RFC-AITP-0001.** Five sentences describing current behaviour still said "v0.1": §5.4.1's non-JSON-transport sentence, §5.4.2's PoP signing-input rule, §6's "no protocol capability object", and §8's normative-transport and non-JSON-binding sentences now say v0.2, matching §10 item 1 and RFC-AITP-0003 §3.1 ("every PoP signing input in AITP v0.2 hashes decoded bytes"). §8's operational-surfaces note cites RFC-AITP-0005 §11 (Peer-Issued TCT Verification API), not §10 (Consumer Rules); the rest of that note is unchanged.
+- **RFC-AITP-0003.** §6.2 named Ed25519 as the only Manifest signing algorithm; it now points to RFC-AITP-0001 §5.4.3, which already lists the Manifest `signature` among the algorithm-tagged JCS fields and makes Ed25519 and P-256 both mandatory in v0.2. The §7 discovery-flow diagram gains §5 step 2 (structural and member-set check), which it had skipped, and names both §5 step 6 rejection codes.
+- **RFC-AITP-0009.** §4's list of JCS-profile artifacts adds session trust bundles, matching RFC-AITP-0001 §5.4.
+
+**Version bumps.** RFC-AITP-0001: `0.2.6-draft` → `0.2.7-draft`; RFC-AITP-0003: `0.2.6-draft` → `0.2.7-draft`; RFC-AITP-0009: `0.2.1-draft` → `0.2.2-draft` (editorial per `VERSIONING.md`). `rfcs/README.md`'s version-summary sentence updated to match.
+
 ### Docs refresh, part 2: top-level docs, release archive, and repository metadata brought to v0.2
 
 Documentation, tooling-text and release-tooling change only. No RFC, schema, fixture or wire change.
