@@ -22,7 +22,7 @@ jobs:
       - name: Install ajv-cli
         run: npm install -g ajv-cli ajv-formats
 
-      - name: make validate (schemas, examples, fixtures, known-answer, doc coherence)
+      - name: make validate (schemas, examples, fixtures, known-answer, eight-stage doc coherence)
         run: make validate
 
       - name: Check for release junk (.DS_Store, __MACOSX)
@@ -38,7 +38,7 @@ jobs:
           fi
           echo "✓ No .DS_Store or __MACOSX entries found"
 
-      - name: Release dry-run (verify archive contents)
+      - name: Release dry-run (git archive of tracked files; backstop content check)
         run: |
           set -e
           make release RELEASE_VERSION=ci-dryrun
@@ -49,12 +49,15 @@ jobs:
           fi
           echo "── Archive contents ──"
           unzip -l "$archive"
-          echo "── Verifying excluded paths are absent ──"
-          if unzip -l "$archive" | grep -E '(\.git/|\.DS_Store|__MACOSX|/temp/|/\.claude/|/CLAUDE\.md|/plans/|/node_modules/)'; then
-            echo "::error::Release archive contains excluded paths"
+          # `make release` uses `git archive`, so only tracked files can be in
+          # the zip. This grep is a backstop: it fails if junk ever gets
+          # *committed* (or if the target stops using git archive).
+          echo "── Backstop: no VCS metadata, OS junk, caches, env files or local scratch ──"
+          if unzip -Z1 "$archive" | grep -E '(^|/)(\.git/|\.DS_Store$|__MACOSX/|__pycache__/|\.env($|\.)|node_modules/|temp/|plans/|\.claude/|CLAUDE\.md$|PROGRESS\.md$|ASSUMPTIONS\.md$)'; then
+            echo "::error::Release archive contains paths that must never be released"
             exit 1
           fi
-          echo "✓ Archive excludes all sanctioned-exclusion paths"
+          echo "✓ Archive contains tracked files only, none on the backstop list"
           rm -f "$archive"
 
       - name: Summary
@@ -64,6 +67,6 @@ jobs:
           echo "  - JSON examples valid"
           echo "  - Conformance fixtures + KAT vectors valid"
           echo "  - Every pinned canonical byte sequence and signature verified"
-          echo "  - RFC version claims, anchor links, section citations, fixture error codes, and mirrored schema definitions coherent"
+          echo "  - Eight-stage doc coherence: RFC version claims, anchor links, section citations, fixture error codes, mirrored schema definitions, RFC status ladder, stale v0.1 vocabulary, sibling-repo link form (existence/anchor sub-check is local-only; skipped in CI)"
           echo "  - No release junk in tree"
-          echo "  - Release archive dry-run clean"
+          echo "  - Release archive (git archive, tracked files only) dry-run clean"

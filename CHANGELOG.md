@@ -1,5 +1,32 @@
 # Changelog
 
+## Unreleased
+
+### Docs refresh, part 2: top-level docs, release archive, and repository metadata brought to v0.2
+
+Documentation, tooling-text and release-tooling change only. No RFC, schema, fixture or wire change.
+
+- **README.** The maintenance-posture line now matches the [RFC index](rfcs/README.md): RFCs 0001–0011 are Draft (0010/0011 opt-in), 0012 Reserved, 0013 Planned, and nothing in the v0.2 line has reached Release Candidate (it previously said nothing in the repository had, which the v0.1 line's `0.1.0-rc.3` contradicts). The repository tree gains the files it omitted — `aitp-grant-voucher`, `aitp-session-bundle` and `aitp-conformance-fixture` schemas, the conformance fixture families, `known-answer/` and `PLACEHOLDERS.md`, `registries/extension-keys.md`, `governance/CHARTER.md`, `docs/ecosystem.md`, and the top-level CHANGELOG/VERSIONING/RELEASING/CONTRIBUTING files. The "Conformance profiles" table is removed: `aitp-a2a-peer`, `aitp-session-participant` and `aitp-full` were defined nowhere else; the section now cites RFC-AITP-0001 §10 and the fixtures' `feature`-flag opt-in. The release-workflow pointer goes to RELEASING.md (was CONTRIBUTING.md), the CI line names the eight-stage doc-coherence check, and a new **Ecosystem** section links `docs/ecosystem.md`, the SDK, independent verifier, playground and MCP entry points, and the published site.
+- **`make release` builds from `git archive`.** The target now runs `git archive --format=zip --prefix=agentidentitytrustprotocol/ HEAD`, so the archive holds tracked files only. The old `zip -r` of the working tree depended on a hand-kept exclusion list (duplicated in RELEASING.md and the RFC process) that missed untracked local files such as `scripts/__pycache__/` (left behind by `make validate`), `.env` and local notes, and on the checkout directory's name. The CI release dry-run's grep is kept as a backstop for junk that gets *committed*, and widened to match.
+- **RELEASING.md** rewritten for that target: current tag examples (`v0.2.0-draft`, `schema-v0.2.0`), the `## Unreleased` step as the changelog now uses it, what `make validate` actually runs, the `RELEASE_VERSION` default, and `scripts/zip-source.sh` described as a local snapshot tool, not a release path.
+- **VERSIONING.md.** Its own five-row status ladder (with `Final` and `Deprecated`, neither of which is a lifecycle stage) is replaced by a pointer to the single ladder in `governance/RFC-PROCESS.md`; the RFC-version row and the `rfc-aitp-NNNN` tag rule no longer mention a `-final` suffix or "Final" status.
+- **CHANGELOG.md** restructured: a `## Unreleased` heading now holds the post-`v0.2.0-draft` entries, the entries released in that tag sit under `## v0.2.0-draft`, and the untagged v0.1-line passes after `rc.3` get an H2 parent. Entries were moved verbatim; the only wording change is the issue #17 erratum, which cited a "Draft-to-Final gate" that no governance document defines. The missing entry for PR #35 (issue #31) is added.
+- **CONTRIBUTING.md** lists all five registries and their actual status vocabularies (including `Reserved`, and `spec_status` for error codes), describes doc-coherence by pointing at the script header, lists 0010/0011 as Draft opt-in, 0012 Reserved and 0013 Planned (it called 0010 and 0011 "reserved"), and links RELEASING.md.
+- **CODE_OF_CONDUCT.md** gains a Reporting section. No dedicated address exists yet, so it describes a no-details contact-request issue; a real address should replace it when one exists.
+- **Makefile / CI / PR template text.** The Makefile header no longer says JCS is the signing input for everything (it names both profiles, RFC-AITP-0001 §5.4); `make docs` stops labelling the `docs/` guides "Normative", adds threat-model, non-goals, ecosystem and the Planned RFC-AITP-0013; `make help` and the CI step names describe the eight doc-coherence stages; the PR template checklist adds `make validate`, `make kat-verify`, `make doc-coherence` and a changelog entry.
+- **Governance and metadata.** GOVERNANCE/CHARTER drop "proto", add `Reserved → Planned` to the lifecycle and list all five registries; RFC-PROCESS's template matches real RFC headers, the "new error codes" rule now says registry additions need no new RFC *document*, and its duplicated release steps are replaced by a link to RELEASING.md; DECISIONS no longer cites untracked `plans/` paths as live links; the 2026-07 errata file gets a correction note (the cited "Draft→Final two-implementations" gate does not exist); the manifesto's delegation sentence is v0.2 (grant voucher); `rfcs/README.md` adds the #43 and #59 bump reasons; the known-answer README's keypair count (Ed25519 ×5, P-256 ×1) and signed-examples row are corrected; `examples/revocation/README.md` cites RFC-AITP-0008 §1.2, not the nonexistent §1.6.
+- **Doc-coherence guard rails (`scripts/check-doc-coherence.sh`, now eight stages).** Every stage now reads one shared file set — `git ls-files` in a git work tree, a filesystem walk otherwise — so untracked local notes (`plans/`, `temp/`, `PROGRESS.md`) are no longer scanned by the anchor stage, and an intra-repo link to an untracked file is reported as broken. The section-citation stage covers every tracked markdown file, not just `rfcs/` and `docs/` (README, CONTRIBUTING, VERSIONING, RELEASING, governance/, examples/, schemas/, registries/, manifesto/, and the `## Unreleased` part of this changelog; released changelog entries are history and are not re-checked). New stage 7 fails on v0.1-era tokens in `docs/*.md` and README.md: `grant_proof` and `binding.cnf` always, and `0.1.0-rc`, `aitp/0.1` and `v0.1` unless the paragraph or list item marks itself historical in-line with "legacy", "v0.1-frozen" or "v0.1 line" (wording, not an HTML comment, because `docs/` is synced to MDX). New stage 8 checks links into sibling repositories: `blob/main` only, no `/tree/`, no `aitp-cp`; when `../<repo>` is a local checkout it also verifies the path on that checkout's `origin/main` and any `#anchor` against its headings — offline, and skipped with a note in CI, which has no sibling checkouts. Stages 4 and 5 read the undefined `$PROJECT_ROOT` and so only worked when run from the repository root; they now use the script's root argument like the others. README's `aitp/0.1` mention now says "the v0.1 line" so it reads (and checks) as history.
+
+### PR #65: `docs/` brought to v0.2, with sibling-repo docs linked instead of duplicated
+
+Documentation change only; no RFC, schema, fixture or wire change.
+
+- New `docs/ecosystem.md`: which sibling repository owns what (reference implementation and SDKs, independent verifier, control plane, playground, console, knowledge base/MCP server, website), one canonical link per concern, and the link convention (full `blob/main` URLs to sibling files; relative links in-repo).
+- `architecture.md`, `discovery.md` and `GLOSSARY.md` rewritten for v0.2: the two signing profiles, grant-voucher delegation, the Manifest verification order, structural-rejection and status-ladder vocabulary.
+- `implementer-quickstart.md` and `integration-guide.md`: the TCT verification order now mirrors RFC-AITP-0005 §7.2, and the hand-written verifier sample is replaced by links to the SDKs and the independent verifier.
+- `operational-guidance.md`, `threat-model.md` and `non-goals.md`: unsupported claims removed (a "24 h / 8 renewals" reference default, IdP requirements and trust-penalty formulas that no RFC states); `fail_open` described per RFC-AITP-0007 and RFC-AITP-0008; the DPoP / RFC 8693 token-exchange non-goal added.
+- `scripts/check-doc-coherence.sh`'s anchor stage skips absolute URLs, so sibling links with `#anchors` are not mistaken for intra-repo ones.
+
 ### Issue #61: `fail_open`, the third RFC-AITP-0008 §3.1 policy mode, gets a conformance vector
 
 No schema, RFC, or wire change — this closes a conformance-pack gap, not a spec ambiguity.
@@ -236,6 +263,10 @@ in code, and `scripts/validate-json.sh`'s signed-example schema check now
 strips `signing_input` alongside `_kat_input` before validating the fixture
 against its wire schema. `signed-examples/README.md` documents the new
 companion.
+
+## v0.2.0-draft
+
+Tagged `v0.2.0-draft` (and `schema-v0.2.0`) at commit `ea22c71` (PR #42). The entries below, newest first, are what that tag contains beyond the v0.1 line.
 
 ### Issues #39 and #40: structural-rejection codes, and one identity descriptor instead of two
 
@@ -606,7 +637,7 @@ schema or wire change).
 
 **Two independent defects, fixed together because the second was found while re-minting the first's artifacts.**
 
-**1. `timestamp_be_8_bytes` → `timestamp_ascii_decimal` (signing-input change).** RFC-AITP-0002 §3.1 stated, through `0.2.0-draft`, that the pinned-key proof's `timestamp` field was an 8-byte big-endian signed 64-bit integer. `aitp-verifier-py` — the independent implementation the Draft-to-Final gate requires (issue #17) — could not reproduce the one pinned proof in the conformance pack, `id-007`, against that encoding. Both encodings were checked against `id-007`'s real Ed25519 signature (`kat-keypair-003`, seed `0xff×32`) before anything was changed: the ASCII-decimal string verifies, the big-endian packing does not. The byte-pinned artifact is the interop contract, so the prose moved to match it, not the reverse — the artifact has been ASCII-decimal since the original conformance commit; nothing was re-signed.
+**1. `timestamp_be_8_bytes` → `timestamp_ascii_decimal` (signing-input change).** RFC-AITP-0002 §3.1 stated, through `0.2.0-draft`, that the pinned-key proof's `timestamp` field was an 8-byte big-endian signed 64-bit integer. `aitp-verifier-py` — the independent implementation written for issue #17 (the RFC process's Release Candidate → Final Comment Period promotion requires at least one implementation passing the core conformance tier) — could not reproduce the one pinned proof in the conformance pack, `id-007`, against that encoding. Both encodings were checked against `id-007`'s real Ed25519 signature (`kat-keypair-003`, seed `0xff×32`) before anything was changed: the ASCII-decimal string verifies, the big-endian packing does not. The byte-pinned artifact is the interop contract, so the prose moved to match it, not the reverse — the artifact has been ASCII-decimal since the original conformance commit; nothing was re-signed.
 
 `id-007` alone never exercised this: its expected outcome is rejection at §3.2 step 1 (the key is absent from the local `pinned_keys` store), reached *before* proof verification, so a big-endian implementation could pass `id-007` — and the rest of the v0.2 conformance pack — without the defect surfacing. New vector `kat-pinned-key-proof-001` (`schemas/conformance/known-answer/jcs-sha256.json`) closes that gap: it pins the `(sender, receiver, message_id, timestamp, pop_nonce)` tuple, the resulting `proof_input` bytes (193 bytes), `sha256(proof_input)`, and the signature — reusing `id-007`'s signature verbatim — and additionally pins that the *same* signature does NOT verify when `timestamp` is instead packed as an 8-byte big-endian integer, so the encoding is machine-checked rather than read from prose. See the erratum blockquote added to RFC-AITP-0002 §3.1.
 
@@ -649,6 +680,10 @@ None of these are pinned cryptographic values — no signature covers any of the
 **Version bump summary.** RFC-AITP-0002 moves `0.2.0-draft` → `0.2.1-draft` (§3.1 timestamp erratum) → `0.2.2-draft` (§2.4 nonce correction), both Editorial / clarification per VERSIONING.md:24 (see the classification caveat on the first change, above). `rfcs/README.md`'s version sentence updated to name both corrections instead of only the §2.4 one.
 
 **Recommendation on VERSIONING.md (not acted on — flagged for separate decision).** VERSIONING.md:24's editorial clause is written unidirectionally: it blesses a patch bump when "a known-answer vector or signed example contradicts the normative text" and "the artifact was wrong." The §3.1 change runs the other way — the artifact (the real, previously-committed `id-007` signature) was always right; the *prose* was wrong. I patch-bumped it here by analogy, consistent with how this same class of question was resolved for the JCS-wrapper correction earlier in this file, but recommend VERSIONING.md be reworded to state the rule bidirectionally — "whichever of the normative text or the pinned artifact is wrong moves to match the other" — rather than leaving the reverse direction to be inferred by analogy each time it recurs. This is a recommendation only; VERSIONING.md is unchanged by this entry.
+
+### Issue #31 / PR #35: README brought to v0.2, the only version this repository contains
+
+The README's masthead said `Version: 0.1.0-rc.3` / Release Candidate while every artifact in the repository was v0.2 (schemas pin `aitp/0.2` and `$id …/schema/v0.2/`; the RFCs were `0.2.x-draft`). Version becomes `0.2.0-draft` and Status `Draft`, matching `rfcs/README.md`. The canonical-signing-input line, which claimed JCS for everything, is taken from RFC-AITP-0001's own masthead (JCS for protocol-internal artifacts, compact JWS for portable trust artifacts). The compatibility model's `aitp/0.1` and `schema/v0.1/` lines are corrected; RFC-AITP-0010 and 0011 are described as opt-in drafts outside v0.2 core conformance; RFC-AITP-0005 and 0006 are described as compact JWS, with RFC-AITP-0005 also defining the grant voucher; the "Using AITP" note says JSON Schema codegen covers the JCS artifacts and the decoded JWS claims but not producing or verifying the JWS itself. The repository tree gains RFC-AITP-0013 and `examples/grant-voucher/voucher.json`.
 
 ### RFC-AITP-0001 §5.4: subsection order, enumeration drift, and a bad citation
 
@@ -1047,6 +1082,10 @@ verification) under the same version literal.
   aitp-rs item). `del-004` frozen in the v0.1 shape for v0.1 runners.
   PLACEHOLDERS.md gains the compact-JWS whole-token placeholder family
   with claims-sibling minting convention.
+
+## v0.1 line after `rc.3` (never tagged)
+
+Two passes made after `v0.1.0-rc.3` and before the v0.2 migration. They were never released under a v0.1 tag; their changes first shipped as part of the `v0.2.0-draft` tag.
 
 ### rc.4 — RFC unified-final pass
 

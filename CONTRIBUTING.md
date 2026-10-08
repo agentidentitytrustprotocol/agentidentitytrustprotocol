@@ -39,7 +39,13 @@ Breaking changes require:
 
 ## Registry additions
 
-To add an entry to a registry (`registries/identity-types.md`, `registries/capabilities.md`, `registries/error-codes.md`, `registries/media-types.md`), submit a PR adding a row to the relevant table. Each entry MUST include a `Status` (`Proposed`, `Provisional`, `Stable`, `Deprecated`). New identifiers MUST NOT conflict with existing entries.
+There are five registries, indexed in [`registries/README.md`](registries/README.md): [`identity-types.md`](registries/identity-types.md), [`capabilities.md`](registries/capabilities.md), [`error-codes.md`](registries/error-codes.md), [`extension-keys.md`](registries/extension-keys.md) and [`media-types.md`](registries/media-types.md). To add an entry, submit a PR adding a row to the relevant table, following any "Adding …" section in that file. New identifiers MUST NOT conflict with existing entries.
+
+Status columns differ by registry:
+
+- identity types, capabilities and extension keys use the shared [status values](registries/README.md#status-values) — `Reserved`, `Proposed`, `Provisional`, `Stable`, `Deprecated`. `Reserved` sets an identifier aside for a named future mechanism with no normative spec yet; implementations MUST NOT use it;
+- error codes carry a `spec_status` of `core` or `draft` instead (see the note at the top of [`error-codes.md`](registries/error-codes.md)); new codes need no new RFC *document*, but the RFCs whose normative text gains the code take a version bump ([VERSIONING.md](VERSIONING.md#change-classes));
+- media types list registered types, with superseded ones in a separate table.
 
 ## Conformance fixtures
 
@@ -112,9 +118,15 @@ before an artifact is checked against its schema.
 - JSON examples and conformance fixture inputs MUST validate against the
   relevant JSON Schema (`make json-validate`; see "Conformance fixtures"
   above for the fixture-input map requirement).
-- Documentation MUST stay coherent with itself — RFC version claims in
-  `rfcs/README.md` MUST match each RFC's own `Version:` header, and every
-  intra-repo `path.md#anchor` link MUST resolve (`make doc-coherence`).
+- Documentation MUST stay coherent with itself (`make doc-coherence`). The
+  check has eight stages — RFC version claims, intra-repo anchor links, RFC
+  section citations, fixture error codes, mirrored schema definitions, the
+  RFC status ladder, stale v0.1 vocabulary in `docs/` and the README, and
+  sibling-repo link form (`blob/main` URLs; with sibling checkouts next to
+  this one, linked paths and anchors are verified too); the header of `scripts/check-doc-coherence.sh` is
+  the authoritative description of what each one enforces.
+- Run `make validate` before opening a PR; it runs every check above plus
+  `make kat-verify` (pinned known-answer values), exactly as CI does.
 - Backward compatibility MUST be addressed explicitly in the PR description.
 
 ## Style
@@ -123,7 +135,7 @@ before an artifact is checked against its schema.
 - Use present tense ("Verifiers MUST verify…", not "Verifiers should verify…").
 - JSON examples MUST be valid against the corresponding schema.
 
-## Normative RFCs
+## Normative RFCs (v0.2 core, Draft)
 
 - **[RFC-AITP-0001 Core](rfcs/RFC-AITP-0001-core.md)**
 - **[RFC-AITP-0002 Identity](rfcs/RFC-AITP-0002-identity.md)**
@@ -135,11 +147,21 @@ before an artifact is checked against its schema.
 - **[RFC-AITP-0008 Revocation](rfcs/RFC-AITP-0008-revocation.md)**
 - **[RFC-AITP-0009 Security](rfcs/RFC-AITP-0009-security.md)**
 
-## Reserved RFCs
+## Opt-in, Reserved and Planned RFCs
 
-- **[RFC-AITP-0010 Session Trust Bundle](rfcs/RFC-AITP-0010-session-trust-bundle.md)** *(reserved)*
-- **[RFC-AITP-0011 Multi-hop Delegation](rfcs/RFC-AITP-0011-multihop-delegation.md)** *(reserved)*
-- **[RFC-AITP-0012 Extensions](rfcs/RFC-AITP-0012-extensions.md)** *(reserved)*
+Statuses are from the single RFC lifecycle in
+[`governance/RFC-PROCESS.md`](governance/RFC-PROCESS.md#rfc-lifecycle); the
+per-RFC table is [`rfcs/README.md`](rfcs/README.md).
+
+- **[RFC-AITP-0010 Session Trust Bundle](rfcs/RFC-AITP-0010-session-trust-bundle.md)** *(Draft, opt-in — not part of v0.2 core conformance)*
+- **[RFC-AITP-0011 Multi-hop Delegation](rfcs/RFC-AITP-0011-multihop-delegation.md)** *(Draft, opt-in — not part of v0.2 core conformance)*
+- **[RFC-AITP-0012 Extensions](rfcs/RFC-AITP-0012-extensions.md)** *(Reserved — non-normative for `aitp/0.2`)*
+- **[RFC-AITP-0013 TCT Renewal Extension](rfcs/RFC-AITP-0013-tct-renewal-extension.md)** *(Planned — stub reserving the number)*
+
+## Releases
+
+Releases are cut by maintainers; see [RELEASING.md](RELEASING.md). Every PR
+adds an entry under `## Unreleased` in [CHANGELOG.md](CHANGELOG.md).
 
 ## Community
 

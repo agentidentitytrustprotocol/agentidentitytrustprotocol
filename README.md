@@ -14,7 +14,7 @@ AITP introduces one strict invariant:
 
 There is no central verifier. Each agent is its own verifier for the peer it is authenticating. The output of the handshake is a TCT each peer holds about the other. A TCT is verified locally — its signature is checked against the issuing peer's public key, resolved from the peer's signed Agent Manifest.
 
-AITP has been **A2A-native since its first published version** (`aitp/0.1`); there is no earlier service-consumer version to migrate from. The service-consumer trust pattern (agent → verifier → service) is intentionally out of scope.
+AITP has been **A2A-native since its first published version** (`aitp/0.1`, the v0.1 line); there is no earlier service-consumer version to migrate from. The service-consumer trust pattern (agent → verifier → service) is intentionally out of scope.
 
 ---
 
@@ -46,10 +46,14 @@ This repository is structured like a publishable protocol standard — the norma
 
 ```text
 agentidentitytrustprotocol/
+  README.md  CHANGELOG.md  VERSIONING.md  RELEASING.md
+  CONTRIBUTING.md  CODE_OF_CONDUCT.md  LICENSE  Makefile
+
   manifesto/
     manifesto.md
 
   rfcs/
+    README.md                               # RFC index + per-RFC status
     RFC-AITP-0001-core.md
     RFC-AITP-0002-identity.md
     RFC-AITP-0003-manifest.md
@@ -59,14 +63,15 @@ agentidentitytrustprotocol/
     RFC-AITP-0007-key-resolution.md
     RFC-AITP-0008-revocation.md
     RFC-AITP-0009-security.md
-    RFC-AITP-0010-session-trust-bundle.md   # Opt-in draft (not part of v0.2 core conformance)
-    RFC-AITP-0011-multihop-delegation.md    # Opt-in draft (not part of v0.2 core conformance)
+    RFC-AITP-0010-session-trust-bundle.md   # Draft, opt-in (not part of v0.2 core conformance)
+    RFC-AITP-0011-multihop-delegation.md    # Draft, opt-in (not part of v0.2 core conformance)
     RFC-AITP-0012-extensions.md             # Reserved
     RFC-AITP-0013-tct-renewal-extension.md  # Planned
 
-  docs/
+  docs/                                     # Non-normative guides
     architecture.md
     discovery.md
+    ecosystem.md                            # Which sibling repo owns what; canonical links
     GLOSSARY.md
     implementer-quickstart.md
     integration-guide.md
@@ -79,6 +84,7 @@ agentidentitytrustprotocol/
     identity-types.md
     capabilities.md
     error-codes.md
+    extension-keys.md
     media-types.md
 
   schemas/
@@ -88,14 +94,20 @@ agentidentitytrustprotocol/
       aitp-manifest.schema.json
       aitp-mutual-handshake.schema.json
       aitp-tct.schema.json
+      aitp-grant-voucher.schema.json
       aitp-delegation.schema.json
       aitp-revocation-list.schema.json
+      aitp-session-bundle.schema.json
       aitp-trust-anchors.schema.json
+      aitp-conformance-fixture.schema.json  # metadata block every fixture carries
     conformance/
-      README.md
-      mh-001-replay-rejected.json   # …and the rest of the mh-, id-, tct-, del- fixtures
-      tct-002-expired.json
-      del-003-scope-exceeded.json
+      README.md                             # fixture format, runner rules, counts
+      PLACEHOLDERS.md                       # placeholder tokens runners substitute
+      env-*.json  man-*.json  id-*.json  mh-*.json
+      tct-*.json  vch-*.json  del-*.json  rev-*.json   # v0.2 core
+      del-mh-*.json  bundle-*.json                     # opt-in drafts (RFC-AITP-0011 / 0010)
+      known-answer/                         # pinned canonical bytes, keys, signatures
+        signed-examples/
 
   examples/
     manifest/        agent-b-manifest.json
@@ -106,12 +118,13 @@ agentidentitytrustprotocol/
     non-normative/   peer-signed-full-flow.json   (transcript, not schema-valid)
 
   governance/
+    CHARTER.md
     GOVERNANCE.md
-    RFC-PROCESS.md
-    DECISIONS.md                                # decision log (issue #48)
+    RFC-PROCESS.md                          # the RFC status ladder
+    DECISIONS.md                            # decision log (issue #48)
     spec-errata-from-independent-verifier-2026-07.md
 
-  scripts/         # Validation scripts
+  scripts/         # Validation scripts (make validate)
   .github/         # CI, issue templates, PR template
 ```
 
@@ -137,18 +150,18 @@ If you are new to AITP, read in this order:
 14. **[docs/integration-guide.md](docs/integration-guide.md)** — consuming a peer-issued TCT in code.
 15. **[docs/implementer-quickstart.md](docs/implementer-quickstart.md)** — one-page reading order for someone building an AITP peer.
 16. **[docs/operational-guidance.md](docs/operational-guidance.md)** — renewal patterns, Manifest rotation, cache TTL tuning, failure modes (non-normative).
+17. **[docs/threat-model.md](docs/threat-model.md)** and **[docs/non-goals.md](docs/non-goals.md)** — what AITP defends against, and what it deliberately does not do.
+18. **[docs/ecosystem.md](docs/ecosystem.md)** — where the implementations, tools and services live (see [Ecosystem](#ecosystem) below).
 
 ---
 
-## Conformance profiles
+## Conformance
 
-| Profile | Required RFCs | Description |
-|---|---|---|
-| `aitp-a2a-peer` *(default)* | 0001–0009 | Every AITP v0.2 agent. Implements Manifest, Mutual Handshake, peer-issued TCTs, single-hop delegation. |
-| `aitp-session-participant` | 0001–0010 | Adds Session Trust Bundle issuance/verification (opt-in draft; RFC-AITP-0010). NOT part of v0.2 core conformance. |
-| `aitp-full` | 0001–0011 | Adds multi-hop delegation (opt-in draft; RFC-AITP-0011). NOT part of v0.2 core conformance. |
+v0.2 defines one conformance target: what a conformant implementation MUST do is listed in [RFC-AITP-0001 §10](rfcs/RFC-AITP-0001-core.md#10-conformance) (RFCs 0001–0009, the mandatory known-answer vectors, and the core conformance fixtures). There are no named conformance profiles.
 
-There is no service-consumer profile. AITP is peer-to-peer.
+The opt-in drafts are selected per fixture, not per profile: every fixture under [`schemas/conformance/`](schemas/conformance/README.md) carries a metadata block (`status`, `required_for_v0_2`, `feature`), and a `draft` fixture runs only when the runner has explicitly opted into its named `feature` flag — `experimental-session-bundle` (RFC-AITP-0010) or `experimental-multihop-delegation` (RFC-AITP-0011). See the [runner enforcement rules](schemas/conformance/README.md#conformance-runner-enforcement-rules) and RFC-AITP-0001 §10 for how a core-only implementation treats those fixtures.
+
+There is no service-consumer conformance target. AITP is peer-to-peer.
 
 ---
 
@@ -173,7 +186,7 @@ There is no service-consumer profile. AITP is peer-to-peer.
 ## Maintenance posture
 
 - **Status:** maintained, single maintainer, best-effort. Until a Core Team is seated, the repository maintainer acts in its place for editorial and registry matters (see [governance/CHARTER.md § Core Team](governance/CHARTER.md#core-team)); substantive RFC changes still go through the [RFC process](governance/RFC-PROCESS.md), not one person's judgment alone.
-- **What's stable vs. not:** the `aitp/0.2` revision is tagged (`v0.2.0-draft`, `schema-v0.2.0`) but every RFC in it is still at the `Draft` stage of the [RFC status ladder](governance/RFC-PROCESS.md#rfc-lifecycle) — see "Standards posture" above for the per-RFC breakdown. Nothing in this repository has reached Release Candidate yet.
+- **What's stable vs. not:** the `aitp/0.2` revision is tagged (`v0.2.0-draft`, `schema-v0.2.0`). On the [RFC status ladder](governance/RFC-PROCESS.md#rfc-lifecycle), RFCs 0001–0011 are `Draft` (0010 and 0011 opt-in, outside v0.2 core conformance), RFC-AITP-0012 is `Reserved`, and RFC-AITP-0013 is `Planned` — the [RFC index](rfcs/README.md) is the authoritative per-RFC table. Nothing in the v0.2 line has reached Release Candidate (the earlier v0.1 line did, at `0.1.0-rc.3`).
 - **Cadence:** best-effort, driven by need. Changes land when a consumer needs them, not on a fixed schedule.
 
 ---
@@ -218,7 +231,7 @@ The canonical v0.2 surface is JSON. Implementations consume the JSON Schemas dir
 
 Schemas live under `schemas/json/` and are versioned by `$id` URI.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the release workflow.
+See [RELEASING.md](RELEASING.md) for the release workflow.
 
 ---
 
@@ -233,8 +246,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for the release workflow.
 - **Examples** under `examples/` are validated against the canonical schemas.
 - **GitHub Actions CI** validates JSON Schemas, examples, conformance
   fixtures (including their embedded artifacts), pinned known-answer
-  vectors, and doc coherence (RFC version claims + intra-repo anchor links)
-  on every PR.
+  vectors, and the eight-stage doc-coherence check (the stages are listed in
+  the header of `scripts/check-doc-coherence.sh`) on every PR.
 
 ---
 
@@ -251,9 +264,22 @@ make help             # Show all targets
 
 ---
 
+## Ecosystem
+
+This repository is the specification only. Implementations, tools and services live in sibling repositories in the [`agentidentitytrustprotocol`](https://github.com/agentidentitytrustprotocol) organization, each owning its own docs; [docs/ecosystem.md](docs/ecosystem.md) is the single map of which repo owns what. Common entry points:
+
+- **Reference implementation (Rust, with Python and Node SDKs):** [aitp-rs](https://github.com/agentidentitytrustprotocol/aitp-rs/blob/main/README.md) — [Python SDK](https://github.com/agentidentitytrustprotocol/aitp-rs/blob/main/docs/sdk-python.md), [Node SDK](https://github.com/agentidentitytrustprotocol/aitp-rs/blob/main/docs/sdk-node.md)
+- **Independent verifier (Python, written from the RFCs alone):** [aitp-verifier-py](https://github.com/agentidentitytrustprotocol/aitp-verifier-py/blob/main/README.md)
+- **End-to-end demo:** [aitp-playground getting started](https://github.com/agentidentitytrustprotocol/aitp-playground/blob/main/docs/getting-started.md)
+- **Spec access for AI agents (MCP server):** [aitp-docs client setup](https://github.com/agentidentitytrustprotocol/aitp-docs/blob/main/docs/clients.md)
+
+The published documentation site is [agentidentitytrustprotocol.io](https://agentidentitytrustprotocol.io); it renders the RFCs, registries and `docs/` from this repository. If a sibling doc and an RFC disagree, the RFC wins.
+
+---
+
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and the [RFC process](governance/RFC-PROCESS.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md), the [RFC process](governance/RFC-PROCESS.md), and [RELEASING.md](RELEASING.md). The changelog is [CHANGELOG.md](CHANGELOG.md); the versioning policy is [VERSIONING.md](VERSIONING.md).
 
 ---
 

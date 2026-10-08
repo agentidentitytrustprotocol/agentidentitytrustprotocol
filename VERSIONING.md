@@ -17,7 +17,7 @@ and the CHANGELOG for the migration record).
 | JSON Schema namespace | `$id` URI on each canonical schema | `https://aitp.dev/schema/v0.2/...` | Breaking changes bump the path segment (`v0.1/` → `v0.2/`). The repo keeps a single flat `schemas/json/` directory tracking the current namespace; frozen earlier namespaces are available via the `schema-vX.Y.Z` git tags below, not via parallel directories. |
 | TCT version | `ver` claim inside the TCT JWS payload | `aitp/0.2` | Mirrors the protocol version. Consumers MUST reject unknown versions. |
 | Manifest version | `version` inside the Manifest | `aitp/0.2` | Mirrors the protocol version. |
-| RFC version | RFC document `Version:` header | `0.2.3-draft` | Tracks status (`-draft`, `-rc.N`, `-final`) **and each document's own editorial history**. Versions may diverge between documents within one protocol revision — a patch bump on one RFC does not move the others. The protocol literal is a separate layer and does not follow it. |
+| RFC version | RFC document `Version:` header | `0.2.3-draft` | Tracks the RFC's lifecycle stage (`-draft`, `-rc.N`; the Reserved and Planned placeholders carry `-reserved` / `-planned`) **and each document's own editorial history**. Versions may diverge between documents within one protocol revision — a patch bump on one RFC does not move the others. The protocol literal is a separate layer and does not follow it. |
 
 ## Change classes
 
@@ -66,17 +66,19 @@ and the CHANGELOG for the migration record).
 
 Schema artifacts are tagged independently of the spec:
 
+- `vX.Y.Z[-draft]` — tag on the specification as a whole (e.g. `v0.2.0-draft`); see [RELEASING.md](RELEASING.md).
 - `schema-vX.Y.Z` — tag on the canonical JSON Schemas in `schemas/json/`.
-- `rfc-aitp-NNNN-vX.Y.Z` — tag on individual RFC documents when they hit Final status.
+- `rfc-aitp-NNNN-vX.Y.Z` — tag on individual RFC documents when they reach `Accepted` on the RFC status ladder. No RFC has reached `Accepted` yet, so no such tag exists.
 
 Downstream consumers pin to a specific tag and upgrade on their own schedule.
 
 ## Status ladder
 
-| Status | Meaning |
-|---|---|
-| `Draft` | Open for substantive change. |
-| `Review` | Under shepherded review. No structural changes during the FCP window. |
-| `Final Comment Period` | Last call. Editorial fixes only. |
-| `Final` | Stable. Breaking changes require a new RFC. |
-| `Deprecated` | Superseded by another RFC; retained for archaeology. |
+RFC lifecycle stages are defined in exactly one place: the
+[RFC lifecycle](governance/RFC-PROCESS.md#rfc-lifecycle) in
+`governance/RFC-PROCESS.md`
+(`Reserved → Planned → Idea → Draft → Review → Release Candidate → Final Comment Period → Accepted | Rejected`).
+The per-RFC status table is in [`rfcs/README.md`](rfcs/README.md), and
+`scripts/check-doc-coherence.sh` checks every RFC's `**Status:**` header
+against that ladder. This document does not define a status vocabulary of
+its own.

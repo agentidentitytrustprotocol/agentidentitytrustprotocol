@@ -27,8 +27,8 @@ Reserved → Planned → Idea → Draft → Review → Release Candidate → Fin
 
 **Reserved**
 - An RFC number is allocated and a document exists at its path — possibly
-  written in real detail, with examples and worked cases (RFC-AITP-0012 is
-  145 lines) — but its contents are explicitly non-normative for the
+  written in real detail, with examples and worked cases (as RFC-AITP-0012
+  is) — but its contents are explicitly non-normative for the
   current protocol revision (`aitp/0.2`): a future revision of *this same
   document* is expected to make it normative, rather than a new RFC
   superseding it.
@@ -107,12 +107,15 @@ Reserved → Planned → Idea → Draft → Review → Release Candidate → Fin
 ## RFC Template
 
 ```markdown
-# RFC-XXXX: Title
+# RFC-AITP-XXXX
+# Title
 
-- **Status:** Community Standards Track (Draft)
-- **Authors:** @handle
-- **Created:** YYYY-MM-DD
-- **Spec sections affected:** rfcs/RFC-AITP-XXXX-*.md
+**Document:** RFC-AITP-XXXX
+**Version:** 0.M.0-draft
+**Status:** Community Standards Track (Draft)
+**Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md)
+
+---
 
 ## Summary
 
@@ -139,6 +142,11 @@ How does this affect existing implementations?
 Unresolved issues that need discussion.
 ```
 
+The header block mirrors the existing files in [`rfcs/`](../rfcs/): `0.M` in
+`**Version:**` is the current protocol revision (`aitp/0.M`, see
+[VERSIONING.md](../VERSIONING.md)), and `**Depends on:**` lists the RFCs the new
+one builds on.
+
 ---
 
 ## What Requires an RFC
@@ -146,7 +154,10 @@ Unresolved issues that need discussion.
 - Any normative change to `rfcs/`
 - New identity types
 - Changes to the TCT schema
-- New error codes
+- New error codes — via a version bump on the existing RFC whose normative text
+  gains the code; no new RFC *document* is needed (see
+  [`registries/error-codes.md`](../registries/error-codes.md) and
+  [VERSIONING.md](../VERSIONING.md))
 - Changes to security guarantees
 - New JSON Schemas or breaking schema changes
 
@@ -169,8 +180,10 @@ known-answer test (KAT) vector. The vector MUST pin:
 
 - The **preimage bytes in hex** (not just a description of how to
   construct them). When the construction is `sha256(base64url_decode(x))`
-  — the convention used by every PoP site in v0.1 (see
-  [RFC-AITP-0001 §5.4.2](../rfcs/RFC-AITP-0001-core.md)) — the preimage
+  — the convention used by every PoP site since v0.1 and unchanged in
+  v0.2 (see
+  [RFC-AITP-0001 §5.4.2](../rfcs/RFC-AITP-0001-core.md#542-pop-signing-input-convention))
+  — the preimage
   bytes are the *decoded* bytes, not the ASCII bytes of the base64url
   string. Publishing the preimage as hex eliminates the ambiguity that
   caused the alpha.4 PoP-nonce bug and the beta.1 Manifest-PoP bug.
@@ -253,19 +266,5 @@ See [CHARTER.md](CHARTER.md) for governance structure.
 
 ## Releasing AITP
 
-The only sanctioned way to produce a release archive is `make release`.
-See [RELEASING.md](../RELEASING.md) for the full procedure and CI guard
-details.
-
-1. **Bump version in `CHANGELOG.md`** — move the in-progress entry to a
-   new versioned heading and start a fresh "Unreleased" block.
-2. **Update RFC `Version:` headers** if any RFC content changed.
-3. **Run `make validate`** to confirm JSON Schemas, examples, and
-   conformance fixtures are clean.
-4. **Run `make release`** to produce the sanctioned archive (excludes
-   `.git/`, `__MACOSX/`, `.DS_Store`, `temp/`, `.claude/`, `CLAUDE.md`,
-   `plans/`, `node_modules/`).
-5. **Tag the commit** with the released version (e.g. `git tag v0.1.0`).
-6. **Push the tag** and attach the archive to a GitHub Release.
-
-CI rejects any PR whose tree contains `.DS_Store` or `__MACOSX/`.
+The release procedure — changelog, version headers, validation, archive,
+tagging and the CI guard — is defined once, in [RELEASING.md](../RELEASING.md).

@@ -102,7 +102,7 @@ The deeper reason this matters is not elegance. It is ownership.
 
 In a mesh of implicit trust decisions, ownership is diffuse. The payments service trusted the upstream service. The upstream service trusted the orchestrator. The orchestrator trusted the agent runtime. Each link has plausible-deniability shape: *we did what the previous hop told us to.* Nothing in the chain is signed by the actor that actually authorized the action.
 
-In an AITP-based model, ownership is concrete. The TCT is signed by an identifiable peer — the agent that issued it is the agent that stands behind it. Its grants are explicit. Its audience binds it to a target. Its delegation chain — when present — is bounded to one hop in v0.1, with the original grant proof embedded inside. There is no place for a hop to silently expand authority.
+In an AITP-based model, ownership is concrete. The TCT is signed by an identifiable peer — the agent that issued it is the agent that stands behind it. Its grants are explicit. Its audience binds it to a target. Its delegation chain — when present — is bounded to one hop in v0.2, carrying verbatim the grant voucher the issuing peer signed, so the delegated scope is checked against the original grant itself. There is no place for a hop to silently expand authority.
 
 Autonomous systems that influence finance, healthcare, logistics, energy, or governance will be judged by their ability to defend their authorizations, not by their ability to produce intelligent answers. The systems that endure will be the ones whose trust decisions are *structurally legible* — auditable, replayable, revocable, and bound to a specific subject and audience.
 

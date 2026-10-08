@@ -23,6 +23,10 @@ Examples of unacceptable behavior:
 
 Project maintainers are responsible for clarifying the standards of acceptable behavior and are expected to take appropriate corrective action in response to any unacceptable behavior. Maintainers have the right to remove, edit, or reject contributions that violate this Code of Conduct.
 
+## Reporting
+
+This repository does not yet publish a dedicated conduct-reporting address. Until one is listed here, open a GitHub issue in this repository titled **"Code of Conduct contact request"** and include **no details** of the incident; a maintainer will reply with a private channel, and the report itself is handled there. Reports are handled privately, and the reporter's identity is not disclosed without their consent.
+
 ## Attribution
 
 This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org/), version 2.1.

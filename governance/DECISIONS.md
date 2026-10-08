@@ -17,7 +17,7 @@ true.
 
 ## Errata record stays in `plans/` (untracked), RFCs + CHANGELOG carry the published record
 
-- **Plan:** `plans/w-p5-signing-input-divergence.md` (Phase 1)
+- **Plan:** W-P5 signing-input divergence plan, Phase 1 (local planning notes, not tracked)
 - **Date:** 2026-08-24
 - **Decided by:** user, asked at the Phase 1 boundary
 - **Context:** `plans/` is gitignored (`.gitignore:95`) and excluded from the release
@@ -46,7 +46,7 @@ literal and schema namespace deliberately unchanged. See CHANGELOG.md "Version
 bump". Original entry:
 
 ### (superseded) No version bump, despite the vector Stability rule
-- **Plan:** `plans/w-p5-signing-input-divergence.md` (Phase 4, open question 1)
+- **Plan:** W-P5 signing-input divergence plan, Phase 4, open question 1 (local planning notes, not tracked)
 - **Decided by:** me, under the plan's "clearly-best default" rule — **needs your sign-off**
 - **The rule:** "an existing vector's output MUST NOT change without an RFC bump."
   This PR changes three.
@@ -62,7 +62,7 @@ bump". Original entry:
   is a governance call on a published spec, so it is yours to confirm.
 
 ## `signing_input` vocabulary is the two-value enum `body` / `envelope`
-- **Plan:** `plans/w-p5-signing-input-divergence.md` (Phase 3, open question 2)
+- **Plan:** W-P5 signing-input divergence plan, Phase 3, open question 2 (local planning notes, not tracked)
 - **Chosen:** the smallest thing that answers the question the file must answer.
   `envelope` is retained as a *rejected* value so the erratum stays legible in history.
 - **Alternative rejected:** naming the artifact (`revocation_list.body`), which encodes
@@ -74,7 +74,7 @@ bump". Original entry:
 
 ## 2026-08-29 — docs/tests/integration-test follow-through for PR #22 and PR #30
 
-Three assumptions logged during `plans/docs-tests-followthrough-jcs-and-bundle-fixes.md` were
+Three assumptions logged during the docs/tests follow-through plan (local planning notes, not tracked) were
 reconciled at the end of the run. None was a one-way door: all are editorial, none changes a wire
 format, a schema namespace, or a pinned cryptographic value.
 

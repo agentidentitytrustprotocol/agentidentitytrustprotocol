@@ -1,7 +1,11 @@
 .PHONY: help validate json-validate json-schema-validate kat-verify doc-coherence clean install-tools docs release
 
-# AITP ships as JSON only. The canonical wire format and signing input
-# is RFC 8785 (JCS) canonical JSON. See RFC-AITP-0001 §5.4.1.
+# AITP ships as JSON only (RFC-AITP-0001 §5.1). There are two signing
+# profiles (RFC-AITP-0001 §5.4): RFC 8785 (JCS) canonical JSON is the
+# signing input for the protocol-internal artifacts (envelope, Manifest,
+# revocation snapshot, session bundle, handshake payloads; §5.4.1), and
+# RFC 7515 compact JWS carries the portable trust artifacts (TCT, grant
+# voucher, delegation token; §5.4.5).
 
 # ── Default ───────────────────────────────────────────────────────────────────
 
@@ -15,15 +19,19 @@ help:
 	@echo "                             incl. the map-driven fixture-input cross-check"
 	@echo "                             (scripts/fixture-validation-map.json)"
 	@echo "  make kat-verify            Recompute and verify every pinned known-answer value"
-	@echo "  make doc-coherence         Check RFC version claims, intra-repo anchor links,"
-	@echo "                             RFC section citations, and the RFC status ladder"
+	@echo "  make doc-coherence         Eight-stage doc coherence check: RFC version claims,"
+	@echo "                             intra-repo anchor links, RFC section citations,"
+	@echo "                             fixture error codes, mirrored schema definitions,"
+	@echo "                             the RFC status ladder, stale v0.1 vocabulary,"
+	@echo "                             and sibling-repo link form"
+	@echo "                             (stages documented in scripts/check-doc-coherence.sh)"
 	@echo
 	@echo "Docs:"
 	@echo "  make docs                  Print the docs reading order"
 	@echo
 	@echo "Utilities:"
 	@echo "  make install-tools         Install required development tools (ajv-cli)"
-	@echo "  make release               Build the sanctioned release archive"
+	@echo "  make release               Build the release archive from committed (tracked) files"
 	@echo "  make clean                 No-op (no generated artifacts)"
 
 # ── Validation ────────────────────────────────────────────────────────────────
@@ -50,7 +58,7 @@ kat-verify:
 # headers -- this is the mechanical check that stops them from drifting the
 # way schemas/fixtures did before PR #22 and PR #30.
 doc-coherence:
-	@echo "Checking RFC version claims, intra-repo anchor links, section citations, fixture error codes, mirrored schema definitions, and the RFC status ladder..."
+	@echo "Checking RFC version claims, intra-repo anchor links, section citations, fixture error codes, mirrored schema definitions, the RFC status ladder, stale v0.1 vocabulary, and sibling-repo link form..."
 	@./scripts/check-doc-coherence.sh
 
 # ── Docs ─────────────────────────────────────────────────────────────────────
@@ -58,11 +66,13 @@ doc-coherence:
 docs:
 	@echo "AITP reading order:"
 	@echo
-	@echo "Normative (v0.2):"
+	@echo "Orientation (non-normative):"
 	@echo "   1. README.md"
 	@echo "   2. manifesto/manifesto.md"
 	@echo "   3. docs/architecture.md"
 	@echo "   4. docs/GLOSSARY.md"
+	@echo
+	@echo "Normative v0.2 core RFCs (Draft):"
 	@echo "   5. rfcs/RFC-AITP-0001-core.md"
 	@echo "   6. rfcs/RFC-AITP-0002-identity.md"
 	@echo "   7. rfcs/RFC-AITP-0003-manifest.md"
@@ -72,17 +82,25 @@ docs:
 	@echo "  11. rfcs/RFC-AITP-0007-key-resolution.md"
 	@echo "  12. rfcs/RFC-AITP-0008-revocation.md"
 	@echo "  13. rfcs/RFC-AITP-0009-security.md"
+	@echo
+	@echo "Guides (non-normative; the RFCs win on any disagreement):"
 	@echo "  14. docs/discovery.md"
 	@echo "  15. docs/integration-guide.md"
 	@echo "  16. docs/implementer-quickstart.md"
 	@echo "  17. docs/operational-guidance.md"
+	@echo "  18. docs/threat-model.md"
+	@echo "  19. docs/non-goals.md"
+	@echo "  20. docs/ecosystem.md   (sibling repos: SDKs, verifier, playground, MCP)"
 	@echo
 	@echo "Opt-in drafts (Draft normative text; NOT part of v0.2 core conformance):"
 	@echo "   - rfcs/RFC-AITP-0010-session-trust-bundle.md"
 	@echo "   - rfcs/RFC-AITP-0011-multihop-delegation.md"
 	@echo
-	@echo "Reserved (no normative content):"
+	@echo "Reserved (non-normative for aitp/0.2):"
 	@echo "   - rfcs/RFC-AITP-0012-extensions.md"
+	@echo
+	@echo "Planned (stub reserving the number):"
+	@echo "   - rfcs/RFC-AITP-0013-tct-renewal-extension.md"
 	@echo
 	@echo "Conformance (read after the RFCs):"
 	@echo "   - schemas/conformance/README.md"
@@ -95,26 +113,26 @@ clean:
 
 # ── Release archive ──────────────────────────────────────────────────────────
 #
-# Sanctioned way to produce a release archive. Excludes VCS metadata, macOS
-# resource forks, working directories, and any AI-assistant scratch files.
-# Run from the parent directory of the repo (so the archive contains the
-# repo as a top-level folder).
+# The release archive is built with `git archive` from HEAD, so it contains
+# exactly the tracked files of the committed tree under a single top-level
+# folder named ${RELEASE_NAME}/. Anything untracked or ignored (local notes,
+# temp/, plans/, __pycache__/, .env, editor files, ...) can never leak into
+# it, there is no exclusion list to maintain, and the result does not depend
+# on what the working-tree directory happens to be called. Uncommitted
+# changes are NOT included: commit first. The zip is written next to the
+# repository (one level up) so it never lands inside the tree.
 
 RELEASE_NAME ?= agentidentitytrustprotocol
 RELEASE_VERSION ?= v0.2.0-draft
+RELEASE_ARCHIVE := ../$(RELEASE_NAME)-$(RELEASE_VERSION).zip
 
 release:
-	@echo "Building release archive ${RELEASE_NAME}-${RELEASE_VERSION}.zip..."
-	@cd .. && zip -r "${RELEASE_NAME}-${RELEASE_VERSION}.zip" "${RELEASE_NAME}" \
-		-x "*/.git/*" \
-		-x "*/__MACOSX/*" \
-		-x "*/.DS_Store" \
-		-x "*/temp/*" \
-		-x "*/.claude/*" \
-		-x "*/CLAUDE.md" \
-		-x "*/plans/*" \
-		-x "*/node_modules/*"
-	@echo "✓ Wrote ../${RELEASE_NAME}-${RELEASE_VERSION}.zip"
+	@echo "Building release archive $(RELEASE_ARCHIVE) from HEAD (tracked files only)..."
+	@if ! git diff --quiet HEAD -- 2>/dev/null; then \
+		echo "Note: uncommitted changes to tracked files are NOT included (archive is built from HEAD)."; \
+	fi
+	@git archive --format=zip --prefix="$(RELEASE_NAME)/" -o "$(RELEASE_ARCHIVE)" HEAD
+	@echo "✓ Wrote $(RELEASE_ARCHIVE)"
 
 # ── Tooling install ──────────────────────────────────────────────────────────
 

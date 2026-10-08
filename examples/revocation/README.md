@@ -9,7 +9,7 @@ not cryptographically valid.
 | File | Use |
 |---|---|
 | [`empty-list.json`](empty-list.json) | The most common runtime case: a signed snapshot with `entries: []`, asserting that no TCT issued by the peer has been revoked since the last snapshot. |
-| [`with-entry.json`](with-entry.json) | Snapshot listing one revoked TCT with a `reason` string. The `reason` field is informational; consumers MUST NOT use it for trust decisions (RFC-AITP-0008 §1.6). |
+| [`with-entry.json`](with-entry.json) | Snapshot listing one revoked TCT with a `reason` string. The `reason` field is informational; consumers MUST NOT use it for trust decisions (RFC-AITP-0008 §1.2). |
 
 ## When you need real signatures
 
