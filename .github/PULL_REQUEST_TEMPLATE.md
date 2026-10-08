@@ -14,8 +14,12 @@
 
 ## Checklist
 
-- [ ] JSON Schemas validate (`make json-schema-validate`)
-- [ ] JSON examples and fixtures validate (`make json-validate`)
+- [ ] `make validate` passes (runs all of the checks below, as CI does)
+  - [ ] JSON Schemas validate (`make json-schema-validate`)
+  - [ ] JSON examples and fixtures validate (`make json-validate`)
+  - [ ] Pinned known-answer values verify (`make kat-verify`)
+  - [ ] Docs stay coherent (`make doc-coherence`)
+- [ ] `CHANGELOG.md` has an entry under `## Unreleased`
 - [ ] Affected RFC is updated and version-bumped if normative
 - [ ] Backward compatibility considered and documented
 

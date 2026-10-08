@@ -16,7 +16,7 @@ The Core Team is responsible for:
 
 - Shepherding RFCs through the lifecycle defined in [RFC-PROCESS.md](RFC-PROCESS.md).
 - Resolving ambiguity and inconsistency across published RFCs.
-- Maintaining the registries (identity types, capabilities, error codes, media types).
+- Maintaining the registries (identity types, capabilities, error codes, extension keys, media types).
 - Approving the conformance test suite.
 - Cutting versioned releases.
 

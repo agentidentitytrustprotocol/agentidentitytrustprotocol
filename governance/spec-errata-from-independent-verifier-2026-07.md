@@ -25,6 +25,16 @@ place where an implementation coding to the **prose** diverges from the
 independently re-minted at all. Both block the two-implementation gate for the
 affected fixtures.
 
+> **Correction (2026-10, docs refresh).** The paragraph above is left as written, but the
+> gate it cites does not exist in that form. `VERSIONING.md` has no "Draft→Final" RFC
+> gate (and the RFC lifecycle has no "Final" stage — see
+> [RFC-PROCESS.md](RFC-PROCESS.md#rfc-lifecycle)). The "two independent implementations
+> interoperate" rule in `VERSIONING.md` applies only to **identity types** graduating
+> from `Proposed` to `Stable` in the identity-type registry. The RFC-promotion gate is
+> RFC-PROCESS.md's Release Candidate → Final Comment Period requirement that *at least
+> one* implementation passes the core conformance tier. `aitp-verifier-py` remains the
+> independent second implementation; errata 1–2 were real either way.
+
 **Errata 3–5** were found later (2026-08) by a direct cross-implementation audit
 of the JCS signing inputs — *not* by a conformance run, because a conformance run
 structurally cannot see them. Every fixture involved passes on both
