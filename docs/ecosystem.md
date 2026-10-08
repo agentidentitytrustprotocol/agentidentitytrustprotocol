@@ -13,7 +13,7 @@ If a sibling doc and an RFC ever disagree, **the RFC wins**; please open an issu
 
 ## The repositories
 
-All repositories live in the [`agentidentitytrustprotocol`](https://github.com/agentidentitytrustprotocol) GitHub organization; the published site is <https://agentidentitytrustprotocol.io>.
+All repositories live in the [`agentidentitytrustprotocol`](https://github.com/agentidentitytrustprotocol) GitHub organization; the published site is [agentidentitytrustprotocol.io](https://agentidentitytrustprotocol.io).
 
 | Repository | What it is | Start here |
 |---|---|---|
@@ -23,7 +23,7 @@ All repositories live in the [`agentidentitytrustprotocol`](https://github.com/a
 | `aitp-playground` | Scenario harness that runs AITP end to end with real LLM agents (a demo, not production) | [README](https://github.com/agentidentitytrustprotocol/aitp-playground/blob/main/README.md) · [getting started](https://github.com/agentidentitytrustprotocol/aitp-playground/blob/main/docs/getting-started.md) |
 | `aitp-ui-console` | Monitoring and control console over the playground and control plane | [README](https://github.com/agentidentitytrustprotocol/aitp-ui-console/blob/main/README.md) · [features](https://github.com/agentidentitytrustprotocol/aitp-ui-console/blob/main/docs/FEATURES.md) |
 | `aitp-docs` | Cross-repo knowledge base and a read-only MCP server for agents | [README](https://github.com/agentidentitytrustprotocol/aitp-docs/blob/main/README.md) · [client setup](https://github.com/agentidentitytrustprotocol/aitp-docs/blob/main/docs/clients.md) |
-| `aitp-website` | The public documentation site; it syncs content from the repos above | — |
+| `aitp-website` | The public documentation site; it syncs content from this repo and several of the repos above | — |
 
 > A local checkout directory named `aitp-cp` may exist as a symlink to `aitp-control-plane`. Always use `aitp-control-plane` in links.
 
