@@ -181,7 +181,7 @@ def slugify(text):
     return "".join(kept).replace(" ", "-")
 
 heading_re = re.compile(r'^(#{1,6})\s+(.*?)\s*$')
-link_re = re.compile(r'\[[^\]]*\]\(([^)\n]+\.md)#([^)\n]+)\)')
+link_re = re.compile(r'\[[^\]]*\]\((?![a-zA-Z][a-zA-Z0-9+.-]*:)([^)\n]+\.md)#([^)\n]+)\)')
 
 def headings_for(path):
     slugs = set()
@@ -301,9 +301,8 @@ docs_dir = os.path.join(root, "docs")
 #     reliably determinable from the citation alone there (unlike inside
 #     an RFC, there is no enclosing document with its own heading set to
 #     try first), and a guessed target produces false failures -- a
-#     checker that cries wolf gets switched off. See docs/discovery.md's
-#     "§1.3 (...), §1.4 (...)" and docs/GLOSSARY.md's "[§6](...)" for real
-#     examples of this pattern left unchecked on purpose.
+#     checker that cries wolf gets switched off. Bare `§X.Y` in prose
+#     elsewhere in docs/ is left unchecked on purpose.
 #   - external citations: `RFC <digits> §X` (e.g. `RFC 8785 §3.2.3`) and
 #     `SEC <digit> §X` (e.g. `SEC 1 §2.3.3`, SECG's SEC1). AITP citations
 #     always carry the hyphenated `RFC-AITP-NNNN` prefix, so these are
