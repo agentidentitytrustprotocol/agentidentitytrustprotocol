@@ -2,7 +2,7 @@
 # Agent Identity & Trust Protocol (AITP) — Core
 
 **Document:** RFC-AITP-0001
-**Version:** 0.2.6-draft
+**Version:** 0.2.7-draft
 **Status:** Community Standards Track (Draft)
 **Canonical wire format:** JSON
 **Normative transport:** HTTPS (any HTTP/1.1+ runtime)
@@ -263,7 +263,7 @@ All JCS-profile signatures (envelope, Manifest, revocation snapshot, session bun
 
 The portable trust artifacts (TCT, grant voucher, delegation token) are **not** JCS-signed in v0.2 — they are compact JWS strings (§5.4.5) whose signatures cover the transmitted bytes directly. (In `aitp/0.1` the TCT and delegation token were JCS-signed; that profile is retired for those artifacts.)
 
-Implementations MAY transport AITP messages over any binary or text frame (raw JSON over HTTP, JSON inside a gRPC `bytes` field, MessagePack, CBOR, etc.) but MUST convert to canonical JSON before signing or verifying. Non-JSON transports are not part of the v0.1 conformance profile; their use is a deployment choice that does not affect the trust contract.
+Implementations MAY transport AITP messages over any binary or text frame (raw JSON over HTTP, JSON inside a gRPC `bytes` field, MessagePack, CBOR, etc.) but MUST convert to canonical JSON before signing or verifying. Non-JSON transports are not part of the v0.2 conformance profile; their use is a deployment choice that does not affect the trust contract.
 
 A signed object that round-trips through any transport MUST produce identical canonical JSON when verified. If a transport adds wrappers or renames fields, the implementation MUST strip them before reconstructing the canonical form.
 
@@ -300,7 +300,7 @@ A signed object that round-trips through any transport MUST produce identical ca
 
 #### 5.4.2 PoP signing input convention
 
-All AITP v0.1 proof-of-possession signing inputs follow a single rule:
+All AITP v0.2 proof-of-possession signing inputs follow a single rule:
 
 ```
 hash_input = sha256(base64url_decode(nonce_or_challenge))
@@ -556,7 +556,7 @@ Mode-specific error codes are defined in their respective RFCs (mutual handshake
 
 Capability negotiation is part of the Mutual Handshake. Discovery-time screening (`offered_capabilities` and `required_peer_capabilities` on the Manifest) is normative in [RFC-AITP-0003 §3](RFC-AITP-0003-manifest.md); handshake-time grant intersection is normative in [RFC-AITP-0004 §4](RFC-AITP-0004-mutual-handshake.md). Capability string format and the registry of well-known prefixes are in [`registries/capabilities.md`](../registries/capabilities.md).
 
-There is no separate "protocol capability" object in v0.1. Implementations either support the full mandatory protocol surface (envelope + manifest + mutual handshake + TCT) or they are not conformant.
+There is no separate "protocol capability" object in v0.2. Implementations either support the full mandatory protocol surface (envelope + manifest + mutual handshake + TCT) or they are not conformant.
 
 ---
 
@@ -579,18 +579,18 @@ This check is not only stated here: each artifact RFC carries it as an explicit 
 
 ## 8. Transport
 
-The normative transport for AITP v0.1 is **HTTPS carrying canonical JSON**. The endpoints normatively required of every conformant peer:
+The normative transport for AITP v0.2 is **HTTPS carrying canonical JSON**. The endpoints normatively required of every conformant peer:
 
 | Endpoint | Method | Purpose | Defined in |
 |---|---|---|---|
 | `/.well-known/aitp-manifest` | GET | Fetch this peer's signed Manifest | [RFC-AITP-0003 §4](RFC-AITP-0003-manifest.md) |
 | `<handshake_endpoint>` | POST | Receive `mutual_hello` / `mutual_commit` envelopes | [RFC-AITP-0004](RFC-AITP-0004-mutual-handshake.md) |
 
-> **Other endpoints are deployment-defined in v0.1.** TCT verification, delegation verification, and revocation list publication (RFC-AITP-0005 §10, RFC-AITP-0006, RFC-AITP-0008) are operational surfaces. Peers that expose them MAY advertise their URLs in the Manifest's `extensions` namespace ([RFC-AITP-0012](RFC-AITP-0012-extensions.md)); v0.1 does not normatively pin those advertisement fields.
+> **Other endpoints are deployment-defined in v0.1.** TCT verification, delegation verification, and revocation list publication (RFC-AITP-0005 §11, RFC-AITP-0006, RFC-AITP-0008) are operational surfaces. Peers that expose them MAY advertise their URLs in the Manifest's `extensions` namespace ([RFC-AITP-0012](RFC-AITP-0012-extensions.md)); v0.1 does not normatively pin those advertisement fields.
 
 Request and response bodies are AITP envelopes serialized as JSON with `Content-Type: application/json`. The well-known Manifest endpoint and `handshake_endpoint` (advertised in the Manifest) are the only paths v0.1 normatively requires.
 
-Implementations MAY transport AITP messages over other framings (binary RPC, message bus, etc.) but MUST convert to canonical JSON before signing or verifying (§5.4.1). v0.1 does not standardize any non-JSON binding.
+Implementations MAY transport AITP messages over other framings (binary RPC, message bus, etc.) but MUST convert to canonical JSON before signing or verifying (§5.4.1). v0.2 does not standardize any non-JSON binding.
 
 ---
 
