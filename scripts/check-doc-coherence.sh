@@ -181,7 +181,7 @@ def slugify(text):
     return "".join(kept).replace(" ", "-")
 
 heading_re = re.compile(r'^(#{1,6})\s+(.*?)\s*$')
-link_re = re.compile(r'\[[^\]]*\]\(([^)\n]+\.md)#([^)\n]+)\)')
+link_re = re.compile(r'\[[^\]]*\]\((?![a-zA-Z][a-zA-Z0-9+.-]*:)([^)\n]+\.md)#([^)\n]+)\)')
 
 def headings_for(path):
     slugs = set()
