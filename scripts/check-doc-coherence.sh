@@ -9,9 +9,12 @@
 #      `path.md#anchor` resolves to a heading that actually exists in the
 #      target file, using GitHub's slug algorithm.
 #   3. Section-citation resolution — every `RFC-AITP-NNNN §X.Y` citation
-#      resolves to a heading that actually exists in the named RFC, and
-#      every bare `§X.Y` self-reference inside an RFC resolves to a heading
-#      in that same RFC. See the stage's own comment below for exact scope.
+#      in any tracked markdown file (RFCs, docs/, README, CONTRIBUTING,
+#      VERSIONING, RELEASING, governance/, examples/, schemas/, registries/,
+#      manifesto/ ...) resolves to a heading that actually exists in the
+#      named RFC, and every bare `§X.Y` self-reference inside an RFC resolves
+#      to a heading in that same RFC. See the stage's own comment below for
+#      exact scope.
 #   4. Error-code coherence — every `error_code` a conformance fixture
 #      asserts is defined in registries/error-codes.md. One-way by design:
 #      a registry code no fixture exercises is a coverage question, not a
@@ -26,11 +29,33 @@
 #      governance/RFC-PROCESS.md defines, in the exact stage every RFC's
 #      current standing is expected to be — not merely "some recognized
 #      word," which would let RFC-AITP-0012 claim `Draft` and pass.
+#   7. Stale-vocabulary check — docs/*.md (the files the website syncs) and
+#      README.md carry no v0.1-era token: `grant_proof` and `binding.cnf`
+#      never; `0.1.0-rc`, `aitp/0.1` and `v0.1` only in a paragraph or list
+#      item that marks itself historical in-line. The allow-list rule is in
+#      the stage's own comment below.
+#   8. Sibling-link form — every `github.com/agentidentitytrustprotocol/
+#      <repo>/blob/...` URL in a tracked markdown file uses `blob/main`, no
+#      such URL uses `/tree/`, and none names the local alias `aitp-cp`.
+#      When `../<repo>` is a local git checkout, the linked path must exist
+#      on its `origin/main` and a `#anchor` on a markdown target must match
+#      a heading there. That existence/anchor sub-check is local-only and
+#      offline: CI checks out this repository alone, so it prints a
+#      "skipped (sibling checkout absent)" note and passes.
 #
-# All six checks exist because the class of bug they catch — one fact
+# File set. Every stage reads one shared list of files: `git ls-files` when
+# ROOT is the top of a git work tree (so untracked local notes -- plans/,
+# temp/, PROGRESS.md -- are never scanned, and an intra-repo link to an
+# untracked file is reported as broken), or a plain filesystem walk
+# (skipping .git/ and node_modules/) when ROOT is not one, e.g. an unpacked
+# release archive. A brand-new file is therefore checked once it is
+# `git add`ed, not before.
+#
+# All eight checks exist because the class of bug they catch — one fact
 # asserted in two places with nothing checking that they agree — is exactly
 # the shape of the bugs PR #22 and PR #30 fixed, one level up in the docs.
-# See RFC-AITP-0001 §5.4.1 and plans/docs-tests-followthrough-jcs-and-bundle-fixes.md.
+# See RFC-AITP-0001 §5.4.1 and the docs/tests follow-through plan for PR #22 / PR #30
+# (local planning notes, not tracked).
 # Stage 3 closes out issue #29: PR #34 added stages 1 and 2 (RFC version
 # coherence and markdown anchor resolution); the section-citation resolver
 # below is the remaining piece. Stage 4 arrived with issue #37's
@@ -40,7 +65,11 @@
 # identity descriptor missing a MUST that its canonical schema states. Stage 6
 # arrived with issue #47, which found four incompatible RFC status ladders and
 # nine of thirteen RFCs using a status string ("Community Standards Track
-# (v0.2 Draft)") that appeared on none of them.
+# (v0.2 Draft)") that appeared on none of them. Stages 7 and 8, stage 3's
+# reach beyond rfcs/ and docs/, and the shared file set arrived with the
+# v0.2 docs refresh, which found every docs/ page still speaking v0.1
+# vocabulary, a wrong § citation in an examples/ README that no stage
+# scanned, and nothing at all checking links into the sibling repositories.
 
 set -e
 
@@ -48,7 +77,100 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEFAULT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 ROOT="${1:-${DEFAULT_ROOT}}"
 
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+
+# ── Shared file set and Python helpers (see "File set" in the header) ───────
+ROOT_REAL="$(cd "$ROOT" && pwd -P)"
+TOP="$(git -C "$ROOT" rev-parse --show-toplevel 2>/dev/null || true)"
+if [ -n "$TOP" ] && [ "$(cd "$TOP" && pwd -P)" = "$ROOT_REAL" ]; then
+    git -C "$ROOT" ls-files -z | tr '\0' '\n' > "$WORK/files.txt"
+    FILE_SOURCE="git ls-files: tracked files only"
+else
+    (cd "$ROOT" && find . \( -name .git -o -name node_modules \) -prune -o -type f -print \
+        | sed 's|^\./||' | LC_ALL=C sort) > "$WORK/files.txt"
+    FILE_SOURCE="filesystem walk: ROOT is not the top of a git work tree"
+fi
+
+# Every stage does `import doccheck`. The module is written to the temp dir so
+# the script stays one file and leaves no __pycache__ behind.
+cat > "$WORK/doccheck.py" <<'PYEOF'
+import os
+
+def files(root, prefix="", suffix=""):
+    """The shared file set (repo-relative paths), filtered by prefix/suffix.
+    A path git lists but the work tree has deleted is dropped."""
+    with open(os.environ["AITP_DOC_FILES"], encoding="utf-8") as fh:
+        rels = [l for l in fh.read().split("\n") if l]
+    return sorted(
+        r for r in rels
+        if r.startswith(prefix) and r.endswith(suffix)
+        and os.path.isfile(os.path.join(root, r))
+    )
+
+def file_set(root):
+    return set(files(root))
+
+def flat_in(rel, d):
+    """True when `rel` sits directly in directory `d` (no subdirectory)."""
+    return rel.startswith(d + "/") and "/" not in rel[len(d) + 1:]
+
+def rfc_files(root):
+    return [r for r in files(root, "rfcs/RFC-AITP-", ".md") if flat_in(r, "rfcs")]
+
+def slugify(text):
+    # GitHub's heading-anchor algorithm: lowercase; strip everything except
+    # alphanumerics, spaces, hyphens and UNDERSCORES; spaces become hyphens.
+    # Headings in this repo carry `code`, (parens), periods and § -- all
+    # stripped by this rule, e.g. "5.4.1 Signing input (JCS profile)" ->
+    # "541-signing-input-jcs-profile".
+    #
+    # Underscores are KEPT. GitHub preserves them, and this repo has many
+    # headings that depend on it -- RFC-AITP-0004's MUTUAL_HELLO,
+    # MUTUAL_HELLO_ACK, MUTUAL_COMMIT and MUTUAL_COMMIT_ACK sections, and
+    # RFC-AITP-0008 §3.3's `fail_open`. Stripping them would compute
+    # "31-mutualhello" where GitHub computes "31-mutual_hello", so a
+    # correct link to any of those headings would be reported broken. A
+    # checker whose false positives outnumber its true ones gets ignored,
+    # which is worse than not having it.
+    text = text.strip().lower()
+    kept = [ch for ch in text if ch.isalnum() or ch in (" ", "-", "_")]
+    return "".join(kept).replace(" ", "-")
+
+
+def heading_slugs(lines):
+    """GitHub anchor slugs of the ATX headings in `lines`, ignoring fenced
+    code, with GitHub's -1, -2 ... suffixes on repeated headings."""
+    import re
+    heading_re = re.compile(r'^(#{1,6})\s+(.*?)\s*$')
+    slugs, seen, in_fence = set(), {}, False
+    for line in lines:
+        stripped = line.rstrip("\n")
+        if stripped.strip().startswith("```") or stripped.strip().startswith("~~~"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        m = heading_re.match(stripped)
+        if not m:
+            continue
+        base = slugify(m.group(2))
+        if base in seen:
+            seen[base] += 1
+            slug = f"{base}-{seen[base]}"
+        else:
+            seen[base] = 0
+            slug = base
+        slugs.add(slug)
+    return slugs
+PYEOF
+
+export AITP_DOC_FILES="$WORK/files.txt"
+export PYTHONPATH="$WORK${PYTHONPATH:+:$PYTHONPATH}"
+export PYTHONDONTWRITEBYTECODE=1
+
 echo "Checking documentation coherence under ${ROOT} ..."
+echo "(file set: ${FILE_SOURCE})"
 echo
 
 FAIL=0
@@ -57,13 +179,14 @@ FAIL=0
 echo "── Version coherence (rfcs/README.md vs RFC headers) ──"
 
 if ! python3 - "$ROOT" <<'PYEOF'
-import glob, os, re, sys
+import os, re, sys
+import doccheck
 
 root = sys.argv[1]
 rfc_dir = os.path.join(root, "rfcs")
 readme = os.path.join(rfc_dir, "README.md")
 
-rfc_files = sorted(glob.glob(os.path.join(rfc_dir, "RFC-AITP-*.md")))
+rfc_files = [os.path.join(root, r) for r in doccheck.rfc_files(root)]
 if not rfc_files:
     print(f"Warning: no RFC-AITP-*.md files found under {rfc_dir}")
     sys.exit(1)
@@ -146,71 +269,29 @@ echo "── Anchor resolution (intra-repo path.md#anchor links) ──"
 
 if ! python3 - "$ROOT" <<'PYEOF'
 import os, re, sys
+from doccheck import files, file_set, heading_slugs
 
 root = sys.argv[1]
 
-md_files = []
-for dirpath, dirnames, filenames in os.walk(root):
-    dirnames[:] = [d for d in dirnames if d not in (".git", "node_modules")]
-    for name in filenames:
-        if name.endswith(".md"):
-            md_files.append(os.path.join(dirpath, name))
-md_files.sort()
+# The shared file set (see "File set" in the header): untracked local notes
+# are neither scanned as sources nor accepted as link targets.
+md_files = [os.path.join(root, r) for r in files(root, suffix=".md")]
+known = file_set(root)
 
 if not md_files:
     print(f"Warning: no markdown files found under {root}")
     sys.exit(1)
 
-def slugify(text):
-    # GitHub's heading-anchor algorithm: lowercase; strip everything except
-    # alphanumerics, spaces, hyphens and UNDERSCORES; spaces become hyphens.
-    # Headings in this repo carry `code`, (parens), periods and § -- all
-    # stripped by this rule, e.g. "5.4.1 Signing input (JCS profile)" ->
-    # "541-signing-input-jcs-profile".
-    #
-    # Underscores are KEPT. GitHub preserves them, and this repo has many
-    # headings that depend on it -- RFC-AITP-0004's MUTUAL_HELLO,
-    # MUTUAL_HELLO_ACK, MUTUAL_COMMIT and MUTUAL_COMMIT_ACK sections, and
-    # RFC-AITP-0008 §3.3's `fail_open`. Stripping them would compute
-    # "31-mutualhello" where GitHub computes "31-mutual_hello", so a
-    # correct link to any of those headings would be reported broken. A
-    # checker whose false positives outnumber its true ones gets ignored,
-    # which is worse than not having it.
-    text = text.strip().lower()
-    kept = [ch for ch in text if ch.isalnum() or ch in (" ", "-", "_")]
-    return "".join(kept).replace(" ", "-")
-
-heading_re = re.compile(r'^(#{1,6})\s+(.*?)\s*$')
+# slugify() and heading_slugs() -- GitHub's slug rules -- are in the shared
+# helpers at the top of this script; stage 8 uses the same ones.
 link_re = re.compile(r'\[[^\]]*\]\((?![a-zA-Z][a-zA-Z0-9+.-]*:)([^)\n]+\.md)#([^)\n]+)\)')
 
 def headings_for(path):
-    slugs = set()
-    in_fence = False
     try:
         with open(path, encoding="utf-8") as fh:
-            lines = fh.readlines()
+            return heading_slugs(fh.readlines())
     except OSError:
         return None
-    seen = {}
-    for line in lines:
-        stripped = line.rstrip("\n")
-        if stripped.strip().startswith("```") or stripped.strip().startswith("~~~"):
-            in_fence = not in_fence
-            continue
-        if in_fence:
-            continue
-        m = heading_re.match(stripped)
-        if not m:
-            continue
-        base = slugify(m.group(2))
-        if base in seen:
-            seen[base] += 1
-            slug = f"{base}-{seen[base]}"
-        else:
-            seen[base] = 0
-            slug = base
-        slugs.add(slug)
-    return slugs
 
 heading_cache = {}
 
@@ -232,10 +313,10 @@ for src in md_files:
         target_path = os.path.normpath(os.path.join(os.path.dirname(src), target_rel))
         rel_src = os.path.relpath(src, root)
         rel_target = os.path.relpath(target_path, root)
-        if not os.path.isfile(target_path):
+        if rel_target not in known:
             broken.append(
                 f"    ✗ {rel_src}:{line_no}: links to {rel_target}#{anchor}, "
-                f"but {rel_target} does not exist"
+                f"but {rel_target} does not exist (or is not tracked)"
             )
             continue
         slugs = get_headings(target_path)
@@ -265,11 +346,11 @@ echo
 echo "── Section-citation resolution (RFC-AITP-NNNN §X.Y and bare §X.Y) ──"
 
 if ! python3 - "$ROOT" <<'PYEOF'
-import glob, os, re, sys
+import os, re, sys
+import doccheck
 
 root = sys.argv[1]
 rfc_dir = os.path.join(root, "rfcs")
-docs_dir = os.path.join(root, "docs")
 
 # Scope (issue #29). This resolves *citation existence*, not whether the
 # cited section supports the claim next to it -- that half is not
@@ -279,8 +360,14 @@ docs_dir = os.path.join(root, "docs")
 # IN SCOPE:
 #   (a) `RFC-AITP-NNNN §X.Y` (also §X, §X.Y.Z, and a `RFC-AITP-NNNN §X/§Y`
 #       or `RFC-AITP-NNNN §X, §Y` compound form for the same target RFC),
-#       anywhere under rfcs/ or docs/, checked against the named RFC's own
-#       heading numbers.
+#       in rfcs/*.md and in EVERY tracked markdown file outside rfcs/ --
+#       docs/, README, CONTRIBUTING, VERSIONING, RELEASING, CHANGELOG,
+#       governance/, examples/, schemas/, registries/, manifesto/, .github/
+#       -- checked against the named RFC's own heading numbers. In
+#       CHANGELOG.md only the `## Unreleased` section is scanned: released
+#       entries are a historical record whose citations were right as of
+#       their release (v0.1-line entries cite sections later renumbered),
+#       and history is not rewritten to satisfy a checker.
 #   (b) bare `§X.Y` self-references *inside an RFC file*, checked first
 #       against that file's own headings -- this is where most citations
 #       live, per hand audit of this corpus. If (and only if) that fails,
@@ -297,7 +384,7 @@ docs_dir = os.path.join(root, "docs")
 #       prose named explicitly moments earlier.
 #
 # OUT OF SCOPE (deliberately, not an oversight):
-#   - bare `§X.Y` in non-RFC docs (docs/*.md). The target document is not
+#   - bare `§X.Y` in non-RFC markdown (docs/, README, ...). The target document is not
 #     reliably determinable from the citation alone there (unlike inside
 #     an RFC, there is no enclosing document with its own heading set to
 #     try first), and a guessed target produces false failures -- a
@@ -308,13 +395,14 @@ docs_dir = os.path.join(root, "docs")
 #     always carry the hyphenated `RFC-AITP-NNNN` prefix, so these are
 #     lexically distinguishable and never resolved against local files.
 
-rfc_files = sorted(glob.glob(os.path.join(rfc_dir, "RFC-AITP-*.md")))
-scan_files = sorted(
-    glob.glob(os.path.join(rfc_dir, "*.md")) + glob.glob(os.path.join(docs_dir, "*.md"))
-)
+rfc_files = [os.path.join(root, r) for r in doccheck.rfc_files(root)]
+scan_files = [
+    os.path.join(root, r) for r in doccheck.files(root, suffix=".md")
+    if doccheck.flat_in(r, "rfcs") or not r.startswith("rfcs/")
+]
 
 if not rfc_files or not scan_files:
-    print(f"Warning: no RFC or doc files found under {rfc_dir} / {docs_dir}")
+    print(f"Warning: no RFC or markdown files found under {root}")
     sys.exit(1)
 
 # Same heading pattern as the anchor-resolution stage's headings, restricted
@@ -383,8 +471,18 @@ for src in scan_files:
     # with newlines flattened to spaces (same length, so char offsets --
     # and therefore line numbers computed against the original text --
     # stay valid) rather than scanning line by line.
-    flat = text.replace("\n", " ")
     rel = os.path.relpath(src, root)
+    if rel == "CHANGELOG.md":
+        # Scan `## Unreleased` only (see IN SCOPE (a) above). Truncating keeps
+        # every earlier offset, so line numbers stay right.
+        h2 = [m.start() for m in re.finditer(r'^## ', text, re.M)]
+        unreleased = [p for p in h2 if text.startswith("## Unreleased", p)]
+        if unreleased:
+            later = [p for p in h2 if p > unreleased[0]]
+            text = text[:later[0]] if later else text
+        else:
+            text = ""
+    flat = text.replace("\n", " ")
 
     spans_covered = []
     prefixed_matches = list(prefixed_re.finditer(flat))
@@ -484,7 +582,7 @@ echo "── Error-code coherence (fixture \`error_code\` vs the registry) ─�
 # Direction is deliberately one-way: every code a fixture ASSERTS must exist in
 # the registry. The reverse (a registry code no fixture exercises) is a coverage
 # question, not a coherence defect, and is not checked here.
-if ! python3 - "$PROJECT_ROOT" <<'PYEOF'
+if ! python3 - "$ROOT" <<'PYEOF'
 import json, glob, os, re, sys
 
 root = sys.argv[1]
@@ -498,7 +596,11 @@ if not defined:
     print("    Warning: no error codes parsed from registries/error-codes.md")
     sys.exit(1)
 
-fixtures = sorted(glob.glob(os.path.join(root, "schemas", "conformance", "*.json")))
+import doccheck
+fixtures = [
+    os.path.join(root, r) for r in doccheck.files(root, "schemas/conformance/", ".json")
+    if doccheck.flat_in(r, "schemas/conformance")
+]
 if not fixtures:
     print("    Warning: no conformance fixtures found")
     sys.exit(1)
@@ -528,6 +630,7 @@ PYEOF
 then
     FAIL=1
 fi
+echo
 
 # ── 5. Shared-definition coherence (embedded $defs vs the canonical schema) ──
 echo "── Shared-definition coherence (embedded \$defs vs canonical schema) ──"
@@ -548,7 +651,7 @@ echo "── Shared-definition coherence (embedded \$defs vs canonical schema) �
 # embedded copy MUST equal it minus the file-level metadata keys that cannot
 # appear in a $defs subschema ($schema/$id/title/examples) and minus the
 # $comment marking it as a mirror.
-if ! python3 - "$PROJECT_ROOT" <<'PYEOF'
+if ! python3 - "$ROOT" <<'PYEOF'
 import json, os, sys
 
 root = sys.argv[1]
@@ -646,7 +749,8 @@ def extract_stage(raw, label, failures):
     )
     return None
 
-rfc_files = sorted(glob.glob(os.path.join(rfc_dir, "RFC-AITP-*.md")))
+import doccheck
+rfc_files = [os.path.join(root, r) for r in doccheck.rfc_files(root)]
 if not rfc_files:
     sys.exit(f"    ✗ no RFC-AITP-*.md files found under {rfc_dir}")
 
@@ -700,9 +804,248 @@ then
     FAIL=1
 fi
 
+echo
+
+# ── 7. Stale-vocabulary check (docs/*.md and README.md) ─────────────────────
+echo "── Stale vocabulary (v0.1-era tokens in docs/*.md and README.md) ──"
+
+# docs/*.md is exactly what the website sync ingests (a flat glob, no
+# subdirectories) and README.md is the repository's front page; both must
+# speak v0.2. Two token classes:
+#
+#   ALWAYS STALE -- `grant_proof` (v0.1 delegation proof; v0.2 delegates via
+#     the grant voucher) and `binding.cnf` (v0.1 key binding; v0.2 TCTs carry
+#     `cnf.jkt`). Neither has a legitimate use on these pages; a historical
+#     mention belongs in CHANGELOG.md, which this stage does not scan.
+#
+#   STALE UNLESS MARKED HISTORICAL -- `0.1.0-rc`, `aitp/0.1`, and `v0.1` (not
+#     `v0.10`). A hit is allowed only when its paragraph or list item -- the
+#     run of non-blank lines around it, cut at headings, list-item starts, table
+#     rows and code fences -- also contains one of these in-line markers
+#     (case-insensitive):
+#         legacy          e.g. "the legacy untagged `aid:pubkey:<43>` form"
+#         v0.1-frozen     e.g. a fixture pinned to v0.1 bytes, like del-004
+#         v0.1 line       e.g. "the earlier v0.1 line reached `0.1.0-rc.3`"
+#     The marker is wording a reader sees, so the exemption documents itself.
+#     It is deliberately NOT an HTML comment: docs/ is synced into MDX, where
+#     `<!-- -->` breaks the build. Keep the marker list this short; a hit
+#     that needs a new marker is usually stale prose, not history.
+if ! python3 - "$ROOT" <<'PYEOF'
+import os, re, sys
+import doccheck
+
+root = sys.argv[1]
+targets = [r for r in doccheck.files(root, "docs/", ".md") if doccheck.flat_in(r, "docs")]
+if os.path.isfile(os.path.join(root, "README.md")):
+    targets.append("README.md")
+if not targets:
+    print("    Warning: no docs/*.md or README.md found")
+    sys.exit(1)
+
+ALWAYS = [
+    (re.compile(r'grant_proof'), "`grant_proof` (v0.2 delegates via the grant voucher)"),
+    (re.compile(r'binding\.cnf'), "`binding.cnf` (v0.2 TCTs carry `cnf.jkt`)"),
+]
+UNLESS_HISTORICAL = [
+    (re.compile(r'0\.1\.0-rc'), "`0.1.0-rc`"),
+    (re.compile(r'aitp/0\.1(?!\d)'), "`aitp/0.1`"),
+    (re.compile(r'(?<![\w.])v0\.1(?!\d)'), "`v0.1`"),
+]
+MARKER = re.compile(r'\blegacy\b|\bv0\.1-frozen\b|\bv0\.1 line\b', re.IGNORECASE)
+block_break = re.compile(r'^\s*(?:#{1,6}\s|[-*+]\s|\d+[.)]\s|```|~~~|\|)')
+
+failures, checked, allowed = [], 0, 0
+for rel in targets:
+    with open(os.path.join(root, rel), encoding="utf-8") as fh:
+        lines = fh.read().split("\n")
+    # Assign each line to a block (paragraph / list item / heading / fence).
+    block_of, blocks, cur = [], [], -1
+    for line in lines:
+        if not line.strip():
+            block_of.append(None)
+            cur = -1
+            continue
+        if cur == -1 or block_break.match(line):
+            blocks.append([])
+            cur = len(blocks) - 1
+        blocks[cur].append(line)
+        block_of.append(cur)
+    block_text = ["\n".join(b) for b in blocks]
+    for n, line in enumerate(lines, 1):
+        for rx, label in ALWAYS:
+            if rx.search(line):
+                checked += 1
+                failures.append(f"    ✗ {rel}:{n}: stale token {label}")
+        for rx, label in UNLESS_HISTORICAL:
+            if rx.search(line):
+                checked += 1
+                b = block_of[n - 1]
+                if b is not None and MARKER.search(block_text[b]):
+                    allowed += 1
+                    continue
+                failures.append(
+                    f"    ✗ {rel}:{n}: stale token {label} -- say v0.2, or mark the "
+                    f"paragraph historical with \"legacy\", \"v0.1-frozen\" or \"v0.1 line\""
+                )
+
+if failures:
+    for f in failures:
+        print(f)
+    print(f"    ({len(failures)} stale token(s) in {len(targets)} file(s))")
+    sys.exit(1)
+
+print(
+    f"    ✓ no stale v0.1-era tokens in {len(targets)} file(s) "
+    f"({allowed} marked-historical mention(s) allowed)"
+)
+PYEOF
+then
+    FAIL=1
+fi
+echo
+
+# ── 8. Sibling-link form (github.com/agentidentitytrustprotocol/<repo>/...) ─
+echo "── Sibling-link form (blob/main URLs into sibling repositories) ──"
+
+# Cross-repository citations are full
+# `https://github.com/agentidentitytrustprotocol/<repo>/blob/main/<path>` URLs
+# (docs/ecosystem.md states the convention; the website rewrites exactly that
+# form to its rendered pages). Over every tracked markdown file:
+#
+#   FORM (always, offline) -- a `<repo>/blob/<ref>/...` URL must use
+#     ref `main`; no URL into the organization may use `/tree/` (point at a
+#     file, or at a directory via `blob/main/<dir>`); and no URL may name
+#     `aitp-cp`, which is only a local symlink to `aitp-control-plane`.
+#
+#   EXISTENCE + ANCHOR (local-only) -- when `../<repo>` is a git checkout
+#     with an `origin/main` ref, `git -C ../<repo> cat-file -e
+#     origin/main:<path>` must succeed (git trees are case-exact, so this is
+#     correct on case-insensitive filesystems too), and a `#anchor` on a
+#     `.md` target must equal a GitHub heading slug of that file at
+#     origin/main (same slugify() as stage 2). Anchors on non-markdown
+#     targets (e.g. `#L42`) are not checked. Sibling working trees are often
+#     on feature branches, so the working tree is never consulted -- only
+#     origin/main as last fetched. Nothing here touches the network; a stale
+#     origin/main is refreshed with `git -C ../<repo> fetch`. When the
+#     checkout is absent (CI checks out this repository alone) the sub-check
+#     prints "skipped (sibling checkout absent)" and passes. Links into this
+#     repository itself are checked against the shared file set instead.
+if ! python3 - "$ROOT" <<'PYEOF'
+import os, re, subprocess, sys
+from urllib.parse import unquote
+import doccheck
+
+root = sys.argv[1]
+parent = os.path.dirname(os.path.realpath(root))
+self_name = "agentidentitytrustprotocol"
+known = doccheck.file_set(root)
+
+url_re = re.compile(
+    r'https?://github\.com/agentidentitytrustprotocol/([A-Za-z0-9._-]+)'
+    r'((?:/[^\s)<>\]"\'`]*)?)'
+)
+
+def git(repo_dir, *args, capture=False):
+    r = subprocess.run(["git", "-C", repo_dir, *args],
+                       stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    return r.stdout if capture else r.returncode == 0
+
+failures, refs = [], []
+total_urls = 0
+for rel in doccheck.files(root, suffix=".md"):
+    with open(os.path.join(root, rel), encoding="utf-8") as fh:
+        text = fh.read()
+    for m in url_re.finditer(text):
+        repo, rest = m.group(1), m.group(2).rstrip(".,;:!?*_")
+        n = text.count("\n", 0, m.start()) + 1
+        where = f"{rel}:{n}"
+        total_urls += 1
+        if repo.lower() == "aitp-cp":
+            failures.append(f"    ✗ {where}: URL names `aitp-cp`, a local symlink -- use aitp-control-plane")
+            continue
+        parts = rest.split("/")
+        if "tree" in parts:
+            failures.append(f"    ✗ {where}: `/tree/` URL -- use blob/main/<path>")
+            continue
+        if len(parts) < 3 or parts[1] != "blob":
+            continue  # repo root, issues, pulls, releases: no path to check
+        if parts[2] != "main":
+            failures.append(f"    ✗ {where}: blob/{parts[2]} -- sibling links must use blob/main")
+            continue
+        path = "/".join(parts[3:])
+        anchor = ""
+        if "#" in path:
+            path, anchor = path.split("#", 1)
+        path = unquote(path.split("?", 1)[0]).strip("/")
+        refs.append((where, repo, path, unquote(anchor)))
+
+# Existence + anchor sub-check.
+checked_paths = checked_anchors = 0
+skipped = {}          # repo -> (reason, count)
+state = {}            # repo -> repo_dir or None
+heads_cache = {}
+for where, repo, path, anchor in refs:
+    if repo == self_name:
+        if path and path not in known and not any(k.startswith(path + "/") for k in known):
+            failures.append(f"    ✗ {where}: {repo}/blob/main/{path} -- not a tracked file in this repository")
+        else:
+            checked_paths += 1
+        if anchor and path.endswith(".md") and path in known:
+            if anchor.lower() not in heads_cache.setdefault(
+                    (repo, path),
+                    doccheck.heading_slugs(open(os.path.join(root, path), encoding="utf-8").readlines())):
+                failures.append(f"    ✗ {where}: #{anchor} does not resolve in {path}")
+            else:
+                checked_anchors += 1
+        continue
+    if repo not in state:
+        d = os.path.join(parent, repo)
+        if not os.path.isdir(d) or not git(d, "rev-parse", "--git-dir"):
+            state[repo] = None
+            skipped[repo] = ["sibling checkout absent", 0]
+        elif not git(d, "rev-parse", "--verify", "-q", "origin/main^{commit}"):
+            state[repo] = None
+            skipped[repo] = ["no origin/main ref in the sibling checkout", 0]
+        else:
+            state[repo] = d
+    d = state[repo]
+    if d is None:
+        skipped[repo][1] += 1
+        continue
+    if path and not git(d, "cat-file", "-e", f"origin/main:{path}"):
+        failures.append(f"    ✗ {where}: {repo}/blob/main/{path} -- no such path on {repo}'s origin/main")
+        continue
+    checked_paths += 1
+    if anchor and path.endswith(".md"):
+        key = (repo, path)
+        if key not in heads_cache:
+            body = git(d, "show", f"origin/main:{path}", capture=True).decode("utf-8", "replace")
+            heads_cache[key] = doccheck.heading_slugs(body.split("\n"))
+        if anchor.lower() not in heads_cache[key]:
+            failures.append(f"    ✗ {where}: #{anchor} does not resolve in {repo}/{path} at origin/main")
+        else:
+            checked_anchors += 1
+
+if failures:
+    for f in failures:
+        print(f)
+    print(f"    ({len(failures)} problem(s) in {total_urls} organization URL(s))")
+    sys.exit(1)
+
+print(f"    ✓ all {total_urls} organization URL(s) use the blob/main form (no /tree/, no aitp-cp)")
+if checked_paths or not skipped:
+    print(f"    ✓ {checked_paths} linked path(s) exist on origin/main; {checked_anchors} anchor(s) resolve")
+for repo in sorted(skipped):
+    reason, count = skipped[repo]
+    print(f"    – {repo}: existence/anchor check skipped ({reason}); {count} link(s) form-checked only")
+PYEOF
+then
+    FAIL=1
+fi
+
 echo "─────────────────────────────────────"
 if [ "$FAIL" -ne 0 ]; then
     echo "✗ Documentation coherence checks failed"
     exit 1
 fi
-echo "✓ Documentation is coherent (versions, anchors, section citations, fixture error codes, mirrored schema definitions, and the RFC status ladder)"
+echo "✓ Documentation is coherent (versions, anchors, section citations, fixture error codes, mirrored schema definitions, the RFC status ladder, stale vocabulary, and sibling-link form)"
