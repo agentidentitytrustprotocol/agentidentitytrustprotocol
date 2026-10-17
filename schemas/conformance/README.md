@@ -108,6 +108,8 @@ Fixtures that exercise stateful behavior (e.g. replay detection across two sends
 
 The runner MUST execute each step in order against the same implementation instance and assert the per-step `expected` outcome. Each step carries its own `operation` field — see PLACEHOLDERS.md "Operation key" for the per-prefix operation registry.
 
+Verifier state persists only across the steps of one fixture's `sequence`. The runner MUST execute each fixture, sequence or not, against fresh verifier state: no `message_id` deny-list entry, consumed or outstanding nonce, or rate-limit counter carries in from another fixture. Fixtures are independent and reuse values; `id-019` and `id-013` present the same `pop_nonce` under the same `message_id`, so a runner that keeps one verifier across fixtures fails whichever runs second. How the state is reset (a new instance per fixture, or an explicit reset) is left to the harness.
+
 Sequence fixtures MAY also carry sibling fields inside `input` that provide context shared across all steps. For example, `tct-006-pop-challenge-response.json` carries `input.tct_token` alongside `input.sequence` because every step in the sequence operates against the same TCT (the consuming peer issues a challenge for it; the holder produces a response with the subject key bound via `cnf.jkt`; the verifier checks both). Sibling context fields are part of the fixture input and the runner MUST make them available to every step.
 
 `mh-001` (replay detection) and `tct-006` (downstream PoP) are the fixtures using this form.
