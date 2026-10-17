@@ -315,14 +315,14 @@ The spec is also silent on whether a deterministic, hash-derived v4-shaped `jti`
 > The remaining 122 bits MUST be either:
 >
 > - **random**: drawn from a CSPRNG (RFC-0001 §11), or
-> - **derived**: the leading bits of `SHA-256(domain_tag || input)`, where `domain_tag` is an issuer-chosen ASCII label unique to that use, and `input` is unique per token for that issuer. The issuer MUST guarantee that distinct tokens never share an `input`.
+> - **derived**: taken from `h = SHA-256(domain_tag_bytes || 0x00 || input_bytes)`, where `domain_tag_bytes` is the ASCII encoding of an issuer-chosen label unique to that use (printable ASCII `0x21`–`0x7E`, so it never contains `0x00`), `0x00` is a single null byte separator (the RFC-0002 §3.1 `proof_input` convention), and `input_bytes` is unique per token for that issuer. The issuer MUST guarantee that distinct tokens never share an `input_bytes`. The identifier is `h[0..16]` with `h[6] = (h[6] & 0x0f) | 0x40` and `h[8] = (h[8] & 0x3f) | 0x80`, rendered as lowercase hyphenated 8-4-4-4-12 hex. The separator stops two registered tags where one is a prefix of the other (`a` and `ab`) from yielding the same preimage.
 >
 > A verifier cannot tell the two apart, and MUST NOT try.
 
 Derived identifiers are needed for idempotent re-issuance and for archival attestations (Item 5). For example, a host that re-mints the commitment for the same record after a restart must produce the same `jti`. Requiring CSPRNG bits would forbid that. Requiring the v4 layout keeps the schema pattern valid, and lets generic UUID parsers that check version or variant accept the value.
 
 - Add fixtures `tct-0xx-jti-not-v4-rejected` (a v7 UUID) and `tct-0xx-jti-v4-variant-bits-wrong-rejected`.
-- Add `kat-derived-uuid-001`, which pins a `domain_tag`, `input`, SHA-256 and the resulting v4-shaped string, so that SDKs in every language produce the same bits.
+- Add `kat-derived-uuid-001`, which pins a `domain_tag`, `input_bytes` hex, the preimage hex (tag, `0x00`, input), SHA-256 and the resulting v4-shaped string, so that SDKs in every language produce the same bits.
 - **Error codes.** A non-v4 identifier is a structural defect, so it uses the per-artifact structural-rejection code from `registries/error-codes.md` (the normative table at `:32-42`): `TCT_SIGNATURE_INVALID` for a TCT `jti`, `DELEGATION_INVALID_VOUCHER` for a voucher `src_jti`, `INVALID_ENVELOPE` for an envelope `message_id`. No new code. Rationale: that table already decides that the compact-JWS artifacts collapse structural failure onto their signature-family code, so that an unauthenticated token leaks no parse detail. A dedicated `jti` code would contradict it for one claim.
 - Treat `message_id` the same way (RFC-0001 §5.2). The RFC-0001 §11 (`:628`) sentence "MUST use a cryptographically secure RNG for `message_id`" becomes "for nonces, and for `message_id` unless derived per RFC-0005 §2".
 - Grant-voucher `src_jti` (RFC-0005 §8.1) inherits the rule because it equals a TCT `jti`.
