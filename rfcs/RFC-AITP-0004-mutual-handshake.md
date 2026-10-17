@@ -2,7 +2,7 @@
 # Mutual Handshake
 
 **Document:** RFC-AITP-0004
-**Version:** 0.2.4-draft
+**Version:** 0.2.5-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:**
   [RFC-AITP-0001 Core](RFC-AITP-0001-core.md),
@@ -625,7 +625,7 @@ If Agent B rotates its key between A fetching the Manifest and A initiating the 
 
 ### 11.4 Denial-of-service on handshake endpoint
 
-The `handshake_endpoint` in the Manifest is a public-facing surface. Implementations MUST apply rate limiting per source AID or IP. The RECOMMENDED default is 10 handshake initiations per minute per source AID.
+The `handshake_endpoint` in the Manifest is a public-facing surface. Implementations MUST apply per-source rate limiting as specified in [RFC-AITP-0009 §3.1](RFC-AITP-0009-security.md#31-rate-limiting), which is the single normative home of the requirement, its source-key rule (a transport-level identifier MUST be part of the key, because a pre-verification `sender.agent_id` is self-asserted) and its RECOMMENDED defaults.
 
 ---
 

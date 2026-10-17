@@ -2,7 +2,7 @@
 # Security & Threat Model
 
 **Document:** RFC-AITP-0009
-**Version:** 0.2.2-draft
+**Version:** 0.2.3-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** All preceding RFCs.
 
@@ -182,19 +182,23 @@ Implementations **MUST**:
 - Validate the TLS certificate of any peer host before fetching its Manifest.
 - Log all authentication failures with sufficient context for forensic analysis.
 - Never log private keys, raw compact-JWS tokens (TCT, grant voucher, delegation token), PoP nonces, or other proof material.
+- Apply per-source rate limiting at the handshake endpoint, keyed as §3.1 below specifies.
 
 Implementations **SHOULD**:
 
 - Rotate signing keys on a schedule (recommended: 90 days).
 - Pin TLS certificates of frequently-contacted peers in production.
-- Implement rate limiting on the handshake endpoint per §3.1 below.
 - Re-verify long-lived peer TCTs every 5 minutes by checking the issuer's `ListRevoked` feed.
 
-### 3.1 Rate limiting (RECOMMENDED)
+### 3.1 Rate limiting
 
 A malicious agent can flood the handshake endpoint with syntactically valid envelopes, each forcing a JWK fetch and signature verification. Rate limiting is a defense-in-depth measure for resource exhaustion; protocol-level replay is handled by the deny list (RFC-AITP-0001 §5.5), which runs before the rate-limit check.
 
-Implementations SHOULD enforce per-source-IP and per-AID limits at the handshake endpoint. Recommended defaults:
+Implementations MUST apply per-source rate limiting at the handshake endpoint. This section is the single normative home of that requirement; [RFC-AITP-0004 §11.4](RFC-AITP-0004-mutual-handshake.md#114-denial-of-service-on-handshake-endpoint) cites it.
+
+The source key used before authentication MUST include a transport-level identifier: the peer IP address (taken from a forwarding header only when the immediate hop is a configured trusted proxy) or a TLS client-certificate fingerprint. The `sender.agent_id` of an envelope whose signature has not yet been verified is self-asserted, so a per-AID limit applied at that point MUST NOT be the only limit: on its own it would let an attacker spend another agent's budget by naming its AID. A per-AID limit in addition to the transport-keyed one is RECOMMENDED. Implementations MAY add a global limit as a backstop.
+
+The limits themselves are a deployment concern. Recommended defaults:
 
 | Limit | Default |
 |---|---|
@@ -203,7 +207,7 @@ Implementations SHOULD enforce per-source-IP and per-AID limits at the handshake
 | Maximum concurrent in-flight handshake sessions | 1000 |
 | Maximum `MUTUAL_HELLO` payload size | 64 KB |
 
-Rate limiting is a deployment concern; these defaults are RECOMMENDED, not REQUIRED. Deployments handling high-volume agent swarms SHOULD tune limits to match expected traffic. Responses to rate-limited requests SHOULD use HTTP 429 with no AITP `error` envelope payload (the request never reached the protocol layer).
+Applying rate limiting is REQUIRED; these default values are RECOMMENDED, not REQUIRED. Deployments handling high-volume agent swarms SHOULD tune limits to match expected traffic. Responses to rate-limited requests SHOULD use HTTP 429 with no AITP `error` envelope payload (the request never reached the protocol layer).
 
 The check order at the handshake endpoint **MUST** be:
 

@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+### RFC-AITP-0009 §3.1 / RFC-AITP-0004 §11.4: handshake rate limiting is one MUST, keyed on the transport (issue #69)
+
+Normative change. No schema, fixture or wire change.
+
+RFC-AITP-0004 §11.4 said "Implementations MUST apply rate limiting per source AID or IP"; RFC-AITP-0009 §3 listed it under SHOULD and §3.1 called it "RECOMMENDED, not REQUIRED". The owner decision (2026-10-16) is MUST, with the numeric defaults staying RECOMMENDED.
+
+- **RFC-AITP-0009 §3 / §3.1** is now the single normative home. §3 moves rate limiting from the SHOULD list to the MUST list; §3.1 (heading `Rate limiting`, was `Rate limiting (RECOMMENDED)`) says implementations MUST apply per-source rate limiting, and that the default *values* are RECOMMENDED, not REQUIRED. The normative check order is unchanged.
+- **Source key.** The key used before authentication MUST include a transport-level identifier (peer IP — from a forwarding header only behind a configured trusted proxy — or a TLS client-certificate fingerprint). A pre-verification `sender.agent_id` is self-asserted, so a per-AID limit MUST NOT be the only limit (it would let an attacker spend another agent's budget by naming its AID); per-AID limiting in addition is RECOMMENDED, and a global backstop MAY be added. The old "per source AID or IP" wording allowed an AID-only key.
+- **RFC-AITP-0004 §11.4** cites RFC-AITP-0009 §3.1 and no longer repeats a default.
+- `docs/operational-guidance.md` and `docs/threat-model.md` follow, including the renamed `#31-rate-limiting` anchor.
+
+This is a tightening, recorded as a patch-position bump per `VERSIONING.md` (the minor position is reserved for the protocol revision). The one-way `pinned-admission` profile (proposal #72, Item 5) cites RFC-AITP-0009 §3.1 for its challenge rate limit.
+
+**Version bumps.** RFC-AITP-0004: `0.2.4-draft` → `0.2.5-draft`; RFC-AITP-0009: `0.2.2-draft` → `0.2.3-draft`. `rfcs/README.md`'s version-summary sentence updated to match.
+
 ### Editorial: RFC-AITP-0001, RFC-AITP-0003 and RFC-AITP-0009 restate current v0.2 text
 
 Editorial. No schema, fixture or wire change, and no RFC 2119 keyword added, removed or changed: each edit restates a rule already normative elsewhere in the RFC set.
