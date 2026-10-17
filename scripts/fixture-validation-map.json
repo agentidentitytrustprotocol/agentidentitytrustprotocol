@@ -1007,6 +1007,15 @@
         }
       ]
     },
+    "tct-017": {
+      "artifacts": [
+        {
+          "pointer": "/input/tct_token_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
     "vch-001": {
       "artifacts": [
         {

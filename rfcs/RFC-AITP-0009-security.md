@@ -2,7 +2,7 @@
 # Security & Threat Model
 
 **Document:** RFC-AITP-0009
-**Version:** 0.2.4-draft
+**Version:** 0.2.5-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** All preceding RFCs.
 
@@ -232,6 +232,8 @@ AITP v0.2 mandates two signature algorithms: **Ed25519** (RFC 8032; JOSE `EdDSA`
 - **Compact JWS profile** (TCT, grant voucher, delegation token — v0.2 re-serializes these portable trust artifacts as compact JWS, [RFC-AITP-0001 §5.4.5](RFC-AITP-0001-core.md#545-compact-jws-profile-portable-trust-artifacts)): the JOSE protected-header `alg` parameter carries the algorithm, pinned by the same AID-derived rule — the verifier derives the sole acceptable value from the signer's AID before verification and rejects anything else with `TOKEN_ALG_MISMATCH` (§1.12, §1.14).
 
 The two mechanisms are the same rule stated per profile: the AID decides the algorithm, and the algorithm marker is bound to the signed bytes (the §5.4.3 tag is part of the canonical hash input; the JWS `alg` header is inside the signed segments). The v0.1 baseline was Ed25519-only, with the TCT and delegation token still JCS-signed; both the algorithm-tagged grammar and the JWS re-serialization arrive together in `aitp/0.2`.
+
+Under both profiles, what each algorithm signs and which encodings a verifier MUST reject are fixed by [RFC-AITP-0001 §5.4.6](RFC-AITP-0001-core.md#546-signing-primitive-per-algorithm-jcs-profile-and-proofs) (one SHA-256 hash; a P-256 signature uses `e = d`) and [RFC-AITP-0001 §5.4.7](RFC-AITP-0001-core.md#547-verification-strictness) (strict Ed25519: `S < L`, canonical point encodings, no small-order public key, cofactorless equation; P-256: low-S and `R`/`S` range checks, for `ES256` as for JCS `p256.` signatures). Without §5.4.6, two implementations can each be self-consistent and still reject each other's P-256 signatures. Without §5.4.7, they accept different signature sets for the same message (the one optional check, rejecting a small-order Ed25519 `R`, matters only for a signature no conforming signer produces), and a small-order Ed25519 key yields a signature that verifies for any message.
 
 A future major version MAY add algorithms via the RFC process. Removing algorithms requires a major version increment.
 
