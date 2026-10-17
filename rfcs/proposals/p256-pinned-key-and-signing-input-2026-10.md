@@ -1,9 +1,10 @@
 # Proposal: P-256 pinned keys, one P-256 signing input, and the related gaps
 
 **Stage:** Idea. This is an unnumbered proposal under [RFC-PROCESS.md](../../governance/RFC-PROCESS.md). It amends existing RFCs and does not ask for a new RFC number.
-**Amends:** [RFC-AITP-0001](../RFC-AITP-0001-core.md) §5.2, §5.4, §5.4.3, §11; [RFC-AITP-0002](../RFC-AITP-0002-identity.md) §1, §3.1–§3.3; [RFC-AITP-0005](../RFC-AITP-0005-tct.md) §2, §9; [RFC-AITP-0009](../RFC-AITP-0009-security.md) §4; [RFC-AITP-0012](../RFC-AITP-0012-extensions.md) §6; `schemas/json/aitp-identity.schema.json`; `schemas/conformance/known-answer/`.
+**Amends:** [RFC-AITP-0001](../RFC-AITP-0001-core.md) §5.2, §5.4, §5.4.3, §11; [RFC-AITP-0002](../RFC-AITP-0002-identity.md) §1, §3.1–§3.3, §3.4 (new); [RFC-AITP-0005](../RFC-AITP-0005-tct.md) §2, §5.3 (new), §8.1, §9, §10.4; [RFC-AITP-0009](../RFC-AITP-0009-security.md) §4; `schemas/json/aitp-identity.schema.json`; `schemas/conformance/known-answer/`.
 **Spec baseline:** `ab7f67c`. **Implementations checked:** aitp-rs `b19d3f2` (0.13.2) and aitp-verifier-py `f36bf9f`.
-**Related open issues:** #68 (the `cnf.jkt` JWK is pinned to Ed25519, which is the OIDC-side P-256 gap). #67 and #69 are not affected.
+**Related open issues:** #68 (the `cnf.jkt` JWK is pinned to Ed25519, which is the OIDC-side P-256 gap). #69 (RFC-0004 §11.4 MUST vs RFC-0009 §3.1 SHOULD on rate limiting) now also bears on Item 5's challenge issuance. #67 is not affected.
+**Revised:** 2026-10-16, after implementer review against a coordination-host deployment. Changes: Item 4 adds an external-signer note; Item 3 (envelope v2) is withdrawn from this proposal and deferred to a v0.3 proposal; Item 5 adds `pop_nonce` and challenge rate-limit rules and replaces the self-attestation subsection with an archival attestation profile using a marker grant; Item 6b allows deterministic v4-shaped identifiers and fixes the error codes; new Item 7 (implementation API notes, informative, including a reference nonce store); new "Promotion and sequencing" section; open questions resolved per owner decisions of 2026-10-16.
 
 ---
 
@@ -16,14 +17,16 @@ AITP v0.2 makes P-256 a REQUIRED verification algorithm. The spec does not pin h
 
 Read literally, that is ECDSA over `SHA-256(SHA-256(input))`. aitp-rs implements that double hash. aitp-verifier-py implements a single hash (ECDSA over `SHA-256(input)`). Signatures from one fail verification in the other. No committed P-256 JCS vector exists, so CI cannot see the disagreement. Separately, the `pinned_key` identity type is written as Ed25519-only (RFC-0002 §3.3), which contradicts the requirement that both algorithms be supported.
 
-This proposal makes six normative changes and adds KAT vectors for each:
+This proposal makes five normative changes (Item 3 is deferred) and adds KAT vectors for each:
 
 1. Pin a **single-hash P-256 signing input** for every JCS-profile and proof signature.
 2. Define **P-256 `pinned_key`** identities: key form, proof encoding and trust-store key.
-3. **Resolve the envelope `extensions` signing contradiction.**
+3. ~~Resolve the envelope `extensions` signing contradiction.~~ Deferred to a v0.3 proposal (see Item 3).
 4. Add **verification-strictness rules** for Ed25519 (strict) and P-256 (low-S).
 5. Add a **one-way pinned-key admission and self-attestation profile**.
 6. Fix three smaller inconsistencies: the descriptor `subject` claim, `jti` v4 enforcement, and descriptor `type` dispatch.
+
+Item 7 is informative. It lists the library API shapes that Items 1–6 force on implementations, so that each one can absorb the change in a single breaking release.
 
 ## Motivation
 
@@ -143,7 +146,9 @@ Replace RFC-0002 §3.2 with:
 
 ---
 
-## Item 3: Envelope `extensions` is "signed" but outside the signing input (RFC-0001 §5.2, §5.4; RFC-0012 §6; env-007)
+## Item 3: Envelope `extensions` is "signed" but outside the signing input — DEFERRED to v0.3
+
+**Status in this proposal:** withdrawn (decision 2026-10-16). This proposal makes no normative change here. The problem and the candidate fix below are kept as the starting point for a separate `aitp/0.3` proposal. Until then, implementations should not rely on envelope `extensions`, `version` or `message_type` being authenticated; Item 5 is written so that it does not depend on them.
 
 ### Problem
 
@@ -218,6 +223,10 @@ The spec states no rule for malleability or weak keys. The two implementations d
 > **P-256.** Signers MUST emit low-S signatures (`S ≤ n/2`), normalizing `S` to `n − S` when needed, including when the raw signature comes from an external signer such as a KMS or HSM. Verifiers MUST reject `S > n/2`, `R` or `S` equal to 0, and `R` or `S` ≥ `n`, using `INVALID_SIGNATURE` (or the artifact-specific signature code).
 >
 > **Both profiles.** These rules apply to JCS-profile and compact-JWS signatures alike. For JWS they are stricter than RFC 7518, and an off-the-shelf JOSE library MUST be wrapped accordingly.
+>
+> **External signers.** When the private key is held by a KMS, HSM or remote signer, the implementation that assembles the AITP artifact is the "signer" for the purposes of this section. It MUST normalize `S` and SHOULD verify the assembled signature against the AID's key before emitting it. A KMS returning a DER-encoded signature MUST be converted to the fixed 64-byte `r || s` form before tagging.
+
+The low-S rule makes the existing aitp-rs behaviour (`keys.rs:502-509` normalize on sign, `:530-541` reject on verify) normative. aitp-verifier-py has to add the reject.
 
 **Fixtures:**
 
@@ -245,25 +254,39 @@ Inside the handshake, the descriptor's `type`, `subject` and `extensions` are au
 > **RFC-0002 §3.4 One-way pinned-key admission (OPTIONAL profile `pinned-admission`).** A verifier MAY admit a subject without a mutual handshake when all of the following hold:
 >
 > 1. The verifier issues a fresh 16-byte `pop_nonce` from a CSPRNG. The nonce is single-use, expires after at most 300 s, and is bound to the verifier's own AID.
-> 2. The subject returns an RFC-0001 §5 envelope (`message_type` = `identity_presentation`, a new registry entry) whose payload is `{identity, pop_nonce}`. The envelope signature (Item 3 v2 input) authenticates `type`, `subject` and `extensions`. The `proof` is computed per §3.1 with `receiver_aid` equal to the verifier's AID.
+> 2. The subject returns an RFC-0001 §5 envelope (`message_type` = `identity_presentation`, a new registry entry) whose payload is `{identity, pop_nonce}`. The envelope signature (RFC-0001 §5.4, which covers `sha256(JCS(payload))`) authenticates the descriptor's `type`, `subject` and `extensions`, because they are inside the payload. The verifier MUST NOT rely on envelope-level `extensions`, `version` or `message_type` (Item 3, deferred) and MUST reject an envelope whose `message_type` is not `identity_presentation`. The `proof` is computed per §3.1 with `receiver_aid` equal to the verifier's AID.
 > 3. Verification is §3.2 steps 1–5 plus the RFC-0001 §5.5 timestamp and `message_id` rules. A configured `pinned_keys` store is REQUIRED. The possession-only development mode MUST NOT be used.
 > 4. The verifier consumes the nonce atomically before returning success.
 >
 > A party implementing only this profile, as either verifier or presenter, MAY claim "AITP v0.2 pinned-admission" conformance. It MUST NOT claim RFC-0001 §6 full conformance.
-
-> **RFC-0005 §5.3 Self-issued attestation TCTs.** A TCT with `iss == sub == aud` is a self-attestation. It records a statement by the issuer about itself and grants nothing.
 >
-> - A verifier MUST reject `iss == sub` in any context that evaluates the TCT as a capability grant (RFC-0004 §4, RFC-0006), using `AUDIENCE_MISMATCH` (the choice of code is open).
-> - Attestation TCTs MUST still carry `cnf` and a UUID-v4 `jti`.
-> - When the issuer publishes no Manifest, `exp − iat` MUST NOT exceed the issuer key's declared validity period. A verifier MUST record its decision on the Manifest-cap waiver explicitly.
+> **Challenge and nonce rules.**
+>
+> - `pop_nonce` MUST decode to exactly 16 bytes. A verifier MUST reject any other length with `IDENTITY_FAILED` before signature verification.
+> - A nonce is accepted only if this verifier issued it, it has not expired and it has not been consumed. Lookup and consumption MUST be one atomic step.
+> - The verifier MUST bound outstanding nonces and MUST apply per-source rate limiting to nonce issuance, at the level RFC-AITP-0004 §11.4 / RFC-AITP-0009 §3.1 settle on (#69). When the bound is reached it MUST refuse new challenges rather than evict unexpired nonces of other sources.
+> - `message_id` follows Item 6b. It MAY be derived deterministically from `pop_nonce`, since the nonce is already single-use.
 
-**Open question.** Should attestations use a distinct `typ` (`aitp-attestation+jwt`) instead of overloading `aitp-tct+jwt`? This proposal leans yes in v0.3, for type-confusion hygiene (RFC-0009 §1.13), and keeps §5.3 for v0.2.
+> **RFC-0005 §5.3 Self-issued attestation TCTs.** A TCT with `iss == sub == aud` is a self-attestation: a statement by the issuer about itself. It confers no capability.
+>
+> - **Grant contexts.** A verifier MUST reject `iss == sub` in any context that evaluates the TCT as a capability grant (RFC-0004 §4, RFC-0006), using `AUDIENCE_MISMATCH` (the choice of code is open).
+> - **Marker grant.** `grants` stays non-empty (§2). An attestation carries exactly one grant, the reserved value `aitp:attestation`. An issuer MUST NOT mint `aitp:attestation` with `iss ≠ sub`, and a verifier in a grant context MUST reject any TCT containing it.
+> - **Statement.** The attested content goes in `ext`, under a namespaced key per RFC-AITP-0012. Because `ext` is inside the JWS payload it is signed. For attestations the "unknown keys in `ext` MUST be ignored" rule applies only to keys the relying party does not consume. A relying party MUST reject an attestation whose `ext` lacks the key it expects.
+> - **`cnf` and `jti`.** Attestation TCTs MUST carry `cnf`. `jti` follows Item 6b and MAY be deterministic, so that re-minting the same statement yields the same token.
+> - **Lifetime.** An attestation MAY be long-lived (archival evidence, for example a decision record's commitment). When the issuer publishes no Manifest the §10.4 bound does not apply. A verifier MUST then make an explicit decision to waive the Manifest cap, and MUST establish that the issuer key was trusted at `iat` from its own records (an enrollment or key-history record). It MUST NOT treat a far-future `exp` alone as evidence of validity.
+> - **Revocation.** RFC-0008 `jti` revocation applies unchanged.
+
+The 2026-10-13 text said attestations "grant nothing" while `grants` is required non-empty, and capped TTL by "the issuer key's declared validity period", which `pinned_key` identities do not declare. The marker grant and the explicit waiver resolve both. The marker grant is the v0.2 answer (decision 2026-10-16); a distinct attestation `typ` is not pursued in this proposal. Implementations need a supported `ext` setter and a deterministic-`jti` setter on their TCT builders (Item 7).
 
 **KAT and fixtures:**
 
-- `kat-tct-002-self-attestation` (Ed25519) and `kat-tct-003-p256-self-attestation` (ES256).
+- `kat-tct-002-self-attestation` (Ed25519) and `kat-tct-003-p256-self-attestation` (ES256), each with a 100-year `exp`, a deterministic `jti` and an `ext` statement.
 - `tct-0xx-self-issued-grant-rejected`.
+- `tct-0xx-attestation-marker-with-distinct-iss-rejected`.
 - `id-013-pinned-admission-nonce-reuse-rejected`.
+- `id-014-pinned-admission-nonce-wrong-length-rejected`.
+- `id-015-pinned-admission-wrong-message-type-rejected`.
+- `id-016-pinned-admission-rate-limit-refuses-new-challenge` (behavioural; the bound is reached and a new challenge is refused, while outstanding nonces stay valid).
 
 ---
 
@@ -287,15 +310,80 @@ The spec is also silent on whether a deterministic, hash-derived v4-shaped `jti`
 
 **Text:**
 
-> `jti` MUST be a lowercase hyphenated UUID v4 whose 122 random bits come from a CSPRNG (RFC-0001 §11). A verifier MUST reject any other form before signature verification.
+> `jti` MUST be a lowercase hyphenated string in the RFC 9562 UUID v4 layout: version nibble `4`, variant bits `10`. A verifier MUST reject any other form before signature verification.
+>
+> The remaining 122 bits MUST be either:
+>
+> - **random**: drawn from a CSPRNG (RFC-0001 §11), or
+> - **derived**: the leading bits of `SHA-256(domain_tag || input)`, where `domain_tag` is an issuer-chosen ASCII label unique to that use, and `input` is unique per token for that issuer. The issuer MUST guarantee that distinct tokens never share an `input`.
+>
+> A verifier cannot tell the two apart, and MUST NOT try.
 
-- Add fixture `tct-0xx-jti-not-v4-rejected`.
-- Choosing the error code is an open question: no TCT schema-failure code exists (compare `MANIFEST_INVALID`).
-- Treat `message_id` the same way (RFC-0001 §5.2).
+Derived identifiers are needed for idempotent re-issuance and for archival attestations (Item 5). For example, a host that re-mints the commitment for the same record after a restart must produce the same `jti`. Requiring CSPRNG bits would forbid that. Requiring the v4 layout keeps the schema pattern valid, and lets generic UUID parsers that check version or variant accept the value.
+
+- Add fixtures `tct-0xx-jti-not-v4-rejected` (a v7 UUID) and `tct-0xx-jti-v4-variant-bits-wrong-rejected`.
+- Add `kat-derived-uuid-001`, which pins a `domain_tag`, `input`, SHA-256 and the resulting v4-shaped string, so that SDKs in every language produce the same bits.
+- **Error codes.** A non-v4 identifier is a structural defect, so it uses the per-artifact structural-rejection code from `registries/error-codes.md` (the normative table at `:32-42`): `TCT_SIGNATURE_INVALID` for a TCT `jti`, `DELEGATION_INVALID_VOUCHER` for a voucher `src_jti`, `INVALID_ENVELOPE` for an envelope `message_id`. No new code. Rationale: that table already decides that the compact-JWS artifacts collapse structural failure onto their signature-family code, so that an unauthenticated token leaks no parse detail. A dedicated `jti` code would contradict it for one claim.
+- Treat `message_id` the same way (RFC-0001 §5.2). The RFC-0001 §11 (`:628`) sentence "MUST use a cryptographically secure RNG for `message_id`" becomes "for nonces, and for `message_id` unless derived per RFC-0005 §2".
+- Grant-voucher `src_jti` (RFC-0005 §8.1) inherits the rule because it equals a TCT `jti`.
 
 ### 6c. `type` dispatch
 
 Covered by the Item 2 rewrite of §3.2 step 1. This adds an explicit fixture, `id-011b-oidc-typed-descriptor-with-pinned-proof-rejected`: a descriptor of type `oidc` that carries `public_key` and a valid pinned proof MUST be rejected with `IDENTITY_FAILED`. That is already a MUST in RFC-0002 §1, but no fixture reaches it through the pinned path.
+
+---
+
+## Item 7: Implementation API notes (informative)
+
+This item is not normative text. It records the library API changes that Items 1–6 imply, as checked against aitp-rs `b19d3f2` (0.13.2). An implementation can then absorb them in one breaking release instead of shipping several. aitp-rs tracks them in aitp-rs#205.
+
+**7a. Signer abstraction (Items 1, 4).** Today `AitpSigningKey` is a sealed enum over in-process keys (`aitp-crypto/src/keys.rs:63-85`), and the raw-sign path is `pub(crate)` (`:197-213`). A KMS- or HSM-held key cannot sign any AITP artifact. Implementations should expose:
+
+- a signer trait, in sync and async forms (it ships in aitp-rs 0.14.0 regardless of any one deployment's custody plans, because P-256 and future KMS/HSM keys need it), whose request type separates the two primitives: an Ed25519 message (the 32-byte `d`, or the JWS signing input) versus a P-256 32-byte digest. A P-256 backend then cannot be handed a pre-hash input by mistake.
+- a public raw-sign entry point for non-AITP framings that a deployment signs with the same key: operator JWS, application tickets, receipts. It uses the same primitive, low-S normalization and verify-before-emit guard.
+- library-side low-S normalization and DER-to-`r||s` conversion of whatever the backend returns, plus a verify-before-emit check (Item 4, "External signers").
+- **Cloud-KMS fit.** These requirements were checked against AWS KMS, the first deployment backend (Seam, 2026-10-16):
+  - **Errors.** The async form is fallible with a typed error that separates transient failures (throttling, timeout, unavailable key) from permanent ones (wrong key spec, disabled key). Callers can then retry the transient ones without guessing.
+  - **Ed25519 must be pure EdDSA.** The backend MUST use pure EdDSA over the exact message bytes (AWS `ED25519_SHA_512` with `MessageType=RAW`). It MUST NOT use HashEdDSA (`ED25519_PH_SHA_512`): AWS prehashes again even with `DIGEST`, and its output does not verify as Ed25519.
+  - **Message-size limit.** The AWS RAW limit is 4096 bytes. The JCS paths already sign the 32-byte `d`, but a JWS signing input can exceed 4096 bytes. The trait therefore exposes a backend's maximum message size, and the library returns a typed error before calling the backend, never a truncated input.
+  - **P-256 signs the digest.** A P-256 backend receives `d` and signs it as a digest (AWS `ECDSA_SHA_256` with `MessageType=DIGEST`), per Item 1.
+  - **Key identity at startup.** A backend reports its public key (AWS `GetPublicKey`). The library checks it against the configured key once, at startup, so a mis-pointed key id fails before the first artifact is signed.
+  - **ECDSA is randomized.** Ed25519 output is deterministic, but P-256 output from a KMS is not. A deployment that needs byte-identical re-signing on retry (Seam's TCT seal) must keep that key on Ed25519.
+  - **The backend stays deployment-side.** aitp-rs ships the trait and the in-process implementations. A concrete AWS KMS backend lives in the deployment, so the library takes no cloud-SDK dependency.
+
+**7b. `pinned_key` verification (Item 2).** `verify_pinned_key` (`aitp-handshake/src/identity_pinned.rs:115-161`) should:
+
+- dispatch on `type` (§3.2 step 1);
+- take a required trust store keyed by `(algorithm, key bytes)`, consulted before the proof check (§3.2 step 3);
+- return the verified algorithm and key, so callers never re-derive the subject from untrusted descriptor fields.
+
+The store trait is `[u8; 32]`-keyed today (`state_machine.rs:30-52`), and a store is optional with a possession-only default (`:69-74`). Both change. There is no possession-only opt-out (resolved 2026-10-16).
+
+**7c. TCT builder and verifier (Items 5, 6b).**
+
+- The builder needs a supported `ext` setter. `ext` is hard-coded to `None` today (`aitp-tct/src/builder.rs:148,163`).
+- It needs a supported `jti` setter that validates the v4 layout. Today `.jti()` is documented "Tests/fixtures only" (`:100-104`) and accepts any version.
+- The `jti: Uuid` deserializer (`types.rs:39`) should enforce the v4 layout.
+- The permissive verify-context constructors (`TctVerifyContext::now` and `permissive_at`, `verifier.rs`) should be deprecated in favour of the strict builder. The Item 5 Manifest-cap waiver should be an explicit, named builder call.
+
+**7d. Reference `pinned-admission` nonce store (Item 5).** Implementations should ship a reference verifier for the one-way profile: nonce issuance bound to the verifier AID, atomic consume, a bounded store that refuses new challenges, and per-source rate-limit hooks. Deployments then do not each re-implement the replay-critical part. aitp-rs ships one in 0.14.0 (decision 2026-10-16).
+
+**7e. Strict verification everywhere.** Any public verify helper (Ed25519 or P-256, raw or JCS) should apply §5.4.7. aitp-rs already does this for `verify` and `verify_raw`. Deployments that call a crypto library directly for non-AITP framings should route through these helpers instead.
+
+---
+
+## Promotion and sequencing
+
+Per RFC-PROCESS this proposal is at Idea. "Any normative change to `rfcs/`" requires an RFC, but these items amend existing RFCs, so the path is a patch or minor `Version:` bump on each amended RFC (VERSIONING.md), not a new number.
+
+1. **Split into reviewable PRs**, each carrying its own KATs and fixtures (the KAT requirement is blocking because every item touches a signing surface):
+   - **A.** Items 1 and 4 (§5.4.6, §5.4.7), with `kat-p256-jcs-sign-001`, `kat-pinned-key-proof-002-p256`, the signed-examples and the `sig-*` fixtures.
+   - **B.** Items 2 and 6c (RFC-0002 §3, the identity schema), with `id-010..012` and `id-011b`.
+   - **C.** Item 6b and the 6a note (RFC-0005 §2, RFC-0001 §5.2/§11), with the `jti` fixtures and `kat-derived-uuid-001`.
+   - **D.** Item 5 (RFC-0002 §3.4, RFC-0005 §5.3, a `message_type` registry entry), with `kat-tct-002/003` and `id-013..016`. Depends on C, and on #69 for the rate-limit level.
+   - Item 3 (envelope v2) is not part of this proposal; it moves to a separate `aitp/0.3` proposal.
+2. **Ordering against implementations.** A–D merge, or at least reach a frozen KAT set, before aitp-rs cuts the 0.14.0 release that implements them. aitp-rs vendors the frozen fixtures in its Phase 0.
+3. **Independent recomputation.** Each P-256 KAT is recomputed by aitp-verifier-py, which needs the low-S reject from Item 4, before the PR leaves Draft. aitp-rs's cross-implementation check job then runs the new vectors in both directions.
 
 ---
 
@@ -351,11 +439,13 @@ The `double_hash_…` value is exactly what aitp-rs 0.13.2 `sign_pinned_key_proo
 
 **P-256 `pinned_key` (Item 2).** Purely additive on the wire, since P-256 was previously rejected. Trust-store APIs keyed by 32-byte arrays must change, which is a breaking API change in aitp-rs.
 
-**Envelope v2 signing input (Item 3).** A breaking wire change for every envelope. It ships under a protocol-revision bump (`aitp/0.3`, see VERSIONING.md), or as `aitp/0.2` errata if the core team judges the v0.2 text (§5.2, RFC-0012 §6, env-007) normative and the §5.4 formula the erratum. A peer MUST NOT accept a v1 envelope signature for an envelope carrying `extensions` once v2 is in force.
+**Envelope v2 signing input (Item 3).** Deferred to `aitp/0.3`; no change in this proposal.
 
-**One-way profile (Item 5).** Additive. A new `message_type` registry entry is needed. The `iss == sub` rejection in grant contexts has no effect on any conformant v0.2 flow, because handshake-issued TCTs always have `iss ≠ sub`.
+**One-way profile (Item 5).** Additive. A new `message_type` registry entry is needed. The `iss == sub` rejection in grant contexts has no effect on any conformant v0.2 flow, because handshake-issued TCTs always have `iss ≠ sub`. Existing self-issued TCTs that carry their statement in `grants` instead of `ext`, or that lack the marker grant, have to be re-minted under §5.3. Long-lived ones remain verifiable under their original rules for as long as the relying party keeps that code path.
 
-**`jti` v4 (Item 6b).** Rejects tokens that the schema already forbids. Issuers minting deterministic non-v4 identifiers must switch.
+Known deployment impact: the coordination host that motivated the revision (Seam) currently accepts a bare, envelope-less pinned presentation. It and its client SDKs move to the `identity_presentation` envelope, and its self-issued commitment TCT moves its binding from `grants` to `ext` with the marker grant. Both are accepted by that deployment's owner.
+
+**`jti` and `message_id` v4 layout (Item 6b).** This rejects tokens the schema already forbids. Issuers that derive identifiers deterministically keep doing so, but must set the version and variant bits. That changes the identifier bytes, so derived identifiers that are pinned in archives or digests change once. Clients in other languages that derive `message_id` must ship the same bit-setting before verifiers enforce it.
 
 ## Alternatives considered
 
@@ -368,7 +458,15 @@ The `double_hash_…` value is exactly what aitp-rs 0.13.2 `sign_pinned_key_proo
 
 ## Open questions
 
-1. Should Item 3 (envelope v2) ship as v0.2 errata or as `aitp/0.3`?
-2. Which error code applies to a non-v4 `jti` and other TCT schema failures?
-3. Should attestations get a distinct `typ` in v0.3 (Item 5)?
-4. Should RFC-0002 §3.2's possession-only development mode be removed entirely, now that one-way admission requires a store?
+None remain.
+
+**Resolved (2026-10-16):**
+
+- Possession-only development mode (RFC-0002 §3.2): removed. Every `pinned_key` verification consults a trust store. Tests use an in-memory store, not a bypass. Item 7b's "loudly named opt-out" is withdrawn.
+- Derived `jti` domain tag: registered. A new `registries/jti-domain-tags.md` lists each tag with its owner and derivation, so two deployments cannot collide on a tag. Seam registers its TCT seal tag.
+
+- Envelope v2 (Item 3): out of this proposal; carried to a v0.3 proposal.
+- Non-v4 `jti` error code: the existing structural-rejection codes (Item 6b).
+- Attestations: marker grant `aitp:attestation` in v0.2; no distinct `typ` here.
+- Bare presentation variant: dropped; one-way admission uses the `identity_presentation` envelope.
+- Reference nonce store: implementations ship one (Item 7d).
