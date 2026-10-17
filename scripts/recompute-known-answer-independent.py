@@ -465,7 +465,7 @@ def main() -> int:
         claims = {"ver": "aitp/0.2", "jti": jti, "iss": aid, "sub": aid, "aud": aid,
                   "iat": 1711900000, "exp": 4867660000, "grants": ["aitp.attestation"],
                   "cnf": {"jkt": jwk_thumbprint(jwk)},
-                  "ext": {"org.aitp.kat": {"statement": f"{vid} archival attestation"}}}
+                  "ext": {"io.agentidentitytrustprotocol.kat": {"statement": f"{vid} archival attestation"}}}
         check(f"{vid}: decoded_claims equal the independently built claims", f["decoded_claims"] == claims)
         h64 = b64e(json.dumps({"alg": alg, "typ": "aitp-tct+jwt"}, separators=(",", ":")).encode())
         p64 = b64e(jcs(claims))

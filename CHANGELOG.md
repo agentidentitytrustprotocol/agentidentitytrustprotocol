@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+### The known-answer `ext` key becomes `io.agentidentitytrustprotocol.kat`, and each conformance fixture runs against fresh verifier state
+
+**Change class.** Known-answer and conformance-runner change. No RFC text changes, and no protocol rule changes. Two known-answer tokens are re-minted, so their bytes change.
+
+**The gap.**
+
+- The self-attestation known answers carried their statement under the `ext` key `org.aitp.kat`. The reverse-domain convention of [`registries/extension-keys.md`](registries/extension-keys.md) implies the key's owner controls the domain. The project controls `agentidentitytrustprotocol.io`, not `aitp.org`.
+- `PLACEHOLDERS.md` said verifier state (the nonce store, the `message_id` deny list, rate-limit counters) carries across a sequence's steps. Nothing said it must not carry across fixtures. `id-019` and `id-013` present the same `pop_nonce` (`AQIDBAUGBwgJCgsMDQ4PEA`) under the same `message_id`, so a runner that keeps one verifier for the whole suite fails whichever runs second. The aitp-rs implementation hit this.
+
+**The fix.**
+
+- **Extension key (owner decision).** `org.aitp.kat` becomes `io.agentidentitytrustprotocol.kat` in both self-attestation known answers, `tct-019` and `tct-020` (`expected_ext_key`), and both verification scripts. The key is not in the extension-key registry, since it is test-only.
+- **Re-minted known answers.** The key is inside the signed claims, so the payload, the signature and the token change. Every other claim is identical: `ver`, `iss`/`sub`/`aud`, `iat` 1711900000, `exp` 4867660000, `grants` `["aitp.attestation"]`, `cnf.jkt` and the statement string. Each `jti` is derived over the vector id, not the claims, so it does not change.
+  - `kat-tct-002-self-attestation` (EdDSA, kat-keypair-001), `jti` `327b37ab-9817-4e87-8cbe-dec5109497f5`. `tct-020` carries the new token verbatim.
+  - `kat-tct-003-p256-self-attestation` (ES256, kat-keypair-005-p256), `jti` `44fc6843-33db-41a1-9d79-331a0f6db692`. The signature is over one SHA-256 of the signing input (RFC-AITP-0001 §5.4.6), RFC 6979 and low-S (§5.4.7). The `_must_not_verify.double_hash_jws` negative is regenerated over the new signing input.
+  - `tct-019`'s token is a `__JWS_TCT__` placeholder whose `ext` carries only `com.example.note`, so only its `expected_ext_key` changes.
+  - The new tokens supersede the candidate file in aitp-rs-seam at commit `bbb5fda`, which the entry below says they matched.
+- **Fixture isolation.** The [`sequence` section](schemas/conformance/README.md#multi-step-sequence-form) of the conformance README gains a runner rule: each fixture MUST run against fresh verifier state, with no deny-list, nonce-store or rate-limit state carried in from another fixture. State persists only across the steps of one fixture's `sequence`. The reset mechanism is left to the harness. `PLACEHOLDERS.md`'s pinned-admission sequence row says the same.
+
+**Tooling.** Both stacks reproduce the new tokens byte for byte: `scripts/verify-known-answer.mjs` (148 checks, unchanged) and `scripts/recompute-known-answer-independent.py`, which builds the claims from scratch (128 checks, unchanged). Neither holds a token string; each expects the new key in the `ext` statement.
+
+**Version bumps.** None. No RFC names the extension key or carries the token strings: RFC-AITP-0005 §5.3 cites the known answers by vector id only.
+
 ### One-way pinned-key admission (RFC-AITP-0002 §3.4) and self-attestation TCTs (RFC-AITP-0005 §5.3) (proposal #72 Item 5)
 
 **Change class.** Normative change, at the patch position under `VERSIONING.md`'s pre-1.0 mapping. It is additive with one tightening. It adds an OPTIONAL profile, a `message_type` value, a registry, an error code and a TCT form, none of which changes any existing artifact's bytes. The tightening: in a grant context, a verifier now rejects a self-issued TCT (`iss == sub`), and any TCT carrying the new `aitp.attestation` marker grant. No conformant handshake could produce either, since RFC-AITP-0004 TCTs are always peer-issued.
@@ -39,11 +62,11 @@
   - The "six registries" enumerations in `CONTRIBUTING.md`, `governance/GOVERNANCE.md` and `governance/CHARTER.md`, and the `README.md` tree, become seven.
 - **Schemas.** `aitp-envelope.schema.json` adds `identity_presentation` to the `message_type` enum. The `aitp-tct.schema.json` `exp` and `grants` descriptions mention the self-attestation waiver and the marker grant.
 
-**New known answers** (`signed-examples/tct/`; each value was produced, and checked, by both the Node and the Python stack). Both tokens match byte for byte the candidate file in aitp-rs-seam at commit `bbb5fda`, whose marker grant is `aitp.attestation`. They differ from the earlier candidates at aitp-rs-seam commit `d5cb954`, which used `aitp:attestation`: the grant string is inside the signed payload, so the payload, the signature and the token all change.
+**New known answers** (`signed-examples/tct/`; each value was produced, and checked, by both the Node and the Python stack). Both tokens match byte for byte the candidate file in aitp-rs-seam at commit `bbb5fda`, whose marker grant is `aitp.attestation`. They differ from the earlier candidates at aitp-rs-seam commit `d5cb954`, which used `aitp:attestation`: the grant string is inside the signed payload, so the payload, the signature and the token all change. The re-minted tokens of the extension-key rename (entry above) supersede both: the `ext` key is inside the signed payload too, so neither candidate file matches the committed tokens any more.
 
 - `kat-tct-002-self-attestation` (`kat-keypair-001-self-attestation.json`): EdDSA, kat-keypair-001, `jti` `327b37ab-9817-4e87-8cbe-dec5109497f5`.
 - `kat-tct-003-p256-self-attestation` (`kat-keypair-005-self-attestation.json`): ES256, kat-keypair-005-p256, RFC 6979 and low-S, `jti` `44fc6843-33db-41a1-9d79-331a0f6db692`, with a double-hash token that MUST NOT verify.
-- Both use `iat` 1711900000 and `exp` 4867660000. The `jti` is the RFC-AITP-0005 §2.2 derived UUID over the registered tag `aitp-kat-attestation-v1` and the vector id. The `ext` is `{"org.aitp.kat":{"statement":"<id> archival attestation"}}`.
+- Both use `iat` 1711900000 and `exp` 4867660000. The `jti` is the RFC-AITP-0005 §2.2 derived UUID over the registered tag `aitp-kat-attestation-v1` and the vector id. The `ext` is `{"io.agentidentitytrustprotocol.kat":{"statement":"<id> archival attestation"}}`. As first merged, the key was `org.aitp.kat`; both tokens were re-minted under the new key (entry above).
 
 **Fixtures.**
 

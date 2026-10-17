@@ -1235,7 +1235,7 @@ function checkSelfAttestations() {
       const thumb = thumbs.find((t) => t.keypair_ref === v.seed);
       if (!thumb) throw new Error(`no thumbprint vector for ${v.seed}`);
       eq(c.cnf?.jkt, thumb.jkt, 'cnf.jkt vs the issuer key thumbprint');
-      eq(jcs(c.ext), jcs({ 'org.aitp.kat': { statement: `${v.vector} archival attestation` } }), 'ext statement');
+      eq(jcs(c.ext), jcs({ 'io.agentidentitytrustprotocol.kat': { statement: `${v.vector} archival attestation` } }), 'ext statement');
     });
     check(`${v.rel}: jti = derived UUID over "${ATTESTATION_TAG}" and the vector id`, () => {
       const file = readJson(join(SIGNED, v.rel));
