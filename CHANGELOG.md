@@ -2,6 +2,82 @@
 
 ## Unreleased
 
+### One-way pinned-key admission (RFC-AITP-0002 §3.4) and self-attestation TCTs (RFC-AITP-0005 §5.3) (proposal #72 Item 5)
+
+**Change class.** Normative change, at the patch position under `VERSIONING.md`'s pre-1.0 mapping. It is additive with one tightening. It adds an OPTIONAL profile, a `message_type` value, a registry, an error code and a TCT form, none of which changes any existing artifact's bytes. The tightening: in a grant context, a verifier now rejects a self-issued TCT (`iss == sub`), and any TCT carrying the new `aitp.attestation` marker grant. No conformant handshake could produce either, since RFC-AITP-0004 TCTs are always peer-issued.
+
+**The gap.** A `pinned_key` identity could be presented only inside the four-message Mutual Handshake. A deployment that admits agents to a single verifier (a gateway, a coordination host) had to run the whole handshake, or invent a one-shot exchange of its own. A bare §3.1 proof sent outside an envelope leaves the descriptor's `type`, `subject` and `extensions` unauthenticated. Separately, an agent had no defined way to sign a durable statement about itself in a portable token. Nothing in RFC-AITP-0005 said what a verifier does with a self-issued TCT. RFC-AITP-0012 §6 forbade trust decisions on any `ext` content, which ruled out a signed statement there.
+
+**The fix.**
+
+- **RFC-AITP-0002 §3.4 (new), the OPTIONAL `pinned-admission` profile.**
+  - **Exchange.** An out-of-band challenge (informative shape `{pop_nonce, verifier_aid, expires_at}`) is answered by one `identity_presentation` envelope whose payload is exactly `{identity, pop_nonce}`. Rules 1–4 cover Challenge, Presentation, Verification and Consumption.
+  - **Nonce rules.**
+    - The nonce is exactly 16 bytes; any other length is `IDENTITY_FAILED` before any signature check.
+    - It was issued in a challenge whose `verifier_aid` is the verifier's own AID (the proof's `receiver_aid_bytes`), and it is unexpired and unconsumed.
+    - The atomic lookup-and-consume runs after every signature check. A consumed nonce is never accepted again, even under a fresh `message_id`.
+    - The outstanding-nonce store is bounded. When it is full the verifier refuses new challenges with `CHALLENGE_REFUSED` and never evicts.
+    - Per-source rate limiting follows RFC-AITP-0009 §3.1.
+  - **Check order.** Nine steps: `message_id` deny list, then rate limit, then the rest. A wrong `message_type` is `INVALID_ENVELOPE`.
+  - **Conformance.** A party implementing only this profile MAY claim "AITP v0.2 pinned-admission". It MUST NOT claim RFC-AITP-0001 §10 conformance.
+  - **Fixtures.** The profile's fixtures are `status: extension` under `feature: aitp-pinned-admission`, not core: a default runner SKIPs them, and an implementation claiming the profile MUST pass them.
+- **RFC-AITP-0005 §5.3 (new), self-issued attestation TCTs.**
+  - **Form.** `iss == sub == aud` and the sole grant is `aitp.attestation`, a marker that confers no capability. The statement sits in `ext` under a namespaced key; a relying party rejects an attestation lacking the key it expects, and any attestation-shape defect, with `TCT_SIGNATURE_INVALID`. There is no distinct `typ`: anything other than `aitp-tct+jwt` is `TOKEN_TYP_MISMATCH`. `cnf` is required, and `jti` MAY be derived.
+  - **Grant contexts** (RFC-AITP-0004 §4, §10, §11 and the RFC-AITP-0006 source TCT): `iss == sub`, or the marker, ⇒ `TCT_SIGNATURE_INVALID`, not `AUDIENCE_MISMATCH`. An issuer MUST NOT mint the marker with `iss ≠ sub`.
+  - **Section changes.**
+    - §7.2 step 5 gains the grant-context rule.
+    - §7.3 gains an exception for a self-attestation without a Manifest: a relying party MUST NOT make a trust decision on it unless its own records show the issuer key was trusted at `iat`.
+    - §9.1 and §10.4 say the TTL bounds and the passive Manifest-expiry skip do not cover attestations; only an explicit waiver does.
+    - A note after the §4.1 examples marks `aitp.attestation` as the two-segment exception, and RFC-AITP-0004 §4.1 grant intersection is unaffected.
+- **RFC-AITP-0012 §5/§6.** The self-attestation statement is the one normative use of `ext` in v0.2, so it is carved out of §6's "MUST NOT make a trust decision". It grants no capability.
+- **RFC-AITP-0001.** The §5 intro and the §5.2 `message_type` row list `identity_presentation` and point to the new registry. §9 now reads "seven registries" and has a `message-types` bullet. §10 item 9 excludes from the mandatory fixture set the `status: extension` fixtures gated on the pinned-admission profile and on relying-party attestation verification; an implementation claiming either MUST pass the fixtures gated on it.
+- **Registries.**
+  - New [`registries/message-types.md`](registries/message-types.md) lists all nine envelope `message_type` values, with an "Adding a message type" procedure. A row is added to `registries/README.md`.
+  - `capabilities.md`: an `aitp.attestation` row (Provisional) and a naming exception note.
+  - `message-types.md`'s authentication note is informative: it points to RFC-AITP-0001 §5.4 and RFC-AITP-0002 §3.4 and adds no requirement.
+  - `error-codes.md`: a new "Pinned-admission codes" section with `CHALLENGE_REFUSED` (retryable, core), in the same four columns as the other per-RFC sections. The `TCT_SIGNATURE_INVALID` description is widened to cover the structural defects, including the grant-context self-issued and marker cases.
+  - The "six registries" enumerations in `CONTRIBUTING.md`, `governance/GOVERNANCE.md` and `governance/CHARTER.md`, and the `README.md` tree, become seven.
+- **Schemas.** `aitp-envelope.schema.json` adds `identity_presentation` to the `message_type` enum. The `aitp-tct.schema.json` `exp` and `grants` descriptions mention the self-attestation waiver and the marker grant.
+
+**New known answers** (`signed-examples/tct/`; each value was produced, and checked, by both the Node and the Python stack). Both tokens match byte for byte the candidate file in aitp-rs-seam at commit `bbb5fda`, whose marker grant is `aitp.attestation`. They differ from the earlier candidates at aitp-rs-seam commit `d5cb954`, which used `aitp:attestation`: the grant string is inside the signed payload, so the payload, the signature and the token all change.
+
+- `kat-tct-002-self-attestation` (`kat-keypair-001-self-attestation.json`): EdDSA, kat-keypair-001, `jti` `327b37ab-9817-4e87-8cbe-dec5109497f5`.
+- `kat-tct-003-p256-self-attestation` (`kat-keypair-005-self-attestation.json`): ES256, kat-keypair-005-p256, RFC 6979 and low-S, `jti` `44fc6843-33db-41a1-9d79-331a0f6db692`, with a double-hash token that MUST NOT verify.
+- Both use `iat` 1711900000 and `exp` 4867660000. The `jti` is the RFC-AITP-0005 §2.2 derived UUID over the registered tag `aitp-kat-attestation-v1` and the vector id. The `ext` is `{"org.aitp.kat":{"statement":"<id> archival attestation"}}`.
+
+**Fixtures.**
+
+- `id-019`: pinned-admission success, with a real proof over the 193-byte tuple.
+- `id-013`: nonce reuse under a fresh `message_id`, sequence form, both proofs real ⇒ `IDENTITY_FAILED`.
+- `id-014`: a 15-byte nonce with a real proof over the 192-byte tuple ⇒ `IDENTITY_FAILED`, before any signature check.
+- `id-015`: `id-019` with `message_type` `mutual_hello` ⇒ `INVALID_ENVELOPE`.
+- `id-016`: a dynamic sequence. The outstanding-nonce bound is 2, the third challenge gets `CHALLENGE_REFUSED`, both earlier nonces then present, and the retry succeeds.
+- `tct-015`: self-issued TCT in a grant context ⇒ `TCT_SIGNATURE_INVALID`.
+- `tct-016`: the marker with `iss ≠ sub` ⇒ `TCT_SIGNATURE_INVALID`.
+- `tct-018` (core): the marker beside, and after, an ordinary grant ⇒ `TCT_SIGNATURE_INVALID`.
+- `id-020`: an expired nonce, with a real proof ⇒ `IDENTITY_FAILED`.
+- `id-021`: a nonce whose challenge named another `verifier_aid`, with a real proof bound to `self_aid` ⇒ `IDENTITY_FAILED`.
+- `id-022`: a sequence. A replay from a source that has used its one rate-limit slot gets `REPLAY_DETECTED`, because the deny list runs first; a fresh message from that source gets HTTP 429; the same message from a new source fails at the consumed nonce.
+- `tct-019`: an otherwise valid attestation whose `ext` lacks the relying party's expected key ⇒ `TCT_SIGNATURE_INVALID`, through the new `verify_attestation` operation.
+- `tct-020`: `kat-tct-002` itself, verified as an attestation by a third-party relying party ⇒ success. It pins the §5.3 rule that verifying an attestation is not a grant context.
+- Gating: the eight pinned-admission fixtures (`id-013` to `id-016`, `id-019` to `id-022`) are `status: extension`, `feature: aitp-pinned-admission`. `tct-019` and `tct-020` are `status: extension`, `feature: aitp-self-attestation`, since consuming attestations is a relying-party role RFC-AITP-0001 §10 does not require. `tct-015`, `tct-016` and `tct-018` stay core, because the grant-context rejection binds every verifier.
+- `PLACEHOLDERS.md` gains the `verify_identity_presentation`, `issue_presentation_challenge` and `verify_attestation` operations, the fixture inputs `now`, `presentation_rate_limit`, per-step `source`, `expected_ext_key` and `waive_manifest_cap`, an `http_status` expectation for a rate-limited step, a note that `verify_tct` is a grant context, and the `__ISSUED_NONCE_1__`, `__ISSUED_NONCE_2__` and `__VALID_PINNED_PROOF__` placeholders, which `normalize-fixture-input.py` classifies.
+- The conformance index gains thirteen rows. `core` goes from 70 to 73, a new `extension` tier holds the ten gated fixtures, and the total goes from 81 to 94. The coverage notes name atomic consumption under concurrent presentations as not expressible by a sequential fixture.
+
+**Tooling.**
+
+- `scripts/verify-known-answer.mjs`:
+  - verifies both new tokens, plus the ES256 double-hash negative;
+  - `checkSelfAttestations()` recomputes each `jti` from the registered tag, checks iss == sub == aud, the sole marker grant, `cnf.jkt` against the issuer thumbprint, and the `ext` statement;
+  - `checkPinnedAdmission()` re-verifies the `id-013`, `id-014`, `id-015` and `id-019` proofs against their tuples (`id-014` at 15 bytes), checks that `id-015` differs from `id-019` only in `message_type`, and checks the structure of `id-016`, `tct-015` and `tct-016` and the `CHALLENGE_REFUSED` registry row;
+  - re-verifies the `id-020` and `id-021` proofs, checks that `id-022` reuses the `id-019` and `id-013` envelopes and its step order, checks `tct-018` and `tct-019`, verifies that `tct-020` carries `kat-tct-002` verbatim, and checks the extension gating of all ten gated fixtures;
+  - `EXPECTED_MIN_CHECKS` 126 → 148.
+- `scripts/recompute-known-answer-independent.py` builds both claim sets from scratch, re-mints the EdDSA token and the ES256 signature byte for byte (RFC 6979, low-S) along with the double-hash negative, re-signs the fixture proofs of `id-013`, `id-014`, `id-019`, `id-020` and `id-021`, and checks `id-022`, `tct-018`, `tct-019`, `tct-020` and the gating. It goes from 103 to 128 checks.
+- `scripts/validate-json.sh`: `FIXTURE_INPUT_MIN_CHECKS` 156 → 187.
+- `docs/GLOSSARY.md` gains entries for the pinned-admission profile, `identity_presentation`, the self-attestation TCT and `aitp.attestation`, and two concept-index rows.
+
+**Version bumps.** RFC-AITP-0001: `0.2.9-draft` → `0.2.10-draft`. RFC-AITP-0002: `0.2.7-draft` → `0.2.8-draft`. RFC-AITP-0005: `0.2.4-draft` → `0.2.5-draft`. RFC-AITP-0012: `0.2.0-reserved` → `0.2.1-reserved`. Its status stays Reserved, but §5/§6 now carry normative text, the self-attestation carve-out. `rfcs/README.md`'s version-summary sentence is extended to match.
+
 ### `pinned_key` accepts P-256 keys; RFC-AITP-0002 §3.2 is five trust-store-gated steps; `issuer` is forbidden on `pinned_key` (proposal #72 Items 2 and 6c)
 
 **Change class.** Normative change, at the patch position under `VERSIONING.md`'s pre-1.0 mapping. It adds a key type (P-256) to `pinned_key` and tightens verification. No conformant Ed25519 pinned proof changes: `kat-pinned-key-proof-001` and `id-007` keep their bytes. Two things a verifier accepted before are now rejected: a `pinned_key` descriptor carrying `issuer`, and any key-possession-only verification mode.

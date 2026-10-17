@@ -272,6 +272,20 @@ def proof_input(sender: str, receiver: str, message_id: str, timestamp: int, pop
                        message_id.encode(), str(timestamp).encode(), b64d(pop_nonce)])
 
 
+def derived_uuid(tag: str, inp: str) -> str:
+    """RFC-AITP-0005 §2.2 derived identifier: SHA-256(tag || 0x00 || input)[0..16], v4 bits set."""
+    b = bytearray(H(tag.encode() + b"\0" + inp.encode())[:16])
+    b[6] = (b[6] & 0x0F) | 0x40
+    b[8] = (b[8] & 0x3F) | 0x80
+    x = b.hex()
+    return f"{x[:8]}-{x[8:12]}-{x[12:16]}-{x[16:20]}-{x[20:]}"
+
+
+def jwk_thumbprint(jwk: dict) -> str:
+    """RFC 7638: SHA-256 over the required members in lexicographic order, no whitespace."""
+    return b64e(H(jcs(jwk)))
+
+
 def main() -> int:
     keypairs = {k["id"]: k for k in load(KAT / "keypairs.json")["vectors"]}
     jcsv = {v["id"]: v for v in load(KAT / "jcs-sha256.json")["vectors"]}
@@ -432,6 +446,133 @@ def main() -> int:
     dbl = f["_must_not_verify"]["double_hash_jws"].split(".")
     check("ES256 TCT double-hash token reuses header.payload", dbl[:2] == [h64, p64])
     p256_signature("ES256 TCT", sk, vk, f"{h64}.{p64}".encode(), "p256." + s64, "p256." + dbl[2])
+
+    print("── self-attestation TCTs (RFC-AITP-0005 §5.3), re-minted from their inputs ──")
+    att_tag = "aitp-kat-attestation-v1"
+    for rel, vid, alg in [
+        ("kat-keypair-001-self-attestation.json", "kat-tct-002-self-attestation", "EdDSA"),
+        ("kat-keypair-005-self-attestation.json", "kat-tct-003-p256-self-attestation", "ES256"),
+    ]:
+        f = load(SIGNED / "tct" / rel)
+        if alg == "EdDSA":
+            aid, jwk = k1["aid"], {"crv": "Ed25519", "kty": "OKP", "x": b64e(A1)}
+        else:
+            unc = vk.to_string("uncompressed")
+            aid, jwk = aid5, {"crv": "P-256", "kty": "EC", "x": b64e(unc[1:33]), "y": b64e(unc[33:])}
+        jti = derived_uuid(att_tag, vid)
+        check(f"{vid}: jti = derived UUID over {att_tag!r} and the vector id",
+              jti == f["decoded_claims"]["jti"] == f["_kat_input"]["jti"] == f["_kat_input"]["jti_derivation"]["jti"])
+        claims = {"ver": "aitp/0.2", "jti": jti, "iss": aid, "sub": aid, "aud": aid,
+                  "iat": 1711900000, "exp": 4867660000, "grants": ["aitp.attestation"],
+                  "cnf": {"jkt": jwk_thumbprint(jwk)},
+                  "ext": {"org.aitp.kat": {"statement": f"{vid} archival attestation"}}}
+        check(f"{vid}: decoded_claims equal the independently built claims", f["decoded_claims"] == claims)
+        h64 = b64e(json.dumps({"alg": alg, "typ": "aitp-tct+jwt"}, separators=(",", ":")).encode())
+        p64 = b64e(jcs(claims))
+        si = f"{h64}.{p64}".encode()
+        if alg == "EdDSA":
+            token = f"{h64}.{p64}.{b64e(ed_sign(seed1, si))}"
+            check(f"{vid}: EdDSA token re-mints byte for byte", token == f["tct_token"])
+            check(f"{vid}: EdDSA signature verifies strictly", ed_verify_strict(A1, si, b64d(f["tct_token"].split(".")[2])))
+        else:
+            check(f"{vid}: ES256 header.payload re-mints byte for byte", f["tct_token"].rsplit(".", 1)[0] == f"{h64}.{p64}")
+            dbl = f["_must_not_verify"]["double_hash_jws"].split(".")
+            check(f"{vid}: double-hash token reuses header.payload", dbl[:2] == [h64, p64])
+            p256_signature(vid, sk, vk, si, "p256." + f["tct_token"].split(".")[2], "p256." + dbl[2])
+
+    print("── pinned-admission fixtures (RFC-AITP-0002 §3.4): proofs re-signed ──")
+    def presentation(fx, env, n_len):
+        idn = env["payload"]["identity"]
+        snd = env["sender"]["agent_id"]
+        nonce = b64d(env["payload"]["pop_nonce"])
+        pre = proof_input(snd, fx["input"]["self_aid"], env["message_id"], env["timestamp"], env["payload"]["pop_nonce"])
+        return (snd == k3["aid"] and idn["public_key"] == b64e(A3) and len(nonce) == n_len
+                and snd in fx["input"]["trust_store"] and set(env["payload"]) == {"identity", "pop_nonce"}
+                and b64e(ed_sign(seed3, H(pre))) == idn["proof"] and ed_verify_strict(A3, H(pre), b64d(idn["proof"]))), len(pre)
+    f19 = load(CONF / "id-019-pinned-admission-success.json")
+    ok, n = presentation(f19, f19["input"]["envelope"], 16)
+    check("id-019: proof re-signs byte for byte over the 193-byte tuple", ok and n == 193)
+    check("id-019: nonce is the outstanding challenge, issued under self_aid",
+          f19["input"]["envelope"]["payload"]["pop_nonce"] == f19["input"]["outstanding_challenges"][0]["pop_nonce"]
+          and f19["input"]["outstanding_challenges"][0]["verifier_aid"] == f19["input"]["self_aid"] == k1["aid"])
+    f15 = load(CONF / "id-015-pinned-admission-wrong-message-type-rejected.json")
+    e15 = dict(f15["input"]["envelope"], message_type="identity_presentation")
+    ok, _ = presentation(f15, f15["input"]["envelope"], 16)
+    check("id-015: id-019's envelope with only message_type changed; proof still verifies",
+          ok and e15 == f19["input"]["envelope"] and f15["input"]["envelope"]["message_type"] != "identity_presentation"
+          and f15["expected"]["error_code"] == "INVALID_ENVELOPE")
+    f13 = load(CONF / "id-013-pinned-admission-nonce-reuse-rejected.json")
+    s1, s2 = f13["input"]["sequence"]
+    ok1, _ = presentation(f13, s1["envelope"], 16)
+    ok2, n2 = presentation(f13, s2["envelope"], 16)
+    check("id-013: both step proofs re-sign; same nonce, fresh message_id; step 2 IDENTITY_FAILED",
+          ok1 and ok2 and n2 == 193 and s1["envelope"]["payload"]["pop_nonce"] == s2["envelope"]["payload"]["pop_nonce"]
+          and s1["envelope"]["message_id"] != s2["envelope"]["message_id"]
+          and s2["expected"]["error_code"] == "IDENTITY_FAILED")
+    f14 = load(CONF / "id-014-pinned-admission-nonce-wrong-length-rejected.json")
+    ok, n = presentation(f14, f14["input"]["envelope"], 15)
+    check("id-014: 15-byte nonce is the challenge truncated; proof re-signs over the 192-byte tuple",
+          ok and n == 192 and b64d(f14["input"]["envelope"]["payload"]["pop_nonce"])
+          == b64d(f14["input"]["outstanding_challenges"][0]["pop_nonce"])[:15]
+          and f14["expected"]["error_code"] == "IDENTITY_FAILED")
+
+    f20 = load(CONF / "id-020-pinned-admission-nonce-expired-rejected.json")
+    ok, n = presentation(f20, f20["input"]["envelope"], 16)
+    ch = f20["input"]["outstanding_challenges"][0]
+    check("id-020: proof re-signs over the 193-byte tuple; nonce issued under self_aid but expired at now",
+          ok and n == 193 and ch["pop_nonce"] == f20["input"]["envelope"]["payload"]["pop_nonce"]
+          and ch["verifier_aid"] == f20["input"]["self_aid"] and ch["expires_at"] < f20["input"]["now"]
+          == f20["input"]["envelope"]["timestamp"] and f20["expected"]["error_code"] == "IDENTITY_FAILED")
+    f21 = load(CONF / "id-021-pinned-admission-nonce-other-verifier-rejected.json")
+    ok, n = presentation(f21, f21["input"]["envelope"], 16)
+    ch = f21["input"]["outstanding_challenges"][0]
+    check("id-021: proof re-signs with receiver self_aid; the challenge names kat-keypair-002 as verifier_aid",
+          ok and n == 193 and ch["pop_nonce"] == f21["input"]["envelope"]["payload"]["pop_nonce"]
+          and ch["verifier_aid"] == keypairs["kat-keypair-002"]["aid"] != f21["input"]["self_aid"]
+          and f21["expected"]["error_code"] == "IDENTITY_FAILED")
+    f22 = load(CONF / "id-022-pinned-admission-replay-before-rate-limit.json")
+    q = f22["input"]["sequence"]
+    oks = [presentation(f22, st["envelope"], 16)[0] for st in q]
+    check("id-022: steps reuse id-019 / id-013 step 2 envelopes with re-signed proofs; deny list answers before the rate limit",
+          all(oks) and q[0]["envelope"] == q[1]["envelope"] == f19["input"]["envelope"]
+          and q[2]["envelope"] == q[3]["envelope"] == s2["envelope"]
+          and q[0]["source"] == q[1]["source"] == q[2]["source"] != q[3]["source"]
+          and f22["input"]["presentation_rate_limit"]["per_source"] == 1
+          and [st["expected"].get("error_code") for st in q] == [None, "REPLAY_DETECTED", None, "IDENTITY_FAILED"]
+          and q[2]["expected"].get("http_status") == 429)
+    gated = [load(x) for x in sorted(CONF.glob("id-*.json"))]
+    gated = [x for x in gated if x["input"].get("operation") == "verify_identity_presentation"
+             or any("presentation" in st.get("operation", "") for st in x["input"].get("sequence", []))]
+    check("pinned-admission fixtures: exactly eight, all status extension under feature aitp-pinned-admission",
+          sorted(x["id"] for x in gated) == ["id-013", "id-014", "id-015", "id-016", "id-019", "id-020", "id-021", "id-022"]
+          and all(x["status"] == "extension" and x["feature"] == "aitp-pinned-admission"
+                  and x["required_for_v0_1"] is False and x["required_for_v0_2"] is False for x in gated))
+
+    print("── self-attestation fixtures (RFC-AITP-0005 §5.3) ──")
+    f20t = load(CONF / "tct-020-self-attestation-verifies-as-attestation.json")
+    kat2 = load(SIGNED / "tct" / "kat-keypair-001-self-attestation.json")
+    h64, p64, s64 = f20t["input"]["tct_token"].split(".")
+    check("tct-020: carries kat-tct-002 verbatim; EdDSA signature verifies strictly under the iss key",
+          f20t["input"]["tct_token"] == kat2["tct_token"]
+          and ed_verify_strict(A1, f"{h64}.{p64}".encode(), b64d(s64))
+          and json.loads(b64d(p64)) == f20t["input"]["tct_token_claims"] == kat2["decoded_claims"])
+    c20 = f20t["input"]["tct_token_claims"]
+    check("tct-020: third-party relying party (self_aid != aud), verify_attestation, expected ext key present, success",
+          f20t["input"]["operation"] == "verify_attestation" and f20t["input"]["self_aid"] != c20["aud"]
+          and c20["iss"] == c20["sub"] == c20["aud"] and f20t["input"]["expected_ext_key"] in c20["ext"]
+          and f20t["expected"]["outcome"] == "success" and f20t["feature"] == "aitp-self-attestation")
+    f19t = load(CONF / "tct-019-attestation-missing-ext-key-rejected.json")
+    c19 = f19t["input"]["tct_token_claims"]
+    check("tct-019: attestation shape valid, ext lacks the expected key; TCT_SIGNATURE_INVALID",
+          c19["iss"] == c19["sub"] == c19["aud"] == k1["aid"] and c19["grants"] == ["aitp.attestation"]
+          and c19["cnf"]["jkt"] == c20["cnf"]["jkt"] and c19["ext"] and f19t["input"]["expected_ext_key"] not in c19["ext"]
+          and f19t["expected"]["error_code"] == "TCT_SIGNATURE_INVALID" and f19t["status"] == "extension")
+    f18t = load(CONF / "tct-018-attestation-marker-beside-grant-rejected.json")
+    c18 = f18t["input"]["tct_token_claims"]
+    check("tct-018: marker beside and after an ordinary grant, iss != sub, verify_tct, core; TCT_SIGNATURE_INVALID",
+          "aitp.attestation" in c18["grants"][1:] and c18["iss"] != c18["sub"] and c18["aud"] == f18t["input"]["expected_audience"]
+          and f18t["input"]["operation"] == "verify_tct" and f18t["status"] == "core"
+          and f18t["expected"]["error_code"] == "TCT_SIGNATURE_INVALID")
 
     print("── tct-017 ──")
     f = load(CONF / "tct-017-es256-high-s-rejected.json")

@@ -79,6 +79,7 @@ PLACEHOLDER_FAMILIES: dict[str, object] = {
     "__ANY_CHAIN_STEP_SIG__": DUMMY_SIGNATURE,
     "__LEGACY_PINNED_PROOF__": DUMMY_SIGNATURE,
     "__CAPTURED_PROOF_FROM_ORIGINAL_HANDSHAKE__": DUMMY_SIGNATURE,
+    "__VALID_PINNED_PROOF__": DUMMY_SIGNATURE,
     # ── Compact-JWS family ──────────────────────────────────────────────────
     # The alg-none / wrong-alg / tampered variants normalize to the same shape:
     # their defect lives in the JWS header or signature segment, which schema
@@ -101,6 +102,8 @@ PLACEHOLDER_FAMILIES: dict[str, object] = {
     # ── Nonce family ────────────────────────────────────────────────────────
     "__VALID_NONCE__": DUMMY_NONCE,
     "__VALID_NONCE_ECHO__": DUMMY_NONCE,
+    "__ISSUED_NONCE_1__": DUMMY_NONCE,
+    "__ISSUED_NONCE_2__": DUMMY_NONCE,
     # ── Clock family ────────────────────────────────────────────────────────
     # Integers, not strings: these sit in `exp` / `expires_at` positions whose
     # schema type is integer, so substituting a string would fail validation for

@@ -1156,6 +1156,213 @@
           "expect": "valid"
         }
       ]
+    },
+    "id-019": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/identity",
+          "schema": "aitp-identity.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "id-015": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/identity",
+          "schema": "aitp-identity.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "id-014": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/identity",
+          "schema": "aitp-identity.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "id-013": {
+      "artifacts": [
+        {
+          "pointer": "/input/sequence/0/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/sequence/0/envelope/payload/identity",
+          "schema": "aitp-identity.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/sequence/1/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/sequence/1/envelope/payload/identity",
+          "schema": "aitp-identity.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "id-016": {
+      "artifacts": [
+        {
+          "pointer": "/input/sequence/3/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/sequence/3/envelope/payload/identity",
+          "schema": "aitp-identity.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/sequence/4/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/sequence/4/envelope/payload/identity",
+          "schema": "aitp-identity.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "tct-015": {
+      "artifacts": [
+        {
+          "pointer": "/input/tct_token_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "tct-016": {
+      "artifacts": [
+        {
+          "pointer": "/input/tct_token_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "id-020": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/identity",
+          "schema": "aitp-identity.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "id-021": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/identity",
+          "schema": "aitp-identity.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "id-022": {
+      "artifacts": [
+        {
+          "pointer": "/input/sequence/0/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/sequence/0/envelope/payload/identity",
+          "schema": "aitp-identity.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/sequence/1/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/sequence/1/envelope/payload/identity",
+          "schema": "aitp-identity.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/sequence/2/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/sequence/2/envelope/payload/identity",
+          "schema": "aitp-identity.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/sequence/3/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/sequence/3/envelope/payload/identity",
+          "schema": "aitp-identity.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "tct-018": {
+      "artifacts": [
+        {
+          "pointer": "/input/tct_token_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "tct-019": {
+      "artifacts": [
+        {
+          "pointer": "/input/tct_token_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "tct-020": {
+      "artifacts": [
+        {
+          "pointer": "/input/tct_token_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
     }
   }
 }
