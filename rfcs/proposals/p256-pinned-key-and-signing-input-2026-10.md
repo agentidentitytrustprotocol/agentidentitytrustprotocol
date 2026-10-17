@@ -269,7 +269,7 @@ Inside the handshake, the descriptor's `type`, `subject` and `extensions` are au
 
 > **RFC-0005 §5.3 Self-issued attestation TCTs.** A TCT with `iss == sub == aud` is a self-attestation: a statement by the issuer about itself. It confers no capability.
 >
-> - **Grant contexts.** A verifier MUST reject `iss == sub` in any context that evaluates the TCT as a capability grant (RFC-0004 §4, RFC-0006), using `AUDIENCE_MISMATCH` (the choice of code is open).
+> - **Grant contexts.** A verifier MUST reject `iss == sub` in any context that evaluates the TCT as a capability grant (RFC-0004 §4, RFC-0006), using `TCT_SIGNATURE_INVALID`. This follows the self-delegation precedent (RFC-0006 §4 step 8, RFC-0011: `iss == sub` ⇒ `DELEGATION_INVALID_SIGNATURE`) and the Item 6b rationale: a structural defect in a compact-JWS artifact collapses onto its signature-family code.
 > - **Marker grant.** `grants` stays non-empty (§2). An attestation carries exactly one grant, the reserved value `aitp:attestation`. An issuer MUST NOT mint `aitp:attestation` with `iss ≠ sub`, and a verifier in a grant context MUST reject any TCT containing it.
 > - **Statement.** The attested content goes in `ext`, under a namespaced key per RFC-AITP-0012. Because `ext` is inside the JWS payload it is signed. For attestations the "unknown keys in `ext` MUST be ignored" rule applies only to keys the relying party does not consume. A relying party MUST reject an attestation whose `ext` lacks the key it expects.
 > - **`cnf` and `jti`.** Attestation TCTs MUST carry `cnf`. `jti` follows Item 6b and MAY be deterministic, so that re-minting the same statement yields the same token.
@@ -467,6 +467,7 @@ None remain.
 
 - Envelope v2 (Item 3): out of this proposal; carried to a v0.3 proposal.
 - Non-v4 `jti` error code: the existing structural-rejection codes (Item 6b).
+- `iss == sub` in a grant context (Item 5): `TCT_SIGNATURE_INVALID`, matching self-delegation in RFC-0006/0011 (not `AUDIENCE_MISMATCH`, since `aud` does equal the verifier there).
 - Attestations: marker grant `aitp:attestation` in v0.2; no distinct `typ` here.
 - Bare presentation variant: dropped; one-way admission uses the `identity_presentation` envelope.
 - Reference nonce store: implementations ship one (Item 7d).
