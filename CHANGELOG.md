@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### Conformance placeholders: unmintable values fail, and the last runner-chosen keys are pinned (#77)
+
+**Change class.** Conformance-runner and documentation change to `schemas/conformance/PLACEHOLDERS.md`. No RFC text, fixture bytes or known answers change.
+
+**The gap.** A runner that could not mint a placeholder could substitute a sentinel, and negative fixtures then "passed" on garbage. aitp-rs did this for `id-006`, `del-004`, `id-001`/`002`/`003`, `mh-003`, `mh-004` and `mh-008` before fixing its runner. Three minting inputs were also left to the runner: the signing form of `__LEGACY_PINNED_PROOF__`, the other peer named by `__JWT_AUD_TARGETS_DIFFERENT_PEER__`, and the issuer key behind `__VALID_JWT_FROM_UNKNOWN_ISSUER__`. Two runners could mint different bytes for the same fixture.
+
+**The fix.**
+
+- **Unmintable placeholders.** A runner that cannot mint a placeholder MUST report the fixture as FAIL, or SKIP where it does not claim the fixture's operation. It MUST NOT substitute a sentinel and score the result.
+- **`__LEGACY_PINNED_PROOF__`.** Pinned to the RFC-AITP-0001 §5.4.6 form: Ed25519 over SHA-256 of the ASCII bytes `message_id`, `|`, `timestamp` (decimal), signed by the presented pinned key. The legacy input is the only defect.
+- **`__JWT_AUD_TARGETS_DIFFERENT_PEER__`.** The other peer is `kat-keypair-004`'s AID.
+- **`__VALID_JWT_FROM_UNKNOWN_ISSUER__`.** The issuer key is the Ed25519 key from seed `0x55` × 32, which no `keypairs.json` entry uses. It MUST NOT appear in any trust-anchor list.
+
+These match what aitp-rs (`aitp-conformance`) and aitp-verifier-py already mint, so neither implementation's results change.
+
+**Version bumps.** None.
+
 ### The known-answer `ext` key becomes `io.agentidentitytrustprotocol.kat`, and each conformance fixture runs against fresh verifier state
 
 **Change class.** Known-answer and conformance-runner change. No RFC text changes, and no protocol rule changes. Two known-answer tokens are re-minted, so their bytes change.
