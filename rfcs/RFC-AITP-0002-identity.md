@@ -2,7 +2,7 @@
 # Identity Binding
 
 **Document:** RFC-AITP-0002
-**Version:** 0.2.6-draft
+**Version:** 0.2.7-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md)
 
@@ -35,9 +35,9 @@ v0.2 supports two identity types: `oidc` and `pinned_key`. Future identity types
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `type` | string | REQUIRED | Identity mechanism: `oidc` or `pinned_key`. |
-| `issuer` | string | REQUIRED for `oidc` | Issuer URI (MUST match JWT `iss` claim). |
+| `issuer` | string | REQUIRED for `oidc`; MUST be absent for `pinned_key` | Issuer URI (MUST match JWT `iss` claim). A `pinned_key` descriptor has no issuer: its trust anchor is the local `pinned_keys` store (§3.2), so an `issuer` member on it is rejected with `IDENTITY_FAILED`. The identity-descriptor schema enforces this in its non-`oidc` branch. |
 | `subject` | string | REQUIRED | Agent subject identifier. |
-| `proof` | string | REQUIRED | JWT for OIDC; base64url signature for pinned_key. |
+| `proof` | string | REQUIRED | JWT for OIDC; for pinned_key, a JCS-profile signature in the [RFC-AITP-0001 §5.4.3](RFC-AITP-0001-core.md#543-algorithm-tagged-signature-wire-format-jcs-profile-only) wire format, Ed25519 or P-256 (§3.1). |
 | `public_key` | string | REQUIRED for `pinned_key`; MUST be absent for `oidc` | base64url-encoded public key. For `pinned_key`, this is the key the verifier looks up in its `pinned_keys` configuration (§3.2). For `oidc`, the agent's public key is already encoded in the verifying-peer envelope's `sender.agent_id` (the AID-identifier component) — there is no second copy in the descriptor, and including one would create an ambiguity over which key the JWT's `cnf.jkt` is meant to bind. The identity-descriptor schema (`schemas/json/aitp-identity.schema.json`) enforces this: its `oidc` branch forbids `public_key`, mirroring the `IdentityHint` rule that the Manifest schema applies to `identity_hint`. v0.2 verifiers MUST reject an OIDC `identity` descriptor that carries `public_key`. |
 | `extensions` | object | OPTIONAL | Extension namespace per [RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model) and [RFC-AITP-0012](RFC-AITP-0012-extensions.md). Unknown keys *inside* `extensions` MUST be ignored; unknown members *outside* it are rejected with `UNKNOWN_FIELD`. The identity descriptor is **not** an exception to §7's "every signed object reserves an `extensions` slot" — it reserves one like every other signed object, in both the standalone and the handshake-embedded form. |
 
@@ -59,6 +59,8 @@ The canonical JSON Schema is [`schemas/json/aitp-identity.schema.json`](../schem
 > the only path where the descriptor actually travels. Both are now the same object.
 
 > **Note on `proof` inputs.** The proof input differs by type. For `oidc`, `proof` is a self-contained JWT (§2). For `pinned_key`, `proof` is a signature whose input binds fields drawn from the surrounding handshake envelope (§3.1) — including the `pop_nonce` carried on `MUTUAL_HELLO` / `MUTUAL_HELLO_ACK` (RFC-AITP-0004 §3). The descriptor itself does NOT carry the nonce; verifiers reconstruct the proof input from the envelope and the local `receiver_aid`. The pinned-key `subject` is not covered by `proof`; it is authenticated only by the enclosing envelope signature.
+
+> **Note on P-256 pinned keys (informative).** `pinned_key` is not Ed25519-only. A Manifest `identity_hint` of type `pinned_key` whose `public_key` is the 44-char compressed P-256 identifier of an `aid:pubkey:p256:` AID is valid, and so is the matching handshake descriptor (§3.1, §3.3).
 
 ---
 
@@ -166,6 +168,12 @@ proof_input =
 proof = base64url(sign(agent_private_key, sha256(proof_input)))
 ```
 
+`proof` uses the JCS-profile signature wire format of [RFC-AITP-0001 §5.4.3](RFC-AITP-0001-core.md#543-algorithm-tagged-signature-wire-format-jcs-profile-only), with the primitive of [§5.4.6](RFC-AITP-0001-core.md#546-signing-primitive-per-algorithm-jcs-profile-and-proofs).
+
+- A `p256` sender MUST emit the tagged form `p256.<86-char-b64url>`.
+- An `ed25519` sender MAY emit either the legacy untagged form or `ed25519.<86-char-b64url>`.
+- The tag MUST match the algorithm of `sender.agent_id`, per §5.4.3 rule 3. An untagged proof is read as `ed25519`, so an untagged proof from a `p256` sender is an algorithm mismatch and is rejected with `IDENTITY_FAILED`, whatever its raw bytes would verify as.
+
 `sign` is the per-algorithm primitive of [RFC-AITP-0001 §5.4.6](RFC-AITP-0001-core.md#546-signing-primitive-per-algorithm-jcs-profile-and-proofs): `sha256(proof_input)` is the digest `d`, hashed exactly once. An Ed25519 key signs `d` as its message; a P-256 key uses `d` directly as the ECDSA hashed message (`e = d`) and MUST NOT hash it again.
 
 Where:
@@ -177,50 +185,46 @@ Where:
 - `pop_nonce_decoded_bytes` is the raw bytes obtained by base64url-decoding the handshake's `pop_nonce` (NOT the base64url string itself).
 - `\0` is a single null byte separator.
 
-> **Erratum.** This section's text stated, through `0.2.1-draft`, that `timestamp` was encoded as `timestamp_be_8_bytes` — an 8-byte big-endian signed 64-bit integer — contradicting how this section reads now. The pinned proof in this repository's conformance pack (`id-007`'s real Ed25519 signature over `kat-keypair-003`, reused verbatim as `kat-pinned-key-proof-001` below) has been ASCII-decimal-encoded since the original conformance commit; it was never re-signed to produce this correction. No pinned bytes changed — the prose moved to match the artifact, not the other way around. That said, this is **not** a no-op for implementations: an implementation that built its proof input by following the old `timestamp_be_8_bytes` text produces a different signature than one that follows the pinned vector, and MUST switch encodings to interoperate. `id-007` alone never surfaced this, because its expected outcome is rejection at §3.2 step 1 (the public key is absent from the local `pinned_keys` store) before proof verification is ever reached — a big-endian implementation could pass `id-007`, and the rest of the v0.2 conformance pack, without the defect being caught. `kat-pinned-key-proof-001` closes that gap: it pins `proof_input`, the Ed25519 signature over `sha256(proof_input)`, and additionally pins that the same signature does NOT verify when `timestamp` is instead packed as an 8-byte big-endian integer, making the encoding machine-checkable rather than a matter of reading the prose. See `CHANGELOG.md` for the old and new values.
+> **Erratum.** This section's text stated, through `0.2.1-draft`, that `timestamp` was encoded as `timestamp_be_8_bytes` — an 8-byte big-endian signed 64-bit integer — contradicting how this section reads now. The pinned proof in this repository's conformance pack (`id-007`'s real Ed25519 signature over `kat-keypair-003`, reused verbatim as `kat-pinned-key-proof-001` below) has been ASCII-decimal-encoded since the original conformance commit; it was never re-signed to produce this correction. No pinned bytes changed — the prose moved to match the artifact, not the other way around. That said, this is **not** a no-op for implementations: an implementation that built its proof input by following the old `timestamp_be_8_bytes` text produces a different signature than one that follows the pinned vector, and MUST switch encodings to interoperate. `id-007` alone never surfaced this, because its expected outcome is rejection at §3.2 step 3 (the public key is absent from the local `pinned_keys` store) before proof verification is ever reached — a big-endian implementation could pass `id-007`, and the rest of the v0.2 conformance pack, without the defect being caught. `kat-pinned-key-proof-001` closes that gap: it pins `proof_input`, the Ed25519 signature over `sha256(proof_input)`, and additionally pins that the same signature does NOT verify when `timestamp` is instead packed as an 8-byte big-endian integer, making the encoding machine-checkable rather than a matter of reading the prose. See `CHANGELOG.md` for the old and new values.
 
 > **Replay resistance.** v0.2 pinned-key proofs are bound to the full handshake context — the same five fields v0.1 bound (sender, receiver, message, timestamp, nonce); only `timestamp`'s on-the-wire encoding within the proof input changed, per the erratum above. A signature produced for one (sender, receiver, message, timestamp, nonce) tuple cannot be replayed against a different tuple.
 
-> **Known-answer test.** The `kat-pinned-key-proof-001` vector in [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json) pins a concrete `(sender, receiver, message_id, timestamp, pop_nonce)` tuple, the resulting `proof_input` bytes, and the Ed25519 signature over `sha256(proof_input)` produced with `kat-keypair-003`. It also pins that the same signature does NOT verify when `timestamp` is instead encoded as an 8-byte big-endian integer, so the ASCII-decimal encoding is machine-checkable rather than a matter of prose interpretation.
+> **Known-answer test.** The `kat-pinned-key-proof-001` vector in [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json) pins a concrete `(sender, receiver, message_id, timestamp, pop_nonce)` tuple, the resulting `proof_input` bytes, and the Ed25519 signature over `sha256(proof_input)` produced with `kat-keypair-003`. It also pins that the same signature does NOT verify when `timestamp` is instead encoded as an 8-byte big-endian integer, so the ASCII-decimal encoding is machine-checkable rather than a matter of prose interpretation. Two more vectors in the same file cover the other wire forms. `kat-pinned-key-proof-002-p256` is a `p256.`-tagged proof from the `kat-keypair-005-p256` AID, with a double-hash signature that MUST NOT verify. `kat-pinned-key-proof-003-tagged-ed25519` is an Ed25519 proof from the `aid:pubkey:ed25519:` spelling of `kat-keypair-003`; its `proof_input` differs from `-001`'s because the sender AID string is part of the input.
 
 ### 3.2 Verification steps
 
-A peer verifying an identity binding MUST:
+A peer verifying a pinned-key identity binding MUST:
 
-1. Locate `public_key` in the local `pinned_keys` configuration.
-2. Reconstruct `proof_input` using the same byte layout as §3.1, drawing each field from the inbound envelope (`sender.agent_id`, the verifying peer's own AID as `receiver`, `message_id`, `timestamp`) and the handshake message's `pop_nonce`.
-3. Verify the proof signature against the pinned public key over `sha256(proof_input)`.
+1. Confirm `identity.type` is `pinned_key`. A verifier MUST NOT run pinned-key verification on a descriptor of any other `type`, even if it carries `public_key` and a well-formed `proof`.
+2. Decode `public_key` and confirm it is byte-equal to the key encoded in `sender.agent_id`, under the same algorithm. A legacy untagged AID compares as `ed25519`.
+3. Locate `(algorithm, public_key)` in the local `pinned_keys` configuration. Trust-store entries are keyed by the pair, never by raw bytes alone.
+4. Reconstruct `proof_input` (§3.1), drawing each field from the inbound envelope (`sender.agent_id`, the verifying peer's own AID as `receiver`, `message_id`, `timestamp`) and the handshake message's `pop_nonce`.
+5. Verify `proof` per [RFC-AITP-0001 §5.4.3](RFC-AITP-0001-core.md#543-algorithm-tagged-signature-wire-format-jcs-profile-only) and [§5.4.6](RFC-AITP-0001-core.md#546-signing-primitive-per-algorithm-jcs-profile-and-proofs) against that key.
 
-Peers MUST NOT accept pinned-key identities for public keys not present in the local configuration.
+Steps 1–3 MUST complete before any signature verification.
 
-#### Production requirement
+A failure at any step is `IDENTITY_FAILED`.
 
-Verifying that a peer's key "matches its AID" — i.e. *key-possession proof
-alone* — is **not** sufficient for production deployments. AID
-construction is deterministic from the public key (RFC-AITP-0001 §5.3),
-so any agent can construct an AID for any key it generates. The trust
-anchor is the **local pinned-key configuration**, not the AID
-derivation; possession of a key tells you only that the holder generated
-that AID, not that the AID is one you have ever decided to trust.
+#### Trust-store requirement
 
-Implementations MUST NOT offer key-possession-only verification (i.e.
-"accept any pinned-key identity whose proof signature validates against
-the public key embedded in `manifest.aid`") as a production default. It
-MAY be offered as an explicitly named development mode (e.g.
-`unsafe_no_trust_store`) that:
+Verifying that a peer's key "matches its AID" (key-possession proof
+alone) is **not** sufficient. AID construction is deterministic from the
+public key (RFC-AITP-0001 §5.3), so any agent can construct an AID for
+any key it generates. The trust anchor is the **local pinned-key
+configuration**, not the AID derivation; possession of a key tells you
+only that the holder generated that AID, not that the AID is one you
+have ever decided to trust.
 
-- requires explicit, non-default opt-in,
-- logs a high-severity warning each time a key is accepted, and
-- is documented as unsafe for any non-development deployment.
-
-All production code paths MUST consult a configured `pinned_keys` store
-and reject any pinned-key identity whose `public_key` is not present in
-that store, regardless of how cryptographically sound the proof
-signature is.
+Implementations MUST NOT offer a key-possession-only verification mode,
+in any deployment mode, development and test included. Every pinned-key
+verification MUST consult a configured `pinned_keys` store (step 3) and
+reject any pinned-key identity whose `(algorithm, public_key)` is not
+present in that store, regardless of how cryptographically sound the
+proof signature is. An empty store trusts no pinned key.
 
 ### 3.3 Example
 
-The `public_key` MUST be the same 43-char unpadded-base64url AID-identifier form defined in RFC-AITP-0001 §5.3. SPKI-DER and PEM forms are not permitted.
+The `public_key` MUST be the unpadded-base64url AID-identifier form of RFC-AITP-0001 §5.3 for the sender AID's algorithm: 43 chars (32 raw bytes) for `ed25519`, or 44 chars (33-byte SEC1 compressed point) for `p256`. SPKI-DER, PEM, JWK and uncompressed-point forms are not permitted. A `p256` `public_key` MUST decode to a valid point on the curve. A verifier MUST reject the descriptor with `IDENTITY_FAILED` when the point is invalid or is the identity.
 
 ```json
 {
@@ -229,6 +233,19 @@ The `public_key` MUST be the same 43-char unpadded-base64url AID-identifier form
     "subject": "internal-worker-agent-1",
     "public_key": "dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
     "proof": "<base64url signature, 86 chars unpadded, computed per §3.1>"
+  }
+}
+```
+
+A `p256` sender's descriptor carries the 44-char compressed key and a tagged proof (the values of `kat-pinned-key-proof-002-p256`):
+
+```json
+{
+  "identity": {
+    "type": "pinned_key",
+    "subject": "internal-worker-agent-2",
+    "public_key": "AweBDql0zqV3PmO4l_N-O-mgnnpf6blxpE0QZawqOpMR",
+    "proof": "p256.<86-char base64url r || s, computed per §3.1>"
   }
 }
 ```
@@ -248,10 +265,13 @@ trust_anchors:
 
 pinned_keys:
   - subject: "internal-worker-agent-1"
+    algorithm: "ed25519"          # OPTIONAL; ed25519 | p256
     public_key: "base64url_pubkey"
     allowed_capabilities:
       - "macp.mode.task.v1"
 ```
+
+`pinned_keys` entries are keyed by `(algorithm, public_key)` (§3.2 step 3). `algorithm` is OPTIONAL: when absent it is inferred from the key length (43 chars is `ed25519`, 44 chars is `p256`), and when present it MUST agree with that length.
 
 The canonical schema is [`schemas/json/aitp-trust-anchors.schema.json`](../schemas/json/aitp-trust-anchors.schema.json).
 

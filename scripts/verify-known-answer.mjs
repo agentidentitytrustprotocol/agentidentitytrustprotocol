@@ -32,7 +32,7 @@
 // Usage:  node scripts/verify-known-answer.mjs [--quiet]
 // Exit:   0 = every pinned value reproduced; non-zero = at least one mismatch.
 
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash, createPublicKey, createPrivateKey, verify as cryptoVerify } from 'node:crypto';
@@ -544,6 +544,8 @@ const JCS_EXPECTED = new Map([
   ['kat-session-bundle-001', ['object', 'signing_input', 'jcs_canonical_hex', 'jcs_canonical_len_bytes', 'sha256_hex', 'sha256_b64url', 'coordinator_signature_b64url']],
   ['kat-manifest-pop-001', ['challenge', 'decoded_hex', 'sha256_hex', 'sha256_b64url', 'signing_keypair_id', 'signer_aid', 'signature_b64url']],
   ['kat-pinned-key-proof-001', ['sender_aid', 'receiver_aid', 'message_id', 'timestamp', 'pop_nonce', 'proof_input_hex', 'proof_input_len_bytes', 'sha256_hex', 'sha256_b64url', 'signing_keypair_id', 'signer_aid', 'signature_b64url']],
+  ['kat-pinned-key-proof-002-p256', ['sender_aid', 'receiver_aid', 'message_id', 'timestamp', 'pop_nonce', 'proof_input_hex', 'proof_input_len_bytes', 'sha256_hex', 'sha256_b64url', 'signing_keypair_id', 'signer_aid', 'signature_b64url', 'signature', 'double_hash_signature_MUST_NOT_verify']],
+  ['kat-pinned-key-proof-003-tagged-ed25519', ['sender_aid', 'receiver_aid', 'message_id', 'timestamp', 'pop_nonce', 'proof_input_hex', 'proof_input_len_bytes', 'sha256_hex', 'sha256_b64url', 'signing_keypair_id', 'signer_aid', 'signature_b64url']],
   ['kat-p256-jcs-sign-001', ['preimage_json', 'preimage_hex', 'preimage_len_bytes', 'sha256_hex', 'sha256_b64url', 'signing_keypair_id', 'signer_aid', 'signature_b64url', 'signature', 'double_hash_signature_MUST_NOT_verify', 'high_s_sibling_MUST_NOT_verify']],
   ['kat-manifest-pop-002-p256', ['challenge', 'decoded_hex', 'sha256_hex', 'sha256_b64url', 'signing_keypair_id', 'signer_aid', 'signature_b64url', 'signature', 'double_hash_signature_MUST_NOT_verify']],
   ['kat-multihop-chain-001', ['voucher_jws', 'chain', 'chain_entry_sha256_b64url', 'digest_array_jcs', 'chain_hash', 'outer_delegation_jws']],
@@ -748,6 +750,60 @@ function checkJcsVectors(keypairs) {
           throw new Error('signature verifies over the big-endian form too — the vector proves nothing');
         }
       });
+    }
+
+    if (v.id === 'kat-pinned-key-proof-002-p256' || v.id === 'kat-pinned-key-proof-003-tagged-ed25519') {
+      // RFC-AITP-0002 §3.1 with the other two wire forms (proposal #72 Item 2):
+      // a p256 sender's `p256.`-tagged proof, and an Ed25519 proof from the
+      // `aid:pubkey:ed25519:` spelling of kat-keypair-003.
+      let input;
+      check(`${v.id} proof_input + digest`, () => {
+        input = pinnedProofInput(v);
+        eq(input.toString('hex'), v.proof_input_hex, 'proof_input_hex');
+        eq(input.length, v.proof_input_len_bytes, 'proof_input_len_bytes');
+        const digest = sha256(input);
+        eq(digest.toString('hex'), v.sha256_hex, 'sha256_hex');
+        eq(b64uEncode(digest), v.sha256_b64url, 'sha256_b64url');
+        eq(v.signer_aid, v.sender_aid, 'signer_aid must be the sender AID');
+        const kp = keypairs.get(v.signing_keypair_id);
+        if (!kp) throw new Error(`signing_keypair_id ${v.signing_keypair_id} is not in keypairs.json`);
+        eq(aidKey(v.signer_aid).raw.toString('hex'), aidKey(kp.aid).raw.toString('hex'), `signer_aid key does not match ${v.signing_keypair_id}`);
+      });
+      if (!input) continue;
+      if (v.id === 'kat-pinned-key-proof-002-p256') {
+        check(`${v.id} p256 proof verifies (single hash, strict, low-S) and is tagged`, () => {
+          eq(aidKey(v.sender_aid).alg, 'p256', 'sender algorithm');
+          eq(v.signature, `p256.${v.signature_b64url}`, 'signature is not the tagged form of signature_b64url');
+          if (!verifySingleHash(v.sender_aid, input, v.signature)) throw new Error('proof does not verify over proof_input');
+        });
+        check(`${v.id} double-hash proof does NOT verify (and is a real e = sha256(d) signature)`, () => {
+          assertDoubleHashNegative(v.sender_aid, input, v.double_hash_signature_MUST_NOT_verify, 'double_hash_signature_MUST_NOT_verify');
+        });
+        check(`${v.id} untagged proof is rejected as an algorithm mismatch (§5.4.3 rule 3)`, () => {
+          let threw = false;
+          try { verifySingleHash(v.sender_aid, input, v.signature_b64url); } catch { threw = true; }
+          if (!threw) throw new Error('the untagged proof was not rejected on its tag');
+          const { point } = aidKey(v.sender_aid);
+          if (!p256Verify(point, input, b64uDecode(v.signature_b64url, 64, 'signature_b64url'))) {
+            throw new Error('the raw bytes do not verify under P-256, so the tag is not the only defect');
+          }
+        });
+      } else {
+        check(`${v.id} Ed25519 proof verifies untagged and ed25519.-tagged`, () => {
+          eq(aidKey(v.sender_aid).alg, 'ed25519', 'sender algorithm');
+          if (!v.sender_aid.startsWith('aid:pubkey:ed25519:')) throw new Error('sender_aid is not the tagged ed25519 spelling');
+          if (!verifySingleHash(v.sender_aid, input, v.signature_b64url)) throw new Error('untagged proof does not verify');
+          if (!verifySingleHash(v.sender_aid, input, `ed25519.${v.signature_b64url}`)) throw new Error('ed25519.-tagged proof does not verify');
+        });
+        check(`${v.id} differs from kat-pinned-key-proof-001 (the AID string is in proof_input)`, () => {
+          const one = byId.get('kat-pinned-key-proof-001');
+          if (!one) throw new Error('kat-pinned-key-proof-001 is missing');
+          for (const k of ['receiver_aid', 'message_id', 'timestamp', 'pop_nonce', 'signing_keypair_id']) eq(v[k], one[k], k);
+          if (v.proof_input_hex === one.proof_input_hex) throw new Error('proof_input equals -001');
+          if (v.signature_b64url === one.signature_b64url) throw new Error('proof equals -001');
+          if (verifySingleHash(v.sender_aid, input, one.signature_b64url)) throw new Error("-001's proof verifies over -003's proof_input");
+        });
+      }
     }
 
     if (v.id === 'kat-p256-jcs-sign-001' || v.id === 'kat-manifest-pop-002-p256') {
@@ -1279,6 +1335,93 @@ function checkTct017() {
   });
 }
 
+// ── pinned-key conformance fixtures (RFC-AITP-0002 §3) ───────────────────────
+
+// RFC-AITP-0002 §3.1 proof_input from a {sender_aid, receiver_aid, message_id,
+// timestamp, pop_nonce} tuple; the timestamp is its ASCII decimal string.
+function pinnedProofInput(t) {
+  return Buffer.concat([
+    utf8('aitp-pinned-key-v1\0'),
+    utf8(t.sender_aid), utf8('\0'),
+    utf8(t.receiver_aid), utf8('\0'),
+    utf8(t.message_id), utf8('\0'),
+    utf8(String(t.timestamp)), utf8('\0'),
+    b64uDecode(t.pop_nonce, 16, 'pop_nonce'),
+  ]);
+}
+
+// Every reused proof in the pinned-key fixtures is re-verified against the
+// fixture's own tuple, and each fixture is checked to fail for only the reason
+// its id names. The trust-store rule (conformance README) is checked too: every
+// pinned-key failure fixture except id-007 trusts its sender.
+const PINNED_FIXTURES = [
+  ['id-010-pinned-key-p256-success.json', 'success'],
+  ['id-011-pinned-key-p256-untagged-proof-rejected.json', 'untagged'],
+  ['id-011b-oidc-typed-descriptor-with-pinned-proof-rejected.json', 'oidc-typed'],
+  ['id-012-pinned-key-p256-uncompressed-key-rejected.json', 'uncompressed'],
+  ['id-017-pinned-key-ed25519-success.json', 'success'],
+  ['id-018-pinned-key-issuer-present-rejected.json', 'issuer'],
+];
+function checkPinnedFixtures() {
+  console.log('── pinned-key conformance fixtures: proofs re-verified against their tuples ──');
+  const dir = join(ROOT, 'schemas/conformance');
+  for (const [name, kind] of PINNED_FIXTURES) {
+    check(`${name}: ${kind}`, () => {
+      const f = readJson(join(dir, name));
+      const env = f.input.envelope;
+      const idn = env.payload.identity;
+      const sender = env.sender.agent_id;
+      const tuple = { sender_aid: sender, receiver_aid: f.input.self_aid, message_id: env.message_id, timestamp: env.timestamp, pop_nonce: env.payload.pop_nonce };
+      const input = pinnedProofInput(tuple);
+      const key = aidKey(sender);
+      if (!Array.isArray(f.input.trust_store) || !f.input.trust_store.includes(sender)) throw new Error('trust_store does not contain the sender');
+      const wantFail = kind !== 'success';
+      eq(f.expected.outcome, wantFail ? 'failure' : 'success', 'expected.outcome');
+      if (wantFail) eq(f.expected.error_code, 'IDENTITY_FAILED', 'expected.error_code');
+      if (kind === 'untagged') {
+        if (idn.proof.includes('.')) throw new Error('proof is tagged');
+        eq(key.alg, 'p256', 'sender algorithm');
+        eq(idn.public_key, b64uEncode(key.raw), 'public_key');
+        if (!p256Verify(key.point, input, b64uDecode(idn.proof, 64, 'proof'))) throw new Error('raw proof bytes do not verify under P-256');
+        let threw = false;
+        try { verifySingleHash(sender, input, idn.proof); } catch { threw = true; }
+        if (!threw) throw new Error('untagged proof was not rejected on its tag');
+        return;
+      }
+      if (!verifySingleHash(sender, input, idn.proof, 'identity.proof')) throw new Error('identity.proof does not verify over the fixture tuple');
+      if (kind === 'uncompressed') {
+        eq(key.alg, 'p256', 'sender algorithm');
+        const [x, y] = key.point;
+        const unc = Buffer.concat([Buffer.from([4]), bigToBe32(x), bigToBe32(y)]);
+        eq(idn.public_key, b64uEncode(unc), 'public_key is not 04 || X || Y of the sender point');
+        eq(idn.public_key.length, 87, 'uncompressed public_key length');
+        return;
+      }
+      eq(idn.public_key, b64uEncode(key.raw), 'public_key is not byte-equal to the sender AID key');
+      if (kind === 'oidc-typed') { eq(idn.type, 'oidc', 'identity.type'); return; }
+      eq(idn.type, 'pinned_key', 'identity.type');
+      if (kind === 'issuer') { if (!nonEmptyString(idn.issuer)) throw new Error('issuer is absent'); return; }
+      if ('issuer' in idn) throw new Error('a passing pinned_key descriptor carries issuer');
+      if (key.alg === 'p256' && !idn.proof.startsWith('p256.')) throw new Error('p256 proof is untagged');
+    });
+  }
+  check('trust_store rule: every pinned-key failure fixture except id-007 trusts its sender', () => {
+    const offenders = [];
+    let seen = 0;
+    for (const name of readdirSync(dir).filter((n) => /^(id|mh)-.*\.json$/.test(n))) {
+      const f = readJson(join(dir, name));
+      const idn = f.input?.envelope?.payload?.identity;
+      if (!idn || f.expected?.outcome !== 'failure') continue;
+      if (idn.type !== 'pinned_key' && !(idn.public_key && /^[A-Za-z0-9_-]{86}$|^(ed25519|p256)\./.test(idn.proof ?? ''))) continue;
+      seen++;
+      const trusted = Array.isArray(f.input.trust_store) && f.input.trust_store.includes(f.input.envelope.sender.agent_id);
+      if (f.id === 'id-007' ? trusted : !trusted) offenders.push(f.id);
+    }
+    if (seen < 9) throw new Error(`only ${seen} pinned-key failure fixtures found; the scan stopped matching`);
+    if (offenders.length) throw new Error(`trust_store rule broken by: ${offenders.join(', ')}`);
+  });
+}
+
 // ── main ─────────────────────────────────────────────────────────────────────
 
 console.log('Verifying pinned known-answer values...\n');
@@ -1288,12 +1431,13 @@ checkJcsVectors(keypairs);
 checkSignedExamples();
 checkSignatureStrictness();
 checkTct017();
+checkPinnedFixtures();
 
 // Third anchor against a hollowed guard. The manifests above catch a deleted or
 // emptied vector member; this catches coverage lost any other way — a check
 // commented out, a loop that stops early, a gate that stops matching. Coverage may
 // grow (raise this number in the same commit); it may never silently shrink.
-const EXPECTED_MIN_CHECKS = 110;
+const EXPECTED_MIN_CHECKS = 126;
 if (checks < EXPECTED_MIN_CHECKS) {
   failures.push(
     `coverage regression: ran ${checks} checks, expected at least ${EXPECTED_MIN_CHECKS}. ` +
