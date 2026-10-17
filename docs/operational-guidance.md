@@ -156,11 +156,15 @@ fixture `rev-004`).
 
 ## Rate limiting and the handshake endpoint
 
-The `handshake_endpoint` is public. Implementations **MUST** rate-limit it per
-source AID or IP; the RECOMMENDED default is 10 handshake initiations per
-minute per source AID
-([RFC-AITP-0004 §11.4](../rfcs/RFC-AITP-0004-mutual-handshake.md#114-denial-of-service-on-handshake-endpoint)).
-[RFC-AITP-0009 §3.1](../rfcs/RFC-AITP-0009-security.md#31-rate-limiting-recommended)
+The `handshake_endpoint` is public. Implementations **MUST** apply
+per-source rate limiting to it
+([RFC-AITP-0009 §3.1](../rfcs/RFC-AITP-0009-security.md#31-rate-limiting),
+cited by [RFC-AITP-0004 §11.4](../rfcs/RFC-AITP-0004-mutual-handshake.md#114-denial-of-service-on-handshake-endpoint)).
+The source key MUST include a transport-level identifier — the peer IP (from a
+forwarding header only behind a configured trusted proxy) or a TLS
+client-certificate fingerprint — because an AID read before the envelope
+signature is verified is self-asserted; a per-AID limit is RECOMMENDED in
+addition, never instead. RFC-AITP-0009 §3.1
 gives the RECOMMENDED defaults — 30 requests per source IP and 10 per
 initiator AID per 60 s, at most 1000 concurrent in-flight handshake sessions,
 and a 64 KB maximum `MUTUAL_HELLO` payload — to be tuned for high-volume
