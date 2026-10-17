@@ -87,6 +87,7 @@ agentidentitytrustprotocol/
     extension-keys.md
     jti-domain-tags.md
     media-types.md
+    message-types.md
 
   schemas/
     json/

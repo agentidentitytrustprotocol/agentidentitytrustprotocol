@@ -18,7 +18,7 @@ conformance/
 ├── env-*.json      Envelope-level checks (RFC-AITP-0001, RFC-AITP-0007)
 ├── man-*.json      Manifest verification (RFC-AITP-0003)
 ├── mh-*.json       Mutual Handshake scenarios (RFC-AITP-0004; includes mh-success-*)
-├── id-*.json       Identity binding failures (RFC-AITP-0002)
+├── id-*.json       Identity binding and pinned-admission (RFC-AITP-0002)
 ├── tct-*.json      Trust Context Token verification (RFC-AITP-0005, RFC-AITP-0008)
 ├── vch-*.json      Grant voucher verification (RFC-AITP-0005 §8)
 ├── rev-*.json      Revocation checks (RFC-AITP-0008)
@@ -151,7 +151,9 @@ through verbatim.
 
 `tct-006` and `tct-007` carry this flag: each drives a multi-step
 `sequence` whose nonces, timestamps, and signatures must be fresh for
-the downstream PoP challenge/response to verify. Fixtures without the
+the downstream PoP challenge/response to verify. `id-016` carries it too:
+its nonces are chosen by the verifier during the run, so the proofs and
+envelope signatures over them can only be minted then. Fixtures without the
 flag are statically mintable — their placeholders can be substituted
 once and reused.
 
@@ -189,6 +191,55 @@ The token is kat-keypair-005-p256's low-S signature over valid claims
 with S replaced by n − S. It verifies under RFC 7518 alone; the
 RFC-AITP-0001 §5.4.7 low-S rule is what rejects it, and
 `make kat-verify` asserts both halves.
+
+`tct-015`, `tct-016` and `tct-018` are validly signed and schema-valid:
+`verify_tct` is a grant context, and RFC-AITP-0005 §5.3 rejects a self-issued
+TCT, or any TCT carrying the `aitp.attestation` marker (alone, with a distinct
+`iss`, or beside an ordinary grant), there. They stay `core`: the
+grant-context rejection binds every verifier. The committed
+self-attestations themselves are known-answer vectors, not fixtures:
+`kat-tct-002` and `kat-tct-003` under
+[`known-answer/signed-examples/tct/`](known-answer/signed-examples/tct/).
+
+The pinned-admission fixtures (`id-013` to `id-016`, `id-019` to `id-022`)
+exercise the OPTIONAL profile of RFC-AITP-0002 §3.4 through the
+`verify_identity_presentation` and `issue_presentation_challenge` operations
+([`PLACEHOLDERS.md`](PLACEHOLDERS.md#operation-key)). Because the profile is
+OPTIONAL, they are extension-gated: `status: extension`, `required_for_v0_2:
+false`, `feature: aitp-pinned-admission`. The default runner MUST SKIP them, so
+an implementation that does not claim the profile is not failed. A runner
+testing an implementation that claims "AITP v0.2 pinned-admission" conformance
+opts into the feature, and that implementation MUST pass them (RFC-AITP-0001 §10
+item 9). The proofs in `id-013`, `id-014`, `id-015`, `id-019`, `id-020`,
+`id-021` and `id-022` are real Ed25519 signatures by kat-keypair-003, which
+`make kat-verify` re-verifies (Node) and re-signs (Python) against each
+fixture's tuple. `id-016` is dynamic, because the verifier chooses its nonces at
+run time.
+
+`tct-019` and `tct-020` exercise relying-party verification of a
+self-attestation (RFC-AITP-0005 §5.3, "Verification") through the
+`verify_attestation` operation. That is not a grant context, and consuming
+attestations is a role RFC-AITP-0001 §10 does not require, so both are
+`status: extension` under `feature: aitp-self-attestation`. `tct-020` carries
+the committed known answer `kat-tct-002` verbatim and expects success for a
+third-party relying party whose AID is not the token's `aud`; `tct-019` is an
+otherwise valid attestation whose `ext` lacks the key the relying party expects.
+The §5.3 "Verification is not a grant context" bullet is also pinned by
+`make kat-verify`: `checkSelfAttestations()` in
+[`scripts/verify-known-answer.mjs`](../../scripts/verify-known-answer.mjs) and
+the self-attestation section of
+[`scripts/recompute-known-answer-independent.py`](../../scripts/recompute-known-answer-independent.py)
+verify `kat-tct-002` and `kat-tct-003` as attestations (`iss == sub == aud`,
+`grants` exactly `["aitp.attestation"]`, `cnf.jkt` the issuer's own thumbprint,
+the `ext` statement present), and both stacks check that `tct-020` carries
+`kat-tct-002` byte for byte.
+
+**Not expressible as a fixture.** RFC-AITP-0002 §3.4 requires the nonce lookup
+and consumption to be one atomic step, so that two presentations racing on one
+nonce cannot both succeed. A fixture runs its steps in order against one
+instance, so it cannot produce the race; `id-013` pins only the sequential
+half (a consumed nonce is never accepted again). Atomicity under concurrency is
+left to implementation tests.
 
 `rev-004` is **not** a structural-rejection fixture, despite also
 carrying a tampered-signature placeholder. It tests the opposite
@@ -271,13 +322,15 @@ The runner interface is implementation-defined.
 
 | Tier | Count | Required for v0.2 |
 |---|---|---|
-| `core` (v0.2-required) | 70 | ✅ Yes |
+| `core` (v0.2-required) | 73 | ✅ Yes |
 | `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (v0.1 runners only) |
+| `extension` — pinned-admission profile (RFC-AITP-0002 §3.4, `feature: aitp-pinned-admission`) | 8 | ❌ No (required of an implementation claiming the profile) |
+| `extension` — attestation verification (RFC-AITP-0005 §5.3, `feature: aitp-self-attestation`) | 2 | ❌ No (required of an implementation claiming the role) |
 | `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 6 | ❌ No |
 | `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 4 | ❌ No |
-| **Total** | **81** | |
+| **Total** | **94** | |
 
-Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A v0.2 conformance runner MUST execute every `required_for_v0_2` core fixture; `draft` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
+Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A v0.2 conformance runner MUST execute every `required_for_v0_2` core fixture; `draft` and `extension` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
 ---
 
@@ -341,6 +394,16 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | `id-012` | P-256 `public_key` in the 87-char uncompressed form (§3.3; schema-invalid) | failure: IDENTITY_FAILED |
 | `id-017` | Ed25519 pinned-key identity, sender trusted: the positive counterpart of `id-007` | success |
 | `id-018` | `pinned_key` descriptor carrying `issuer`, which RFC-AITP-0002 §1 forbids (schema-invalid) | failure: IDENTITY_FAILED |
+| `id-019` | Pinned-admission (RFC-AITP-0002 §3.4): `identity_presentation` answering an outstanding challenge, real proof, sender trusted | success |
+| `id-013` | Pinned-admission: a consumed `pop_nonce` presented again under a fresh `message_id`, all signatures valid (sequence) | failure: IDENTITY_FAILED |
+| `id-014` | Pinned-admission: a 15-byte `pop_nonce` with a proof valid over it, rejected before signature verification | failure: IDENTITY_FAILED |
+| `id-015` | Pinned-admission: `id-019`'s presentation with `message_type` `mutual_hello`; the proof still verifies | failure: INVALID_ENVELOPE |
+| `id-016` | Pinned-admission: outstanding-nonce bound 2; the third challenge is refused, not evicted, and both earlier nonces still present (dynamic sequence) | failure: CHALLENGE_REFUSED (step 3) |
+| `id-020` | Pinned-admission: the nonce expired before `now`; fresh timestamp, real proof, sender trusted | failure: IDENTITY_FAILED |
+| `id-021` | Pinned-admission: the nonce is outstanding but its challenge named another `verifier_aid`; real proof bound to `self_aid` | failure: IDENTITY_FAILED |
+| `id-022` | Pinned-admission: a replay from a source that has used its rate-limit slot gets the deny-list outcome first; then HTTP 429, then the consumed nonce from a new source (sequence) | failure: REPLAY_DETECTED (step 2) |
+
+The rows marked *Pinned-admission* are `status: extension` under `feature: aitp-pinned-admission`; a default runner SKIPs them.
 
 ### Trust Context Token (RFC-AITP-0005, RFC-AITP-0008)
 
@@ -359,6 +422,11 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | `tct-012` | TCT claims carry an unrecognized, vendor-namespaced key inside `ext` — ignored | success |
 | `tct-013` | TCT `jti` is a UUID v7, not the UUID v4 layout (RFC-AITP-0005 §2.2) — rejected before signature verification | failure: TCT_SIGNATURE_INVALID |
 | `tct-014` | TCT `jti` has version nibble `4` but wrong variant bits (`c`, not `8`–`b`) — rejected before signature verification | failure: TCT_SIGNATURE_INVALID |
+| `tct-015` | Self-issued TCT (`iss == sub`) in a grant context (RFC-AITP-0005 §5.3) | failure: TCT_SIGNATURE_INVALID |
+| `tct-016` | TCT with the `aitp.attestation` marker grant and `iss ≠ sub`, in a grant context (RFC-AITP-0005 §5.3) | failure: TCT_SIGNATURE_INVALID |
+| `tct-018` | TCT with the `aitp.attestation` marker beside, and after, an ordinary grant (`iss ≠ sub`), in a grant context (RFC-AITP-0005 §5.3) | failure: TCT_SIGNATURE_INVALID |
+| `tct-019` | Extension (`aitp-self-attestation`): otherwise valid self-attestation whose `ext` lacks the relying party's expected key (`verify_attestation`) | failure: TCT_SIGNATURE_INVALID |
+| `tct-020` | Extension (`aitp-self-attestation`): `kat-tct-002` verified as an attestation by a third-party relying party; not a grant context (`verify_attestation`) | success |
 | `tct-017` | ES256 TCT whose signature is high-S (`S > n/2`): a stock JOSE verifier accepts it, an AITP verifier rejects it (RFC-AITP-0001 §5.4.7) | failure: TCT_SIGNATURE_INVALID |
 
 ### Grant voucher (RFC-AITP-0005 §8)

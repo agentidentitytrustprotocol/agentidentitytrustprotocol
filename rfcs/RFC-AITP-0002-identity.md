@@ -2,7 +2,7 @@
 # Identity Binding
 
 **Document:** RFC-AITP-0002
-**Version:** 0.2.7-draft
+**Version:** 0.2.8-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md)
 
@@ -250,6 +250,63 @@ A `p256` sender's descriptor carries the 44-char compressed key and a tagged pro
 }
 ```
 
+### 3.4 One-way pinned-key admission (OPTIONAL profile `pinned-admission`)
+
+The pinned-key identity of §3.1–§3.3 is otherwise presented only inside the four-message Mutual Handshake ([RFC-AITP-0004](RFC-AITP-0004-mutual-handshake.md)). Some deployments admit agents to a single verifier and need no TCT in return, for example a gateway, a coordination host or a resource server. For them this section defines a one-way profile: the verifier issues a challenge and the subject answers with one presentation envelope.
+
+Inside the handshake, the envelope signature over the payload authenticates the descriptor's `type`, `subject` and `extensions`. The §3.1 proof alone covers only the five-field tuple. A standalone presentation therefore travels in an envelope, so that the envelope signature authenticates the descriptor in the same way.
+
+A verifier MAY admit a subject without a Mutual Handshake when all of the following hold:
+
+1. **Challenge.** The verifier issues a fresh `pop_nonce` of 16 bytes drawn from a CSPRNG ([RFC-AITP-0001 §11](RFC-AITP-0001-core.md#11-security-considerations)). The nonce is single-use, expires at most 300 seconds after issuance, and is bound to the verifier's own AID.
+2. **Presentation.** The subject returns an [RFC-AITP-0001 §5](RFC-AITP-0001-core.md#5-message-envelope) envelope with `message_type` `identity_presentation`, whose `payload` is exactly `{identity, pop_nonce}`. The envelope signature ([RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature)) covers `sha256(JCS(payload))`, so it authenticates the descriptor's `type`, `subject` and `extensions`. It does not cover the envelope-level `extensions`, `version` or `message_type`, and the verifier MUST NOT rely on them. The verifier MUST reject an envelope whose `message_type` is not `identity_presentation` with `INVALID_ENVELOPE`. The `proof` is computed per §3.1 with `receiver_aid_bytes` taken from the verifier's AID and `pop_nonce_decoded_bytes` from the challenge nonce.
+3. **Verification.** The verifier runs §3.2 steps 1–5 and the [RFC-AITP-0001 §5.5](RFC-AITP-0001-core.md#55-replay-protection) timestamp and `message_id` rules. A configured `pinned_keys` store is REQUIRED, per the §3.2 trust-store requirement.
+4. **Consumption.** The verifier consumes the nonce atomically before it returns success.
+
+A party that implements only this profile, as verifier or as presenter, MAY claim "AITP v0.2 pinned-admission" conformance. It MUST NOT claim conformance to [RFC-AITP-0001 §10](RFC-AITP-0001-core.md#10-conformance), which requires the Mutual Handshake and TCT issuance among other things.
+
+#### Challenge and nonce rules
+
+- `pop_nonce` MUST decode to exactly 16 bytes. A verifier MUST reject any other length with `IDENTITY_FAILED`, before any signature verification.
+- A verifier accepts a nonce only if all three hold: it issued that nonce in a challenge whose `verifier_aid` (see the challenge format below) is the verifier's own AID, the AID the §3.1 proof uses as `receiver_aid_bytes`; the nonce has not expired; and it has not been consumed. Any other nonce is rejected with `IDENTITY_FAILED`, including a nonce the verifier issued with a different AID as the challenge's `verifier_aid`, for example under another AID it operates. Lookup and consumption MUST be one atomic step, so that two presentations racing on one nonce cannot both succeed.
+- The atomic lookup-and-consume MUST run after every signature check has passed, so a forged presentation cannot burn a legitimate presenter's nonce. A verifier MAY also run a non-consuming lookup before signature verification, to shed presentations for unknown nonces cheaply.
+- A consumed nonce is never accepted again, even with a fresh `message_id`. The `message_id` deny list alone does not stop that replay.
+- The verifier MUST bound the number of outstanding nonces. When the bound is reached it MUST refuse new challenges with `CHALLENGE_REFUSED` (retryable), and MUST NOT evict unexpired nonces to make room: eviction would let one source cancel challenges already issued to others.
+- The verifier MUST apply per-source rate limiting to challenge issuance and to presentations, as [RFC-AITP-0009 §3.1](RFC-AITP-0009-security.md#31-rate-limiting) requires at the handshake endpoint, with the same source-key rules.
+- `message_id` follows [RFC-AITP-0005 §2.2](RFC-AITP-0005-tct.md#22-identifier-layout-jti). It MAY be derived from `pop_nonce` (with a tag registered in [`registries/jti-domain-tags.md`](../registries/jti-domain-tags.md)), since the nonce is already single-use.
+
+#### Challenge format (informative)
+
+The challenge is not an AITP envelope, and its transport is a deployment choice (an HTTP response body, for example). One suggested shape is:
+
+```json
+{
+  "pop_nonce": "AQIDBAUGBwgJCgsMDQ4PEA",
+  "verifier_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+  "expires_at": 1711900250
+}
+```
+
+`verifier_aid` tells the presenter which AID to use as `receiver_aid_bytes`. A refused challenge returns `CHALLENGE_REFUSED`; a rate-limited request SHOULD get HTTP 429, per RFC-AITP-0009 §3.1.
+
+#### Check order
+
+The verifier MUST process a presentation in this order:
+
+1. **`message_id` deny list** (RFC-AITP-0001 §5.5) ⇒ `REPLAY_DETECTED`. As at the handshake endpoint, a replay does not consume a rate-limit slot.
+2. **Per-source rate limit** (RFC-AITP-0009 §3.1) ⇒ HTTP 429.
+3. **Timestamp window** (RFC-AITP-0001 §5.5) ⇒ `TIMESTAMP_EXPIRED`.
+4. **Envelope structure**: schema-valid, `message_type` is `identity_presentation`, payload members exactly `identity` and `pop_nonce` ⇒ `INVALID_ENVELOPE` (`UNKNOWN_FIELD` when the only defect is an unknown member).
+5. **Nonce length**: `pop_nonce` decodes to 16 bytes ⇒ `IDENTITY_FAILED`.
+6. **§3.2 steps 1–3**: `type`, key equality and the `pinned_keys` lookup ⇒ `IDENTITY_FAILED`.
+7. **Envelope signature** (RFC-AITP-0001 §5.4) ⇒ `INVALID_SIGNATURE`.
+8. **§3.2 steps 4–5**: the proof over the tuple ⇒ `IDENTITY_FAILED`.
+9. **Atomic nonce lookup-and-consume** ⇒ `IDENTITY_FAILED`.
+
+On success the verifier records the `message_id` in its deny list and admits the subject. The result is an admission decision local to this verifier. No TCT is issued, and the presentation confers no capability on any other peer.
+
+> **Conformance fixtures.** `id-019` is a passing presentation with a real §3.1 proof. `id-013` presents a consumed nonce again under a fresh `message_id`, `id-014` presents a 15-byte nonce, and `id-015` sends `id-019`'s presentation with only `message_type` changed; the proof still verifies there, because the proof does not cover `message_type`. `id-016` fills a two-nonce store and has the third challenge refused. It then presents both outstanding nonces successfully, and the refused source's retry succeeds. `id-020` presents an expired nonce and `id-021` a nonce whose challenge named a different `verifier_aid`; both carry real proofs, so they fail only at step 9. `id-022` replays an admitted presentation from a source that is also over its rate limit: the deny list answers first with `REPLAY_DETECTED`. These eight fixtures are `status: extension` under `feature: aitp-pinned-admission`. Atomic consumption under concurrent presentations is not expressible as a sequential fixture. `tct-015`, `tct-016`, `tct-018`, `tct-019` and `tct-020` ([RFC-AITP-0005 §5.3](RFC-AITP-0005-tct.md#53-self-issued-attestation-tcts)) cover the self-attestation side.
+
 ---
 
 ## 4. Trust Anchors
@@ -310,6 +367,7 @@ Peers receiving an unknown `type` MUST respond with `IDENTITY_FAILED`. New types
 - Together, `aud`, `nonce`, and `cnf.jkt` make the OIDC identity binding **non-transferable across peers, handshakes, and key pairs** in the same way TCTs are non-transferable.
 - The pinned-key proof input (§3.1) MUST bind sender AID, receiver AID, `message_id`, `timestamp`, AND the handshake `pop_nonce`. Earlier drafts that signed only `message_id|timestamp` did not bind sender or receiver and admitted cross-peer replay; the v0.1 proof input (unchanged in v0.2) is the minimum that prevents it. Implementations MUST NOT accept the legacy two-field input.
 - A peer MUST NOT relax issuer-list checks based on `reason` strings or any client-supplied hint.
+- In the `pinned-admission` profile (§3.4), the verifier holds challenge state before it knows who is asking, so challenge issuance is an amplification and exhaustion surface. Three rules defend it, and each is load-bearing. The outstanding-nonce bound stops memory exhaustion. Refusing rather than evicting stops one source from cancelling challenges already issued to others. Consuming the nonce only after every signature check stops a forged presentation from burning a legitimate presenter's nonce.
 
 ---
 

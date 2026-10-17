@@ -8,6 +8,8 @@ Capability strings appear in `requested_grants` (`MUTUAL_HELLO` / `MUTUAL_HELLO_
 
 `<namespace>.<resource>.<action>` — lowercase, dot-separated, no whitespace. Reverse-domain notation for vendor-specific capabilities.
 
+**Exception: `aitp.attestation`.** This marker grant has two segments, not three, and confers no capability. It appears only as the sole grant of a self-attestation TCT (`iss == sub == aud`, [RFC-AITP-0005 §5.3](../rfcs/RFC-AITP-0005-tct.md#53-self-issued-attestation-tcts)). An issuer MUST NOT mint it with `iss ≠ sub`, and a verifier that evaluates a TCT as a capability grant MUST reject any TCT that contains it. No other entry may use the two-segment form.
+
 ## Reserved namespaces
 
 | Namespace | Owner | Description | Status |
@@ -16,6 +18,7 @@ Capability strings appear in `requested_grants` (`MUTUAL_HELLO` / `MUTUAL_HELLO_
 | `aitp.delegation.v1` | AITP core | Single-hop delegation. | Stable |
 | `aitp.tct.verify.v1` | AITP core | TCT verification API. | Stable |
 | `aitp.tct.revoke.v1` | AITP core | TCT revocation API. | Stable |
+| `aitp.attestation` | AITP core | Marker grant for a self-attestation TCT (RFC-AITP-0005 §5.3). Confers no capability; rejected in every grant context. The one exception to the three-segment naming form. | Provisional |
 | `macp.*` | Multi-Agent Coordination Protocol | Coordination kernel grants (e.g. `macp.session.start`, `macp.mode.task.v1`). | Stable |
 
 ## Adding a capability

@@ -1157,6 +1157,8 @@ function checkSignedExamples() {
     { rel: 'grant-voucher/kat-voucher-001.json', typ: 'aitp-grant+jwt', tokenMember: 'voucher_token' },
     { rel: 'delegation/single-hop-001-002-003.json', typ: 'aitp-delegation+jwt', tokenMember: 'delegation_token' },
     { rel: 'tct/kat-keypair-005-issues-002.json', typ: 'aitp-tct+jwt', tokenMember: 'tct_token' },
+    { rel: 'tct/kat-keypair-001-self-attestation.json', typ: 'aitp-tct+jwt', tokenMember: 'tct_token' },
+    { rel: 'tct/kat-keypair-005-self-attestation.json', typ: 'aitp-tct+jwt', tokenMember: 'tct_token' },
   ];
   for (const art of jwsArtifacts) {
     const path = join(SIGNED, art.rel);
@@ -1197,6 +1199,57 @@ function checkSignedExamples() {
   }
 
   checkEnvelopeExample();
+  checkSelfAttestations();
+}
+
+// Self-attestation TCTs (RFC-AITP-0005 §5.3), kat-tct-002 (EdDSA) and kat-tct-003
+// (ES256). The signature is verified above with the other JWS artifacts; this pins
+// what makes them attestations: jti recomputed from the registered KAT tag and the
+// vector id, iss == sub == aud, the sole marker grant, cnf.jkt equal to the
+// issuer's own thumbprint, and the ext statement.
+const SELF_ATTESTATIONS = [
+  { rel: 'tct/kat-keypair-001-self-attestation.json', vector: 'kat-tct-002-self-attestation', seed: 'kat-keypair-001', alg: 'EdDSA' },
+  { rel: 'tct/kat-keypair-005-self-attestation.json', vector: 'kat-tct-003-p256-self-attestation', seed: 'kat-keypair-005-p256', alg: 'ES256' },
+];
+const ATTESTATION_TAG = 'aitp-kat-attestation-v1';
+function checkSelfAttestations() {
+  const thumbs = readJson(join(KAT, 'jwk-thumbprints.json')).vectors;
+  for (const v of SELF_ATTESTATIONS) {
+    check(`${v.rel}: ${v.vector} is a well-formed self-attestation (RFC-AITP-0005 §5.3)`, () => {
+      const file = readJson(join(SIGNED, v.rel));
+      const kin = file._kat_input;
+      const header = JSON.parse(Buffer.from(file.tct_token.split('.')[0], 'base64url').toString('utf8'));
+      eq(header.alg, v.alg, 'header alg');
+      eq(kin.vector_id, v.vector, '_kat_input.vector_id');
+      eq(kin.issuer_seed_id, v.seed, '_kat_input.issuer_seed_id');
+      eq(kin.subject_seed_id, v.seed, '_kat_input.subject_seed_id');
+      const c = verifyCompactJws(file.tct_token, 'aitp-tct+jwt');
+      eq(c.iss, c.sub, 'iss vs sub');
+      eq(c.aud, c.sub, 'aud vs sub');
+      eq(jcs(c.grants), jcs(['aitp.attestation']), 'grants');
+      eq(c.iat, 1711900000, 'iat');
+      eq(c.exp, 4867660000, 'exp');
+      const keypair = readJson(join(KAT, 'keypairs.json')).vectors.find((k) => k.id === v.seed);
+      if (!keypair) throw new Error(`keypair ${v.seed} is not in keypairs.json`);
+      eq(c.iss, keypair.aid, 'iss vs the pinned keypair AID');
+      const thumb = thumbs.find((t) => t.keypair_ref === v.seed);
+      if (!thumb) throw new Error(`no thumbprint vector for ${v.seed}`);
+      eq(c.cnf?.jkt, thumb.jkt, 'cnf.jkt vs the issuer key thumbprint');
+      eq(jcs(c.ext), jcs({ 'org.aitp.kat': { statement: `${v.vector} archival attestation` } }), 'ext statement');
+    });
+    check(`${v.rel}: jti = derived UUID over "${ATTESTATION_TAG}" and the vector id`, () => {
+      const file = readJson(join(SIGNED, v.rel));
+      if (!registeredDomainTags().includes(ATTESTATION_TAG)) throw new Error(`${ATTESTATION_TAG} is not in registries/jti-domain-tags.md`);
+      const want = derivedUuid(utf8(ATTESTATION_TAG), utf8(v.vector));
+      if (!UUID_V4.test(want)) throw new Error(`derived jti ${want} is not in the UUID v4 layout`);
+      eq(file.decoded_claims.jti, want, 'decoded_claims.jti');
+      eq(file._kat_input.jti, want, '_kat_input.jti');
+      const d = file._kat_input.jti_derivation;
+      eq(d?.tag, ATTESTATION_TAG, 'jti_derivation.tag');
+      eq(d?.input, v.vector, 'jti_derivation.input');
+      eq(d?.jti, want, 'jti_derivation.jti');
+    });
+  }
 }
 
 // The P-256 envelope example (RFC-AITP-0001 §5.4): the only committed envelope
@@ -1339,14 +1392,14 @@ function checkTct017() {
 
 // RFC-AITP-0002 §3.1 proof_input from a {sender_aid, receiver_aid, message_id,
 // timestamp, pop_nonce} tuple; the timestamp is its ASCII decimal string.
-function pinnedProofInput(t) {
+function pinnedProofInput(t, nonceLen = 16) {
   return Buffer.concat([
     utf8('aitp-pinned-key-v1\0'),
     utf8(t.sender_aid), utf8('\0'),
     utf8(t.receiver_aid), utf8('\0'),
     utf8(t.message_id), utf8('\0'),
     utf8(String(t.timestamp)), utf8('\0'),
-    b64uDecode(t.pop_nonce, 16, 'pop_nonce'),
+    b64uDecode(t.pop_nonce, nonceLen, 'pop_nonce'),
   ]);
 }
 
@@ -1422,6 +1475,220 @@ function checkPinnedFixtures() {
   });
 }
 
+// ── pinned-admission and grant-context fixtures (RFC-AITP-0002 §3.4, RFC-AITP-0005 §5.3)
+
+function presentationTuple(f, env) {
+  return { sender_aid: env.sender.agent_id, receiver_aid: f.input.self_aid, message_id: env.message_id, timestamp: env.timestamp, pop_nonce: env.payload.pop_nonce };
+}
+function checkPresentation(f, env, nonceLen = 16) {
+  eq(jcs(Object.keys(env.payload).sort()), jcs(['identity', 'pop_nonce']), 'payload members');
+  const idn = env.payload.identity;
+  eq(idn.type, 'pinned_key', 'identity.type');
+  eq(idn.public_key, b64uEncode(aidKey(env.sender.agent_id).raw), 'public_key vs sender AID key');
+  if (!f.input.trust_store?.includes(env.sender.agent_id)) throw new Error('trust_store does not contain the sender');
+  const input = pinnedProofInput(presentationTuple(f, env), nonceLen);
+  if (!verifySingleHash(env.sender.agent_id, input, idn.proof, 'identity.proof')) throw new Error('identity.proof does not verify over the presentation tuple');
+}
+function checkPinnedAdmission() {
+  console.log('── pinned-admission fixtures (RFC-AITP-0002 §3.4) and grant-context TCT fixtures (RFC-AITP-0005 §5.3) ──');
+  const dir = join(ROOT, 'schemas/conformance');
+  const load = (prefix) => {
+    const name = readdirSync(dir).find((n) => n.startsWith(`${prefix}-`) && n.endsWith('.json'));
+    if (!name) throw new Error(`fixture ${prefix} is missing`);
+    return readJson(join(dir, name));
+  };
+  const challenge = (f) => {
+    const ch = f.input.outstanding_challenges;
+    if (!Array.isArray(ch) || ch.length !== 1) throw new Error('expected exactly one outstanding challenge');
+    eq(ch[0].verifier_aid, f.input.self_aid, 'challenge verifier_aid vs self_aid');
+    eq(b64uDecode(ch[0].pop_nonce, 16, 'challenge pop_nonce').length, 16, 'challenge nonce length');
+    return ch[0];
+  };
+  check('id-019: identity_presentation succeeds with a real proof over the challenge nonce', () => {
+    const f = load('id-019');
+    const env = f.input.envelope;
+    eq(f.input.operation, 'verify_identity_presentation', 'operation');
+    eq(env.message_type, 'identity_presentation', 'message_type');
+    eq(env.payload.pop_nonce, challenge(f).pop_nonce, 'pop_nonce vs challenge');
+    if (env.timestamp > challenge(f).expires_at) throw new Error('presentation is after the challenge expires');
+    checkPresentation(f, env);
+    eq(f.expected.outcome, 'success', 'expected.outcome');
+  });
+  check('id-015: id-019 with only message_type changed; proof still verifies; INVALID_ENVELOPE', () => {
+    const f = load('id-015');
+    const g = load('id-019');
+    const env = f.input.envelope;
+    eq(env.message_type, 'mutual_hello', 'message_type');
+    eq(jcs({ ...env, message_type: 'identity_presentation' }), jcs(g.input.envelope), 'envelope differs from id-019 beyond message_type');
+    checkPresentation(f, env);
+    eq(f.expected.outcome, 'failure', 'expected.outcome');
+    eq(f.expected.error_code, 'INVALID_ENVELOPE', 'expected.error_code');
+  });
+  check('id-014: 15-byte nonce with a proof that verifies over it; IDENTITY_FAILED', () => {
+    const f = load('id-014');
+    const env = f.input.envelope;
+    const presented = b64uDecode(env.payload.pop_nonce, 15, 'presented pop_nonce');
+    const issued = b64uDecode(challenge(f).pop_nonce, 16, 'challenge pop_nonce');
+    if (!presented.equals(issued.subarray(0, 15))) throw new Error('presented nonce is not the 15-byte truncation of the challenge');
+    let threw = false;
+    try { pinnedProofInput(presentationTuple(f, env)); } catch { threw = true; }
+    if (!threw) throw new Error('the 16-byte proof_input builder accepted a 15-byte nonce');
+    checkPresentation(f, env, 15);
+    eq(pinnedProofInput(presentationTuple(f, env), 15).length, 192, 'proof_input length');
+    eq(f.expected.error_code, 'IDENTITY_FAILED', 'expected.error_code');
+  });
+  check('id-013: both steps carry valid proofs over the same nonce; step 2 is IDENTITY_FAILED', () => {
+    const f = load('id-013');
+    const [s1, s2] = f.input.sequence;
+    const nonce = challenge(f).pop_nonce;
+    eq(jcs(s1.envelope), jcs(load('id-019').input.envelope), 'step 1 vs id-019 envelope');
+    eq(s2.envelope.payload.pop_nonce, nonce, 'step 2 pop_nonce');
+    if (s1.envelope.message_id === s2.envelope.message_id) throw new Error('step 2 must use a fresh message_id');
+    checkPresentation(f, s1.envelope);
+    checkPresentation(f, s2.envelope);
+    eq(s1.expected.outcome, 'success', 'step 1 outcome');
+    eq(s2.expected.error_code, 'IDENTITY_FAILED', 'step 2 error_code');
+  });
+  check('id-016: bound 2, third challenge refused from a distinct source, both nonces then present', () => {
+    const f = load('id-016');
+    eq(f.input.max_outstanding_nonces, 2, 'max_outstanding_nonces');
+    const seq = f.input.sequence;
+    const issues = seq.filter((s) => s.operation === 'issue_presentation_challenge');
+    eq(new Set(issues.slice(0, 3).map((s) => s.source)).size, 3, 'distinct sources for the first three challenges');
+    eq(seq[2].expected.error_code, 'CHALLENGE_REFUSED', 'step 3 error_code');
+    eq(seq[3].envelope.payload.pop_nonce, '__ISSUED_NONCE_1__', 'step 4 nonce');
+    eq(seq[4].envelope.payload.pop_nonce, '__ISSUED_NONCE_2__', 'step 5 nonce');
+    for (const i of [0, 1, 3, 4, 5]) eq(seq[i].expected.outcome, 'success', `step ${i + 1} outcome`);
+  });
+  check('id-020: expired nonce, real proof, fresh timestamp; IDENTITY_FAILED', () => {
+    const f = load('id-020');
+    const env = f.input.envelope;
+    const ch = challenge(f);
+    eq(env.payload.pop_nonce, ch.pop_nonce, 'pop_nonce vs challenge');
+    eq(env.timestamp, f.input.now, 'envelope timestamp vs now');
+    if (!(ch.expires_at < f.input.now)) throw new Error('the challenge has not expired at now');
+    if (f.input.now - ch.expires_at > 300) throw new Error('expiry is further back than one challenge lifetime');
+    checkPresentation(f, env);
+    eq(f.expected.error_code, 'IDENTITY_FAILED', 'expected.error_code');
+  });
+  check('id-021: nonce outstanding under another verifier_aid; proof bound to self_aid; IDENTITY_FAILED', () => {
+    const f = load('id-021');
+    const env = f.input.envelope;
+    const ch = f.input.outstanding_challenges;
+    if (!Array.isArray(ch) || ch.length !== 1) throw new Error('expected exactly one outstanding challenge');
+    eq(env.payload.pop_nonce, ch[0].pop_nonce, 'pop_nonce vs challenge');
+    if (ch[0].verifier_aid === f.input.self_aid) throw new Error('challenge must name a verifier_aid other than self_aid');
+    eq(ch[0].verifier_aid, readJson(join(KAT, 'keypairs.json')).vectors.find((k) => k.id === 'kat-keypair-002').aid, 'challenge verifier_aid');
+    if (env.timestamp > ch[0].expires_at) throw new Error('the challenge must be unexpired, so the AID is the only defect');
+    checkPresentation(f, env);
+    eq(f.expected.error_code, 'IDENTITY_FAILED', 'expected.error_code');
+  });
+  check('id-022: deny list before per-source rate limit; replay from an exhausted source is REPLAY_DETECTED', () => {
+    const f = load('id-022');
+    const [s1, s2, s3, s4] = f.input.sequence;
+    eq(f.input.presentation_rate_limit?.per_source, 1, 'presentation_rate_limit.per_source');
+    eq(jcs(s1.envelope), jcs(load('id-019').input.envelope), 'step 1 vs id-019 envelope');
+    eq(jcs(s2.envelope), jcs(s1.envelope), 'step 2 replays step 1');
+    eq(jcs(s3.envelope), jcs(load('id-013').input.sequence[1].envelope), 'step 3 vs id-013 step 2 envelope');
+    eq(jcs(s4.envelope), jcs(s3.envelope), 'step 4 resends step 3');
+    for (const s of [s1, s3]) checkPresentation(f, s.envelope);
+    eq(s1.source, s2.source, 'steps 1 and 2 share a source');
+    eq(s2.source, s3.source, 'steps 2 and 3 share a source');
+    if (s4.source === s3.source) throw new Error('step 4 must use a fresh source');
+    eq(s1.expected.outcome, 'success', 'step 1 outcome');
+    eq(s2.expected.error_code, 'REPLAY_DETECTED', 'step 2 error_code');
+    eq(s3.expected.http_status, 429, 'step 3 http_status');
+    if ('error_code' in s3.expected) throw new Error('a rate-limited step carries no AITP error code');
+    eq(s4.expected.error_code, 'IDENTITY_FAILED', 'step 4 error_code');
+  });
+  check('pinned-admission fixtures are extension-gated; the grant-context TCT fixtures stay core', () => {
+    const names = readdirSync(dir).filter((n) => /^id-.*\.json$/.test(n));
+    const gated = names.map((n) => readJson(join(dir, n))).filter((f) =>
+      f.input?.operation === 'verify_identity_presentation' || (f.input?.sequence ?? []).some((s) => /presentation/.test(s.operation ?? '')));
+    eq(jcs(gated.map((f) => f.id).sort()), jcs(['id-013', 'id-014', 'id-015', 'id-016', 'id-019', 'id-020', 'id-021', 'id-022']), 'pinned-admission fixture set');
+    for (const f of gated) {
+      eq(f.status, 'extension', `${f.id} status`);
+      eq(f.feature, 'aitp-pinned-admission', `${f.id} feature`);
+      eq(f.required_for_v0_2, false, `${f.id} required_for_v0_2`);
+      eq(f.required_for_v0_1, false, `${f.id} required_for_v0_1`);
+    }
+    for (const id of ['tct-015', 'tct-016', 'tct-018']) {
+      const f = load(id);
+      eq(f.status, 'core', `${id} status`);
+      eq(f.required_for_v0_2, true, `${id} required_for_v0_2`);
+    }
+    for (const id of ['tct-019', 'tct-020']) {
+      const f = load(id);
+      eq(f.status, 'extension', `${id} status`);
+      eq(f.feature, 'aitp-self-attestation', `${id} feature`);
+    }
+  });
+  check('registries/error-codes.md: CHALLENGE_REFUSED is registered as retryable', () => {
+    const md = readFileSync(join(ROOT, 'registries/error-codes.md'), 'utf8');
+    const row = md.split('\n').find((l) => l.startsWith('| `CHALLENGE_REFUSED` |'));
+    if (!row) throw new Error('CHALLENGE_REFUSED row missing');
+    eq(row.split('|')[3].trim(), 'true', 'Retryable column');
+  });
+  check('tct-015: self-issued TCT (iss == sub) in a grant context; TCT_SIGNATURE_INVALID', () => {
+    const f = load('tct-015');
+    const c = f.input.tct_token_claims;
+    eq(c.iss, c.sub, 'iss vs sub');
+    eq(c.aud, f.input.expected_audience, 'aud vs expected_audience');
+    if (c.grants.includes('aitp.attestation')) throw new Error('tct-015 must isolate iss == sub, without the marker');
+    eq(b64uEncode(aidKey(c.iss).raw), f.input.issuer_pubkey, 'issuer_pubkey');
+    eq(f.expected.error_code, 'TCT_SIGNATURE_INVALID', 'expected.error_code');
+  });
+  check('tct-016: aitp.attestation marker with iss != sub in a grant context; TCT_SIGNATURE_INVALID', () => {
+    const f = load('tct-016');
+    const c = f.input.tct_token_claims;
+    if (c.iss === c.sub) throw new Error('tct-016 must isolate the marker, with iss != sub');
+    eq(jcs(c.grants), jcs(['aitp.attestation']), 'grants');
+    eq(c.aud, f.input.expected_audience, 'aud vs expected_audience');
+    eq(b64uEncode(aidKey(c.iss).raw), f.input.issuer_pubkey, 'issuer_pubkey');
+    eq(f.expected.error_code, 'TCT_SIGNATURE_INVALID', 'expected.error_code');
+  });
+  check('tct-018: aitp.attestation beside an ordinary grant, not first, iss != sub; TCT_SIGNATURE_INVALID', () => {
+    const f = load('tct-018');
+    const c = f.input.tct_token_claims;
+    if (c.iss === c.sub) throw new Error('tct-018 must not trip the iss == sub rule');
+    if (!c.grants.includes('aitp.attestation')) throw new Error('marker missing');
+    if (c.grants.length < 2 || c.grants[0] === 'aitp.attestation') throw new Error('the marker must sit beside, and after, an ordinary grant');
+    eq(c.aud, f.input.expected_audience, 'aud vs expected_audience');
+    eq(b64uEncode(aidKey(c.iss).raw), f.input.issuer_pubkey, 'issuer_pubkey');
+    eq(f.input.operation, 'verify_tct', 'operation');
+    eq(f.expected.error_code, 'TCT_SIGNATURE_INVALID', 'expected.error_code');
+  });
+  const attestationShape = (f) => {
+    const c = f.input.tct_token_claims;
+    eq(f.input.operation, 'verify_attestation', 'operation');
+    eq(c.iss, c.sub, 'iss vs sub');
+    eq(c.aud, c.sub, 'aud vs sub');
+    eq(jcs(c.grants), jcs(['aitp.attestation']), 'grants');
+    eq(c.cnf?.jkt, readJson(join(KAT, 'jwk-thumbprints.json')).vectors.find((t) => t.keypair_ref === 'kat-keypair-001').jkt, 'cnf.jkt');
+    if (f.input.self_aid === c.aud) throw new Error('the relying party must be a third party, not the attestation audience');
+    if (!f.input.trust_store?.includes(c.iss)) throw new Error('the relying party has no record of the issuer key');
+    eq(f.input.waive_manifest_cap, true, 'waive_manifest_cap');
+    return c;
+  };
+  check('tct-019: well-formed attestation whose ext lacks the expected key; TCT_SIGNATURE_INVALID', () => {
+    const f = load('tct-019');
+    const c = attestationShape(f);
+    if (!c.ext || Object.keys(c.ext).length === 0) throw new Error('ext must carry some other key, so ignoring unknown keys is exercised');
+    if (f.input.expected_ext_key in c.ext) throw new Error('ext must lack the expected key');
+    eq(f.expected.error_code, 'TCT_SIGNATURE_INVALID', 'expected.error_code');
+  });
+  check('tct-020: kat-tct-002 verifies as an attestation for a third party (not a grant context)', () => {
+    const f = load('tct-020');
+    const kat = readJson(join(SIGNED, 'tct/kat-keypair-001-self-attestation.json'));
+    eq(f.input.tct_token, kat.tct_token, 'tct_token vs kat-tct-002');
+    const c = verifyCompactJws(f.input.tct_token, 'aitp-tct+jwt');
+    eq(jcs(c), jcs(f.input.tct_token_claims), 'tct_token_claims vs the token payload');
+    attestationShape(f);
+    if (!(f.input.expected_ext_key in c.ext)) throw new Error('the expected statement key is missing');
+    eq(f.expected.outcome, 'success', 'expected.outcome');
+  });
+}
+
 // ── main ─────────────────────────────────────────────────────────────────────
 
 console.log('Verifying pinned known-answer values...\n');
@@ -1432,12 +1699,13 @@ checkSignedExamples();
 checkSignatureStrictness();
 checkTct017();
 checkPinnedFixtures();
+checkPinnedAdmission();
 
 // Third anchor against a hollowed guard. The manifests above catch a deleted or
 // emptied vector member; this catches coverage lost any other way — a check
 // commented out, a loop that stops early, a gate that stops matching. Coverage may
 // grow (raise this number in the same commit); it may never silently shrink.
-const EXPECTED_MIN_CHECKS = 126;
+const EXPECTED_MIN_CHECKS = 148;
 if (checks < EXPECTED_MIN_CHECKS) {
   failures.push(
     `coverage regression: ran ${checks} checks, expected at least ${EXPECTED_MIN_CHECKS}. ` +

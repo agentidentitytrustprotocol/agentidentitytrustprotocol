@@ -96,7 +96,7 @@ Returned when a peer evaluates a TCT outside the handshake context — e.g. via 
 |---|---|---|---|
 | `TCT_EXPIRED` | TCT `exp` is in the past. | false | core |
 | `TCT_REVOKED` | TCT `jti` is in the issuing peer's deny list. | false | core |
-| `TCT_SIGNATURE_INVALID` | TCT JWS signature does not validate under the issuing peer's key. | false | core |
+| `TCT_SIGNATURE_INVALID` | TCT JWS signature does not validate under the issuing peer's key. Also the TCT's structural-rejection code (see [Structural rejection](#structural-rejection)): a claim set that does not decode, a `jti` outside the RFC-AITP-0005 §2.2 layout, and, in a grant context, a self-issued TCT (`iss == sub`) or any TCT carrying the `aitp.attestation` marker grant, and, to a relying party verifying a self-attestation, an attestation-shape defect or an `ext` lacking the key it expects ([RFC-AITP-0005 §5.3](../rfcs/RFC-AITP-0005-tct.md#53-self-issued-attestation-tcts)). | false | core |
 | `TCT_EXPIRES_AFTER_MANIFEST` | TCT `exp` exceeds the issuing peer's Manifest `expires_at` (RFC-AITP-0004 §4.3). The peer-issued TCT cannot outlive the credential that authenticates its issuer's key. | false | core |
 
 ## Downstream PoP codes (RFC-AITP-0005 §6)
@@ -105,6 +105,14 @@ Returned when a peer evaluates a TCT outside the handshake context — e.g. via 
 |---|---|---|---|
 | `POP_CHALLENGE_INVALID` | Challenge envelope was malformed or stale. | false | core |
 | `POP_RESPONSE_INVALID` | Response signature failed verification against the subject key bound via `cnf.jkt`. | false | core |
+
+## Pinned-admission codes (RFC-AITP-0002 §3.4)
+
+Returned by a verifier implementing the OPTIONAL one-way pinned-admission profile of [RFC-AITP-0002 §3.4](../rfcs/RFC-AITP-0002-identity.md#34-one-way-pinned-key-admission-optional-profile-pinned-admission). A presentation that fails verification uses the existing codes (`IDENTITY_FAILED`, `INVALID_ENVELOPE`, `INVALID_SIGNATURE`, `REPLAY_DETECTED`, `TIMESTAMP_EXPIRED`), per the §3.4 check order.
+
+| Code | Meaning | Retryable | spec_status |
+|---|---|---|---|
+| `CHALLENGE_REFUSED` | The verifier refused to issue a new `pop_nonce` challenge because its bound on outstanding nonces is reached; RFC-AITP-0002 §3.4 requires refusal rather than eviction of unexpired nonces. Retrying after outstanding nonces are consumed or expire can succeed. A per-source rate-limit refusal is an HTTP 429 instead (RFC-AITP-0009 §3.1). | true | core |
 
 ## Manifest codes (RFC-AITP-0003)
 

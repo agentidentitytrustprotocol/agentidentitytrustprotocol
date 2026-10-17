@@ -2,7 +2,7 @@
 # Extensions (ZK, TEE) — Reserved
 
 **Document:** RFC-AITP-0012
-**Version:** 0.2.0-reserved
+**Version:** 0.2.1-reserved
 **Status:** Reserved
 
 ---
@@ -124,14 +124,16 @@ The voucher shape above is illustrative only. The concrete disclosure format, th
 
 A v0.2 peer receiving an envelope or Manifest with an `extensions` object — or a JWS artifact with an `ext` claim — MUST ignore unknown keys inside it. A v0.2 peer MUST NOT make a trust decision based on `extensions.zk`, `extensions.tee`, or `ext.sd_grant`. Production deployments that need these guarantees today should run an implementation that adopts the future, normative version of this RFC.
 
+**One normative use of `ext` in v0.2.** A self-attestation TCT ([RFC-AITP-0005 §5.3](RFC-AITP-0005-tct.md#53-self-issued-attestation-tcts)) carries its statement in `ext`, under a namespaced key the relying party expects. Consuming that key is the purpose of the attestation, and RFC-AITP-0005 §5.3 governs it, not this section. It is the only exception: the statement is a signed claim by the issuer about itself, it confers no capability, and the extension families above stay advisory.
+
 ---
 
 ## 6. Security Considerations
 
-The contents of `extensions.zk`, `extensions.tee`, and `ext.sd_grant` are non-normative for v0.2. Implementations MUST treat extension data as advisory metadata and MUST NOT make a trust decision based on it. A future, normative version of this RFC will specify the security model for each extension family. Pending that work, the following constraints are already in force:
+The contents of `extensions.zk`, `extensions.tee`, and `ext.sd_grant` are non-normative for v0.2. Implementations MUST treat extension data as advisory metadata and MUST NOT make a trust decision based on it, except for the self-attestation statement of [RFC-AITP-0005 §5.3](RFC-AITP-0005-tct.md#53-self-issued-attestation-tcts) (§5). A future, normative version of this RFC will specify the security model for each extension family. Pending that work, the following constraints are already in force:
 
 - **No silent trust elevation.** A v0.2 peer MUST NOT grant additional capabilities or extend a TCT's lifetime because a peer presented `extensions.zk`, `extensions.tee`, or `ext.sd_grant` data.
-- **Unknown extensions ignored for trust decisions.** Unknown keys under `extensions` (and inside the JWS `ext` claim) MUST NOT cause a verification failure (RFC-AITP-0001 §7). They are still part of the *signed object* — the JCS canonical form covers the entire `extensions` field if present, and on a compact-JWS artifact the `ext` claim is covered by the signature over the transmitted bytes; removing a key would change the signing input and break the signature. v0.2 implementations MUST NOT grant additional authority based on extension content. Future RFCs may make specific extension keys normative.
+- **Unknown extensions ignored for trust decisions.** Unknown keys under `extensions` (and inside the JWS `ext` claim) MUST NOT cause a verification failure (RFC-AITP-0001 §7). They are still part of the *signed object* — the JCS canonical form covers the entire `extensions` field if present, and on a compact-JWS artifact the `ext` claim is covered by the signature over the transmitted bytes; removing a key would change the signing input and break the signature. v0.2 implementations MUST NOT grant additional authority based on extension content; a self-attestation statement (RFC-AITP-0005 §5.3) grants none. Future RFCs may make specific extension keys normative.
 - **Vendor namespacing.** Vendor extensions under reverse-domain prefixes (`extensions.com.example.feature`) inherit the same constraints. Vendors MUST NOT use vendor namespaces to inject implicit trust signals.
 - **Replay surface.** Once an extension is normative, its inputs (e.g. ZK proof public inputs, TEE attestation nonces) MUST be bound to the same handshake nonce or envelope `message_id` that protects the rest of the payload.
 

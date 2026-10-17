@@ -2,7 +2,7 @@
 # Trust Context Token (TCT)
 
 **Document:** RFC-AITP-0005
-**Version:** 0.2.4-draft
+**Version:** 0.2.5-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0004 Mutual Handshake](RFC-AITP-0004-mutual-handshake.md)
 
@@ -131,6 +131,8 @@ Grants SHOULD follow a dot-namespaced format: `<namespace>.<resource>.<action>`.
 - `read_data`
 - `write_data`
 
+The reserved marker grant `aitp.attestation` (§5.3) is a deliberate two-segment exception. It names no capability, and appears only in a self-attestation.
+
 ### 4.2 Semantics
 
 - Grants are **additive** — the subject has every capability listed.
@@ -173,6 +175,22 @@ Wildcard audiences (`"*"`) are NOT permitted. Every TCT is bound to exactly one 
 ### 5.2 Audience validation
 
 A peer consuming a TCT MUST verify that `aud` matches its own AID. TCTs with a mismatched audience MUST be rejected with `AUDIENCE_MISMATCH`.
+
+### 5.3 Self-issued attestation TCTs
+
+A TCT with `iss == sub == aud` is a **self-attestation**: a signed statement by the issuer about itself, for example the commitment to a decision record kept as archival evidence. It confers no capability. It is not issued by the Mutual Handshake, whose TCTs always have `iss ≠ sub`.
+
+- **Grant contexts.** A *grant context* is any context that evaluates a TCT as a capability grant: the Mutual Handshake ([RFC-AITP-0004 §4](RFC-AITP-0004-mutual-handshake.md#4-tct-issuance-rules)), the consumer rules of §10, the verification API of §11, and a delegation's source TCT ([RFC-AITP-0006](RFC-AITP-0006-delegation.md)). A verifier in a grant context MUST reject a TCT with `iss == sub`, with `TCT_SIGNATURE_INVALID`. This follows the self-delegation rule of RFC-AITP-0006 §4 step 8 and RFC-AITP-0011 §3, and the structural-rejection rule of [`registries/error-codes.md`](../registries/error-codes.md#structural-rejection): a compact-JWS artifact collapses a structural defect onto its signature-family code. It is not `AUDIENCE_MISMATCH`, because `aud` does equal the verifier's AID there.
+- **Marker grant.** `grants` stays non-empty (§2). An attestation carries exactly one grant, the reserved marker `aitp.attestation` ([`registries/capabilities.md`](../registries/capabilities.md)), which names no capability. An issuer MUST NOT mint a TCT containing `aitp.attestation` with `iss ≠ sub`, and MUST NOT put it beside any other grant. A verifier in a grant context MUST reject any TCT whose `grants` contains `aitp.attestation`, with `TCT_SIGNATURE_INVALID`, whatever its `iss`.
+- **Statement.** The attested content goes in `ext`, under a namespaced key per [RFC-AITP-0012](RFC-AITP-0012-extensions.md) (an AITP-registered key, or a reverse-domain vendor key). `ext` is inside the JWS payload, so it is signed. The §2 rule that unknown keys inside `ext` MUST be ignored still applies to keys the relying party does not consume. A relying party MUST reject an attestation whose `ext` lacks the key it expects, with `TCT_SIGNATURE_INVALID` (`tct-019`).
+- **`typ`, `cnf` and `jti`.** An attestation is an ordinary TCT on the wire: header `typ` `aitp-tct+jwt`, the claims of §2 and no others. A distinct attestation `typ` is not defined, and a verifier MUST reject any other `typ` with `TOKEN_TYP_MISMATCH` (§7.2 step 2). An attestation MUST carry `cnf` (§3), which binds the issuer's own key, since `sub` is the issuer. `jti` follows §2.2 and MAY be derived, so that re-minting the same statement yields the same token.
+- **Lifetime.** An attestation MAY be long-lived. When the issuer publishes no Manifest, the §9.1 and §10.4 Manifest bounds have nothing to bind to. A relying party MUST then decide explicitly to waive the Manifest cap, and MUST establish from its own records (an enrollment or key-history record, for example) that the issuer key was trusted at `iat`. It MUST NOT treat a far-future `exp` alone as evidence of validity. When the issuer does publish a Manifest, §10.4 applies unchanged.
+- **Verification.** Verifying an attestation is not a grant context. A relying party runs §7.2 steps 1–4 and 6 unchanged. For step 5 it checks `ver`, `exp` (subject to the lifetime rule above) and `cnf.jkt` as written, and checks that `iss == sub == aud` and that `grants` is exactly `["aitp.attestation"]`. Any of these attestation-shape defects ⇒ `TCT_SIGNATURE_INVALID`, the TCT's structural-rejection code. The §5.2 audience rule, and the §10 consumer rules, govern grant contexts: a third party that checks archival evidence is not the attestation's audience, and it does not consume the attestation as a grant. Issuer key resolution follows the §7.3 exception.
+- **Revocation.** [RFC-AITP-0008](RFC-AITP-0008-revocation.md) `jti` revocation applies unchanged.
+
+The attestation profile does not change [RFC-AITP-0004 §4.1](RFC-AITP-0004-mutual-handshake.md#41-grant-intersection)'s ban on empty-grants TCTs or its rule that an identity-only proof uses the Manifest: an attestation is not issued in a handshake, its `grants` is not empty, and it is a statement by the issuer about itself, not a proof of a peer's identity.
+
+> **Known answers.** `kat-tct-002-self-attestation` (EdDSA, `kat-keypair-001`) and `kat-tct-003-p256-self-attestation` (ES256, `kat-keypair-005-p256`) under [`signed-examples/tct/`](../schemas/conformance/known-answer/signed-examples/tct/) pin two attestations with a 100-year `exp`, a `jti` derived with the `aitp-kat-attestation-v1` tag over the vector id, and an `ext` statement. `tct-015` (self-issued grant), `tct-016` (marker grant with a distinct `iss`) and `tct-018` (marker beside an ordinary grant) are the grant-context rejections. The "Verification" bullet above is pinned twice. Both stacks of `make kat-verify` check each known answer as an attestation: `iss == sub == aud`, `grants` exactly `["aitp.attestation"]`, `cnf.jkt` the issuer's own thumbprint, and the `ext` statement present. `tct-020` presents `kat-tct-002` itself to a third-party relying party through the `verify_attestation` operation and expects success, although `aud` is not that party's AID. `tct-019` is an otherwise valid attestation whose `ext` lacks the key the relying party expects, rejected with `TCT_SIGNATURE_INVALID`. `tct-019` and `tct-020` are `status: extension` under `feature: aitp-self-attestation`, because consuming attestations is a relying-party role that RFC-AITP-0001 §10 does not require.
 
 ---
 
@@ -299,7 +317,7 @@ ordered explicitly, since they previously read as a single unordered clause:
 2. **Enforce `typ`** — header `typ` MUST be exactly `aitp-tct+jwt`; otherwise reject with `TOKEN_TYP_MISMATCH`. This runs before step 1's claims-membership clause (see the note there): a `typ` mismatch is rejected as type confusion regardless of what the decoded claims contain, so that a grant voucher or delegation token — signed by the same issuer key as its companion TCT, and structurally a valid JWS carrying its own, different, registered claim set — is never evaluated as a TCT at all. `tct-010` pins exactly this ordering: a schema-valid, validly-signed grant voucher presented as a TCT MUST be rejected with `TOKEN_TYP_MISMATCH`, even though its claims (e.g. `src_jti`) are not TCT claims and would otherwise trigger `UNKNOWN_FIELD`.
 3. **Pin `alg`** — derive the sole acceptable `alg` from the issuer's AID (`iss` claim) and reject any other header value, including `none`, with `TOKEN_ALG_MISMATCH`.
 4. **Verify the signature** against the issuer's public key.
-5. **Check claims** — `ver` known; `aud` == own AID; `exp` in the future; `cnf.jkt` matches `sub` (§3); grants non-empty.
+5. **Check claims** — `ver` known; `aud` == own AID; `exp` in the future; `cnf.jkt` matches `sub` (§3); grants non-empty. In a grant context, also `iss` ≠ `sub` and no `aitp.attestation` in `grants` (§5.3); either defect ⇒ `TCT_SIGNATURE_INVALID` (`tct-015`, `tct-016`, `tct-018`).
 6. **Check revocation** — look up `jti` against the issuer's deny list (RFC-AITP-0008), only after all signature checks (RFC-AITP-0008 §3.3).
 
 ### 7.3 Issuer key resolution
@@ -329,6 +347,8 @@ The peer-issued TCT
 ```
 
 If a peer-issued TCT cannot be traced to an issuer whose identity sits behind a trusted anchor, it MUST be rejected.
+
+**Exception: self-attestations without a Manifest (§5.3).** A self-attestation whose issuer publishes no Manifest has no Manifest-resolved key, and the chain above does not apply to it. Its key is the one encoded in its `iss` AID, and the signature proves only that the holder of that key signed it. A relying party MUST NOT make a trust decision on such an attestation unless it has established from its own records (an enrollment or key-history record) that the issuer key was trusted at `iat`. It MUST NOT accept such a TCT in a grant context at all (§5.3).
 
 ---
 
@@ -405,6 +425,8 @@ Issued → Active → Expired
 
 Peer-issued TCT `exp` MUST NOT exceed the issuing peer's Manifest `expires_at`. (See RFC-AITP-0004 §4.3.)
 
+A self-attestation (§5.3) is not peer-issued, and these TTLs do not apply to it. It MAY be long-lived. When its issuer publishes a Manifest, the bound above still applies. When the issuer publishes none, the relying party waives the bound explicitly, as §5.3 requires.
+
 ---
 
 ## 10. Consumer Rules
@@ -440,6 +462,8 @@ tct.exp ≤ issuer_manifest.expires_at
 A TCT that violates this bound MUST be rejected with `TCT_EXPIRES_AFTER_MANIFEST`. A peer-issued TCT cannot outlive the Manifest credential that authenticates its issuer's key; RFC-AITP-0004 §4.3 constrains the issuer not to mint such a TCT, and this rule is the verifier-side mirror of that constraint.
 
 This check MAY be skipped when the issuer Manifest is unavailable — verifiers are NOT required to fetch the Manifest solely to perform it. The §10.1 expiry check (`exp` in the future) still applies unconditionally.
+
+A self-attestation (§5.3) whose issuer publishes no Manifest has no bound to check. Skipping it there is not the passive skip above: the relying party MUST decide explicitly to waive the cap and MUST establish that the issuer key was trusted at `iat` (§5.3). A far-future `exp` is not evidence of validity.
 
 ---
 

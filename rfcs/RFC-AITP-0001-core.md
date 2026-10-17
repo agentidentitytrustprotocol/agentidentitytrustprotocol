@@ -2,7 +2,7 @@
 # Agent Identity & Trust Protocol (AITP) — Core
 
 **Document:** RFC-AITP-0001
-**Version:** 0.2.9-draft
+**Version:** 0.2.10-draft
 **Status:** Community Standards Track (Draft)
 **Canonical wire format:** JSON
 **Normative transport:** HTTPS (any HTTP/1.1+ runtime)
@@ -122,7 +122,7 @@ This applies to TCT signature, expiry, audience, grant, and PoP validation. Revo
 
 ## 5. Message Envelope
 
-Every AITP protocol message — `mutual_hello`, `mutual_hello_ack`, `mutual_commit`, `mutual_commit_ack`, `tct`, `pop_challenge`, `pop_response`, `error` — is wrapped in a standard envelope. (`pop_challenge` and `pop_response` are introduced by [RFC-AITP-0005 §6.1](RFC-AITP-0005-tct.md#61-downstream-pop-exchange) and are part of v0.2 conformance for any peer that issues TCTs.)
+Every AITP protocol message — `mutual_hello`, `mutual_hello_ack`, `mutual_commit`, `mutual_commit_ack`, `tct`, `pop_challenge`, `pop_response`, `identity_presentation`, `error` — is wrapped in a standard envelope. (`pop_challenge` and `pop_response` are introduced by [RFC-AITP-0005 §6.1](RFC-AITP-0005-tct.md#61-downstream-pop-exchange) and are part of v0.2 conformance for any peer that issues TCTs. `identity_presentation` is introduced by the OPTIONAL one-way pinned-admission profile of [RFC-AITP-0002 §3.4](RFC-AITP-0002-identity.md#34-one-way-pinned-key-admission-optional-profile-pinned-admission).) The values are listed in [`registries/message-types.md`](../registries/message-types.md).
 
 ### 5.1 Schema
 
@@ -145,7 +145,7 @@ Every AITP protocol message — `mutual_hello`, `mutual_hello_ack`, `mutual_comm
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `version` | string | REQUIRED | MUST be `"aitp/0.2"` for this RFC. |
-| `message_type` | string | REQUIRED | One of: `mutual_hello`, `mutual_hello_ack`, `mutual_commit`, `mutual_commit_ack`, `tct`, `pop_challenge`, `pop_response`, `error`. |
+| `message_type` | string | REQUIRED | One of: `mutual_hello`, `mutual_hello_ack`, `mutual_commit`, `mutual_commit_ack`, `tct`, `pop_challenge`, `pop_response`, `identity_presentation`, `error` ([`registries/message-types.md`](../registries/message-types.md)). |
 | `message_id` | string | REQUIRED | UUID v4, hyphenated lowercase, in the [RFC-AITP-0005 §2.2](RFC-AITP-0005-tct.md#22-identifier-layout-jti) layout (version nibble `4`, variant bits `10`); the remaining bits are random or derived by that section's construction. A receiver MUST reject any other form before signature verification, with `INVALID_ENVELOPE`. |
 | `timestamp` | integer | REQUIRED | Unix timestamp (seconds). |
 | `sender.agent_id` | string | REQUIRED | AID of the sending agent. |
@@ -637,7 +637,7 @@ Implementations MAY transport AITP messages over other framings (binary RPC, mes
 
 ## 9. Registry Hooks
 
-AITP maintains six registries under [`registries/`](../registries/), indexed in [`registries/README.md`](../registries/README.md):
+AITP maintains seven registries under [`registries/`](../registries/), indexed in [`registries/README.md`](../registries/README.md):
 
 - **identity-types** — registered values for `IdentityDescriptor.type`
 - **capabilities** — well-known capability strings
@@ -645,6 +645,7 @@ AITP maintains six registries under [`registries/`](../registries/), indexed in 
 - **extension-keys** — keys used inside `extensions` / `ext` namespaces by AITP-defined extensions
 - **jti-domain-tags** — domain tags for derived `jti` / `message_id` values ([RFC-AITP-0005 §2.2](RFC-AITP-0005-tct.md#22-identifier-layout-jti))
 - **media-types** — content types used in transport bindings
+- **message-types** — registered values for the envelope `message_type` (§5.2)
 
 New entries are added via the [RFC process](../governance/RFC-PROCESS.md). Experimental identifiers SHOULD use reverse-domain notation.
 
@@ -662,7 +663,7 @@ A conformant AITP v0.2 implementation MUST:
 6. Issue and verify peer-issued TCTs and grant vouchers as defined in [RFC-AITP-0005](RFC-AITP-0005-tct.md), enforcing the §5.4.5 algorithm-pinning and explicit-typing rules.
 7. Reject expired, mismatched-audience, or revoked TCTs, and reject tokens failing `alg`/`typ` enforcement with `TOKEN_ALG_MISMATCH` / `TOKEN_TYP_MISMATCH`.
 8. Reproduce the canonical-bytes and digest pins in [`schemas/conformance/known-answer/`](../schemas/conformance/known-answer/) byte-for-byte. The v0.2-mandatory KATs are: the JCS signing-input vectors for the JCS-profile artifacts (`kat-manifest-001`, `kat-revocation-001`; each pins the inner artifact body per §5.4.1), the unified PoP signing-input vector `kat-manifest-pop-001`, the compact-JWS vectors under `known-answer/signed-examples/` (TCT, grant voucher, delegation), and the JCS-profile signed examples there (Manifest, revocation snapshot) — verified as committed, without re-minting (RFC-AITP-0003 §6.1, RFC-AITP-0008 §1.5). Implementations MUST run `kat-manifest-pop-001` through every PoP code path (Manifest PoP, handshake PoP, downstream TCT PoP, pinned-key identity proof) and confirm each produces the pinned signature — see §5.4.2. Implementations that opt into the post-v0.2 draft RFCs MUST additionally reproduce the multi-hop chain vectors (RFC-AITP-0011) and the session-bundle vector (RFC-AITP-0010); core-only implementations MAY skip those.
-9. Pass the conformance fixtures in [`schemas/conformance/`](../schemas/conformance/). The v0.2 fixture surface is the `env-*`, `man-*`, `mh-*`, `id-*`, `tct-*`, `vch-*`, `del-*`, and `rev-*` IDs. The `del-mh-*` and `bundle-*` fixtures are draft opt-in (RFC-AITP-0010 / RFC-AITP-0011) — core implementations are expected to reject `del-mh-*` tokens with `DELEGATION_MULTIHOP_NOT_SUPPORTED` and to skip the `bundle-*` operations (`SKIP` rather than `FAIL`).
+9. Pass the conformance fixtures in [`schemas/conformance/`](../schemas/conformance/). The v0.2 fixture surface is the `env-*`, `man-*`, `mh-*`, `id-*`, `tct-*`, `vch-*`, `del-*`, and `rev-*` IDs. The `del-mh-*` and `bundle-*` fixtures are draft opt-in (RFC-AITP-0010 / RFC-AITP-0011) — core implementations are expected to reject `del-mh-*` tokens with `DELEGATION_MULTIHOP_NOT_SUPPORTED` and to skip the `bundle-*` operations (`SKIP` rather than `FAIL`). Fixtures gated on an OPTIONAL profile or role carry `status: extension` and are outside this mandatory set: the `id-*` fixtures of the pinned-admission profile ([RFC-AITP-0002 §3.4](RFC-AITP-0002-identity.md#34-one-way-pinned-key-admission-optional-profile-pinned-admission), `feature: aitp-pinned-admission`) and the `tct-*` fixtures of relying-party attestation verification ([RFC-AITP-0005 §5.3](RFC-AITP-0005-tct.md#53-self-issued-attestation-tcts), `feature: aitp-self-attestation`). An implementation that claims the profile or the role MUST pass the fixtures gated on it.
 
 ---
 

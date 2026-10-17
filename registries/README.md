@@ -10,6 +10,7 @@ This directory tracks the well-known identifiers used in AITP. Each registry is 
 | Extension keys | [extension-keys.md](extension-keys.md) | [RFC-AITP-0001 §7](../rfcs/RFC-AITP-0001-core.md#7-compatibility-model), [RFC-AITP-0003](../rfcs/RFC-AITP-0003-manifest.md) |
 | jti domain tags | [jti-domain-tags.md](jti-domain-tags.md) | [RFC-AITP-0005 §2.2](../rfcs/RFC-AITP-0005-tct.md#22-identifier-layout-jti) |
 | Media types | [media-types.md](media-types.md) | [RFC-AITP-0001](../rfcs/RFC-AITP-0001-core.md) |
+| Message types | [message-types.md](message-types.md) | [RFC-AITP-0001 §5.2](../rfcs/RFC-AITP-0001-core.md#52-fields) |
 
 ## Status values
 
@@ -23,7 +24,8 @@ This directory tracks the well-known identifiers used in AITP. Each registry is 
 
 ## Naming conventions
 
-- Capability strings use dot-namespaced reverse-domain notation (`<namespace>.<resource>.<action>`).
+- Capability strings use dot-namespaced reverse-domain notation (`<namespace>.<resource>.<action>`). The one exception is the two-segment marker grant `aitp.attestation` ([capabilities.md](capabilities.md)).
 - Error codes use `SCREAMING_SNAKE_CASE`.
 - Identity types use lowercase snake_case.
+- Message types use lowercase snake_case.
 - Experimental identifiers SHOULD use a vendor-prefixed reverse-domain name (e.g. `com.example.feature`).
