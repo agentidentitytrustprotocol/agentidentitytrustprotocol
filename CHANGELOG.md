@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+### RFC-AITP-0005 §2.2: `jti` and `message_id` are strictly UUID v4, with a derived-identifier construction and a jti domain-tag registry (proposal #72 Items 6b and 6a)
+
+Normative change. Two new fixtures, one new known-answer vector, one new registry, one schema tightening. No wire change for conformant issuers.
+
+RFC-AITP-0005 §2 said "UUID v4" and `aitp-tct.schema.json` enforced the v4 pattern, but no verification step required the check and neither checked implementation enforced it. The spec was also silent on whether a deterministic, hash-derived `jti` was allowed.
+
+- **RFC-AITP-0005 §2.2 (new).** `jti` MUST be a lowercase hyphenated RFC 9562 UUID v4 (version nibble `4`, variant bits `10`); a verifier MUST reject any other form before signature verification, with `TCT_SIGNATURE_INVALID` (the TCT's structural-rejection code; no new error code). The remaining 122 bits are either CSPRNG-random or **derived**: `h = SHA-256(domain_tag || 0x00 || input)`, identifier `h[0..16]` with `h[6] = (h[6] & 0x0f) | 0x40` and `h[8] = (h[8] & 0x3f) | 0x80`. Domain tags are printable ASCII, so the `0x00` separator keeps tags that are prefixes of each other apart. A verifier MUST NOT try to tell random from derived. §7.2 step 1's claims clause now carries the check. §8.1: the voucher's `src_jti` inherits the layout (structural code `DELEGATION_INVALID_VOUCHER`).
+- **RFC-AITP-0001.** §5.2: `message_id` follows the same layout and is rejected otherwise, before signature verification, with `INVALID_ENVELOPE`. §11: the CSPRNG requirement covers `message_id` "unless derived per RFC-AITP-0005 §2.2". §9 listed "four registries" and omitted `extension-keys`; it now lists all six.
+- **RFC-AITP-0009 §3** keeps its RNG sentence consistent with that exception, for `message_id` and TCT `jti`.
+- **RFC-AITP-0011 §1 and §1.1** cite the RFC-AITP-0005 §2.2 layout for the per-hop `jti` (structural code `DELEGATION_INVALID_SIGNATURE`). "Fresh" is dropped, since a hop `jti` may be derived.
+- **RFC-AITP-0002 §1 (Item 6a).** The descriptor note said verifiers reconstruct the pinned-key proof input from "the envelope plus the descriptor's `subject`", but the §3.1 `proof_input` does not contain `subject`. The note now says the pinned-key `subject` is not covered by `proof` and is authenticated only by the enclosing envelope signature.
+- **`registries/jti-domain-tags.md` (new)** lists four tags with owner, derivation input and status: `aitp-kat-derived-uuid-v1` and `aitp-kat-attestation-v1` (AITP, test and known-answer use only), and `seam-tct-jti-v1` and `seam-pop-mid-v1` (zer07 Labs, seam-runtime). It is indexed in `registries/README.md`, CONTRIBUTING.md, `governance/GOVERNANCE.md`, `governance/CHARTER.md`, RFC-AITP-0001 §9 and the README tree.
+- **Fixtures.** `tct-013` (a UUID v7 `jti`) and `tct-014` (version `4`, variant nibble `c`) are validly signed and expect `TCT_SIGNATURE_INVALID`. Both are schema-invalid, so their map entries are `expect: invalid`. The v0.2 core fixture count goes from 61 to 63.
+- **Known answer.** `kat-derived-uuid-001` in `jcs-sha256.json` pins the tag, input, preimage, SHA-256 and resulting UUID `27b131ae-bcc6-4466-ab32-1d0f896453b1`. `make kat-verify` recomputes the UUID from the tag and input, checks that the tag is registered, and checks that dropping the separator or either bit mask would give a different value. `EXPECTED_MIN_CHECKS` goes from 62 to 66 and `FIXTURE_INPUT_MIN_CHECKS` from 130 to 137.
+- **Schema.** `aitp-revocation-list.schema.json` entry `jti` goes from `format: uuid` to the v4 pattern the TCT schema uses. No committed value changes.
+- **RFC-AITP-0008 §1** said `TCT_SIGNATURE_INVALID` "is reserved for cryptographic signature failure". That contradicted the structural-rejection table that `tct-013`/`tct-014` rely on, so it now reads "signature-family failure" and cites that table. This was stale wording; no behaviour changes.
+
+Impact: verifiers that accepted any UUID version now reject non-v4 `jti` / `message_id` values, which the schemas already forbade. Issuers that derive identifiers must set the version and variant bits, which changes derived identifiers once. Recorded as a patch-position bump per `VERSIONING.md`.
+
+**Version bumps.** RFC-AITP-0001: `0.2.7-draft` → `0.2.8-draft`; RFC-AITP-0002: `0.2.4-draft` → `0.2.5-draft`; RFC-AITP-0005: `0.2.3-draft` → `0.2.4-draft`; RFC-AITP-0009: `0.2.3-draft` → `0.2.4-draft`; RFC-AITP-0011: `0.2.1-draft` → `0.2.2-draft`; RFC-AITP-0008: `0.2.7-draft` → `0.2.8-draft`. `rfcs/README.md`'s version-summary sentence updated to match.
+
 ### RFC-AITP-0009 §3.1 / RFC-AITP-0004 §11.4: handshake rate limiting is one MUST, keyed on the transport (issue #69)
 
 Normative change. No schema, fixture or wire change.

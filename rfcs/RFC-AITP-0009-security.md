@@ -2,7 +2,7 @@
 # Security & Threat Model
 
 **Document:** RFC-AITP-0009
-**Version:** 0.2.3-draft
+**Version:** 0.2.4-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** All preceding RFCs.
 
@@ -175,7 +175,7 @@ This RFC enumerates the threats AITP defends against in the agent-to-agent setti
 
 Implementations **MUST**:
 
-- Use a cryptographically secure RNG for `message_id`, PoP nonces, and Manifest challenges.
+- Use a cryptographically secure RNG for PoP nonces and Manifest challenges, and for `message_id` and TCT `jti` unless derived per [RFC-AITP-0005 §2.2](RFC-AITP-0005-tct.md#22-identifier-layout-jti).
 - Store private keys in secure storage (HSM, OS keychain, or equivalent).
 - Validate all inputs against the JSON Schema before processing.
 - Enforce expiry (`exp` on compact-JWS artifacts, `expires_at` on JCS-profile objects) with server-side time (not client-provided time).

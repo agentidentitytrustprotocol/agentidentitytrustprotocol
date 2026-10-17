@@ -85,6 +85,7 @@ agentidentitytrustprotocol/
     capabilities.md
     error-codes.md
     extension-keys.md
+    jti-domain-tags.md
     media-types.md
 
   schemas/

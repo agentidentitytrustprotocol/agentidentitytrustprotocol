@@ -39,11 +39,11 @@ Breaking changes require:
 
 ## Registry additions
 
-There are five registries, indexed in [`registries/README.md`](registries/README.md): [`identity-types.md`](registries/identity-types.md), [`capabilities.md`](registries/capabilities.md), [`error-codes.md`](registries/error-codes.md), [`extension-keys.md`](registries/extension-keys.md) and [`media-types.md`](registries/media-types.md). To add an entry, submit a PR adding a row to the relevant table, following any "Adding …" section in that file. New identifiers MUST NOT conflict with existing entries.
+There are six registries, indexed in [`registries/README.md`](registries/README.md): [`identity-types.md`](registries/identity-types.md), [`capabilities.md`](registries/capabilities.md), [`error-codes.md`](registries/error-codes.md), [`extension-keys.md`](registries/extension-keys.md), [`jti-domain-tags.md`](registries/jti-domain-tags.md) and [`media-types.md`](registries/media-types.md). To add an entry, submit a PR adding a row to the relevant table, following any "Adding …" section in that file. New identifiers MUST NOT conflict with existing entries.
 
 Status columns differ by registry:
 
-- identity types, capabilities and extension keys use the shared [status values](registries/README.md#status-values) — `Reserved`, `Proposed`, `Provisional`, `Stable`, `Deprecated`. `Reserved` sets an identifier aside for a named future mechanism with no normative spec yet; implementations MUST NOT use it;
+- identity types, capabilities, extension keys and jti domain tags use the shared [status values](registries/README.md#status-values) — `Reserved`, `Proposed`, `Provisional`, `Stable`, `Deprecated`. `Reserved` sets an identifier aside for a named future mechanism with no normative spec yet; implementations MUST NOT use it;
 - error codes carry a `spec_status` of `core` or `draft` instead (see the note at the top of [`error-codes.md`](registries/error-codes.md)); new codes need no new RFC *document*, but the RFCs whose normative text gains the code take a version bump ([VERSIONING.md](VERSIONING.md#change-classes));
 - media types list registered types, with superseded ones in a separate table.
 

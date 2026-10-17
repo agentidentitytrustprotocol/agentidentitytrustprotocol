@@ -2,7 +2,7 @@
 # Revocation
 
 **Document:** RFC-AITP-0008
-**Version:** 0.2.7-draft
+**Version:** 0.2.8-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md)
 
@@ -24,7 +24,7 @@ The peer that issued a TCT (the AID in its `iss` claim) is the only party that c
 
 Revoking a TCT also kills everything derived from it. The companion grant voucher carries the TCT's `jti` as its `src_jti` claim (RFC-AITP-0005 §8.1) and has no independent revocation handle; delegation verification looks up `voucher.src_jti` against this same deny list (RFC-AITP-0006 §4 step 7) and rejects with `DELEGATION_SOURCE_TCT_REVOKED`. One deny-list entry therefore invalidates the TCT, its voucher, and every delegation token built on that voucher.
 
-**Wire-level rejection code.** A consuming peer that finds a TCT's `jti` in the issuing peer's signed deny list (after the ordering requirement in §3.3 has been satisfied) MUST reject the TCT with `TCT_REVOKED`. This is the only correct code for revocation rejection — `TCT_EXPIRED` is reserved for `exp` being in the past (RFC-AITP-0005 §9), `TCT_EXPIRES_AFTER_MANIFEST` is reserved for the Manifest-bound violation (RFC-AITP-0005 §10.4), and `TCT_SIGNATURE_INVALID` is reserved for cryptographic signature failure. Implementations that fold revocation into a generic expiry code lose the operator's ability to distinguish "issuer revoked this token early" from "this token reached its natural deadline."
+**Wire-level rejection code.** A consuming peer that finds a TCT's `jti` in the issuing peer's signed deny list (after the ordering requirement in §3.3 has been satisfied) MUST reject the TCT with `TCT_REVOKED`. This is the only correct code for revocation rejection — `TCT_EXPIRED` is reserved for `exp` being in the past (RFC-AITP-0005 §9), `TCT_EXPIRES_AFTER_MANIFEST` is reserved for the Manifest-bound violation (RFC-AITP-0005 §10.4), and `TCT_SIGNATURE_INVALID` is reserved for signature-family failure (a cryptographic signature failure, or a structural rejection that [`registries/error-codes.md`](../registries/error-codes.md#structural-rejection) collapses onto the signature code, such as a non-v4 `jti` per RFC-AITP-0005 §2.2). Implementations that fold revocation into a generic expiry code lose the operator's ability to distinguish "issuer revoked this token early" from "this token reached its natural deadline."
 
 ### 1.2 Deny-list entries
 

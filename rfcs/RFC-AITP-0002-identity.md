@@ -2,7 +2,7 @@
 # Identity Binding
 
 **Document:** RFC-AITP-0002
-**Version:** 0.2.4-draft
+**Version:** 0.2.5-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md)
 
@@ -58,7 +58,7 @@ The canonical JSON Schema is [`schemas/json/aitp-identity.schema.json`](../schem
 > MUST-reject rule for an OIDC descriptor carrying `public_key` — so that MUST went unenforced in
 > the only path where the descriptor actually travels. Both are now the same object.
 
-> **Note on `proof` inputs.** The proof input differs by type. For `oidc`, `proof` is a self-contained JWT (§2). For `pinned_key`, `proof` is a signature whose input binds fields drawn from the surrounding handshake envelope (§3.1) — including the `pop_nonce` carried on `MUTUAL_HELLO` / `MUTUAL_HELLO_ACK` (RFC-AITP-0004 §3). The descriptor itself does NOT carry the nonce; verifiers reconstruct the proof input from the envelope plus the descriptor's `subject` and the local `receiver_aid`.
+> **Note on `proof` inputs.** The proof input differs by type. For `oidc`, `proof` is a self-contained JWT (§2). For `pinned_key`, `proof` is a signature whose input binds fields drawn from the surrounding handshake envelope (§3.1) — including the `pop_nonce` carried on `MUTUAL_HELLO` / `MUTUAL_HELLO_ACK` (RFC-AITP-0004 §3). The descriptor itself does NOT carry the nonce; verifiers reconstruct the proof input from the envelope and the local `receiver_aid`. The pinned-key `subject` is not covered by `proof`; it is authenticated only by the enclosing envelope signature.
 
 ---
 
