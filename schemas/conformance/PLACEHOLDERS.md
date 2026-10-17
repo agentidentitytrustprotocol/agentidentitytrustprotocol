@@ -17,6 +17,14 @@ Placeholders MUST match the regex `^__[A-Z][A-Z0-9_]+__$`. The
 double-underscore boundaries make placeholders trivially greppable and
 unambiguous against any base64url, hex, or UUID alphabet.
 
+A runner that cannot mint a placeholder MUST report that fixture as FAIL,
+or as SKIP where the fixture's operation is one it legitimately does not
+claim. It MUST NOT substitute a sentinel or dummy value and score the
+result. A negative fixture that "passes" on an unminted value proves
+nothing: the verifier rejected garbage, not the one defect the fixture
+isolates. Every minted value is a real artifact that is one property away
+from valid.
+
 ## Time placeholders
 
 | Token | Meaning | Substitution |
@@ -71,6 +79,12 @@ public key is inlined into the fixture's `accepted_trust_anchors` /
 local `trust_anchors` so the verifier accepts (or rejects) the JWT
 based on issuer-list membership alone.
 
+The exception is `__VALID_JWT_FROM_UNKNOWN_ISSUER__`. Its issuer key is
+pinned so that minting is byte-stable across runners: the Ed25519 key
+from seed `0x55` × 32. That seed is used by no entry in `keypairs.json`.
+The key MUST NOT appear in any fixture's `accepted_trust_anchors` or
+`trust_anchors`.
+
 ## Operation key
 
 Every fixture carries a top-level `input.operation` string telling
@@ -120,7 +134,7 @@ the next section.
 | `__VALID_POP_SIG__` | Manifest agent's signing key | `sha256(decoded_bytes(challenge))` (RFC-AITP-0003 §3.1) |
 | `__VALID_A_SIG__` | Initiating peer (A)'s signing key | Resolved from the enclosing artifact, per the table below — **never** "whatever the minting tool decides". |
 | `__VALID_B_SIG__` | Target peer (B)'s signing key | Same resolution table, signed by B. |
-| `__LEGACY_PINNED_PROOF__` | Pinned-key holder's signing key (legacy two-field input) | Pre-v0.1 pinned-key proof signed over the two-field input `message_id`, a literal pipe, then `timestamp` (no domain prefix, no receiver, no `pop_nonce`). Used by `id-005` to assert rejection when the verifier replays the five-field reconstruction (RFC-AITP-0002 §3.1). The signature alphabet is real (Ed25519 over the legacy bytes) so the failure surfaces only at the input-reconstruction step, not at base64url decode. |
+| `__LEGACY_PINNED_PROOF__` | Pinned-key holder's signing key (legacy two-field input) | Pre-v0.1 pinned-key proof signed over the two-field input `message_id`, a literal pipe, then `timestamp` (no domain prefix, no receiver, no `pop_nonce`). Used by `id-005` to assert rejection when the verifier replays the five-field reconstruction (RFC-AITP-0002 §3.1). The signing form is pinned to [RFC-AITP-0001 §5.4.6](../../rfcs/RFC-AITP-0001-core.md#546-signing-primitive-per-algorithm-jcs-profile-and-proofs): `base64url(Ed25519(SHA-256(input)))`, encoded as [RFC-AITP-0002 §3.1](../../rfcs/RFC-AITP-0002-identity.md) encodes any pinned-key proof, where `input` is the ASCII bytes of `message_id`, `\|`, then `timestamp` in decimal. The signer is the pinned key the fixture presents (`kat-keypair-003` in `id-005`). The legacy input is then the only defect, so the failure surfaces only at the input-reconstruction step, not at base64url decode or at the hash step. |
 | `__VALID_JWT__` | Identity issuer's key | Compact JWT serialization with claims pinned by the surrounding fixture context. |
 | `__VALID_JWT_FROM_UNKNOWN_ISSUER__` | Untrusted issuer's key | Same shape as `__VALID_JWT__` but signed by an issuer NOT in the verifier's `trust_anchors`. The signature is cryptographically valid; the policy check is what fails. |
 | `__VALID_NONCE__` | n/a | Random 128-bit base64url string (22 chars, unpadded). The minting tool MAY use a per-fixture deterministic seed for reproducibility. |
@@ -238,7 +252,7 @@ signature string and break cross-mint determinism.
 | `__INVALID_POP_SIG_OVER_WRONG_NONCE__` | PoP signature whose input used a different `pop_nonce` than the receiving peer expects. | `POP_VERIFICATION_FAILED`. |
 | `__PINNED_PROOF_OVER_WRONG_NONCE__` | Ed25519 RFC-AITP-0002 §3.1 pinned-key proof over a `pop_nonce` other than the envelope's, every other proof-input field matching the fixture. Signed by the sender's pinned key, which the fixture's `trust_store` contains, so §3.2 steps 1–3 pass and only step 5 fails. Used by `id-006`. | `IDENTITY_FAILED`. |
 | `__JWT_MISSING_AUD_CLAIM__` | Otherwise-valid OIDC JWT with the `aud` claim removed. | `IDENTITY_FAILED`. |
-| `__JWT_AUD_TARGETS_DIFFERENT_PEER__` | OIDC JWT whose `aud` is some other peer's AID. | `IDENTITY_FAILED`. |
+| `__JWT_AUD_TARGETS_DIFFERENT_PEER__` | OIDC JWT whose `aud` is some other peer's AID: pinned to `kat-keypair-004`'s AID (`agentD`), so minting is byte-stable across runners. | `IDENTITY_FAILED`. |
 | `__JWT_MISSING_CNF_JKT_CLAIM__` | OIDC JWT with `cnf.jkt` removed. | `IDENTITY_FAILED`. |
 | `__CAPTURED_PROOF_FROM_ORIGINAL_HANDSHAKE__` | A pinned-key proof signed over a *different* (sender, receiver, message_id, timestamp, pop_nonce) tuple than the one in this fixture. Tests cross-peer replay (RFC-AITP-0002 §3.1). | `IDENTITY_FAILED`. |
 
