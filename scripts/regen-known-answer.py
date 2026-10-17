@@ -24,6 +24,11 @@ RFC-AITP-0001 §5.4.6). `scripts/recompute-known-answer-independent.py`
 recomputes them from the committed inputs, and `verify-known-answer.mjs`
 verifies them in CI.
 
+`kat-pinned-key-proof-002-p256` and `kat-pinned-key-proof-003-tagged-ed25519`
+are also outside this tool: both were copied byte-for-byte from the proposal
+#72 candidate set, and the independent recompute re-signs both (python-ecdsa
+for P-256, RFC 8032 reference arithmetic for Ed25519).
+
 Usage:
     python3 scripts/regen-known-answer.py [--verifier-py PATH] [--check]
 

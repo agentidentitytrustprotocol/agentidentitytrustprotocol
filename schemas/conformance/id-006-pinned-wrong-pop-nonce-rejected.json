@@ -13,6 +13,9 @@
   ],
   "input": {
     "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "trust_store": [
+      "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU"
+    ],
     "envelope": {
       "version": "aitp/0.2",
       "message_type": "mutual_hello",
@@ -26,7 +29,7 @@
           "type": "pinned_key",
           "subject": "internal-worker-a",
           "public_key": "dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
-          "proof": "__INVALID_POP_SIG_OVER_WRONG_NONCE__"
+          "proof": "__PINNED_PROOF_OVER_WRONG_NONCE__"
         },
         "manifest": {
           "version": "aitp/0.2",
@@ -64,6 +67,7 @@
   },
   "expected": {
     "outcome": "failure",
-    "error_code": "IDENTITY_FAILED"
+    "error_code": "IDENTITY_FAILED",
+    "rationale": "The sender (workerA, kat-keypair-003) IS in `trust_store`, so §3.2 steps 1–3 pass and the failure is reached only at step 5. `__PINNED_PROOF_OVER_WRONG_NONCE__` is a real §3.1 Ed25519 proof by workerA's pinned key over a `pop_nonce` other than this envelope's `AAAAAAAAAAAAAAAAAAAAAA`; reconstructing `proof_input` with the envelope's nonce yields a different digest, so verification fails."
   }
 }

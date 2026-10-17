@@ -2,6 +2,48 @@
 
 ## Unreleased
 
+### `pinned_key` accepts P-256 keys; RFC-AITP-0002 §3.2 is five trust-store-gated steps; `issuer` is forbidden on `pinned_key` (proposal #72 Items 2 and 6c)
+
+**Change class.** Normative change, at the patch position under `VERSIONING.md`'s pre-1.0 mapping. It adds a key type (P-256) to `pinned_key` and tightens verification. No conformant Ed25519 pinned proof changes: `kat-pinned-key-proof-001` and `id-007` keep their bytes. Two things a verifier accepted before are now rejected: a `pinned_key` descriptor carrying `issuer`, and any key-possession-only verification mode.
+
+**The gap.** RFC-AITP-0002 §3 was Ed25519-only in prose ("the same 43-char … form") while the schema already allowed 44-char keys, and it never said whether a P-256 proof carries the `p256.` tag. §3.2 had three steps, none of which checked `identity.type`, compared `public_key` with `sender.agent_id`, or keyed the trust store by algorithm. It also allowed an opt-in possession-only `unsafe_no_trust_store` mode. Nothing forbade `issuer` on a `pinned_key` descriptor. The conformance pack had no passing pinned-key fixture.
+
+**The fix.**
+
+- **RFC-AITP-0002 §3.1.** `proof` uses the RFC-AITP-0001 §5.4.3 wire format with the §5.4.6 primitive. A `p256` sender MUST emit `p256.<86>`; an `ed25519` sender MAY emit untagged or `ed25519.`; the tag MUST match `sender.agent_id`'s algorithm, so an untagged proof from a `p256` sender is rejected.
+- **RFC-AITP-0002 §3.2** is rewritten as five steps: confirm `type` is `pinned_key`; confirm `public_key` is byte-equal to the `sender.agent_id` key under the same algorithm; locate `(algorithm, public_key)` in `pinned_keys`; reconstruct `proof_input`; verify. Steps 1–3 MUST complete before any signature verification. The possession-only development mode is deleted: no deployment mode may offer it, and every pinned-key verification consults a configured store. The erratum's "§3.2 step 1" now reads step 3.
+- **RFC-AITP-0002 §3.3.** `public_key` is 43 chars for `ed25519` or 44 chars (SEC1 compressed) for `p256`. SPKI-DER, PEM, JWK and uncompressed forms are not permitted. An invalid P-256 point, or the identity, is `IDENTITY_FAILED`. A P-256 example is added.
+- **RFC-AITP-0002 §1.** `issuer` MUST be absent for `pinned_key`. `proof` is described as a §5.4.3 signature. A new informative note says a P-256 `pinned_key` `identity_hint` is valid.
+- **RFC-AITP-0002 §4.** `pinned_keys` entries are keyed by `(algorithm, public_key)`, with an optional `algorithm`.
+- **Schemas.**
+  - `aitp-identity.schema.json`: the non-`oidc` branch adds `proof` pattern `^((ed25519|p256)\.)?[A-Za-z0-9_-]{86}$` and `not: {required: [issuer]}`. The `proof` description and the `pinned_key` example are updated (the example now passes the pattern), and a P-256 example is added. The `aitp-mutual-handshake.schema.json` mirror is updated to match.
+  - `aitp-trust-anchors.schema.json`: `pinned_keys` items take an optional `algorithm` (`ed25519` | `p256`). When present it MUST match the key length (43 or 44).
+- **GLOSSARY** (Identity descriptor) and **`registries/identity-types.md`** (`pinned_key` row) are updated to match.
+
+**New known answers** (`jcs-sha256.json`, copied byte-for-byte from the proposal's candidate set):
+
+- `kat-pinned-key-proof-002-p256`: the -001 tuple with the `kat-keypair-005-p256` sender and message_id `…440702`; 199-byte `proof_input`, digest `ab9942f8…dd3f`, proof `p256.X9FVRk-1…E-wr1Q`, plus a double-hash proof that MUST NOT verify.
+- `kat-pinned-key-proof-003-tagged-ed25519`: the -001 tuple with the `aid:pubkey:ed25519:` spelling of `kat-keypair-003`; 201-byte `proof_input`, digest `933d816e…43da`, proof `pQFHOAiS…VeJ3Bg`.
+
+**Fixtures.**
+
+- New: `id-010` (P-256 success), `id-011` (untagged P-256 proof), `id-011b` (`oidc`-typed descriptor with a valid pinned proof; Item 6c), `id-012` (87-char uncompressed P-256 key), `id-017` (Ed25519 success, the positive counterpart of `id-007`) and `id-018` (`issuer` on `pinned_key`). The four failures expect `IDENTITY_FAILED`. `id-011b`, `id-012` and `id-018` are schema-invalid, so their map entries are `expect: invalid`.
+- **Trust-store rule.** `input.trust_store` is an array of AID strings whose tags give the algorithm. Absent means an empty store, and the harness MUST NOT invent trust (conformance README, PLACEHOLDERS.md operation note). Every pinned-key failure fixture except `id-007` now trusts its sender, so it fails only for its named defect: `trust_store` is added to `id-004`, `id-005`, `id-006` and `mh-009`.
+- `id-006` gets its own placeholder, `__PINNED_PROOF_OVER_WRONG_NONCE__` (PLACEHOLDERS.md, `normalize-fixture-input.py`). The shared `__INVALID_POP_SIG_OVER_WRONG_NONCE__` is unchanged, since `mh-008` uses it.
+- `id-007`: its description and rationale cite §3.2 step 3, and the key is qualified as Ed25519.
+- The conformance index gains the six rows; `core` goes from 64 to 70, and the total from 75 to 81.
+
+**Tooling.**
+
+- `scripts/verify-known-answer.mjs`:
+  - checks -002 (proof_input, digest, strict P-256, the double-hash negative, and that the untagged form fails only on its tag) and -003 (tagged AID, both tag spellings verify, differs from -001);
+  - new `checkPinnedFixtures()` re-verifies every reused proof against its fixture's own tuple, derives `id-012`'s uncompressed point from the sender AID, and enforces the trust-store rule;
+  - `EXPECTED_MIN_CHECKS` 110 → 126.
+- `scripts/recompute-known-answer-independent.py` re-signs -001, -002 and -003 byte-for-byte, verifies each pinned-key fixture's proof against its tuple (including `mh-009`'s), and recomputes `id-012`'s point with python-ecdsa.
+- `scripts/validate-json.sh`: `FIXTURE_INPUT_MIN_CHECKS` 138 → 156.
+
+**Version bumps.** RFC-AITP-0002: `0.2.6-draft` → `0.2.7-draft`. `rfcs/README.md`'s version-summary sentence is extended to match.
+
 ### P-256 signs a single SHA-256 digest (RFC-AITP-0001 §5.4.6), and verifiers are strict (§5.4.7)
 
 **Change class.** Normative change, at the patch position under `VERSIONING.md`'s pre-1.0 mapping. §5.4.6 is a clarification: `sign()` was never defined for P-256, and the two implementations had read it two ways. §5.4.7 adds verifier MUST-reject rules. Neither changes any Ed25519 signature an RFC 8032 signer produces. It is a wire change for P-256 JCS signatures from implementations that hashed the digest twice. No interoperable P-256 JCS deployment can exist today, because the two existing implementations already disagree. No existing pinned value changes: every new vector is an addition.

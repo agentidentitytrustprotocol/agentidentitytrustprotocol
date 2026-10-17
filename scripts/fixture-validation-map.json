@@ -527,6 +527,129 @@
         }
       ]
     },
+    "id-010": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "id-011": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "id-011b": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "invalid",
+          "reason": "Deliberately schema-invalid: input.envelope.payload.identity is an `oidc` descriptor carrying `public_key` (and a pinned-key proof), which RFC-AITP-0002 §1 forbids and the handshake schema's identity mirror encodes as `then.not.required: [public_key]`. The fixture asserts IDENTITY_FAILED via the §3.2 step 1 type dispatch, so schema rejection is the correct expected outcome. The RFC rule (§3.2 step 1 type dispatch, and §1) is the primary check; schema rejection is defense in depth, and a verifier MUST reject even without it."
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "id-012": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "invalid",
+          "reason": "Deliberately schema-invalid: input.envelope.payload.identity.public_key is the 87-char SEC1 uncompressed P-256 point, outside the `{43,44}` AID-identifier pattern. RFC-AITP-0002 §3.3 permits only the 44-char compressed form for p256; the fixture asserts IDENTITY_FAILED, so schema rejection is the correct expected outcome. The Manifest's identity_hint keeps the compressed key, so the Manifest stays valid. The RFC rule (§3.3, and §3.2 step 2) is the primary check; schema rejection is defense in depth, and a verifier MUST reject even without it."
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "id-017": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "id-018": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "invalid",
+          "reason": "Deliberately schema-invalid: input.envelope.payload.identity is a `pinned_key` descriptor carrying `issuer`, which RFC-AITP-0002 §1 forbids and the identity schema's non-oidc branch encodes as `else.not.required: [issuer]`. The fixture asserts IDENTITY_FAILED, so schema rejection is the correct expected outcome. The RFC rule (§1) is the primary check; schema rejection is defense in depth, and a verifier MUST reject even without it."
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
     "man-001": {
       "artifacts": [
         {

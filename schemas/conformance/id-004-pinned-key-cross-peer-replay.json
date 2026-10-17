@@ -16,6 +16,9 @@
   "input": {
     "step": "received MUTUAL_HELLO from peer",
     "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "trust_store": [
+      "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU"
+    ],
     "captured_proof_context": {
       "_comment": "These are the field values that were signed when the original (valid) proof was produced, in a handshake to a DIFFERENT receiver (not self_aid).",
       "original_sender_aid": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",

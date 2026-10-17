@@ -266,6 +266,12 @@ def p256_signature(name: str, sk, vk, preimage: bytes, sig: str, double_hash: st
         check(f"{name}: double-hash negative is sign(sha256(d))", "p256." + b64e(p256_sign(sk, H(d))) == double_hash)
 
 
+def proof_input(sender: str, receiver: str, message_id: str, timestamp: int, pop_nonce: str) -> bytes:
+    """RFC-AITP-0002 §3.1 pinned-key proof input (ASCII-decimal timestamp)."""
+    return b"\0".join([b"aitp-pinned-key-v1", sender.encode(), receiver.encode(),
+                       message_id.encode(), str(timestamp).encode(), b64d(pop_nonce)])
+
+
 def main() -> int:
     keypairs = {k["id"]: k for k in load(KAT / "keypairs.json")["vectors"]}
     jcsv = {v["id"]: v for v in load(KAT / "jcs-sha256.json")["vectors"]}
@@ -304,6 +310,71 @@ def main() -> int:
     check("kat-manifest-pop-002-p256 decoded challenge", pre.hex() == v["decoded_hex"] and H(pre).hex() == v["sha256_hex"])
     check("kat-manifest-pop-002-p256 signer", v["signer_aid"] == aid5 and v["signature"] == "p256." + v["signature_b64url"])
     p256_signature("kat-manifest-pop-002-p256", sk, vk, pre, v["signature"], v["double_hash_signature_MUST_NOT_verify"])
+
+    print("── jcs-sha256.json pinned-key proofs (RFC-AITP-0002 §3.1) ──")
+    v = jcsv["kat-pinned-key-proof-002-p256"]
+    pre = proof_input(v["sender_aid"], v["receiver_aid"], v["message_id"], v["timestamp"], v["pop_nonce"])
+    check("kat-pinned-key-proof-002-p256 proof_input",
+          pre.hex() == v["proof_input_hex"] and len(pre) == v["proof_input_len_bytes"] == 199)
+    check("kat-pinned-key-proof-002-p256 sha256", H(pre).hex() == v["sha256_hex"] and b64e(H(pre)) == v["sha256_b64url"])
+    check("kat-pinned-key-proof-002-p256 signer",
+          v["sender_aid"] == v["signer_aid"] == aid5 and v["signature"] == "p256." + v["signature_b64url"])
+    p256_signature("kat-pinned-key-proof-002-p256", sk, vk, pre, v["signature"], v["double_hash_signature_MUST_NOT_verify"])
+
+    k3 = keypairs["kat-keypair-003"]
+    seed3 = bytes.fromhex(k3["seed_hex"])
+    A3 = ed_public(seed3)
+    check("kat-keypair-003 pubkey", b64e(A3) == k3["pubkey_b64url"])
+    v1 = jcsv["kat-pinned-key-proof-001"]
+    pre1 = proof_input(v1["sender_aid"], v1["receiver_aid"], v1["message_id"], v1["timestamp"], v1["pop_nonce"])
+    check("kat-pinned-key-proof-001 re-signs byte for byte", b64e(ed_sign(seed3, H(pre1))) == v1["signature_b64url"])
+    v = jcsv["kat-pinned-key-proof-003-tagged-ed25519"]
+    pre = proof_input(v["sender_aid"], v["receiver_aid"], v["message_id"], v["timestamp"], v["pop_nonce"])
+    check("kat-pinned-key-proof-003 proof_input",
+          pre.hex() == v["proof_input_hex"] and len(pre) == v["proof_input_len_bytes"] == 201)
+    check("kat-pinned-key-proof-003 sha256", H(pre).hex() == v["sha256_hex"] and b64e(H(pre)) == v["sha256_b64url"])
+    check("kat-pinned-key-proof-003 sender is the tagged kat-keypair-003 AID",
+          v["sender_aid"] == v["signer_aid"] == "aid:pubkey:ed25519:" + b64e(A3))
+    sig3 = b64d(v["signature_b64url"])
+    check("kat-pinned-key-proof-003 re-signs byte for byte", ed_sign(seed3, H(pre)) == sig3)
+    check("kat-pinned-key-proof-003 verifies strictly", ed_verify_strict(A3, H(pre), sig3))
+    check("kat-pinned-key-proof-003 differs from -001, whose proof does not verify here",
+          pre != pre1 and not ed_verify_strict(A3, H(pre), b64d(v1["signature_b64url"])))
+
+    print("── pinned-key fixtures: each proof against its own tuple ──")
+    for name, kind in [
+        ("id-010-pinned-key-p256-success.json", "p256"),
+        ("id-011-pinned-key-p256-untagged-proof-rejected.json", "untagged"),
+        ("id-011b-oidc-typed-descriptor-with-pinned-proof-rejected.json", "ed25519"),
+        ("id-012-pinned-key-p256-uncompressed-key-rejected.json", "uncompressed"),
+        ("id-017-pinned-key-ed25519-success.json", "ed25519"),
+        ("id-018-pinned-key-issuer-present-rejected.json", "ed25519"),
+        ("mh-009-identity-type-mismatch-rejected.json", "ed25519"),
+    ]:
+        fx = load(CONF / name)
+        env = fx["input"]["envelope"]
+        idn = env["payload"]["identity"]
+        snd = env["sender"]["agent_id"]
+        pre = proof_input(snd, fx["input"]["self_aid"], env["message_id"], env["timestamp"], env["payload"]["pop_nonce"])
+        check(f"{name}: trust_store contains the sender", snd in fx["input"].get("trust_store", []))
+        if kind == "ed25519":
+            check(f"{name}: Ed25519 proof verifies over the fixture tuple",
+                  snd == k3["aid"] and ed_verify_strict(A3, H(pre), b64d(idn["proof"])))
+            continue
+        check(f"{name}: sender is kat-keypair-005-p256", snd == aid5)
+        if kind == "untagged":
+            check(f"{name}: proof is untagged", "." not in idn["proof"])
+            check(f"{name}: raw bytes verify under P-256 (only the tag is wrong)",
+                  p256_verify_strict(vk, H(pre), b64d(idn["proof"])))
+        else:
+            check(f"{name}: p256. proof verifies over the fixture tuple",
+                  p256_verify_strict(vk, H(pre), untag(idn["proof"], "p256")))
+        if kind == "uncompressed":
+            unc = vk.to_string("uncompressed")
+            check(f"{name}: public_key is the 65-byte uncompressed point 04 || X || Y",
+                  len(unc) == 65 and unc[0] == 4 and idn["public_key"] == b64e(unc) and len(idn["public_key"]) == 87)
+        else:
+            check(f"{name}: public_key is the compressed AID key", idn["public_key"] == b64e(vk.to_string("compressed")))
 
     print("── signature-strictness.json ──")
     v = strict["sig-001-ed25519-small-order-key-rejected"]

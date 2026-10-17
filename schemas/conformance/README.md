@@ -127,6 +127,14 @@ Currently defined side-effect keys:
 
 A runner that cannot instrument a listed side effect MUST report SKIP for that assertion (NOT silent pass). The schema (`schemas/json/aitp-conformance-fixture.schema.json`) lists the keys above; additional keys are permitted (`additionalProperties: true`) so new fixtures can add side-effect surfaces without a schema bump, but the registered keys are the only ones a runner is required to recognize.
 
+### Trust-store input (`trust_store`)
+
+A pinned-key fixture states the verifier's `pinned_keys` store (RFC-AITP-0002 §3.2 step 3, §4) as `input.trust_store`:
+
+- It is an array of AID strings. Each entry's algorithm comes from its AID tag (`aid:pubkey:p256:…` is `p256`; an untagged or `aid:pubkey:ed25519:` AID is `ed25519`), and the runner seeds the store with the `(algorithm, public_key)` pairs those AIDs encode.
+- When `trust_store` is absent, the store is empty. The runner MUST NOT invent trust: it MUST NOT pre-load the sender's key, a KAT keypair, or any default, and an implementation's possession-only behavior is not a substitute (RFC-AITP-0002 §3.2 forbids such a mode in every deployment mode).
+- Every pinned-key failure fixture except `id-007` carries a `trust_store` that contains the sender, so steps 1–3 pass and the failure comes only from the defect the fixture names. `id-007` alone omits the sender, because its defect is the untrusted key.
+
 ### Dynamic fixtures
 
 A fixture MAY carry an optional `dynamic` boolean in its metadata
@@ -263,11 +271,11 @@ The runner interface is implementation-defined.
 
 | Tier | Count | Required for v0.2 |
 |---|---|---|
-| `core` (v0.2-required) | 64 | ✅ Yes |
+| `core` (v0.2-required) | 70 | ✅ Yes |
 | `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (v0.1 runners only) |
 | `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 6 | ❌ No |
 | `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 4 | ❌ No |
-| **Total** | **75** | |
+| **Total** | **81** | |
 
 Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A v0.2 conformance runner MUST execute every `required_for_v0_2` core fixture; `draft` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
@@ -323,10 +331,16 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | `id-003` | OIDC JWT missing `cnf.jkt` claim | failure: IDENTITY_FAILED |
 | `id-004` | Pinned-key proof captured from one handshake replayed against a different receiver/message/nonce | failure: IDENTITY_FAILED |
 | `id-005` | Pinned-key legacy proof (pre-rc.3 binding) rejected | failure: IDENTITY_FAILED |
-| `id-006` | Pinned-key proof signed over the wrong `pop_nonce` rejected | failure: IDENTITY_FAILED |
-| `id-007` | Pinned-key proof from an untrusted public key rejected | failure: IDENTITY_FAILED |
+| `id-006` | Pinned-key proof signed over the wrong `pop_nonce` rejected (sender trusted; fails at §3.2 step 5) | failure: IDENTITY_FAILED |
+| `id-007` | Pinned-key proof from an untrusted public key rejected (§3.2 step 3) | failure: IDENTITY_FAILED |
 | `id-008` | OIDC identity descriptor also carries `public_key`, which RFC-AITP-0002 §1 forbids | failure: IDENTITY_FAILED |
 | `id-009` | Identity descriptor carries an unrecognized, vendor-namespaced key inside `extensions` — ignored | success |
+| `id-010` | P-256 pinned-key identity: 44-char compressed key, `p256.`-tagged proof (`kat-pinned-key-proof-002-p256`), sender trusted | success |
+| `id-011` | The id-010 proof with its `p256.` tag stripped: read as Ed25519, an algorithm mismatch (RFC-AITP-0002 §3.1) | failure: IDENTITY_FAILED |
+| `id-011b` | `oidc`-typed descriptor carrying `public_key` and a valid pinned proof: pinned verification MUST NOT run (§3.2 step 1; schema-invalid) | failure: IDENTITY_FAILED |
+| `id-012` | P-256 `public_key` in the 87-char uncompressed form (§3.3; schema-invalid) | failure: IDENTITY_FAILED |
+| `id-017` | Ed25519 pinned-key identity, sender trusted: the positive counterpart of `id-007` | success |
+| `id-018` | `pinned_key` descriptor carrying `issuer`, which RFC-AITP-0002 §1 forbids (schema-invalid) | failure: IDENTITY_FAILED |
 
 ### Trust Context Token (RFC-AITP-0005, RFC-AITP-0008)
 
