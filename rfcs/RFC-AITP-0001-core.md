@@ -2,7 +2,7 @@
 # Agent Identity & Trust Protocol (AITP) — Core
 
 **Document:** RFC-AITP-0001
-**Version:** 0.2.8-draft
+**Version:** 0.2.9-draft
 **Status:** Community Standards Track (Draft)
 **Canonical wire format:** JSON
 **Normative transport:** HTTPS (any HTTP/1.1+ runtime)
@@ -207,8 +207,8 @@ AITP v0.2 defines **two signing profiles**:
 
 | Profile | Artifacts | Defined in |
 |---|---|---|
-| **JCS embedded-signature profile** — the signature is a field of the JSON object, computed over the object's RFC 8785 canonical form | envelopes, Agent Manifests, revocation snapshots, session trust bundles, handshake payloads | §5.4.1–§5.4.4 |
-| **Compact JWS profile** — the artifact *is* an RFC 7515 compact JWS string; the signature covers the exact transmitted bytes | TCT, grant voucher, delegation token | §5.4.5 |
+| **JCS embedded-signature profile** — the signature is a field of the JSON object, computed over the object's RFC 8785 canonical form | envelopes, Agent Manifests, revocation snapshots, session trust bundles, handshake payloads | §5.4.1–§5.4.4, §5.4.6, §5.4.7 |
+| **Compact JWS profile** — the artifact *is* an RFC 7515 compact JWS string; the signature covers the exact transmitted bytes | TCT, grant voucher, delegation token | §5.4.5, §5.4.7 |
 
 The boundary rule is normative:
 
@@ -232,8 +232,11 @@ canonical serialization of:
 
 ```
 sig_input = message_id + "|" + timestamp_string + "|" + sender.agent_id + "|" + hex(sha256(payload_canonical_json))
-signature = base64url(sign(sender_private_key, sha256(sig_input)))
+d         = sha256(sig_input)                  ; 32 bytes
+signature = base64url(SIGN_alg(sender_private_key, d))
 ```
+
+`SIGN_alg` is the per-algorithm signing primitive defined in §5.4.6; `d` is hashed exactly once. Verification is subject to §5.4.7.
 
 The `payload` object MUST be canonicalized per **[RFC 8785 — JSON Canonicalization Scheme (JCS)](https://datatracker.ietf.org/doc/html/rfc8785)** before hashing. JCS specifies compact JSON with no whitespace, lexicographically sorted keys at every nesting level, ECMAScript-style number formatting, and well-defined Unicode handling. Implementations MUST NOT use ad-hoc canonicalization; cross-implementation signature interop depends on JCS.
 
@@ -306,7 +309,7 @@ All AITP v0.2 proof-of-possession signing inputs follow a single rule:
 hash_input = sha256(base64url_decode(nonce_or_challenge))
 ```
 
-The hash input is always the raw bytes obtained by base64url-decoding the nonce or challenge — never the ASCII bytes of the encoded form. The rule applies uniformly to:
+The hash input is always the raw bytes obtained by base64url-decoding the nonce or challenge — never the ASCII bytes of the encoded form. The resulting digest is the `d` of §5.4.6 and is signed with that section's per-algorithm primitive: it is not hashed again. The rule applies uniformly to:
 
 - **Manifest PoP** — [RFC-AITP-0003 §3](RFC-AITP-0003-manifest.md) (`proof_of_possession.challenge`, 16 raw bytes / 22 base64url chars).
 - **Handshake round-2 PoP** — [RFC-AITP-0004 §3](RFC-AITP-0004-mutual-handshake.md) (`pop_nonce`, 16 raw bytes / 22 base64url chars).
@@ -315,7 +318,7 @@ The hash input is always the raw bytes obtained by base64url-decoding the nonce 
 
 Implementations MUST hash the decoded bytes; hashing the ASCII form is non-conformant. An implementation that consistently hashes the encoded string will be internally self-consistent but will fail cross-implementation verification — this is the most common interop bug observed in early AITP implementations.
 
-> **Known-answer test.** A pinned PoP signing-input vector (`kat-manifest-pop-001`) lives at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json). It pins (challenge → decoded bytes → SHA-256 digest → Ed25519 signature with `kat-keypair-001`). Implementations MUST add a KAT cross-check that runs the same input through every PoP code path and confirms each produces the pinned signature byte-for-byte.
+> **Known-answer test.** A pinned PoP signing-input vector (`kat-manifest-pop-001`) lives at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json). It pins (challenge → decoded bytes → SHA-256 digest → Ed25519 signature with `kat-keypair-001`). Its P-256 sibling, `kat-manifest-pop-002-p256`, pins the same challenge signed with `kat-keypair-005-p256` under §5.4.6 (`e = d`), together with the double-hash value that MUST NOT verify. Implementations MUST add a KAT cross-check that runs the same input through every PoP code path and confirms each produces the pinned signature byte-for-byte.
 
 #### 5.4.3 Algorithm-tagged signature wire format (JCS profile only)
 
@@ -364,7 +367,9 @@ Implementations MUST use one of:
 | ECDSA on P-256 with SHA-256 | `p256` | REQUIRED |
 
 Both are mandatory in v0.2. A v0.2 peer MUST be able to verify
-both, even if it only signs with one. Manifests MAY advertise
+both, even if it only signs with one. What `sign` means for each
+algorithm is defined in §5.4.6, and the encodings a verifier MUST
+reject in §5.4.7. Manifests MAY advertise
 which algorithms a peer is willing to accept via the
 `accepted_signature_algorithms` field (RFC-AITP-0003 §3.2).
 
@@ -487,7 +492,10 @@ objects (§7) — unknown keys *inside* `ext` MUST be ignored.
 
 **ECDSA signature encoding.** `ES256` signatures use the JOSE raw
 `R || S` fixed-length 64-byte encoding (not ASN.1/DER), per
-RFC 7518 §3.4.
+RFC 7518 §3.4. The low-S and range rules of §5.4.7 apply to `ES256`
+signatures as they do to JCS-profile `p256.` signatures; they are
+stricter than RFC 7518, and an off-the-shelf JOSE library MUST be
+wrapped accordingly.
 
 A compact JWS is transport-safe verbatim: it MAY be carried in HTTP
 headers, query-less URLs, or JSON string fields without further
@@ -495,6 +503,39 @@ encoding. When embedded in a JSON document (e.g. a handshake payload
 or session bundle), the artifact is carried as an **opaque JSON
 string** — embedding documents never parse, transform, or re-encode
 it, and outer JCS signatures cover the string verbatim.
+
+#### 5.4.6 Signing primitive per algorithm (JCS profile and proofs)
+
+Every JCS-profile signature and every proof signature hashes its signing input exactly once with SHA-256, producing the 32-byte digest `d`. This covers the envelope (§5.4), Manifest ([RFC-AITP-0003 §6](RFC-AITP-0003-manifest.md)), Manifest PoP, handshake PoP, TCT PoP and renewal PoP (§5.4.2), revocation snapshot ([RFC-AITP-0008 §1.5](RFC-AITP-0008-revocation.md)), session bundle ([RFC-AITP-0010 §3](RFC-AITP-0010-session-trust-bundle.md)) and the pinned-key `proof` ([RFC-AITP-0002 §3.1](RFC-AITP-0002-identity.md)). `SIGN_alg` is then:
+
+- `ed25519`: PureEdDSA ([RFC 8032 §5.1.6](https://datatracker.ietf.org/doc/html/rfc8032#section-5.1.6)) with `d` as the message.
+- `p256`: ECDSA on P-256 ([FIPS 186-5](https://doi.org/10.6028/NIST.FIPS.186-5), section 6.4) with the hash step **already performed**. `d` is used directly as the hashed message (`e = d`) and MUST NOT be hashed again.
+
+Equivalently, the `p256` signature is a standard ECDSA-P256-SHA256 (JOSE `ES256`) signature over the pre-hash input (`sig_input`, `proof_input`, the canonical artifact bytes, or the decoded nonce). A verifier MAY check it either way. Signers MUST use a prehash/digest interface (for example `PrehashSigner`, `Prehashed(SHA256)`, KMS `MessageType=DIGEST`, or `CKM_ECDSA`) and MUST NOT pass `d` to an interface that hashes its input. An implementation that hashes `d` again (`e = SHA-256(d)`) is non-conformant.
+
+The compact JWS profile (§5.4.5) needs no such rule: `EdDSA` signs `ASCII(header || '.' || payload)` directly, and `ES256` hashes that input once as RFC 7518 §3.4 defines.
+
+> **Known-answer test.** `kat-p256-jcs-sign-001` and `kat-manifest-pop-002-p256` in [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json) pin the single-hash P-256 value for a JCS preimage and a decoded PoP challenge. Each carries the double-hash value (`e = SHA-256(d)`) that MUST NOT verify. The signed examples under `known-answer/signed-examples/` include a P-256 envelope, Manifest, revocation snapshot and `ES256` TCT signed by `kat-keypair-005-p256`, each with its double-hash negative. Implementations MUST reproduce the signatures byte-for-byte when signing with RFC 6979 deterministic `k` and low-S normalization (§5.4.7), and MUST reject every negative.
+
+#### 5.4.7 Verification strictness
+
+**Ed25519.** Verifiers MUST reject:
+
+- a signature whose `S` is not canonical (`S ≥ L`);
+- a public key or `R` that is not a canonical point encoding;
+- a public key of small order (including the identity).
+
+Verifiers MUST use the cofactorless equation `[S]B = R + [k]A`. This is the "strict" verification profile (for example ed25519-dalek `verify_strict`). A verifier MAY additionally reject a small-order `R`, as `verify_strict` does; no conforming signer produces one, so the two behaviours do not diverge on honest input.
+
+**P-256.** Signers MUST emit low-S signatures (`S ≤ n/2`), normalizing `S` to `n − S` when needed, including when the raw signature comes from an external signer such as a KMS or HSM. Verifiers MUST reject `S > n/2`, `R` or `S` equal to 0, and `R` or `S` ≥ `n`, using `INVALID_SIGNATURE` (or the artifact-specific signature code).
+
+**Both profiles.** These rules apply to JCS-profile and compact-JWS signatures alike. For JWS they are stricter than RFC 7518, and an off-the-shelf JOSE library MUST be wrapped accordingly.
+
+**External signers.** When the private key is held by a KMS, HSM or remote signer, the implementation that assembles the AITP artifact is the "signer" for the purposes of this section. It MUST normalize `S` and SHOULD verify the assembled signature against the AID's key before emitting it. A KMS returning a DER-encoded signature MUST be converted to the fixed 64-byte `r || s` form before tagging.
+
+**Scope.** These rules apply to signatures over AITP-defined signing inputs: envelopes, the AITP-minted compact-JWS artifacts (TCT, grant voucher, delegation token), pinned-key identity proofs and Manifest PoP, together with every other signature §5.4.6 lists. A JOSE object whose format is defined outside AITP — an identity provider's OIDC ID token ([RFC-AITP-0002 §2](RFC-AITP-0002-identity.md#2-oidc-identity-type)) or an [RFC 9449](https://datatracker.ietf.org/doc/html/rfc9449) DPoP proof — is verified per RFC 7515 and RFC 7518; a verifier MUST NOT reject it solely for a high-S `ES256` signature, because its issuer is not bound by this profile. Such an object is therefore malleable: replay and deduplication caches for it MUST key on its bound `nonce` or `jti`, never on the raw token bytes.
+
+> **Known-answer test.** [`schemas/conformance/known-answer/signature-strictness.json`](../schemas/conformance/known-answer/signature-strictness.json) pins one vector per rejection reason: `sig-001` (Ed25519 small-order public key), `sig-002` (Ed25519 `S ≥ L`) and `sig-003` (P-256 high-S). Each is accepted by a lax verifier and MUST be rejected. Conformance fixture `tct-017-es256-high-s-rejected` carries a committed high-S `ES256` TCT that a stock JOSE verifier accepts and an AITP verifier MUST reject with `TCT_SIGNATURE_INVALID`.
 
 ### 5.5 Replay Protection
 

@@ -15,6 +15,15 @@ Vectors are never hand-transcribed. Hand-transcription is what produced the
 divergence this script exists to correct: three vectors pinned the transport
 envelope while three RFCs specified the inner artifact body.
 
+P-256 vectors are produced outside this tool. It signs Ed25519 only, and it
+leaves every entry it does not regenerate untouched, including
+`kat-p256-jcs-sign-001`, `kat-manifest-pop-002-p256`, the
+`kat-keypair-005-*` signed examples and `signature-strictness.json`. Those
+were minted with python-ecdsa (RFC 6979 deterministic k, low-S, e = d per
+RFC-AITP-0001 §5.4.6). `scripts/recompute-known-answer-independent.py`
+recomputes them from the committed inputs, and `verify-known-answer.mjs`
+verifies them in CI.
+
 Usage:
     python3 scripts/regen-known-answer.py [--verifier-py PATH] [--check]
 

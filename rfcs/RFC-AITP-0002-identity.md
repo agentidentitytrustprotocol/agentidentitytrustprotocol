@@ -2,7 +2,7 @@
 # Identity Binding
 
 **Document:** RFC-AITP-0002
-**Version:** 0.2.5-draft
+**Version:** 0.2.6-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md)
 
@@ -165,6 +165,8 @@ proof_input =
     || pop_nonce_decoded_bytes
 proof = base64url(sign(agent_private_key, sha256(proof_input)))
 ```
+
+`sign` is the per-algorithm primitive of [RFC-AITP-0001 §5.4.6](RFC-AITP-0001-core.md#546-signing-primitive-per-algorithm-jcs-profile-and-proofs): `sha256(proof_input)` is the digest `d`, hashed exactly once. An Ed25519 key signs `d` as its message; a P-256 key uses `d` directly as the ECDSA hashed message (`e = d`) and MUST NOT hash it again.
 
 Where:
 

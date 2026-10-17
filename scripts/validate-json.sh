@@ -114,7 +114,7 @@ fi
 # Lower FIXTURE_INPUT_MIN_CHECKS only in the same commit that removes fixtures,
 # and say why in the commit message — the same rule verify-known-answer.mjs uses
 # for EXPECTED_MIN_CHECKS.
-FIXTURE_INPUT_MIN_CHECKS=137
+FIXTURE_INPUT_MIN_CHECKS=138
 FIXTURE_MAP="${SCRIPT_DIR}/fixture-validation-map.json"
 NORMALIZER="${SCRIPT_DIR}/normalize-fixture-input.py"
 
@@ -482,15 +482,21 @@ fi
 
 # ── Signed-example KAT artifacts: schema-validate after stripping companions ─
 # Files under signed-examples/ carry top-level companions that document the
-# fixture but are not part of the wire artifact: `_kat_input` (the minting
-# parameters) and `signing_input` (the self-certifying declaration read by
-# scripts/verify-known-answer.mjs). The signed object beside them MUST
-# validate against the canonical schema. We strip both to a temp file, then
-# validate the remainder.
+# fixture but are not part of the wire artifact: every member whose name
+# starts with "_" (`_kat_input`, the minting parameters, and `_must_not_verify`,
+# the P-256 double-hash negatives) and `signing_input` (the self-certifying
+# declaration read by scripts/verify-known-answer.mjs). The signed object
+# beside them MUST validate against the canonical schema. We strip them to a
+# temp file, then validate the remainder.
+#
+# An optional 4th argument names a member to unwrap and validate on its own.
+# The envelope example uses it: its schema is the bare envelope, and the
+# companions `sig_input` / `sig_input_sha256_hex` sit beside it.
 validate_signed_kat() {
     local dir="$1"
     local schema="$2"
     local label="$3"
+    local unwrap="${4:-}"
     [ -d "$dir" ] || return 0
     echo "── signed-example ${label} (${dir}) ──"
     for f in "${dir}"/*.json; do
@@ -502,9 +508,16 @@ validate_signed_kat() {
         tmp_base="$(mktemp)"
         tmp="${tmp_base}.json"
         mv "$tmp_base" "$tmp"
-        if ! python3 -c "import json,sys;d=json.load(open(sys.argv[1]));d.pop('_kat_input',None);d.pop('signing_input',None);json.dump(d,open(sys.argv[2],'w'))" "$f" "$tmp"; then
+        if ! python3 -c "
+import json,sys
+d=json.load(open(sys.argv[1]))
+d={k:v for k,v in d.items() if not k.startswith('_') and k!='signing_input'}
+if sys.argv[3]:
+    d=d[sys.argv[3]]
+json.dump(d,open(sys.argv[2],'w'))
+" "$f" "$tmp" "$unwrap"; then
             rm -f "$tmp"
-            echo "    ✗ Could not strip _kat_input / signing_input"
+            echo "    ✗ Could not strip _* / signing_input companions${unwrap:+ or unwrap \"${unwrap}\"}"
             exit 1
         fi
         if ajv validate -s "${schema}" -d "${tmp}" --spec=draft2020 --strict=false -c ajv-formats >/dev/null 2>&1; then
@@ -512,7 +525,7 @@ validate_signed_kat() {
             echo "    ✓ Valid (signed payload)"
             rm -f "$tmp"
         else
-            echo "    ✗ Invalid against ${label} schema (after stripping _kat_input / signing_input)"
+            echo "    ✗ Invalid against ${label} schema (after stripping _* / signing_input companions)"
             ajv validate -s "${schema}" -d "${tmp}" --spec=draft2020 --strict=false -c ajv-formats || true
             rm -f "$tmp"
             exit 1
@@ -522,7 +535,8 @@ validate_signed_kat() {
 }
 
 # JCS-profile signed examples validate as whole objects (after stripping
-# _kat_input); JWS-profile artifacts validate via their decoded claims +
+# the _* companions); the envelope example validates its `envelope` member;
+# JWS-profile artifacts validate via their decoded claims +
 # token shape (validate_jws_dir tolerates the _kat_input companion since it
 # only reads decoded_claims and *_token fields).
 validate_signed_kat "${KAT_SIGNED_DIR}/manifest"      "${MANIFEST_SCHEMA}"        "manifest"
@@ -531,6 +545,7 @@ validate_jws_dir    "${KAT_SIGNED_DIR}/grant-voucher" "${GRANT_VOUCHER_SCHEMA}" 
 validate_jws_dir    "${KAT_SIGNED_DIR}/delegation"    "${DELEGATION_SCHEMA}"      "delegation"
 validate_signed_kat "${KAT_SIGNED_DIR}/revocation"    "${REVOCATION_LIST_SCHEMA}" "revocation"
 validate_signed_kat "${KAT_SIGNED_DIR}/session-bundle" "${SESSION_BUNDLE_SCHEMA}"  "session-bundle"
+validate_signed_kat "${KAT_SIGNED_DIR}/envelope"      "${ENVELOPE_SCHEMA}"        "envelope" "envelope"
 
 if [ $TOTAL -eq 0 ]; then
     echo "Warning: No JSON example or fixture files found"

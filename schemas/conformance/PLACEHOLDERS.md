@@ -103,14 +103,16 @@ The minting tool produces real signatures using the
 [known-answer keypairs](known-answer/keypairs.json). Every signature
 placeholder in this table is replaced with the unpadded base64url
 encoding of the signature over the appropriate canonical input
-(RFC-AITP-0001 §5.4.1). These tokens apply to **JCS-profile**
+(RFC-AITP-0001 §5.4.1). Every signature hashes its input once
+(RFC-AITP-0001 §5.4.6): a P-256 signature is ECDSA with `e = sha256(input)`,
+never `sha256(sha256(input))`, and is emitted low-S (§5.4.7). These tokens apply to **JCS-profile**
 artifacts only (envelopes, Manifests, revocation snapshots, handshake
 payloads); the compact-JWS artifacts use the whole-token family in
 the next section.
 
 | Token | Signing key | Signing input |
 |---|---|---|
-| `__VALID_ENVELOPE_SIG__` | Sender's pinned signing key | Envelope signing input per RFC-AITP-0001 §5.4 |
+| `__VALID_ENVELOPE_SIG__` | Sender's pinned signing key | Envelope signing input per RFC-AITP-0001 §5.4. In `env-005` (P-256 sender) the value is committed rather than minted: substitute the `signature` of [`signed-examples/envelope/kat-keypair-005-envelope.json`](known-answer/signed-examples/envelope/kat-keypair-005-envelope.json), whose envelope is otherwise identical to the fixture's. |
 | `__VALID_MANIFEST_SIG__` | Manifest agent's signing key | JCS canonical **inner** Manifest body excluding `signature` — never the `{"manifest": …}` wrapper (RFC-AITP-0003 §6.1) |
 | `__VALID_POP_SIG__` | Manifest agent's signing key | `sha256(decoded_bytes(challenge))` (RFC-AITP-0003 §3.1) |
 | `__VALID_A_SIG__` | Initiating peer (A)'s signing key | Resolved from the enclosing artifact, per the table below — **never** "whatever the minting tool decides". |

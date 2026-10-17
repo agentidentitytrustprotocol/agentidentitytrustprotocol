@@ -2,6 +2,59 @@
 
 ## Unreleased
 
+### P-256 signs a single SHA-256 digest (RFC-AITP-0001 §5.4.6), and verifiers are strict (§5.4.7)
+
+**Change class.** Normative change, at the patch position under `VERSIONING.md`'s pre-1.0 mapping. §5.4.6 is a clarification: `sign()` was never defined for P-256, and the two implementations had read it two ways. §5.4.7 adds verifier MUST-reject rules. Neither changes any Ed25519 signature an RFC 8032 signer produces. It is a wire change for P-256 JCS signatures from implementations that hashed the digest twice. No interoperable P-256 JCS deployment can exist today, because the two existing implementations already disagree. No existing pinned value changes: every new vector is an addition.
+
+**The gap.** RFC-AITP-0001 §5.4 wrote `sign(sender_private_key, sha256(sig_input))` and never defined `sign` for P-256. One reading feeds the digest to an ECDSA-SHA256 interface that hashes again (`e = SHA-256(SHA-256(input))`, aitp-rs). The other uses the digest as the hashed message (`e = SHA-256(input)`, aitp-verifier-py). Neither verifies the other's signatures. The spec also stated no malleability rule: aitp-rs rejected high-S P-256 and used strict Ed25519, while aitp-verifier-py and stock JOSE libraries accept high-S.
+
+**The fix.**
+
+- **RFC-AITP-0001 §5.4.6 (new).** Every JCS-profile and proof signature hashes its input once (`d = sha256(input)`). Ed25519 signs `d` as its message. P-256 uses `e = d`, which MUST NOT be hashed again; this is the same as ES256 over the pre-hash input. Signers MUST use a prehash interface. The §5.4 pseudocode now reads `d = sha256(sig_input)` and `signature = base64url(SIGN_alg(sender_private_key, d))`. §5.4.2, §5.4.3 and the §5.4.5 ECDSA paragraph point to §5.4.6 and §5.4.7.
+- **RFC-AITP-0001 §5.4.7 (new).**
+  - Ed25519: reject `S ≥ L`, non-canonical point encodings and small-order public keys; use the cofactorless equation. A verifier MAY also reject a small-order `R` (as ed25519-dalek `verify_strict` does), so that both strict libraries in use conform; no conforming signer produces one.
+  - P-256: signers emit low-S, including when an external KMS or HSM signs; verifiers reject `S > n/2` and `R` or `S` that is 0 or ≥ n. KMS DER output is converted to raw `r || s`.
+  - These rules apply to the JCS and JWS profiles alike. They do not apply to JOSE objects defined outside AITP (an IdP's OIDC ID token, an RFC 9449 DPoP proof), and replay caches for those objects MUST key on `nonce`/`jti`, not on raw token bytes.
+- **RFC-AITP-0002 §3.1** cites §5.4.6 for the pinned-key `proof`; the pseudocode is unchanged. **RFC-AITP-0009 §4** cross-references §5.4.6–§5.4.7.
+
+**New known answers.** Every P-256 value is signed with RFC 6979 deterministic `k` and low-S. Each carries a double-hash value that MUST NOT verify.
+
+- `jcs-sha256.json`:
+  - `kat-p256-jcs-sign-001` (digest `cee8d8fb…b17c`, signature `p256.SJXh3QaG…mdBk80g`, plus its high-S sibling);
+  - `kat-manifest-pop-002-p256` (the `kat-manifest-pop-001` challenge signed by `kat-keypair-005-p256`).
+- `keypairs.json`: `kat-keypair-001-tagged`, the `aid:pubkey:ed25519:` spelling of kat-keypair-001.
+- New `signature-strictness.json`: `sig-001` (Ed25519 small-order key), `sig-002` (Ed25519 `S + L`) and `sig-003` (P-256 high-S). The checker asserts that a lax verifier accepts each one and the strict verifier rejects it.
+- `signed-examples/`, signed by `kat-keypair-005-p256`:
+  - `envelope/kat-keypair-005-envelope.json`, which is env-005's envelope with its signature filled in (`sig_input` digest `89907080…8bf6`);
+  - `manifest/kat-keypair-005-manifest.json`, including the PoP;
+  - `revocation/kat-keypair-005-snapshot.json`;
+  - `tct/kat-keypair-005-issues-002.json` (ES256).
+- New conformance fixture `tct-017-es256-high-s-rejected`: a literal committed high-S ES256 TCT that stock JOSE accepts. The expected result is `TCT_SIGNATURE_INVALID`.
+
+**Tooling.**
+
+- `scripts/verify-known-answer.mjs`:
+  - verifies P-256 JCS and ES256 signatures and enforces §5.4.7 in BigInt, requiring agreement with `crypto.verify`; strict Ed25519 now applies to every existing Ed25519 check too;
+  - checks every double-hash negative;
+  - deep-compares env-005 against the envelope example;
+  - checks the PoP of every Manifest example;
+  - `EXPECTED_MIN_CHECKS` 66 → 110.
+- `scripts/validate-json.sh`:
+  - validates the new `envelope/` signed example;
+  - strips every `_`-prefixed companion;
+  - `FIXTURE_INPUT_MIN_CHECKS` 137 → 138.
+- New `scripts/recompute-known-answer-independent.py` is a maintainer tool outside CI, like `regen-known-answer.py`. It uses python-ecdsa and pure-Python RFC 8032 Ed25519, and recomputes every new value from the committed inputs.
+- READMEs updated: `known-answer/`, `signed-examples/`, the conformance index (`core` 63 → 64, total 74 → 75), and `PLACEHOLDERS.md`.
+
+**Version bumps.**
+
+- RFC-AITP-0001: `0.2.8-draft` → `0.2.9-draft`.
+- RFC-AITP-0002: `0.2.5-draft` → `0.2.6-draft`.
+- RFC-AITP-0009: `0.2.4-draft` → `0.2.5-draft`.
+- `rfcs/README.md`'s version-summary sentence updated to match.
+
+**Migration.** P-256 signers that pass `sha256(input)` to a hashing ECDSA interface switch to a prehash interface, and normalize S. P-256 verifiers add the low-S and range rejects. Ed25519 verifiers move to the strict profile.
+
 ### RFC-AITP-0005 §2.2: `jti` and `message_id` are strictly UUID v4, with a derived-identifier construction and a jti domain-tag registry (proposal #72 Items 6b and 6a)
 
 Normative change. Two new fixtures, one new known-answer vector, one new registry, one schema tightening. No wire change for conformant issuers.
