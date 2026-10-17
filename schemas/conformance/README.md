@@ -168,6 +168,11 @@ AID-derived `alg` pin fails before any signature bytes are examined
 (RFC-AITP-0001 §5.4.5). `tct-010` (`typ` confusion) carries a
 *cryptographically valid* grant voucher presented as a TCT — the
 signature would verify; the explicit-typing check is what rejects.
+`tct-013` (a UUID v7 `jti`) and `tct-014` (a v4 `jti` with wrong
+variant bits) are validly signed too: the `jti` layout check of
+RFC-AITP-0005 §2.2 runs before signature verification and rejects with
+`TCT_SIGNATURE_INVALID`, the TCT's structural-rejection code
+([`registries/error-codes.md`](../../registries/error-codes.md#structural-rejection)).
 
 `rev-004` is **not** a structural-rejection fixture, despite also
 carrying a tampered-signature placeholder. It tests the opposite
@@ -250,11 +255,11 @@ The runner interface is implementation-defined.
 
 | Tier | Count | Required for v0.2 |
 |---|---|---|
-| `core` (v0.2-required) | 61 | ✅ Yes |
+| `core` (v0.2-required) | 63 | ✅ Yes |
 | `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (v0.1 runners only) |
 | `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 6 | ❌ No |
 | `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 4 | ❌ No |
-| **Total** | **72** | |
+| **Total** | **74** | |
 
 Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A v0.2 conformance runner MUST execute every `required_for_v0_2` core fixture; `draft` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
@@ -330,6 +335,8 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | `tct-010` | Cryptographically valid grant voucher (`typ: aitp-grant+jwt`) presented as a TCT — explicit typing rejects | failure: TOKEN_TYP_MISMATCH |
 | `tct-011` | TCT claims carry an unknown claim (`device_id`) outside `ext` | failure: UNKNOWN_FIELD |
 | `tct-012` | TCT claims carry an unrecognized, vendor-namespaced key inside `ext` — ignored | success |
+| `tct-013` | TCT `jti` is a UUID v7, not the UUID v4 layout (RFC-AITP-0005 §2.2) — rejected before signature verification | failure: TCT_SIGNATURE_INVALID |
+| `tct-014` | TCT `jti` has version nibble `4` but wrong variant bits (`c`, not `8`–`b`) — rejected before signature verification | failure: TCT_SIGNATURE_INVALID |
 
 ### Grant voucher (RFC-AITP-0005 §8)
 

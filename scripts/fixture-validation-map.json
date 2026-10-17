@@ -987,6 +987,26 @@
         }
       ]
     },
+    "tct-013": {
+      "artifacts": [
+        {
+          "pointer": "/input/tct_token_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "invalid",
+          "reason": "Deliberately schema-invalid: input.tct_token_claims.jti is a UUID v7 (version nibble 7), which the jti pattern rejects. RFC-AITP-0005 §2.2 requires the UUID v4 layout; the fixture asserts TCT_SIGNATURE_INVALID (the TCT's structural-rejection code), so schema rejection is the correct expected outcome."
+        }
+      ]
+    },
+    "tct-014": {
+      "artifacts": [
+        {
+          "pointer": "/input/tct_token_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "invalid",
+          "reason": "Deliberately schema-invalid: input.tct_token_claims.jti has version nibble 4 but variant nibble c (bits 110), which the jti pattern's [89ab] rejects. RFC-AITP-0005 §2.2 requires variant bits 10; the fixture asserts TCT_SIGNATURE_INVALID (the TCT's structural-rejection code), so schema rejection is the correct expected outcome."
+        }
+      ]
+    },
     "vch-001": {
       "artifacts": [
         {

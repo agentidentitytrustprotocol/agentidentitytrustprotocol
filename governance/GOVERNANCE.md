@@ -28,12 +28,13 @@ Status MUST be reflected in the RFC document header. See [RFC-PROCESS.md](RFC-PR
 
 ## Registry Authority
 
-The project maintains five registries under [`registries/`](../registries/):
+The project maintains six registries under [`registries/`](../registries/):
 
 - Identity types (`registries/identity-types.md`)
 - Capabilities (`registries/capabilities.md`)
 - Error codes (`registries/error-codes.md`)
 - Extension keys (`registries/extension-keys.md`)
+- jti domain tags (`registries/jti-domain-tags.md`)
 - Media types (`registries/media-types.md`)
 
 Experimental identifiers SHOULD use reverse-domain notation (e.g. `com.example.feature`).

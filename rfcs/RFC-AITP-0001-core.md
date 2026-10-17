@@ -2,7 +2,7 @@
 # Agent Identity & Trust Protocol (AITP) — Core
 
 **Document:** RFC-AITP-0001
-**Version:** 0.2.7-draft
+**Version:** 0.2.8-draft
 **Status:** Community Standards Track (Draft)
 **Canonical wire format:** JSON
 **Normative transport:** HTTPS (any HTTP/1.1+ runtime)
@@ -146,7 +146,7 @@ Every AITP protocol message — `mutual_hello`, `mutual_hello_ack`, `mutual_comm
 |---|---|---|---|
 | `version` | string | REQUIRED | MUST be `"aitp/0.2"` for this RFC. |
 | `message_type` | string | REQUIRED | One of: `mutual_hello`, `mutual_hello_ack`, `mutual_commit`, `mutual_commit_ack`, `tct`, `pop_challenge`, `pop_response`, `error`. |
-| `message_id` | string | REQUIRED | UUID v4, hyphenated lowercase. |
+| `message_id` | string | REQUIRED | UUID v4, hyphenated lowercase, in the [RFC-AITP-0005 §2.2](RFC-AITP-0005-tct.md#22-identifier-layout-jti) layout (version nibble `4`, variant bits `10`); the remaining bits are random or derived by that section's construction. A receiver MUST reject any other form before signature verification, with `INVALID_ENVELOPE`. |
 | `timestamp` | integer | REQUIRED | Unix timestamp (seconds). |
 | `sender.agent_id` | string | REQUIRED | AID of the sending agent. |
 | `payload` | object | REQUIRED | Message-type-specific content. |
@@ -596,11 +596,13 @@ Implementations MAY transport AITP messages over other framings (binary RPC, mes
 
 ## 9. Registry Hooks
 
-AITP maintains four registries under [`registries/`](../registries/):
+AITP maintains six registries under [`registries/`](../registries/), indexed in [`registries/README.md`](../registries/README.md):
 
 - **identity-types** — registered values for `IdentityDescriptor.type`
 - **capabilities** — well-known capability strings
 - **error-codes** — protocol-level error codes (envelope, manifest, handshake, delegation)
+- **extension-keys** — keys used inside `extensions` / `ext` namespaces by AITP-defined extensions
+- **jti-domain-tags** — domain tags for derived `jti` / `message_id` values ([RFC-AITP-0005 §2.2](RFC-AITP-0005-tct.md#22-identifier-layout-jti))
 - **media-types** — content types used in transport bindings
 
 New entries are added via the [RFC process](../governance/RFC-PROCESS.md). Experimental identifiers SHOULD use reverse-domain notation.
@@ -625,7 +627,7 @@ A conformant AITP v0.2 implementation MUST:
 
 ## 11. Security Considerations
 
-See [RFC-AITP-0009 Security](RFC-AITP-0009-security.md) for the full threat model. Implementations MUST use a cryptographically secure RNG for `message_id` and nonces, store private keys in secure storage, and validate all inputs against the JSON Schema before processing.
+See [RFC-AITP-0009 Security](RFC-AITP-0009-security.md) for the full threat model. Implementations MUST use a cryptographically secure RNG for nonces, and for `message_id` unless derived per [RFC-AITP-0005 §2.2](RFC-AITP-0005-tct.md#22-identifier-layout-jti), store private keys in secure storage, and validate all inputs against the JSON Schema before processing.
 
 ---
 

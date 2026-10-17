@@ -2,7 +2,7 @@
 # Multi-hop Delegation
 
 **Document:** RFC-AITP-0011
-**Version:** 0.2.1-draft
+**Version:** 0.2.2-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md), [RFC-AITP-0006 Single-Hop Delegation](RFC-AITP-0006-delegation.md), [RFC-AITP-0008 Revocation](RFC-AITP-0008-revocation.md)
 
@@ -53,7 +53,7 @@ A multi-hop delegation token is a delegation compact JWS per [RFC-AITP-0006 §2]
 |---|---|---|
 | `chain` | OPTIONAL | Array of delegation compact JWS strings (`typ: aitp-delegation+jwt`), ordered from the oldest hop (`chain[0]`) to the most recent prior hop. Each entry is carried **verbatim** — issuers MUST NOT decode-and-re-encode an entry, and verifiers MUST NOT reconstruct any byte sequence. Absent (or empty) for single-hop tokens — that is the RFC-AITP-0006 case. |
 | `chain_hash` | REQUIRED if `chain` is non-empty | Digest-array commitment over the chain (§5). Bound under the outer JWS signature like every other claim. |
-| `jti` | REQUIRED on every hop of a chain | Fresh UUID v4 minted by the hop's issuer; the hop's revocation handle (§6). |
+| `jti` | REQUIRED on every hop of a chain | UUID v4 in the [RFC-AITP-0005 §2.2](RFC-AITP-0005-tct.md#22-identifier-layout-jti) layout, unique per hop, minted by the hop's issuer; the hop's revocation handle (§6). |
 
 A delegation token without `chain` (or with `chain == []`) is a single-hop delegation and follows RFC-AITP-0006 verification verbatim. The rules below apply only when `chain` is non-empty.
 
@@ -66,7 +66,7 @@ Each `chain[i]` is a complete delegation compact JWS exactly as its issuer minte
 - `chain[0]` (the first delegation, B → C) MUST carry the `voucher` claim — A's grant voucher, embedded verbatim per RFC-AITP-0006 §2. This is where the chain's authority bottoms out; there is no "peer-issued TCT projection" hop and no reconstruction of A's TCT.
 - Every subsequent hop — `chain[i]` for `i > 0`, and the outer token — MUST NOT carry a `voucher` claim. Its authority is the preceding hop, established by the continuity, scope, and expiry rules of §3–§4. This relaxes, for chain-bearing tokens only, RFC-AITP-0006 §2's rule that `voucher` is REQUIRED.
 
-**Per-hop `jti`.** Every hop of a chain — each `chain[i]` and the outer token — MUST carry a `jti` claim: a fresh UUID v4 the issuer assigned when minting that hop. It is the handle by which that issuer can later revoke the hop (§6), carrying over the v0.1 per-step revocation model. `jti` is not part of the single-hop claims set (RFC-AITP-0006 §2); implementations that opt into this RFC MUST accept an OPTIONAL `jti` on any delegation token, while non-opted-in verifiers will reject `jti`-bearing tokens under the strict-claims rule of RFC-AITP-0001 §5.4.5 — an issuer SHOULD therefore mint `jti` only on delegations intended to be extensible into a chain.
+**Per-hop `jti`.** Every hop of a chain — each `chain[i]` and the outer token — MUST carry a `jti` claim: a UUID v4 the issuer assigned when minting that hop, in the RFC-AITP-0005 §2.2 layout (random or derived; a hop whose `jti` breaks the layout is rejected structurally with `DELEGATION_INVALID_SIGNATURE`, the delegation token's structural-rejection code in [`registries/error-codes.md`](../registries/error-codes.md#structural-rejection)). It is the handle by which that issuer can later revoke the hop (§6), carrying over the v0.1 per-step revocation model. `jti` is not part of the single-hop claims set (RFC-AITP-0006 §2); implementations that opt into this RFC MUST accept an OPTIONAL `jti` on any delegation token, while non-opted-in verifiers will reject `jti`-bearing tokens under the strict-claims rule of RFC-AITP-0001 §5.4.5 — an issuer SHOULD therefore mint `jti` only on delegations intended to be extensible into a chain.
 
 **Nested chain claims (prefix consistency).** A hop token that was itself minted as a multi-hop token (because its issuer extended an existing chain) carries its own `chain` and `chain_hash` claims. Such a token is still embedded verbatim when delegated onward. When a verifier encounters a `chain` claim inside `chain[i]`, that inner array MUST equal `chain[0..i-1]` of the outer token, element-wise by exact string comparison, and the entry's own `chain_hash` MUST recompute (§5) over that prefix. Any inconsistency ⇒ `DELEGATION_INVALID_VOUCHER`. (With the default hop limit of §2, chains never grow long enough for nesting to occur; the rule exists so longer, explicitly configured chains remain well-defined.)
 

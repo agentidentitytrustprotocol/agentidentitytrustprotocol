@@ -300,6 +300,7 @@ const JCS_EXPECTED = new Map([
   ['kat-pinned-key-proof-001', ['sender_aid', 'receiver_aid', 'message_id', 'timestamp', 'pop_nonce', 'proof_input_hex', 'proof_input_len_bytes', 'sha256_hex', 'sha256_b64url', 'signing_keypair_id', 'signer_aid', 'signature_b64url']],
   ['kat-multihop-chain-001', ['voucher_jws', 'chain', 'chain_entry_sha256_b64url', 'digest_array_jcs', 'chain_hash', 'outer_delegation_jws']],
   ['kat-multihop-truncation-001', ['chain_hash_full', 'chain_truncated', 'chain_hash_truncated', 'must_differ']],
+  ['kat-derived-uuid-001', ['domain_tag', 'input_hex', 'preimage_hex', 'sha256_hex', 'uuid']],
 ]);
 
 const KEYPAIRS_EXPECTED = new Map([
@@ -508,6 +509,43 @@ function checkJcsVectors(keypairs) {
       });
     }
 
+    if (v.id === 'kat-derived-uuid-001') {
+      const tag = Buffer.from(v.domain_tag, 'ascii');
+      const input = Buffer.from(v.input_hex, 'hex');
+      check(`${v.id} domain tag is printable ASCII and registered`, () => {
+        if (!/^[\x21-\x7e]+$/.test(v.domain_tag)) {
+          throw new Error(`domain_tag must be printable ASCII 0x21-0x7E (no space, no 0x00): ${JSON.stringify(v.domain_tag)}`);
+        }
+        const tags = registeredDomainTags();
+        if (!tags.includes(v.domain_tag)) {
+          throw new Error(`${v.domain_tag} is not in registries/jti-domain-tags.md (registered: ${tags.join(', ')})`);
+        }
+      });
+      check(`${v.id} preimage + digest + UUID recomputed from domain_tag and input`, () => {
+        if (input.toString('hex') !== v.input_hex.toLowerCase()) throw new Error('input_hex is not valid hex');
+        const preimage = Buffer.concat([tag, Buffer.from([0x00]), input]);
+        eq(preimage.toString('hex'), v.preimage_hex, 'preimage_hex');
+        eq(sha256(preimage).toString('hex'), v.sha256_hex, 'sha256_hex');
+        const uuid = derivedUuid(tag, input);
+        eq(uuid, v.uuid, 'uuid');
+        if (!UUID_V4.test(uuid)) throw new Error(`derived ${uuid} is not in the lowercase UUID v4 layout`);
+      });
+      check(`${v.id} distinguishes a missing separator and missing bit masks`, () => {
+        // Each wrong implementation must produce a different string, or the
+        // pinned value does not catch it.
+        const raw = sha256(Buffer.concat([tag, Buffer.from([0x00]), input]));
+        const noMasks = renderUuid(raw.subarray(0, 16));
+        // Separator omitted, masks applied.
+        const h = Buffer.from(sha256(Buffer.concat([tag, input])).subarray(0, 16));
+        h[6] = (h[6] & 0x0f) | 0x40;
+        h[8] = (h[8] & 0x3f) | 0x80;
+        if (renderUuid(h) === v.uuid) throw new Error('the 0x00 separator does not change the UUID');
+        if ((raw[6] & 0xf0) === 0x40) throw new Error('h[6] already has version nibble 4 — the version mask is not exercised');
+        if ((raw[8] & 0xc0) === 0x80) throw new Error('h[8] already has variant bits 10 — the variant mask is not exercised');
+        if (noMasks === v.uuid) throw new Error('the unmasked digest equals the pinned uuid');
+      });
+    }
+
     if (v.id === 'kat-multihop-truncation-001') {
       check(`${v.id} truncated chain_hash differs`, () => {
         const digests = v.chain_truncated.map((e) => b64uEncode(sha256(utf8(e))));
@@ -526,6 +564,31 @@ function checkJcsVectors(keypairs) {
       });
     }
   }
+}
+
+// RFC-AITP-0005 §2.2 derived identifier: h = SHA-256(tag || 0x00 || input),
+// take h[0..16], force version nibble 4 and variant bits 10, render as a
+// lowercase hyphenated UUID. Recomputed from the tag and input, never compared
+// as a stored string alone.
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+function renderUuid(b16) {
+  const x = Buffer.from(b16).toString('hex');
+  return `${x.slice(0, 8)}-${x.slice(8, 12)}-${x.slice(12, 16)}-${x.slice(16, 20)}-${x.slice(20, 32)}`;
+}
+function derivedUuid(tagBytes, inputBytes) {
+  const h = Buffer.from(sha256(Buffer.concat([tagBytes, Buffer.from([0x00]), inputBytes])).subarray(0, 16));
+  h[6] = (h[6] & 0x0f) | 0x40;
+  h[8] = (h[8] & 0x3f) | 0x80;
+  return renderUuid(h);
+}
+
+// The tags registered in registries/jti-domain-tags.md (first column of the
+// "Registered tags" table).
+function registeredDomainTags() {
+  const md = readFileSync(join(ROOT, 'registries/jti-domain-tags.md'), 'utf8');
+  const section = md.split('## Registered tags')[1]?.split('\n## ')[0];
+  if (!section) throw new Error('registries/jti-domain-tags.md has no "Registered tags" section');
+  return [...section.matchAll(/^\| `([^`]+)` \|/gm)].map((m) => m[1]);
 }
 
 // AID → raw 32-byte Ed25519 public key. Accepts the untagged v0.1-style
@@ -704,7 +767,7 @@ checkSignedExamples();
 // emptied vector member; this catches coverage lost any other way — a check
 // commented out, a loop that stops early, a gate that stops matching. Coverage may
 // grow (raise this number in the same commit); it may never silently shrink.
-const EXPECTED_MIN_CHECKS = 62;
+const EXPECTED_MIN_CHECKS = 66;
 if (checks < EXPECTED_MIN_CHECKS) {
   failures.push(
     `coverage regression: ran ${checks} checks, expected at least ${EXPECTED_MIN_CHECKS}. ` +

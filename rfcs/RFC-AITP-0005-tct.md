@@ -2,7 +2,7 @@
 # Trust Context Token (TCT)
 
 **Document:** RFC-AITP-0005
-**Version:** 0.2.3-draft
+**Version:** 0.2.4-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0004 Mutual Handshake](RFC-AITP-0004-mutual-handshake.md)
 
@@ -62,7 +62,7 @@ The canonical schema for the decoded claims object is [`schemas/json/aitp-tct.sc
 | Claim | Type | Description |
 |---|---|---|
 | `ver` | string | MUST be `"aitp/0.2"` for this RFC. Private claim; see RFC-AITP-0001 §5.4.5. |
-| `jti` | string | UUID v4. Unique token ID; the revocation handle (RFC-AITP-0008). |
+| `jti` | string | Lowercase UUID v4 in the §2.2 layout, random or derived. Unique token ID; the revocation handle (RFC-AITP-0008). |
 | `iss` | string | AID of the issuing peer. |
 | `sub` | string | AID of the agent this TCT was issued for (the subject peer). |
 | `aud` | string | AID of the intended consuming peer. MUST equal `sub`. |
@@ -90,6 +90,19 @@ For implementers migrating from `aitp/0.1`:
 | `binding.cnf` (raw public key) | `cnf: {"jkt": …}` (§3) |
 | `signature` (embedded, over JCS bytes) | the JWS signature segment (over transmitted bytes) |
 | `extensions` | `ext` |
+
+### 2.2 Identifier layout (`jti`)
+
+`jti` MUST be a lowercase hyphenated string in the [RFC 9562](https://datatracker.ietf.org/doc/html/rfc9562) UUID v4 layout: version nibble `4`, variant bits `10`. A verifier MUST reject any other form before signature verification (§7.2 step 1), with `TCT_SIGNATURE_INVALID`, the TCT's structural-rejection code ([`registries/error-codes.md`](../registries/error-codes.md#structural-rejection)). No dedicated code exists: that table already decides that a compact-JWS artifact collapses structural failure onto its signature-family code, so an unauthenticated token leaks no parse detail.
+
+The remaining 122 bits MUST be either:
+
+- **random**: drawn from a CSPRNG (RFC-AITP-0001 §11), or
+- **derived**: taken from `h = SHA-256(domain_tag_bytes || 0x00 || input_bytes)`, where `domain_tag_bytes` is the ASCII encoding of an issuer-chosen label unique to that use (printable ASCII `0x21`–`0x7E`, so it never contains `0x00`), `0x00` is a single null byte separator (the RFC-AITP-0002 §3.1 `proof_input` convention), and `input_bytes` is unique per token for that issuer. The issuer MUST guarantee that distinct tokens never share an `input_bytes`. The identifier is `h[0..16]` with `h[6] = (h[6] & 0x0f) | 0x40` and `h[8] = (h[8] & 0x3f) | 0x80`, rendered as lowercase hyphenated 8-4-4-4-12 hex. The separator stops two registered tags where one is a prefix of the other (`a` and `ab`) from yielding the same preimage.
+
+A verifier cannot tell the two apart, and MUST NOT try.
+
+Derived identifiers serve idempotent re-issuance and archival attestations: a host that re-mints the commitment for the same record after a restart must produce the same `jti`, which CSPRNG bits would forbid. Requiring the v4 layout keeps the schema pattern valid and lets generic UUID parsers that check version or variant accept the value. Domain tags in use are listed in [`registries/jti-domain-tags.md`](../registries/jti-domain-tags.md); the known-answer vector `kat-derived-uuid-001` ([`jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json)) pins the construction byte for byte. The same layout governs the envelope `message_id` (RFC-AITP-0001 §5.2), the grant voucher's `src_jti` (§8.1), and the per-hop `jti` of RFC-AITP-0011.
 
 ---
 
@@ -278,11 +291,11 @@ There is no canonicalization step. The bytes the issuer transmitted are the byte
 
 A TCT verifier MUST, in order. Step numbers below are load-bearing (cited by
 RFC-AITP-0001 §7, RFC-AITP-0008 §3.3, RFC-AITP-0009 §1, and the `tct-002` /
-`tct-003` / `tct-004` / `tct-008` / `tct-009` / `tct-010` conformance
-fixtures) and are not renumbered here; instead, step 1's *sub-steps* are
+`tct-003` / `tct-004` / `tct-008` / `tct-009` / `tct-010` / `tct-013` /
+`tct-014` conformance fixtures) and are not renumbered here; instead, step 1's *sub-steps* are
 ordered explicitly, since they previously read as a single unordered clause:
 
-1. **Parse strictly** — exactly three non-empty base64url segments (RFC-AITP-0001 §5.4.5 strict-parsing rules); this segment check alone precedes everything below, including step 2. Once decoded, this step also requires the claims set to contain only the claims registered in §2 — the TCT is a compact JWS, so RFC-AITP-0001 §7's unknown-field rule lands on the decoded *claims*, and the extension namespace is the `ext` claim, spelled `ext`, not `extensions`; any unrecognized claim outside `ext` ⇒ `UNKNOWN_FIELD`, unknown keys *inside* `ext` MUST be ignored. (The protected header needs no separate unknown-member check here: §5.4.5 already pins it to exactly `alg` and `typ`.) **This claims-membership check executes after step 2's `typ` enforcement, not before it** (see step 2's note) — it is kept under step 1's number, rather than given its own, only to avoid renumbering the load-bearing steps that follow. Full execution order: this step's segment-parsing, then step 2, then this step's claims-membership clause, then steps 3–4.
+1. **Parse strictly** — exactly three non-empty base64url segments (RFC-AITP-0001 §5.4.5 strict-parsing rules); this segment check alone precedes everything below, including step 2. Once decoded, this step also requires the claims set to contain only the claims registered in §2 — the TCT is a compact JWS, so RFC-AITP-0001 §7's unknown-field rule lands on the decoded *claims*, and the extension namespace is the `ext` claim, spelled `ext`, not `extensions`; any unrecognized claim outside `ext` ⇒ `UNKNOWN_FIELD`, unknown keys *inside* `ext` MUST be ignored. The same clause checks `jti` against the §2.2 layout; a `jti` in any other form (another UUID version, wrong variant bits, uppercase) ⇒ `TCT_SIGNATURE_INVALID`, before step 4 (`tct-013`, `tct-014`). (The protected header needs no separate unknown-member check here: §5.4.5 already pins it to exactly `alg` and `typ`.) **This claims-membership check executes after step 2's `typ` enforcement, not before it** (see step 2's note) — it is kept under step 1's number, rather than given its own, only to avoid renumbering the load-bearing steps that follow. Full execution order: this step's segment-parsing, then step 2, then this step's claims-membership clause, then steps 3–4.
 2. **Enforce `typ`** — header `typ` MUST be exactly `aitp-tct+jwt`; otherwise reject with `TOKEN_TYP_MISMATCH`. This runs before step 1's claims-membership clause (see the note there): a `typ` mismatch is rejected as type confusion regardless of what the decoded claims contain, so that a grant voucher or delegation token — signed by the same issuer key as its companion TCT, and structurally a valid JWS carrying its own, different, registered claim set — is never evaluated as a TCT at all. `tct-010` pins exactly this ordering: a schema-valid, validly-signed grant voucher presented as a TCT MUST be rejected with `TOKEN_TYP_MISMATCH`, even though its claims (e.g. `src_jti`) are not TCT claims and would otherwise trigger `UNKNOWN_FIELD`.
 3. **Pin `alg`** — derive the sole acceptable `alg` from the issuer's AID (`iss` claim) and reject any other header value, including `none`, with `TOKEN_ALG_MISMATCH`.
 4. **Verify the signature** against the issuer's public key.
@@ -352,7 +365,7 @@ Decoded claims:
 | `sub` | string | The TCT subject's AID — the peer entitled to delegate against this voucher. |
 | `grants` | array of string | MUST equal the companion TCT's `grants`. Non-empty. |
 | `iat` / `exp` | integer | MUST equal the companion TCT's `iat` / `exp`. |
-| `src_jti` | string | The companion TCT's `jti`. Revocation rides on this: revoking the TCT kills every voucher and delegation derived from it (RFC-AITP-0008). |
+| `src_jti` | string | The companion TCT's `jti`, so it has the §2.2 layout; a voucher whose `src_jti` breaks it is rejected structurally with `DELEGATION_INVALID_VOUCHER`. Revocation rides on this: revoking the TCT kills every voucher and delegation derived from it (RFC-AITP-0008). |
 | `ext` | object | OPTIONAL, same semantics as the TCT `ext` claim. |
 
 The voucher has no `jti` and no independent revocation handle — its lifecycle is strictly derived from the companion TCT via `src_jti`. It has no `cnf`: it is not presented under PoP by itself, but embedded verbatim inside a delegation token whose outer signature binds it (RFC-AITP-0006).
