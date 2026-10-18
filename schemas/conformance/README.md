@@ -137,6 +137,16 @@ A pinned-key fixture states the verifier's `pinned_keys` store (RFC-AITP-0002 §
 - When `trust_store` is absent, the store is empty. The runner MUST NOT invent trust: it MUST NOT pre-load the sender's key, a KAT keypair, or any default, and an implementation's possession-only behavior is not a substitute (RFC-AITP-0002 §3.2 forbids such a mode in every deployment mode).
 - Every pinned-key failure fixture except `id-007` carries a `trust_store` that contains the sender, so steps 1–3 pass and the failure comes only from the defect the fixture names. `id-007` alone omits the sender, because its defect is the untrusted key.
 
+### Manifest inputs (`issuer_manifests`, `coordinator_manifest`)
+
+A delegation or session-bundle fixture states the Manifests the verifier holds for its peers. Each one is a complete, signed Manifest body (RFC-AITP-0003 §2) that the runner mints the same way it mints a `man-*` fixture's `input.manifest`: `__VALID_POP_SIG__` and `__VALID_MANIFEST_SIG__` are produced with the key of the Manifest's own `aid` (see `PLACEHOLDERS.md`).
+
+- `del-*` and `del-mh-*` fixtures carry `input.issuer_manifests`, an array of Manifest bodies. The verifier resolves each hop issuer's key from the Manifest whose `aid` equals that hop's `iss` (RFC-AITP-0006 §4 step 1, RFC-AITP-0011 §3 step 1). The voucher needs no entry, because the verifier checks it against its own key (RFC-AITP-0006 §4 step 3).
+- `bundle-*` fixtures carry `input.coordinator_manifest`, one Manifest body. The verifier checks the bundle signature against the key that this Manifest designates for the coordinator's AID (RFC-AITP-0010 §5 step 5).
+- These inputs are the verifier's whole Manifest source. The runner MUST supply exactly the Manifests the fixture lists. It MUST NOT derive a key from the AID string in place of a missing Manifest, synthesize a stand-in Manifest, or fetch one over the network. When no supplied Manifest designates the key an issuer or coordinator needs, verification fails with `KEY_RESOLUTION_FAILED` (RFC-AITP-0007 §1). `del-mh-005` and `bundle-007` test exactly this.
+- A fixture that is rejected before any key is resolved (`del-007`, `bundle-004-signature-sibling-rejected`, `bundle-006-unknown-field-rejected`) still carries the field, so every fixture in a family has the same input shape. The verifier never reads it.
+- `del-004` is frozen in the v0.1 shape and carries no Manifest input.
+
 ### Dynamic fixtures
 
 A fixture MAY carry an optional `dynamic` boolean in its metadata
@@ -334,9 +344,9 @@ The runner interface is implementation-defined.
 | `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (v0.1 runners only) |
 | `extension` — pinned-admission profile (RFC-AITP-0002 §3.4, `feature: aitp-pinned-admission`) | 8 | ❌ No (required of an implementation claiming the profile) |
 | `extension` — attestation verification (RFC-AITP-0005 §5.3, `feature: aitp-self-attestation`) | 2 | ❌ No (required of an implementation claiming the role) |
-| `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 6 | ❌ No |
-| `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 4 | ❌ No |
-| **Total** | **95** | |
+| `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 7 | ❌ No |
+| `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 5 | ❌ No |
+| **Total** | **97** | |
 
 Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A v0.2 conformance runner MUST execute every `required_for_v0_2` core fixture; `draft` and `extension` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
@@ -482,6 +492,7 @@ These fixtures exercise the multi-hop delegation extension. Core implementations
 | `del-mh-002` | Chain hop's scope exceeds the voucher boundary — transitive scope check rejects | failure: DELEGATION_SCOPE_EXCEEDED |
 | `del-mh-003` | Chain with wrong `chain_hash` claim (signed over, so the outer signature is valid) — recomputation mismatches | failure: DELEGATION_CHAIN_HASH_MISMATCH |
 | `del-mh-004` | A hop's `jti` is in that hop issuer's deny list (RFC-AITP-0011 §6 per-hop revocation) | failure: DELEGATION_SOURCE_TCT_REVOKED |
+| `del-mh-005` | Same chain as del-mh-001, but `issuer_manifests` lists B and D and omits C, the issuer of `chain[1]`, so no supplied Manifest designates that hop's key (RFC-AITP-0011 §3 step 1) | failure: KEY_RESOLUTION_FAILED |
 
 ### Session Trust Bundle (RFC-AITP-0010, opt-in)
 
@@ -495,6 +506,7 @@ Bundle fixtures use the same opt-in posture as multi-hop. Core implementations a
 | `bundle-004-signature-sibling-rejected` | Old, now-invalid shape: `signature` is a sibling of the `session_bundle` wrapper instead of a member of the inner body | failure: SESSION_BUNDLE_INVALID |
 | `bundle-005-extensions-accepted` | Bundle body carries an optional `extensions.tee` member (RFC-AITP-0010 §3 field table, RFC-AITP-0012) alongside a correctly-placed signature | success |
 | `bundle-006-unknown-field-rejected` | Bundle's inner `session_bundle` body carries an unknown member (`coordinator_note`) outside `extensions` | failure: UNKNOWN_FIELD |
+| `bundle-007` | Same bundle as bundle-001, but `coordinator_manifest` is a valid Manifest for a different AID, so no supplied Manifest designates the coordinator's key (RFC-AITP-0010 §5 step 5) | failure: KEY_RESOLUTION_FAILED |
 
 Additions and edge-case fixtures (replay during MUTUAL_COMMIT, identity-issuer key rotation, partial chain verification, etc.) are welcome via PR.
 

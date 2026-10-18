@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+### Delegation and session-bundle fixtures carry signed issuer and coordinator Manifests (aitp-rs #237, #238, #239)
+
+**Change class.** Conformance fixtures only: new fixture input fields, two new negative fixtures and the README, `PLACEHOLDERS.md` and validation-map entries that go with them. No RFC text, schema, error code or known-answer value changes.
+
+**The gap.** RFC-AITP-0006 §4 step 1 and RFC-AITP-0011 §3 step 1 resolve each hop issuer's key from that issuer's Manifest, and RFC-AITP-0010 §5 step 5 checks a bundle signature against the coordinator's Manifest key. No `del-*`, `del-mh-*` or `bundle-*` fixture supplied those Manifests. A runner had to invent them, for example by deriving the key from the `aid:pubkey:` string or building stand-ins, and so no fixture could tell a Manifest-key verifier from one that takes the key from the AID.
+
+**The fix.**
+
+1. **`input.issuer_manifests`** (an array of Manifest bodies). `del-001`, `del-002`, `del-003`, `del-005`, `del-006` and `del-007` carry the Manifest of B (kat-keypair-002). `del-mh-001` to `del-mh-004` carry the Manifests of B and C (kat-keypair-002, -003). The voucher needs none, because A checks it against its own key (RFC-AITP-0006 §4 step 3). `del-004` stays frozen in the v0.1 shape.
+2. **`input.coordinator_manifest`** (one Manifest body), the Manifest of the coordinator A (kat-keypair-001), in `bundle-001` to `bundle-006`.
+3. Every Manifest is a full RFC-AITP-0003 body with `__VALID_POP_SIG__` and `__VALID_MANIFEST_SIG__` placeholders, minted with the key of its own `aid` exactly as for `man-*`. Nothing new is pinned.
+4. **New negatives**, both `status: draft` under their family's feature. `del-mh-005` is del-mh-001 with C's Manifest swapped for D's (kat-keypair-004), so `chain[1]`'s issuer has no Manifest. `bundle-007` is bundle-001 with the coordinator Manifest swapped for B's. Both expect `KEY_RESOLUTION_FAILED` (RFC-AITP-0007 §1).
+5. **README "Manifest inputs".** These fields are the verifier's whole Manifest source. A runner MUST NOT derive a key from the AID, synthesize a Manifest, or fetch one.
+6. Conformance index: `draft` session bundle 6 → 7, multi-hop 4 → 5, total 95 → 97. `core` is unchanged at 74.
+
+**Verification.** `scripts/fixture-validation-map.json` validates every new Manifest against `aitp-manifest.schema.json`, so the fixture-input floor `FIXTURE_INPUT_MIN_CHECKS` rises from 187 to 220. With the new fixtures, aitp-rs 0.15.0 passes every changed fixture. It fails `del-mh-005`, because its adapter still adds stand-in Manifests, and `bundle-007`, because it reports `SESSION_BUNDLE_INVALID`. Both are fixed on the aitp-rs side.
+
+**Version bumps.** None.
+
 ### Pinned-admission and self-attestation follow-ups (#79)
 
 **Change class.** Normative clarifications to RFC-AITP-0001, RFC-AITP-0002 and RFC-AITP-0005, a registry note in `registries/error-codes.md`, and one new extension-gated conformance fixture. No known answer is re-minted and no new signature is minted.
