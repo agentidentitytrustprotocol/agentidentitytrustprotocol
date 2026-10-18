@@ -197,3 +197,9 @@ patch-level, no new signatures). It deserves its own review rather than riding a
   ask for the RFC rather than finding one already written; the cost of writing
   one now, unused, is a maintenance surface (two IETF RFCs' worth of interaction
   semantics) with no one to tell if it's wrong.
+
+## 2026-10-08 — docs-refresh-v0.2 reconcile (decided by Opus; all reversible)
+
+- **v0.1 allow-list by in-line wording, not HTML comments.** docs/ is synced to MDX where `<!-- -->` breaks the build. Confirmed: `legacy` / `v0.1-frozen` / `v0.1 line` mark a mention as historical (scripts/check-doc-coherence.sh stage 7). Reversible in one regex.
+- **CODE_OF_CONDUCT contact is an interim.** No address exists and GitHub private reporting is disabled; the doc asks for a no-details contact-request issue and invents nothing. Confirmed as interim; a real address is the maintainer's to supply.
+- **README conformance profile names removed.** `aitp-a2a-peer` / `aitp-session-participant` / `aitp-full` were defined in no RFC; conformance is selected by fixture `feature` flags (RFC-AITP-0001 §10). Confirmed. Defining profiles would need the RFC process.
