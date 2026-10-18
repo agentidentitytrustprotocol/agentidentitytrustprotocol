@@ -2,7 +2,7 @@
 # Identity Binding
 
 **Document:** RFC-AITP-0002
-**Version:** 0.2.8-draft
+**Version:** 0.2.9-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md)
 
@@ -86,19 +86,29 @@ The `aud`, `nonce`, and `cnf.jkt` requirements are AITP-specific reuses of stand
 
 #### 2.2.1 Canonical JWK form for `cnf.jkt`
 
-The JWK used to compute `cnf.jkt` is the canonical OKP Ed25519 form, exactly:
+The JWK used to compute `cnf.jkt` is the canonical JWK of the agent AID's public key in that AID's own algorithm, per [RFC-AITP-0001 §5.4.4](RFC-AITP-0001-core.md#544-jwk-thumbprint-for-cnf). The two v0.2 algorithms (RFC-AITP-0001 §5.3) give exactly these two forms:
 
-```json
-{"crv":"Ed25519","kty":"OKP","x":"<aid-identifier>"}
-```
+- **Ed25519 AID** (`aid:pubkey:<identifier>` or `aid:pubkey:ed25519:<identifier>`). The OKP form, exactly:
 
-where `<aid-identifier>` is the 43-character AID identifier component from `aid:pubkey:<aid-identifier>` (i.e. the unpadded base64url encoding of the 32-byte raw Ed25519 public key, per RFC-AITP-0001 §5.3).
+  ```json
+  {"crv":"Ed25519","kty":"OKP","x":"<aid-identifier>"}
+  ```
 
-The thumbprint is computed per RFC 7638: serialize this exact 3-field JSON object with members in lexicographic order, no whitespace, hash with SHA-256, encode the digest as unpadded base64url. Implementations MUST NOT include any other JWK members (no `kid`, no `alg`, no `use`) when computing the thumbprint — additional members would change the canonical serialization and the resulting hash.
+  where `<aid-identifier>` is the 43-character identifier component of the AID, i.e. the unpadded base64url encoding of the 32-byte raw Ed25519 public key.
+
+- **P-256 AID** (`aid:pubkey:p256:<identifier>`). The EC form, exactly:
+
+  ```json
+  {"crv":"P-256","kty":"EC","x":"<x>","y":"<y>"}
+  ```
+
+  where `<x>` and `<y>` are the unpadded base64url encodings of the 32-byte big-endian affine coordinates of the point obtained by decompressing the 33-byte SEC1 compressed point that the AID's 44-character identifier encodes. Each is 43 characters. The compressed identifier itself never appears in the JWK.
+
+The thumbprint is computed per RFC 7638: serialize the JSON object for the AID's algorithm with its members in lexicographic order (`crv`, `kty`, `x` for OKP; `crv`, `kty`, `x`, `y` for EC), no whitespace, hash with SHA-256, encode the digest as unpadded base64url. Implementations MUST NOT include any other JWK members (no `kid`, no `alg`, no `use`) when computing the thumbprint — additional members would change the canonical serialization and the resulting hash. A verifier MUST derive the JWK form from the algorithm of the AID it is checking; computing the OKP form for a P-256 AID, or the reverse, yields a thumbprint that MUST NOT match.
 
 > **Shared convention with the portable trust artifacts.** In `aitp/0.2` this same RFC 7638 `cnf.jkt` convention is also the proof-of-possession key binding on the compact-JWS portable trust artifacts — the TCT and the delegation token ([RFC-AITP-0001 §5.4.4](RFC-AITP-0001-core.md#544-jwk-thumbprint-for-cnf), which cites this section). The v0.1 raw-public-key `binding.cnf` form on the TCT no longer exists; identity binding and token binding now use one `cnf.jkt` convention.
 
-> **Known-answer test.** For the pinned all-zero-seed Ed25519 keypair (`kat-keypair-001` in [`schemas/conformance/known-answer/keypairs.json`](../schemas/conformance/known-answer/keypairs.json)), `aid-identifier = O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik`, the canonical JWK input is `{"crv":"Ed25519","kty":"OKP","x":"O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik"}` (87 bytes), and the resulting `jkt` MUST be `9ZP03Nu8GrXPAUkbKNxHOKBzxPX83SShgFkRNK-f2lw`. Additional vectors live at [`schemas/conformance/known-answer/jwk-thumbprints.json`](../schemas/conformance/known-answer/jwk-thumbprints.json).
+> **Known-answer test.** For the pinned all-zero-seed Ed25519 keypair (`kat-keypair-001` in [`schemas/conformance/known-answer/keypairs.json`](../schemas/conformance/known-answer/keypairs.json)), `aid-identifier = O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik`, the canonical JWK input is `{"crv":"Ed25519","kty":"OKP","x":"O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik"}` (87 bytes), and the resulting `jkt` MUST be `9ZP03Nu8GrXPAUkbKNxHOKBzxPX83SShgFkRNK-f2lw`. For the pinned P-256 keypair (`kat-keypair-005-p256`), `aid = aid:pubkey:p256:AweBDql0zqV3PmO4l_N-O-mgnnpf6blxpE0QZawqOpMR`, the canonical JWK input is `{"crv":"P-256","kty":"EC","x":"B4EOqXTOpXc-Y7iX83476aCeel_puXGkTRBlrCo6kxE","y":"Y35HpPmUZKD9zkSojsfXA6kYPB0GVS2eLWt2BpSBxXc"}` (126 bytes), and the resulting `jkt` MUST be `6uuEaX_87uMh4VKEtSDkENgjC0g7Evt6vliSnD7XSDE` (`kat-jwk-thumb-005-p256`). Additional vectors live at [`schemas/conformance/known-answer/jwk-thumbprints.json`](../schemas/conformance/known-answer/jwk-thumbprints.json). Conformance fixture `id-023` is an OIDC identity binding whose agent AID is this P-256 key.
 
 ### 2.3 Verification steps
 
@@ -134,7 +144,7 @@ A decoded JWT payload (claims) for an OIDC identity binding presented by Agent A
 }
 ```
 
-The `aud` is exactly `aid:pubkey:` followed by 43 unpadded-base64url characters (RFC-AITP-0001 §5.3). The `nonce` is the byte-identical `pop_nonce` from the corresponding `MUTUAL_HELLO` payload. The `cnf.jkt` is the RFC 7638 thumbprint of A's AID public key, computed per §2.2.1.
+The `aud` is B's AID exactly as B's AID is written, in whatever algorithm form it has (RFC-AITP-0001 §5.3): here the untagged Ed25519 form, `aid:pubkey:` followed by 43 unpadded-base64url characters; for a P-256 verifier it would be `aid:pubkey:p256:` followed by 44. The `aud` comparison is byte-for-byte; a verifier MUST NOT rewrite either side to another form of the same key. The `nonce` is the byte-identical `pop_nonce` from the corresponding `MUTUAL_HELLO` payload. The `cnf.jkt` is the RFC 7638 thumbprint of A's AID public key, computed per §2.2.1.
 
 Wrapped in the identity descriptor:
 

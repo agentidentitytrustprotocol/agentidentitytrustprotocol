@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### RFC-AITP-0002 §2.2.1: the OIDC `cnf.jkt` JWK follows the AID's algorithm (#68)
+
+**Change class.** Normative change to RFC-AITP-0002 §2.2.1 and §2.4, with a new core conformance fixture. No schema, error code or known-answer value changes.
+
+**The gap.** §2.2.1 pinned the JWK behind the OIDC `cnf.jkt` to the Ed25519 OKP form "exactly", with a 43-character identifier, and §2.4 described `aud` as 43 characters. P-256 AIDs are mandatory to verify in v0.2 (RFC-AITP-0001 §5.3), so an OIDC-bound agent with a `p256` AID had no conformant `cnf.jkt`. RFC-AITP-0001 §5.4.4 called the convention algorithm-agnostic and "the same" as §2.2.1, which it was not.
+
+**The fix (owner decision).**
+
+- **§2.2.1** defers to RFC-AITP-0001 §5.4.4 and gives both forms. An Ed25519 AID uses `{"crv":"Ed25519","kty":"OKP","x":…}`, as before. A P-256 AID uses `{"crv":"P-256","kty":"EC","x":…,"y":…}`, where `x` and `y` are the unpadded base64url 32-byte big-endian coordinates of the decompressed SEC1 point in the `pubkey:p256` identifier. The RFC 7638 member order is stated for both. A verifier derives the form from the AID's algorithm. The known-answer note adds the P-256 case (`kat-jwk-thumb-005-p256`, `6uuEaX_87uMh4VKEtSDkENgjC0g7Evt6vliSnD7XSDE`).
+- **§2.4** no longer says `aud` is 43 characters. `aud` is the verifier's AID in whatever algorithm form it has, compared byte for byte.
+- **Schemas.** No change. No schema constrains the JWT's `aud` or `cnf.jkt`. Every `cnf.jkt` pattern elsewhere is `{43}`, which is right for any SHA-256 thumbprint, and the AID patterns already accept the `p256:` form.
+- **Fixture `id-023`** (`status: core`, expected success). An OIDC identity whose sender and Manifest AID is `kat-keypair-005-p256`. The proof is the existing `__VALID_JWT__` placeholder, whose `cnf.jkt` recipe `PLACEHOLDERS.md` now spells out for both algorithms. No new placeholder or literal vector is minted. `make kat-verify` and `scripts/recompute-known-answer-independent.py` each rebuild the EC JWK from the sender AID and require `kat-jwk-thumb-005-p256`.
+- Conformance index: `core` 73 → 74, total 94 → 95.
+
+aitp-rs (`aitp-conformance` placeholder minting, `aitp-handshake` OIDC verification) and aitp-verifier-py (`jwk.py`, `minter.py`, `identity.py`) already derive the thumbprint from the AID's algorithm, so neither needs a change for `id-023`.
+
+**Version bumps.** RFC-AITP-0002 0.2.8-draft → 0.2.9-draft.
+
 ### `ListRevoked` is the one REQUIRED issuer endpoint, advertised in the Manifest; `Verify` and `Revoke` become OPTIONAL (#67)
 
 **Change class.** Normative change, at the patch position under `VERSIONING.md`'s pre-1.0 mapping. No artifact bytes, schemas, fixtures or known answers change.

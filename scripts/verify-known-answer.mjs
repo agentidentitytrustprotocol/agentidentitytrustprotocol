@@ -1692,6 +1692,38 @@ function checkPinnedAdmission() {
 // ── main ─────────────────────────────────────────────────────────────────────
 
 console.log('Verifying pinned known-answer values...\n');
+// id-023 (issue #68): the OIDC cnf.jkt of a P-256 sender is the thumbprint of the
+// EC JWK built from the decompressed AID point (RFC-AITP-0002 §2.2.1), which is
+// kat-jwk-thumb-005-p256. The JWT is a __VALID_JWT__ placeholder, so this pins the
+// value a runner must derive, not minted bytes: rebuild the JWK from the sender
+// AID alone and require the pinned thumbprint, and require the OKP-shaped JWK of
+// the same identifier to give a different one.
+function checkOidcP256Fixture() {
+  console.log('── id-023: OIDC cnf.jkt for a P-256 AID ──');
+  check('id-023: EC JWK from the decompressed sender AID point gives kat-jwk-thumb-005-p256', () => {
+    const f = readJson(join(ROOT, 'schemas/conformance/id-023-oidc-p256-cnf-jkt-success.json'));
+    const env = f.input.envelope;
+    const sender = env.sender.agent_id;
+    eq(env.payload.manifest.aid, sender, 'manifest.aid vs envelope sender');
+    eq(env.payload.identity.type, 'oidc', 'identity.type');
+    eq(env.payload.identity.proof, '__VALID_JWT__', 'identity.proof');
+    eq(f.expected.outcome, 'success', 'expected.outcome');
+    const kp = readJson(join(KAT, 'keypairs.json')).vectors.find((v) => v.id === 'kat-keypair-005-p256');
+    eq(sender, kp.aid, 'sender is kat-keypair-005-p256');
+    if (!sender.startsWith('aid:pubkey:p256:')) throw new Error('sender is not a p256 AID');
+    const ident = sender.slice('aid:pubkey:p256:'.length);
+    const point = decompress(b64uDecode(ident, 33, 'p256 identifier'));
+    if (!point) throw new Error('sender identifier is not a P-256 point');
+    const jwk = jcs({ crv: 'P-256', kty: 'EC', x: b64uEncode(bigToBe32(point[0])), y: b64uEncode(bigToBe32(point[1])) });
+    const thumb = readJson(join(KAT, 'jwk-thumbprints.json')).vectors.find((v) => v.id === 'kat-jwk-thumb-005-p256');
+    eq(jwk, thumb.jwk_canonical, 'EC JWK vs kat-jwk-thumb-005-p256.jwk_canonical');
+    eq(b64uEncode(sha256(utf8(jwk))), thumb.jkt, 'jkt');
+    if (!f.description.includes(thumb.jkt)) throw new Error('description does not name the pinned jkt');
+    const okp = jcs({ crv: 'Ed25519', kty: 'OKP', x: ident });
+    if (b64uEncode(sha256(utf8(okp))) === thumb.jkt) throw new Error('OKP-shaped JWK gives the same jkt');
+  });
+}
+
 const keypairs = checkKeypairs();
 checkThumbprints(keypairs);
 checkJcsVectors(keypairs);
@@ -1700,12 +1732,13 @@ checkSignatureStrictness();
 checkTct017();
 checkPinnedFixtures();
 checkPinnedAdmission();
+checkOidcP256Fixture();
 
 // Third anchor against a hollowed guard. The manifests above catch a deleted or
 // emptied vector member; this catches coverage lost any other way — a check
 // commented out, a loop that stops early, a gate that stops matching. Coverage may
 // grow (raise this number in the same commit); it may never silently shrink.
-const EXPECTED_MIN_CHECKS = 148;
+const EXPECTED_MIN_CHECKS = 149;
 if (checks < EXPECTED_MIN_CHECKS) {
   failures.push(
     `coverage regression: ran ${checks} checks, expected at least ${EXPECTED_MIN_CHECKS}. ` +

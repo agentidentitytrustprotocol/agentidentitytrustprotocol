@@ -324,13 +324,13 @@ The runner interface is implementation-defined.
 
 | Tier | Count | Required for v0.2 |
 |---|---|---|
-| `core` (v0.2-required) | 73 | ✅ Yes |
+| `core` (v0.2-required) | 74 | ✅ Yes |
 | `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (v0.1 runners only) |
 | `extension` — pinned-admission profile (RFC-AITP-0002 §3.4, `feature: aitp-pinned-admission`) | 8 | ❌ No (required of an implementation claiming the profile) |
 | `extension` — attestation verification (RFC-AITP-0005 §5.3, `feature: aitp-self-attestation`) | 2 | ❌ No (required of an implementation claiming the role) |
 | `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 6 | ❌ No |
 | `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 4 | ❌ No |
-| **Total** | **94** | |
+| **Total** | **95** | |
 
 Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A v0.2 conformance runner MUST execute every `required_for_v0_2` core fixture; `draft` and `extension` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
@@ -396,6 +396,7 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | `id-012` | P-256 `public_key` in the 87-char uncompressed form (§3.3; schema-invalid) | failure: IDENTITY_FAILED |
 | `id-017` | Ed25519 pinned-key identity, sender trusted: the positive counterpart of `id-007` | success |
 | `id-018` | `pinned_key` descriptor carrying `issuer`, which RFC-AITP-0002 §1 forbids (schema-invalid) | failure: IDENTITY_FAILED |
+| `id-023` | OIDC identity from a P-256 sender: `cnf.jkt` is the RFC 7638 thumbprint of the EC JWK (`kat-jwk-thumb-005-p256`), per RFC-AITP-0002 §2.2.1 | success |
 | `id-019` | Pinned-admission (RFC-AITP-0002 §3.4): `identity_presentation` answering an outstanding challenge, real proof, sender trusted | success |
 | `id-013` | Pinned-admission: a consumed `pop_nonce` presented again under a fresh `message_id`, all signatures valid (sequence) | failure: IDENTITY_FAILED |
 | `id-014` | Pinned-admission: a 15-byte `pop_nonce` with a proof valid over it, rejected before signature verification | failure: IDENTITY_FAILED |
