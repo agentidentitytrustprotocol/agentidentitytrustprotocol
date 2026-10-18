@@ -2,7 +2,7 @@
 # Revocation
 
 **Document:** RFC-AITP-0008
-**Version:** 0.2.8-draft
+**Version:** 0.2.9-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md)
 
@@ -20,7 +20,7 @@ The primary revocation mechanism for v0.2 is a JTI deny list **per issuing peer*
 
 ### 1.1 Revoking a TCT
 
-The peer that issued a TCT (the AID in its `iss` claim) is the only party that can revoke it. Revocation adds the TCT's `jti` claim to the issuing peer's deny list. The deny list is consulted by other peers via the issuing peer's `ListRevoked` HTTPS endpoint (RFC-AITP-0005 §11) or a per-token `Verify` call.
+The peer that issued a TCT (the AID in its `iss` claim) is the only party that can revoke it. Revocation adds the TCT's `jti` claim to the issuing peer's deny list. The deny list is consulted by other peers via the issuing peer's `ListRevoked` HTTPS endpoint (RFC-AITP-0005 §11; §1.4), or a per-token `Verify` call where the issuer offers that OPTIONAL operation.
 
 Revoking a TCT also kills everything derived from it. The companion grant voucher carries the TCT's `jti` as its `src_jti` claim (RFC-AITP-0005 §8.1) and has no independent revocation handle; delegation verification looks up `voucher.src_jti` against this same deny list (RFC-AITP-0006 §4 step 7) and rejects with `DELEGATION_SOURCE_TCT_REVOKED`. One deny-list entry therefore invalidates the TCT, its voucher, and every delegation token built on that voucher.
 
@@ -46,7 +46,11 @@ The deny list SHOULD be persisted to survive restarts. In-memory-only deny lists
 
 ### 1.4 Distribution
 
-Distribution is pull-based in v0.2. A consuming peer SHOULD poll the issuing peer's `ListRevoked` endpoint with a configurable cadence. Push-based revocation is reserved for a future RFC.
+Distribution is pull-based in v0.2. Every peer that issues TCTs MUST serve `ListRevoked` and MUST advertise its URL in its Manifest's `extensions` under the registered key `rfc-aitp-0008.revocation_list_uri` (RFC-AITP-0005 §11; [`registries/extension-keys.md`](../registries/extension-keys.md)). A consuming peer SHOULD poll the URL advertised in the issuing peer's Manifest (the Manifest that authenticates the TCT's `iss`, RFC-AITP-0003) with a configurable cadence.
+
+An issuer Manifest that lacks the key is not invalid on that account: a verifier MUST NOT reject the Manifest solely because the key is absent. The consuming peer has no snapshot source for that issuer, so the issuer's revocation status is unavailable and the consuming peer handles it per its configured `revocation_policy.mode` (§3), exactly as for an unreachable endpoint.
+
+Push-based revocation is reserved for a future RFC.
 
 ### 1.5 Signed revocation response
 

@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### `ListRevoked` is the one REQUIRED issuer endpoint, advertised in the Manifest; `Verify` and `Revoke` become OPTIONAL (#67)
+
+**Change class.** Normative change, at the patch position under `VERSIONING.md`'s pre-1.0 mapping. No artifact bytes, schemas, fixtures or known answers change.
+
+**The gap.** RFC-AITP-0005 §11 said every TCT issuer MUST expose `Verify`, `Revoke` and `ListRevoked`. RFC-AITP-0001 §8 said those surfaces were "deployment-defined in v0.1" and required only the well-known Manifest and `handshake_endpoint`. RFC-AITP-0008 §1.4 had consumers poll `ListRevoked` without saying how they find it, and neither RFC pinned an advertisement field, although `rfc-aitp-0008.revocation_list_uri` was already registered.
+
+**The fix (owner decision).**
+
+- **RFC-AITP-0005 §11.** The table gains a Requirement column. `ListRevoked` is MUST. `Verify` (a convenience) and `Revoke` (an administrative surface, not a peer-protocol operation) are MAY. A TCT issuer MUST advertise its `ListRevoked` URL in its Manifest's `extensions` under `rfc-aitp-0008.revocation_list_uri`. A verifier MUST NOT reject a Manifest solely because the key is absent; the issuer's revocation status is then unavailable and the RFC-AITP-0008 §3 policy applies. Concrete paths stay deployment-defined. §10.3 points the revocation check at the advertised URL.
+- **RFC-AITP-0001 §8.** The required-endpoint table gains the advertised `ListRevoked` URL (for TCT issuers, which every handshaking peer is). The stale "deployment-defined in v0.1" note and "the only paths v0.1 normatively requires" sentence now say v0.2 and list `Verify`, `Revoke` and delegation verification as OPTIONAL, deployment-defined surfaces. §10 item 6 adds serving the signed snapshot at the advertised URL.
+- **RFC-AITP-0008 §1.4.** Issuers MUST serve and advertise `ListRevoked`; consumers SHOULD poll the URL advertised in the issuer's Manifest. A Manifest without the key is handled as revocation-unavailable under `revocation_policy.mode`, like an unreachable endpoint. §1.1 marks `Verify` as OPTIONAL.
+- **Registries.** `rfc-aitp-0008.revocation_list_uri` stays Provisional in `registries/extension-keys.md` (Stable needs two interoperating implementations; only aitp-rs consumes it today), but its row now records that RFC-AITP-0005 §11 requires it. The `aitp.tct.verify.v1` and `aitp.tct.revoke.v1` capability rows now name the OPTIONAL operations they signal.
+- **Docs.** `docs/integration-guide.md` marks the three operations' requirement levels.
+
+**Signed examples not re-minted.** The RFC-AITP-0003 §2 Manifest example and the two signed-example Manifests under `schemas/conformance/known-answer/signed-examples/manifest/` carry `"extensions": {}` and so lack the key. They remain valid inputs to Manifest verification, which does not require the key; they are not re-minted.
+
+**Version bumps.** RFC-AITP-0001: `0.2.10-draft` → `0.2.11-draft`. RFC-AITP-0005: `0.2.5-draft` → `0.2.6-draft`. RFC-AITP-0008: `0.2.8-draft` → `0.2.9-draft`. `rfcs/README.md`'s version-summary sentence is extended to match.
+
 ### Conformance placeholders: unmintable values fail, and the last runner-chosen keys are pinned (#77)
 
 **Change class.** Conformance-runner and documentation change to `schemas/conformance/PLACEHOLDERS.md`. No RFC text, fixture bytes or known answers change.

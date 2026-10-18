@@ -2,7 +2,7 @@
 # Agent Identity & Trust Protocol (AITP) — Core
 
 **Document:** RFC-AITP-0001
-**Version:** 0.2.10-draft
+**Version:** 0.2.11-draft
 **Status:** Community Standards Track (Draft)
 **Canonical wire format:** JSON
 **Normative transport:** HTTPS (any HTTP/1.1+ runtime)
@@ -626,10 +626,13 @@ The normative transport for AITP v0.2 is **HTTPS carrying canonical JSON**. The 
 |---|---|---|---|
 | `/.well-known/aitp-manifest` | GET | Fetch this peer's signed Manifest | [RFC-AITP-0003 §4](RFC-AITP-0003-manifest.md) |
 | `<handshake_endpoint>` | POST | Receive `mutual_hello` / `mutual_commit` envelopes | [RFC-AITP-0004](RFC-AITP-0004-mutual-handshake.md) |
+| `<revocation_list_uri>` (`ListRevoked`) | GET | Fetch this peer's signed revocation snapshot for the TCTs it issued | [RFC-AITP-0005 §11](RFC-AITP-0005-tct.md#11-peer-issued-tct-verification-api), [RFC-AITP-0008 §1.4–§1.5](RFC-AITP-0008-revocation.md#14-distribution) |
 
-> **Other endpoints are deployment-defined in v0.1.** TCT verification, delegation verification, and revocation list publication (RFC-AITP-0005 §11, RFC-AITP-0006, RFC-AITP-0008) are operational surfaces. Peers that expose them MAY advertise their URLs in the Manifest's `extensions` namespace ([RFC-AITP-0012](RFC-AITP-0012-extensions.md)); v0.1 does not normatively pin those advertisement fields.
+The `ListRevoked` row binds every peer that issues TCTs; a peer completing the Mutual Handshake issues one (RFC-AITP-0004), so in practice it binds every conformant peer. Its URL is advertised in the Manifest's `extensions` under the registered key `rfc-aitp-0008.revocation_list_uri` ([extension-key registry](../registries/extension-keys.md)), just as `handshake_endpoint` is advertised in the Manifest body. The obligation is on the issuer: a verifier MUST NOT reject a Manifest solely because that key is absent, and treats its absence as revocation status being unavailable for that issuer, handled by its configured revocation policy (RFC-AITP-0008 §3).
 
-Request and response bodies are AITP envelopes serialized as JSON with `Content-Type: application/json`. The well-known Manifest endpoint and `handshake_endpoint` (advertised in the Manifest) are the only paths v0.1 normatively requires.
+> **Other endpoints are deployment-defined in v0.2.** TCT verification (`Verify`), the administrative `Revoke` operation (RFC-AITP-0005 §11), and delegation verification (RFC-AITP-0006) are OPTIONAL operational surfaces. Peers that expose them MAY advertise their URLs in the Manifest's `extensions` namespace ([RFC-AITP-0012](RFC-AITP-0012-extensions.md)) using the keys registered in [`registries/extension-keys.md`](../registries/extension-keys.md); v0.2 does not require them. Concrete URL paths are deployment-defined for every endpoint except the well-known Manifest path, including the `ListRevoked` URL itself, which is located through its Manifest advertisement.
+
+Request and response bodies are AITP envelopes serialized as JSON with `Content-Type: application/json`; the `ListRevoked` response body is the signed revocation snapshot of RFC-AITP-0008 §1.5. The well-known Manifest endpoint, `handshake_endpoint`, and the advertised `ListRevoked` URL (the last for TCT issuers) are the only paths v0.2 normatively requires.
 
 Implementations MAY transport AITP messages over other framings (binary RPC, message bus, etc.) but MUST convert to canonical JSON before signing or verifying (§5.4.1). v0.2 does not standardize any non-JSON binding.
 
@@ -660,7 +663,7 @@ A conformant AITP v0.2 implementation MUST:
 3. Verify identity bindings as defined in [RFC-AITP-0002](RFC-AITP-0002-identity.md).
 4. Publish and consume Agent Manifests as defined in [RFC-AITP-0003](RFC-AITP-0003-manifest.md).
 5. Implement the Mutual Handshake defined in [RFC-AITP-0004](RFC-AITP-0004-mutual-handshake.md).
-6. Issue and verify peer-issued TCTs and grant vouchers as defined in [RFC-AITP-0005](RFC-AITP-0005-tct.md), enforcing the §5.4.5 algorithm-pinning and explicit-typing rules.
+6. Issue and verify peer-issued TCTs and grant vouchers as defined in [RFC-AITP-0005](RFC-AITP-0005-tct.md), enforcing the §5.4.5 algorithm-pinning and explicit-typing rules, and serve the signed `ListRevoked` revocation snapshot for the TCTs it issues at the URL its Manifest advertises under `rfc-aitp-0008.revocation_list_uri` (§8; RFC-AITP-0005 §11; RFC-AITP-0008 §1.4).
 7. Reject expired, mismatched-audience, or revoked TCTs, and reject tokens failing `alg`/`typ` enforcement with `TOKEN_ALG_MISMATCH` / `TOKEN_TYP_MISMATCH`.
 8. Reproduce the canonical-bytes and digest pins in [`schemas/conformance/known-answer/`](../schemas/conformance/known-answer/) byte-for-byte. The v0.2-mandatory KATs are: the JCS signing-input vectors for the JCS-profile artifacts (`kat-manifest-001`, `kat-revocation-001`; each pins the inner artifact body per §5.4.1), the unified PoP signing-input vector `kat-manifest-pop-001`, the compact-JWS vectors under `known-answer/signed-examples/` (TCT, grant voucher, delegation), and the JCS-profile signed examples there (Manifest, revocation snapshot) — verified as committed, without re-minting (RFC-AITP-0003 §6.1, RFC-AITP-0008 §1.5). Implementations MUST run `kat-manifest-pop-001` through every PoP code path (Manifest PoP, handshake PoP, downstream TCT PoP, pinned-key identity proof) and confirm each produces the pinned signature — see §5.4.2. Implementations that opt into the post-v0.2 draft RFCs MUST additionally reproduce the multi-hop chain vectors (RFC-AITP-0011) and the session-bundle vector (RFC-AITP-0010); core-only implementations MAY skip those.
 9. Pass the conformance fixtures in [`schemas/conformance/`](../schemas/conformance/). The v0.2 fixture surface is the `env-*`, `man-*`, `mh-*`, `id-*`, `tct-*`, `vch-*`, `del-*`, and `rev-*` IDs. The `del-mh-*` and `bundle-*` fixtures are draft opt-in (RFC-AITP-0010 / RFC-AITP-0011) — core implementations are expected to reject `del-mh-*` tokens with `DELEGATION_MULTIHOP_NOT_SUPPORTED` and to skip the `bundle-*` operations (`SKIP` rather than `FAIL`). Fixtures gated on an OPTIONAL profile or role carry `status: extension` and are outside this mandatory set: the `id-*` fixtures of the pinned-admission profile ([RFC-AITP-0002 §3.4](RFC-AITP-0002-identity.md#34-one-way-pinned-key-admission-optional-profile-pinned-admission), `feature: aitp-pinned-admission`) and the `tct-*` fixtures of relying-party attestation verification ([RFC-AITP-0005 §5.3](RFC-AITP-0005-tct.md#53-self-issued-attestation-tcts), `feature: aitp-self-attestation`). An implementation that claims the profile or the role MUST pass the fixtures gated on it.
