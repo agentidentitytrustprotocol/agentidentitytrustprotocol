@@ -587,6 +587,24 @@ def main() -> int:
     check("tct-017 strict rejects", not p256_verify_strict(vk, H(si), raw))
     check("tct-017 low-S twin is the RFC 6979 signature", p256_sign(sk, H(si)) == r.to_bytes(32, "big") + (N - s).to_bytes(32, "big"))
 
+    print("── id-023: OIDC cnf.jkt for a P-256 AID (issue #68) ──")
+    f23 = load(CONF / "id-023-oidc-p256-cnf-jkt-success.json")
+    env23 = f23["input"]["envelope"]
+    s23 = env23["sender"]["agent_id"]
+    pt23 = p256_vk_from_aid(s23).pubkey.point
+    jwk23 = {"crv": "P-256", "kty": "EC",
+             "x": b64e(int(pt23.x()).to_bytes(32, "big")), "y": b64e(int(pt23.y()).to_bytes(32, "big"))}
+    t5 = next(v for v in load(KAT / "jwk-thumbprints.json")["vectors"] if v["id"] == "kat-jwk-thumb-005-p256")
+    check("id-023: sender == manifest.aid == kat-keypair-005-p256, oidc __VALID_JWT__, success",
+          s23 == env23["payload"]["manifest"]["aid"] == aid5
+          and env23["payload"]["identity"]["type"] == "oidc"
+          and env23["payload"]["identity"]["proof"] == "__VALID_JWT__"
+          and f23["expected"]["outcome"] == "success")
+    check("id-023: EC JWK from the decompressed AID point is kat-jwk-thumb-005-p256",
+          jcs(jwk23).decode() == t5["jwk_canonical"] and jwk_thumbprint(jwk23) == t5["jkt"])
+    check("id-023: the OKP-shaped JWK of the same identifier gives a different jkt",
+          jwk_thumbprint({"crv": "Ed25519", "kty": "OKP", "x": s23.removeprefix("aid:pubkey:p256:")}) != t5["jkt"])
+
     print()
     if failures:
         print(f"✗ {failures} of {checks} independent checks FAILED")
