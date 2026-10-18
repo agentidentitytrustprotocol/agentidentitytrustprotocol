@@ -1,6 +1,6 @@
 # Error Code Registry
 
-AITP error codes returned in error envelopes (`AitpError.code`). AITP is JSON-only; codes are string constants in the canonical JSON wire format (see [RFC-AITP-0001 §5.6](../rfcs/RFC-AITP-0001-core.md#56-error-envelope)).
+AITP error codes returned in error envelopes (`AitpError.code`), with one exception: `CHALLENGE_REFUSED` travels in the transport of the challenge it refuses (see [Pinned-admission codes](#pinned-admission-codes-rfc-aitp-0002-34)). AITP is JSON-only; codes are string constants in the canonical JSON wire format (see [RFC-AITP-0001 §5.6](../rfcs/RFC-AITP-0001-core.md#56-error-envelope)).
 
 > **Stability:** The codes listed below are stable for v0.2. Implementations MUST treat unknown codes as opaque failures and MUST NOT key behavior off codes that are not in this registry. New codes can be added without an RFC; renaming or removing an existing code is a breaking change and requires the RFC process. (v0.2 renamed `DELEGATION_INVALID_GRANT_PROOF` → `DELEGATION_INVALID_VOUCHER` via that process, as part of the JWS migration — see the delegation table below.) "Without an RFC" waives the need for a new RFC *document*, not [VERSIONING.md](../VERSIONING.md)'s change classes: adding a code is a **backward-compatible addition** there. Note that the change *class* and the version *position* are separate questions: pre-1.0, VERSIONING.md reserves the minor position for the protocol revision, so a backward-compatible addition made inside an existing protocol revision takes a **patch-position** bump on the RFCs whose normative text gains the code, and records its minor class in the CHANGELOG. The two policies answer different questions — whether a new document is required (no) and how the version numbers move (patch position, minor class) — and compose rather than conflict.
 
@@ -96,7 +96,7 @@ Returned when a peer evaluates a TCT outside the handshake context — e.g. via 
 |---|---|---|---|
 | `TCT_EXPIRED` | TCT `exp` is in the past. | false | core |
 | `TCT_REVOKED` | TCT `jti` is in the issuing peer's deny list. | false | core |
-| `TCT_SIGNATURE_INVALID` | TCT JWS signature does not validate under the issuing peer's key. Also the TCT's structural-rejection code (see [Structural rejection](#structural-rejection)): a claim set that does not decode, a `jti` outside the RFC-AITP-0005 §2.2 layout, and, in a grant context, a self-issued TCT (`iss == sub`) or any TCT carrying the `aitp.attestation` marker grant, and, to a relying party verifying a self-attestation, an attestation-shape defect or an `ext` lacking the key it expects ([RFC-AITP-0005 §5.3](../rfcs/RFC-AITP-0005-tct.md#53-self-issued-attestation-tcts)). | false | core |
+| `TCT_SIGNATURE_INVALID` | TCT JWS signature does not validate under the issuing peer's key. Also the TCT's structural-rejection code (see [Structural rejection](#structural-rejection)): a claim set that does not decode, or a `jti` outside the RFC-AITP-0005 §2.2 layout. It is also the code for these rejections, which run after the signature has verified and so are not structural: in a grant context, a self-issued TCT (`iss == sub`) or any TCT carrying the `aitp.attestation` marker grant (RFC-AITP-0005 §7.2 step 5); and, to a relying party verifying a self-attestation, an attestation-shape defect, an `ext` lacking the key it expects, or an issuer key the relying party's records do not show as trusted at `iat` ([RFC-AITP-0005 §5.3](../rfcs/RFC-AITP-0005-tct.md#53-self-issued-attestation-tcts)). | false | core |
 | `TCT_EXPIRES_AFTER_MANIFEST` | TCT `exp` exceeds the issuing peer's Manifest `expires_at` (RFC-AITP-0004 §4.3). The peer-issued TCT cannot outlive the credential that authenticates its issuer's key. | false | core |
 
 ## Downstream PoP codes (RFC-AITP-0005 §6)
@@ -110,9 +110,11 @@ Returned when a peer evaluates a TCT outside the handshake context — e.g. via 
 
 Returned by a verifier implementing the OPTIONAL one-way pinned-admission profile of [RFC-AITP-0002 §3.4](../rfcs/RFC-AITP-0002-identity.md#34-one-way-pinned-key-admission-optional-profile-pinned-admission). A presentation that fails verification uses the existing codes (`IDENTITY_FAILED`, `INVALID_ENVELOPE`, `INVALID_SIGNATURE`, `REPLAY_DETECTED`, `TIMESTAMP_EXPIRED`), per the §3.4 check order.
 
+> **Transport note.** `CHALLENGE_REFUSED` is the one code in this registry that is not delivered in an AITP error envelope. The challenge it refuses is not an envelope ([RFC-AITP-0002 §3.4](../rfcs/RFC-AITP-0002-identity.md#34-one-way-pinned-key-admission-optional-profile-pinned-admission), challenge format), so the refusal travels in the challenge's own transport. RFC-AITP-0002 §3.4 gives an informative HTTP mapping: status 503, a `Retry-After` header, and the body `{"error":"CHALLENGE_REFUSED"}`.
+
 | Code | Meaning | Retryable | spec_status |
 |---|---|---|---|
-| `CHALLENGE_REFUSED` | The verifier refused to issue a new `pop_nonce` challenge because its bound on outstanding nonces is reached; RFC-AITP-0002 §3.4 requires refusal rather than eviction of unexpired nonces. Retrying after outstanding nonces are consumed or expire can succeed. A per-source rate-limit refusal is an HTTP 429 instead (RFC-AITP-0009 §3.1). | true | core |
+| `CHALLENGE_REFUSED` | The verifier refused to issue a new `pop_nonce` challenge because its bound on outstanding nonces is reached; RFC-AITP-0002 §3.4 requires refusal rather than eviction of unexpired nonces. Retrying after outstanding nonces are consumed or expire can succeed. A per-source rate-limit refusal is an HTTP 429 instead, which the profile REQUIRES (RFC-AITP-0002 §3.4, tightening RFC-AITP-0009 §3.1); a client MUST be able to tell the two apart. | true | core |
 
 ## Manifest codes (RFC-AITP-0003)
 

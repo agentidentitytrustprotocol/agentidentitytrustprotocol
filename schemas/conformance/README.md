@@ -218,14 +218,20 @@ item 9). The proofs in `id-013`, `id-014`, `id-015`, `id-019`, `id-020`,
 fixture's tuple. `id-016` is dynamic, because the verifier chooses its nonces at
 run time.
 
-`tct-019` and `tct-020` exercise relying-party verification of a
+`tct-019`, `tct-020` and `tct-021` exercise relying-party verification of a
 self-attestation (RFC-AITP-0005 §5.3, "Verification") through the
 `verify_attestation` operation. That is not a grant context, and consuming
-attestations is a role RFC-AITP-0001 §10 does not require, so both are
-`status: extension` under `feature: aitp-self-attestation`. `tct-020` carries
+attestations is a role RFC-AITP-0001 §10 does not require, so all three are
+`status: extension` under `feature: aitp-self-attestation`; an implementation
+that claims "AITP v0.2 self-attestation" conformance MUST pass them. `tct-020` carries
 the committed known answer `kat-tct-002` verbatim and expects success for a
 third-party relying party whose AID is not the token's `aud`; `tct-019` is an
-otherwise valid attestation whose `ext` lacks the key the relying party expects.
+otherwise valid attestation whose `ext` lacks the key the relying party expects;
+`tct-021` presents `kat-tct-002` again, with every input as in `tct-020` except
+`trust_store`, the relying party's record of issuer keys trusted at `iat`, which
+does not list the issuer (RFC-AITP-0005 §5.3 "Lifetime" and the §7.3 exception).
+No new input field is needed: `trust_store` already carries the relying party's
+records.
 The §5.3 "Verification is not a grant context" bullet is also pinned by
 `make kat-verify`: `checkSelfAttestations()` in
 [`scripts/verify-known-answer.mjs`](../../scripts/verify-known-answer.mjs) and
@@ -233,8 +239,8 @@ the self-attestation section of
 [`scripts/recompute-known-answer-independent.py`](../../scripts/recompute-known-answer-independent.py)
 verify `kat-tct-002` and `kat-tct-003` as attestations (`iss == sub == aud`,
 `grants` exactly `["aitp.attestation"]`, `cnf.jkt` the issuer's own thumbprint,
-the `ext` statement present), and both stacks check that `tct-020` carries
-`kat-tct-002` byte for byte.
+the `ext` statement present), and both stacks check that `tct-020` and `tct-021`
+carry `kat-tct-002` byte for byte.
 
 **Not expressible as a fixture.** RFC-AITP-0002 §3.4 requires the nonce lookup
 and consumption to be one atomic step, so that two presentations racing on one
@@ -430,6 +436,7 @@ The rows marked *Pinned-admission* are `status: extension` under `feature: aitp-
 | `tct-018` | TCT with the `aitp.attestation` marker beside, and after, an ordinary grant (`iss ≠ sub`), in a grant context (RFC-AITP-0005 §5.3) | failure: TCT_SIGNATURE_INVALID |
 | `tct-019` | Extension (`aitp-self-attestation`): otherwise valid self-attestation whose `ext` lacks the relying party's expected key (`verify_attestation`) | failure: TCT_SIGNATURE_INVALID |
 | `tct-020` | Extension (`aitp-self-attestation`): `kat-tct-002` verified as an attestation by a third-party relying party; not a grant context (`verify_attestation`) | success |
+| `tct-021` | Extension (`aitp-self-attestation`): `kat-tct-002` presented to a relying party whose records do not show the issuer key as trusted at `iat` (`verify_attestation`) | failure: TCT_SIGNATURE_INVALID |
 | `tct-017` | ES256 TCT whose signature is high-S (`S > n/2`): a stock JOSE verifier accepts it, an AITP verifier rejects it (RFC-AITP-0001 §5.4.7) | failure: TCT_SIGNATURE_INVALID |
 
 ### Grant voucher (RFC-AITP-0005 §8)

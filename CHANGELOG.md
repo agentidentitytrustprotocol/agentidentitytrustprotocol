@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Pinned-admission and self-attestation follow-ups (#79)
+
+**Change class.** Normative clarifications to RFC-AITP-0001, RFC-AITP-0002 and RFC-AITP-0005, a registry note in `registries/error-codes.md`, and one new extension-gated conformance fixture. No known answer is re-minted and no new signature is minted.
+
+**The fix.**
+
+1. **HTTP 429 is a MUST within the pinned-admission profile.** RFC-AITP-0002 §3.4 now requires a rate-limited challenge request or presentation to get HTTP 429 with no AITP error envelope, tightening RFC-AITP-0009 §3.1's SHOULD for this profile only. The core handshake is unchanged. The §3.4 check order, `id-022` (step 3 expects exactly 429) and `PLACEHOLDERS.md` now say the same.
+2. **Trust-at-`iat` has a rejection code.** When a relying party's own records do not establish that a self-attestation's issuer key was trusted at `iat`, it rejects with `TCT_SIGNATURE_INVALID` (RFC-AITP-0005 §5.3 "Lifetime", §7.3 exception, §10.4). New fixture `tct-021` (`status: extension`, `feature: aitp-self-attestation`) presents `kat-tct-002` verbatim with every input as in `tct-020` except `trust_store`, which lists kat-keypair-003 but not the issuer. No new fixture input field was needed: `trust_store` already is the relying party's record of keys trusted at `iat`.
+3. **"Structural" wording (editorial).** The attestation-shape, missing-statement-key and grant-context (`iss == sub`, marker grant) rejections run after the signature verifies, so RFC-AITP-0005 §5.3 and the `TCT_SIGNATURE_INVALID` registry row no longer call them structural; they reuse the TCT's signature-family code. No behaviour change.
+4. **`CHALLENGE_REFUSED` transport.** `registries/error-codes.md` notes that `CHALLENGE_REFUSED` is the one code not delivered in an error envelope: it travels in the challenge's own transport. RFC-AITP-0002 §3.4 adds an informative HTTP mapping (503, `Retry-After`, body `{"error":"CHALLENGE_REFUSED"}`) and requires the refusal to be distinguishable from the per-source 429.
+5. **Self-attestation claim string.** RFC-AITP-0005 §5.3 adds: an implementation that verifies attestations MAY claim "AITP v0.2 self-attestation" conformance and, if it does, MUST pass the fixtures gated on `aitp-self-attestation`. RFC-AITP-0001 §10 item 9 names both claim strings.
+
+**Verification.** `scripts/verify-known-answer.mjs` (148 to 149 checks) and `scripts/recompute-known-answer-independent.py` (128 to 129 checks) both verify that `tct-021` carries `kat-tct-002` byte for byte, that its signature verifies, that only `trust_store` differs from `tct-020` and that it lacks the issuer, and both include `tct-021` in the self-attestation gating check.
+
+**Version bumps.** RFC-AITP-0001 0.2.11-draft → 0.2.12-draft; RFC-AITP-0002 0.2.9-draft → 0.2.10-draft; RFC-AITP-0005 0.2.6-draft → 0.2.7-draft.
+
 ### RFC-AITP-0002 §2.2.1: the OIDC `cnf.jkt` JWK follows the AID's algorithm (#68)
 
 **Change class.** Normative change to RFC-AITP-0002 §2.2.1 and §2.4, with a new core conformance fixture. No schema, error code or known-answer value changes.
