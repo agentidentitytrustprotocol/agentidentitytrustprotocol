@@ -6,7 +6,7 @@
   "required_for_v0_2": false,
   "feature": "experimental-multihop-delegation",
   "$comment": "Chain claims-sibling convention as in del-mh-001 (parallel chain_claims array; __COMPUTED_CHAIN_HASH__). The revocation snapshot stays on the JCS profile in v0.2 (its serialization is unchanged by the JWS migration, though its signing input is not — RFC-AITP-0008 §1.5). Its signature placeholder __VALID_B_SIG__ is minted by B over the JCS-canonical bytes of the INNER `revocation_list` body, never the `{\"revocation_list\": ...}` wrapper.",
-  "description": "Multi-hop per-hop revocation (RFC-AITP-0011 §6, aitp/0.2 shape). The chain (identical to del-mh-001) is structurally valid: every hop's JWS verifies, the voucher inside chain[0] verifies under A's own key, continuity, expiry monotonicity, transitive scope subsetting, and chain_hash recomputation all pass. However, B's signed revocation snapshot (B = chain[0].iss) lists chain[0].jti = 550e8400-e29b-41d4-a716-446655443002 in `entries`. Per RFC-AITP-0011 §6, the verifier MUST look up every hop token's jti against the deny list of that hop's iss (and chain[0].voucher.src_jti against A's own deny list), after all signature checks (RFC-AITP-0008 §3.3); a revocation hit at ANY hop invalidates the entire delegation. Expected: DELEGATION_SOURCE_TCT_REVOKED.",
+  "description": "Multi-hop per-hop revocation (RFC-AITP-0011 §6, aitp/0.2 shape). The chain (identical to del-mh-001) is structurally valid: every hop's JWS verifies, the voucher inside chain[0] verifies under A's own key, continuity, expiry monotonicity, transitive scope subsetting, and chain_hash recomputation all pass. However, B's signed revocation snapshot (B = chain[0].iss) lists chain[0].jti = 550e8400-e29b-41d4-a716-446655443002 in `entries`. Per RFC-AITP-0011 §6, the verifier MUST look up every hop token's jti against the deny list of that hop's iss (and chain[0].voucher.src_jti against A's own deny list), after all signature checks (RFC-AITP-0008 §3.3); a revocation hit at ANY hop invalidates the entire delegation. Expected: DELEGATION_SOURCE_TCT_REVOKED. Manifest source: `input.issuer_manifests` carries the signed Manifests of both hop issuers, B (kat-keypair-002, chain[0].iss) and C (kat-keypair-003, outer iss); each hop's JWS verifies under the key its issuer's Manifest designates (RFC-AITP-0011 §3 step 1). The voucher needs no Manifest: A verifies it under its own key.",
   "tags": [
     "security",
     "delegation",
@@ -85,6 +85,60 @@
       }
     ],
     "now": 1711901000,
+    "issuer_manifests": [
+      {
+        "version": "aitp/0.2",
+        "aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+        "display_name": "kat-keypair-002",
+        "identity_hint": {
+          "type": "pinned_key",
+          "subject": "kat-keypair-002",
+          "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+        },
+        "handshake_endpoint": "https://example.com/aitp/handshake",
+        "accepted_trust_anchors": [],
+        "accepted_identity_types": [
+          "pinned_key"
+        ],
+        "offered_capabilities": [
+          "read_data",
+          "write_data"
+        ],
+        "proof_of_possession": {
+          "challenge": "jsbiSyN23W3ZQQO9rU59nA",
+          "signature": "__VALID_POP_SIG__"
+        },
+        "published_at": 1711900000,
+        "expires_at": 1711986400,
+        "signature": "__VALID_MANIFEST_SIG__"
+      },
+      {
+        "version": "aitp/0.2",
+        "aid": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+        "display_name": "kat-keypair-003",
+        "identity_hint": {
+          "type": "pinned_key",
+          "subject": "kat-keypair-003",
+          "public_key": "dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU"
+        },
+        "handshake_endpoint": "https://example.com/aitp/handshake",
+        "accepted_trust_anchors": [],
+        "accepted_identity_types": [
+          "pinned_key"
+        ],
+        "offered_capabilities": [
+          "read_data",
+          "write_data"
+        ],
+        "proof_of_possession": {
+          "challenge": "CLo46_NjGTpZN8TbcqfGnQ",
+          "signature": "__VALID_POP_SIG__"
+        },
+        "published_at": 1711900000,
+        "expires_at": 1711986400,
+        "signature": "__VALID_MANIFEST_SIG__"
+      }
+    ],
     "operation": "verify_delegation_token"
   },
   "expected": {

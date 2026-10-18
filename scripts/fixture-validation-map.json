@@ -17,6 +17,12 @@
           "pointer": "/input/session_bundle/session_bundle/participants/1/tct_claims",
           "schema": "aitp-tct.schema.json",
           "expect": "valid"
+        },
+        {
+          "pointer": "/input/coordinator_manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
         }
       ]
     },
@@ -36,6 +42,12 @@
           "pointer": "/input/session_bundle/session_bundle/participants/1/tct_claims",
           "schema": "aitp-tct.schema.json",
           "expect": "valid"
+        },
+        {
+          "pointer": "/input/coordinator_manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
         }
       ]
     },
@@ -55,6 +67,12 @@
           "pointer": "/input/session_bundle/session_bundle/participants/1/tct_claims",
           "schema": "aitp-tct.schema.json",
           "expect": "valid"
+        },
+        {
+          "pointer": "/input/coordinator_manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
         }
       ]
     },
@@ -75,6 +93,12 @@
           "pointer": "/input/session_bundle/session_bundle/participants/1/tct_claims",
           "schema": "aitp-tct.schema.json",
           "expect": "valid"
+        },
+        {
+          "pointer": "/input/coordinator_manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
         }
       ]
     },
@@ -94,6 +118,12 @@
           "pointer": "/input/session_bundle/session_bundle/participants/1/tct_claims",
           "schema": "aitp-tct.schema.json",
           "expect": "valid"
+        },
+        {
+          "pointer": "/input/coordinator_manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
         }
       ]
     },
@@ -114,6 +144,37 @@
           "pointer": "/input/session_bundle/session_bundle/participants/1/tct_claims",
           "schema": "aitp-tct.schema.json",
           "expect": "valid"
+        },
+        {
+          "pointer": "/input/coordinator_manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "bundle-007": {
+      "artifacts": [
+        {
+          "pointer": "/input/session_bundle",
+          "schema": "aitp-session-bundle.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/session_bundle/session_bundle/participants/0/tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/session_bundle/session_bundle/participants/1/tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/coordinator_manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
         }
       ]
     },
@@ -128,6 +189,12 @@
           "pointer": "/input/delegation_token_claims/voucher_claims",
           "schema": "aitp-grant-voucher.schema.json",
           "expect": "valid"
+        },
+        {
+          "pointer": "/input/issuer_manifests/0",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
         }
       ]
     },
@@ -147,6 +214,12 @@
           "pointer": "/input/revocation_snapshots/0/snapshot",
           "schema": "aitp-revocation-list.schema.json",
           "expect": "valid"
+        },
+        {
+          "pointer": "/input/issuer_manifests/0",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
         }
       ]
     },
@@ -161,6 +234,12 @@
           "pointer": "/input/delegation_token_claims/voucher_claims",
           "schema": "aitp-grant-voucher.schema.json",
           "expect": "valid"
+        },
+        {
+          "pointer": "/input/issuer_manifests/0",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
         }
       ]
     },
@@ -181,6 +260,12 @@
           "pointer": "/input/delegation_token_claims/voucher_claims",
           "schema": "aitp-grant-voucher.schema.json",
           "expect": "valid"
+        },
+        {
+          "pointer": "/input/issuer_manifests/0",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
         }
       ]
     },
@@ -195,6 +280,12 @@
           "pointer": "/input/delegation_token_claims/voucher_claims",
           "schema": "aitp-grant-voucher.schema.json",
           "expect": "valid"
+        },
+        {
+          "pointer": "/input/issuer_manifests/0",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
         }
       ]
     },
@@ -204,6 +295,12 @@
           "pointer": "/input/delegation_token_claims",
           "schema": "aitp-delegation.schema.json",
           "expect": "valid"
+        },
+        {
+          "pointer": "/input/issuer_manifests/0",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
         }
       ]
     },
@@ -223,6 +320,18 @@
           "pointer": "/input/delegation_token_claims/chain_claims/0/voucher_claims",
           "schema": "aitp-grant-voucher.schema.json",
           "expect": "valid"
+        },
+        {
+          "pointer": "/input/issuer_manifests/0",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        },
+        {
+          "pointer": "/input/issuer_manifests/1",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
         }
       ]
     },
@@ -242,6 +351,18 @@
           "pointer": "/input/delegation_token_claims/chain_claims/0/voucher_claims",
           "schema": "aitp-grant-voucher.schema.json",
           "expect": "valid"
+        },
+        {
+          "pointer": "/input/issuer_manifests/0",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        },
+        {
+          "pointer": "/input/issuer_manifests/1",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
         }
       ]
     },
@@ -261,6 +382,18 @@
           "pointer": "/input/delegation_token_claims/chain_claims/0/voucher_claims",
           "schema": "aitp-grant-voucher.schema.json",
           "expect": "valid"
+        },
+        {
+          "pointer": "/input/issuer_manifests/0",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        },
+        {
+          "pointer": "/input/issuer_manifests/1",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
         }
       ]
     },
@@ -285,6 +418,49 @@
           "pointer": "/input/revocation_snapshots/0/snapshot",
           "schema": "aitp-revocation-list.schema.json",
           "expect": "valid"
+        },
+        {
+          "pointer": "/input/issuer_manifests/0",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        },
+        {
+          "pointer": "/input/issuer_manifests/1",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "del-mh-005": {
+      "artifacts": [
+        {
+          "pointer": "/input/delegation_token_claims",
+          "schema": "aitp-delegation.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/delegation_token_claims/chain_claims/0",
+          "schema": "aitp-delegation.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/delegation_token_claims/chain_claims/0/voucher_claims",
+          "schema": "aitp-grant-voucher.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/issuer_manifests/0",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        },
+        {
+          "pointer": "/input/issuer_manifests/1",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
         }
       ]
     },

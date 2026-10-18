@@ -6,7 +6,7 @@
   "required_for_v0_2": false,
   "feature": "experimental-multihop-delegation",
   "$comment": "Chain claims-sibling convention as in del-mh-001: `chain_claims` is a parallel array of decoded-claims objects for the `chain` placeholder entries; `chain_hash` is __COMPUTED_CHAIN_HASH__ (minter computes the correct §5 commitment — every signature and the hash are valid so the scope check is the isolated failure).",
-  "description": "Multi-hop scope inflation (aitp/0.2 shape). chain[0] (B→C) declares scope [\"read_data\",\"admin\"], but the voucher embedded in chain[0] (A→B) granted only [\"read_data\",\"write_data\"]. The adjacent-pair scope rule (RFC-AITP-0011 §4) requires chain[0].scope ⊆ chain[0].voucher.grants; \"admin\" violates that at the voucher boundary. Every hop's JWS and the voucher are validly signed and chain_hash recomputes, and the OUTER pair check alone would pass (outer.scope [read_data] ⊆ chain[0].scope [read_data, admin]) — only checking every hop boundary, including the voucher boundary, catches the inflation. Verifier MUST reject with DELEGATION_SCOPE_EXCEEDED.",
+  "description": "Multi-hop scope inflation (aitp/0.2 shape). chain[0] (B→C) declares scope [\"read_data\",\"admin\"], but the voucher embedded in chain[0] (A→B) granted only [\"read_data\",\"write_data\"]. The adjacent-pair scope rule (RFC-AITP-0011 §4) requires chain[0].scope ⊆ chain[0].voucher.grants; \"admin\" violates that at the voucher boundary. Every hop's JWS and the voucher are validly signed and chain_hash recomputes, and the OUTER pair check alone would pass (outer.scope [read_data] ⊆ chain[0].scope [read_data, admin]) — only checking every hop boundary, including the voucher boundary, catches the inflation. Verifier MUST reject with DELEGATION_SCOPE_EXCEEDED. Manifest source: `input.issuer_manifests` carries the signed Manifests of both hop issuers, B (kat-keypair-002, chain[0].iss) and C (kat-keypair-003, outer iss); each hop's JWS verifies under the key its issuer's Manifest designates (RFC-AITP-0011 §3 step 1). The voucher needs no Manifest: A verifies it under its own key.",
   "tags": [
     "security",
     "delegation",
@@ -65,6 +65,60 @@
       ],
       "chain_hash": "__COMPUTED_CHAIN_HASH__"
     },
+    "issuer_manifests": [
+      {
+        "version": "aitp/0.2",
+        "aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+        "display_name": "kat-keypair-002",
+        "identity_hint": {
+          "type": "pinned_key",
+          "subject": "kat-keypair-002",
+          "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+        },
+        "handshake_endpoint": "https://example.com/aitp/handshake",
+        "accepted_trust_anchors": [],
+        "accepted_identity_types": [
+          "pinned_key"
+        ],
+        "offered_capabilities": [
+          "read_data",
+          "write_data"
+        ],
+        "proof_of_possession": {
+          "challenge": "jsbiSyN23W3ZQQO9rU59nA",
+          "signature": "__VALID_POP_SIG__"
+        },
+        "published_at": 1711900000,
+        "expires_at": 1711986400,
+        "signature": "__VALID_MANIFEST_SIG__"
+      },
+      {
+        "version": "aitp/0.2",
+        "aid": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+        "display_name": "kat-keypair-003",
+        "identity_hint": {
+          "type": "pinned_key",
+          "subject": "kat-keypair-003",
+          "public_key": "dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU"
+        },
+        "handshake_endpoint": "https://example.com/aitp/handshake",
+        "accepted_trust_anchors": [],
+        "accepted_identity_types": [
+          "pinned_key"
+        ],
+        "offered_capabilities": [
+          "read_data",
+          "write_data"
+        ],
+        "proof_of_possession": {
+          "challenge": "CLo46_NjGTpZN8TbcqfGnQ",
+          "signature": "__VALID_POP_SIG__"
+        },
+        "published_at": 1711900000,
+        "expires_at": 1711986400,
+        "signature": "__VALID_MANIFEST_SIG__"
+      }
+    ],
     "operation": "verify_delegation_token"
   },
   "expected": {

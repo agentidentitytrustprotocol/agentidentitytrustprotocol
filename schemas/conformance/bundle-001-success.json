@@ -6,7 +6,7 @@
   "required_for_v0_2": false,
   "feature": "experimental-session-bundle",
   "$comment": "Participant TCT claims-sibling convention: each participants[i].tct is a __JWS_TCT__ compact-JWS placeholder with a `tct_claims` sibling in the SAME participant object carrying the decoded claims to mint. The minter resolves each tct, strips every tct_claims companion, then signs the bundle (__VALID_A_SIG__: coordinator kat-keypair-001 over the JCS-canonical bytes of the INNER session_bundle body, excluding the `signature` member and excluding the `{\"session_bundle\": ...}` transport wrapper (RFC-AITP-0010 §3, RFC-AITP-0001 §5.4.1) — the minted TCT strings are covered verbatim). The __VALID_A_SIG__ placeholder sits INSIDE the session_bundle body (last member), not beside the wrapper: the bundle is redistributable and carries its own proof, so a minting tool must resolve the placeholder at its inner location and write the signature back there.",
-  "description": "Session Trust Bundle happy path (RFC-AITP-0010 §5, aitp/0.2 shape; reuses kat-session-bundle-001 as re-specified for aitp/0.2). Coordinator (kat-keypair-001) has run bilateral Mutual Handshakes with two participants (kat-keypair-002 = B, kat-keypair-003 = C) and minted a peer-issued TCT (compact JWS, typ aitp-tct+jwt) for each. The bundle embeds both TCT strings verbatim and is JCS-signed by the coordinator. The receiving participant (B in this fixture) verifies: bundle version (aitp/0.2), expiry, expiry-window invariant (bundle.expires_at = min of the embedded TCTs' exp claims), participants non-empty, coordinator key resolution, bundle signature, every embedded TCT (strict JWS parse, typ, AID-pinned alg, signature; iss claim = coordinator, aud claim = participant.aid), and self-membership. All checks pass; B accepts the bundle and the membership it asserts.",
+  "description": "Session Trust Bundle happy path (RFC-AITP-0010 §5, aitp/0.2 shape; reuses kat-session-bundle-001 as re-specified for aitp/0.2). Coordinator (kat-keypair-001) has run bilateral Mutual Handshakes with two participants (kat-keypair-002 = B, kat-keypair-003 = C) and minted a peer-issued TCT (compact JWS, typ aitp-tct+jwt) for each. The bundle embeds both TCT strings verbatim and is JCS-signed by the coordinator. The receiving participant (B in this fixture) verifies: bundle version (aitp/0.2), expiry, expiry-window invariant (bundle.expires_at = min of the embedded TCTs' exp claims), participants non-empty, coordinator key resolution from the coordinator's Manifest (`input.coordinator_manifest`, step 5), bundle signature, every embedded TCT (strict JWS parse, typ, AID-pinned alg, signature; iss claim = coordinator, aud claim = participant.aid), and self-membership. All checks pass; B accepts the bundle and the membership it asserts.",
   "tags": [
     "success",
     "session-bundle",
@@ -65,10 +65,36 @@
         "signature": "__VALID_A_SIG__"
       }
     },
+    "coordinator_manifest": {
+      "version": "aitp/0.2",
+      "aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+      "display_name": "kat-keypair-001",
+      "identity_hint": {
+        "type": "pinned_key",
+        "subject": "kat-keypair-001",
+        "public_key": "O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik"
+      },
+      "handshake_endpoint": "https://example.com/aitp/handshake",
+      "accepted_trust_anchors": [],
+      "accepted_identity_types": [
+        "pinned_key"
+      ],
+      "offered_capabilities": [
+        "read_data",
+        "write_data"
+      ],
+      "proof_of_possession": {
+        "challenge": "qAkDX8McwnQS5FTiXSam6Q",
+        "signature": "__VALID_POP_SIG__"
+      },
+      "published_at": 1711900000,
+      "expires_at": 1711986400,
+      "signature": "__VALID_MANIFEST_SIG__"
+    },
     "operation": "verify_session_bundle"
   },
   "expected": {
     "outcome": "success",
-    "rationale": "Bundle signature verifies under the coordinator's key; both embedded TCT compact JWS strings verify under the coordinator's key with iss = coordinator and aud = participant aid; receiver's AID is in participants; expires_at = 1711903600 = min(1711903600, 1711905600)."
+    "rationale": "The coordinator's Manifest (`input.coordinator_manifest`) verifies (RFC-AITP-0003 §5) and designates the coordinator's AID; the bundle signature verifies under the key it designates; both embedded TCT compact JWS strings verify under the coordinator's key with iss = coordinator and aud = participant aid; receiver's AID is in participants; expires_at = 1711903600 = min(1711903600, 1711905600)."
   }
 }
