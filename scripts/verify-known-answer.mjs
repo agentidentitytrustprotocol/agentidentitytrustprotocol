@@ -1617,7 +1617,7 @@ function checkPinnedAdmission() {
       eq(f.status, 'core', `${id} status`);
       eq(f.required_for_v0_2, true, `${id} required_for_v0_2`);
     }
-    for (const id of ['tct-019', 'tct-020']) {
+    for (const id of ['tct-019', 'tct-020', 'tct-021']) {
       const f = load(id);
       eq(f.status, 'extension', `${id} status`);
       eq(f.feature, 'aitp-self-attestation', `${id} feature`);
@@ -1658,7 +1658,7 @@ function checkPinnedAdmission() {
     eq(f.input.operation, 'verify_tct', 'operation');
     eq(f.expected.error_code, 'TCT_SIGNATURE_INVALID', 'expected.error_code');
   });
-  const attestationShape = (f) => {
+  const attestationShape = (f, { issuerTrusted = true } = {}) => {
     const c = f.input.tct_token_claims;
     eq(f.input.operation, 'verify_attestation', 'operation');
     eq(c.iss, c.sub, 'iss vs sub');
@@ -1666,7 +1666,8 @@ function checkPinnedAdmission() {
     eq(jcs(c.grants), jcs(['aitp.attestation']), 'grants');
     eq(c.cnf?.jkt, readJson(join(KAT, 'jwk-thumbprints.json')).vectors.find((t) => t.keypair_ref === 'kat-keypair-001').jkt, 'cnf.jkt');
     if (f.input.self_aid === c.aud) throw new Error('the relying party must be a third party, not the attestation audience');
-    if (!f.input.trust_store?.includes(c.iss)) throw new Error('the relying party has no record of the issuer key');
+    if (!Array.isArray(f.input.trust_store) || f.input.trust_store.length === 0) throw new Error('trust_store must be a non-empty record');
+    if (f.input.trust_store.includes(c.iss) !== issuerTrusted) throw new Error(issuerTrusted ? 'the relying party has no record of the issuer key' : 'the relying party records must not include the issuer key');
     eq(f.input.waive_manifest_cap, true, 'waive_manifest_cap');
     return c;
   };
@@ -1686,6 +1687,21 @@ function checkPinnedAdmission() {
     attestationShape(f);
     if (!(f.input.expected_ext_key in c.ext)) throw new Error('the expected statement key is missing');
     eq(f.expected.outcome, 'success', 'expected.outcome');
+  });
+  check('tct-021: kat-tct-002 to a relying party whose records lack the issuer key at iat; TCT_SIGNATURE_INVALID', () => {
+    const f = load('tct-021');
+    const f20 = load('tct-020');
+    const kat = readJson(join(SIGNED, 'tct/kat-keypair-001-self-attestation.json'));
+    eq(f.input.tct_token, kat.tct_token, 'tct_token vs kat-tct-002');
+    const c = verifyCompactJws(f.input.tct_token, 'aitp-tct+jwt');
+    eq(jcs(c), jcs(f.input.tct_token_claims), 'tct_token_claims vs the token payload');
+    attestationShape(f, { issuerTrusted: false });
+    if (!(f.input.expected_ext_key in c.ext)) throw new Error('the expected statement key is missing');
+    const { trust_store: _a, ...rest21 } = f.input;
+    const { trust_store: _b, ...rest20 } = f20.input;
+    eq(jcs(rest21), jcs(rest20), 'every input but trust_store matches tct-020');
+    eq(f.expected.outcome, 'failure', 'expected.outcome');
+    eq(f.expected.error_code, 'TCT_SIGNATURE_INVALID', 'expected.error_code');
   });
 }
 

@@ -2,7 +2,7 @@
 # Identity Binding
 
 **Document:** RFC-AITP-0002
-**Version:** 0.2.9-draft
+**Version:** 0.2.10-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md)
 
@@ -282,7 +282,7 @@ A party that implements only this profile, as verifier or as presenter, MAY clai
 - The atomic lookup-and-consume MUST run after every signature check has passed, so a forged presentation cannot burn a legitimate presenter's nonce. A verifier MAY also run a non-consuming lookup before signature verification, to shed presentations for unknown nonces cheaply.
 - A consumed nonce is never accepted again, even with a fresh `message_id`. The `message_id` deny list alone does not stop that replay.
 - The verifier MUST bound the number of outstanding nonces. When the bound is reached it MUST refuse new challenges with `CHALLENGE_REFUSED` (retryable), and MUST NOT evict unexpired nonces to make room: eviction would let one source cancel challenges already issued to others.
-- The verifier MUST apply per-source rate limiting to challenge issuance and to presentations, as [RFC-AITP-0009 §3.1](RFC-AITP-0009-security.md#31-rate-limiting) requires at the handshake endpoint, with the same source-key rules.
+- The verifier MUST apply per-source rate limiting to challenge issuance and to presentations, as [RFC-AITP-0009 §3.1](RFC-AITP-0009-security.md#31-rate-limiting) requires at the handshake endpoint, with the same source-key rules. Within this profile, the verifier MUST answer a rate-limited challenge request or presentation with HTTP 429 and no AITP error envelope. This profile tightens RFC-AITP-0009 §3.1, which only RECOMMENDS (SHOULD) HTTP 429 at the handshake endpoint; the core handshake is unchanged.
 - `message_id` follows [RFC-AITP-0005 §2.2](RFC-AITP-0005-tct.md#22-identifier-layout-jti). It MAY be derived from `pop_nonce` (with a tag registered in [`registries/jti-domain-tags.md`](../registries/jti-domain-tags.md)), since the nonce is already single-use.
 
 #### Challenge format (informative)
@@ -297,14 +297,22 @@ The challenge is not an AITP envelope, and its transport is a deployment choice 
 }
 ```
 
-`verifier_aid` tells the presenter which AID to use as `receiver_aid_bytes`. A refused challenge returns `CHALLENGE_REFUSED`; a rate-limited request SHOULD get HTTP 429, per RFC-AITP-0009 §3.1.
+`verifier_aid` tells the presenter which AID to use as `receiver_aid_bytes`. A rate-limited challenge request or presentation MUST get HTTP 429, per the rate-limiting rule above.
+
+A refused challenge returns `CHALLENGE_REFUSED`. The challenge is not an envelope, so the refusal is not an AITP error envelope either: it travels in the challenge's own transport. Over HTTP, one suggested mapping is status 503 with a `Retry-After` header and the JSON body:
+
+```json
+{"error": "CHALLENGE_REFUSED"}
+```
+
+Whatever the transport, a `CHALLENGE_REFUSED` refusal (the verifier's outstanding-nonce bound is reached, for every source) MUST be distinguishable by the client from a per-source HTTP 429 (this source is over its limit). The HTTP mapping above is informative, like the challenge format.
 
 #### Check order
 
 The verifier MUST process a presentation in this order:
 
 1. **`message_id` deny list** (RFC-AITP-0001 §5.5) ⇒ `REPLAY_DETECTED`. As at the handshake endpoint, a replay does not consume a rate-limit slot.
-2. **Per-source rate limit** (RFC-AITP-0009 §3.1) ⇒ HTTP 429.
+2. **Per-source rate limit** (RFC-AITP-0009 §3.1) ⇒ HTTP 429 with no AITP error envelope. Within this profile 429 is REQUIRED (see the rate-limiting rule above).
 3. **Timestamp window** (RFC-AITP-0001 §5.5) ⇒ `TIMESTAMP_EXPIRED`.
 4. **Envelope structure**: schema-valid, `message_type` is `identity_presentation`, payload members exactly `identity` and `pop_nonce` ⇒ `INVALID_ENVELOPE` (`UNKNOWN_FIELD` when the only defect is an unknown member).
 5. **Nonce length**: `pop_nonce` decodes to 16 bytes ⇒ `IDENTITY_FAILED`.
@@ -315,7 +323,7 @@ The verifier MUST process a presentation in this order:
 
 On success the verifier records the `message_id` in its deny list and admits the subject. The result is an admission decision local to this verifier. No TCT is issued, and the presentation confers no capability on any other peer.
 
-> **Conformance fixtures.** `id-019` is a passing presentation with a real §3.1 proof. `id-013` presents a consumed nonce again under a fresh `message_id`, `id-014` presents a 15-byte nonce, and `id-015` sends `id-019`'s presentation with only `message_type` changed; the proof still verifies there, because the proof does not cover `message_type`. `id-016` fills a two-nonce store and has the third challenge refused. It then presents both outstanding nonces successfully, and the refused source's retry succeeds. `id-020` presents an expired nonce and `id-021` a nonce whose challenge named a different `verifier_aid`; both carry real proofs, so they fail only at step 9. `id-022` replays an admitted presentation from a source that is also over its rate limit: the deny list answers first with `REPLAY_DETECTED`. These eight fixtures are `status: extension` under `feature: aitp-pinned-admission`. Atomic consumption under concurrent presentations is not expressible as a sequential fixture. `tct-015`, `tct-016`, `tct-018`, `tct-019` and `tct-020` ([RFC-AITP-0005 §5.3](RFC-AITP-0005-tct.md#53-self-issued-attestation-tcts)) cover the self-attestation side.
+> **Conformance fixtures.** `id-019` is a passing presentation with a real §3.1 proof. `id-013` presents a consumed nonce again under a fresh `message_id`, `id-014` presents a 15-byte nonce, and `id-015` sends `id-019`'s presentation with only `message_type` changed; the proof still verifies there, because the proof does not cover `message_type`. `id-016` fills a two-nonce store and has the third challenge refused. It then presents both outstanding nonces successfully, and the refused source's retry succeeds. `id-020` presents an expired nonce and `id-021` a nonce whose challenge named a different `verifier_aid`; both carry real proofs, so they fail only at step 9. `id-022` replays an admitted presentation from a source that is also over its rate limit: the deny list answers first with `REPLAY_DETECTED`, and the source's next fresh presentation gets exactly HTTP 429. These eight fixtures are `status: extension` under `feature: aitp-pinned-admission`. Atomic consumption under concurrent presentations is not expressible as a sequential fixture. `tct-015`, `tct-016`, `tct-018`, `tct-019`, `tct-020` and `tct-021` ([RFC-AITP-0005 §5.3](RFC-AITP-0005-tct.md#53-self-issued-attestation-tcts)) cover the self-attestation side.
 
 ---
 

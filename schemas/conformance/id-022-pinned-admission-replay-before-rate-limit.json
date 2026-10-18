@@ -5,7 +5,7 @@
   "required_for_v0_1": false,
   "required_for_v0_2": false,
   "feature": "aitp-pinned-admission",
-  "$comment": "Static fixture. Steps 1 and 2 carry id-019's envelope and steps 3 and 4 carry id-013 step 2's envelope, both with real proofs that the KAT scripts re-verify; only the envelope signatures are placeholders. Verifier state carries across steps. `presentation_rate_limit` is the verifier's per-source limit on presentations (RFC-AITP-0009 §3.1), and the runner MUST configure it. A rate-limited step expects HTTP 429 and no AITP error code (PLACEHOLDERS.md, Operation key). Extension-gated: the pinned-admission profile of RFC-AITP-0002 §3.4 is OPTIONAL, so this fixture is `status: extension` under `feature: aitp-pinned-admission`. The default runner MUST SKIP it. A runner testing an implementation that claims \"AITP v0.2 pinned-admission\" conformance executes it, and that implementation MUST pass it (RFC-AITP-0001 §10 item 9).",
+  "$comment": "Static fixture. Steps 1 and 2 carry id-019's envelope and steps 3 and 4 carry id-013 step 2's envelope, both with real proofs that the KAT scripts re-verify; only the envelope signatures are placeholders. Verifier state carries across steps. `presentation_rate_limit` is the verifier's per-source limit on presentations (RFC-AITP-0009 §3.1), and the runner MUST configure it. A rate-limited step expects exactly HTTP 429 and no AITP error code: RFC-AITP-0002 §3.4 makes 429 a MUST within the profile, tightening the SHOULD of RFC-AITP-0009 §3.1 (PLACEHOLDERS.md, Operation key). Extension-gated: the pinned-admission profile of RFC-AITP-0002 §3.4 is OPTIONAL, so this fixture is `status: extension` under `feature: aitp-pinned-admission`. The default runner MUST SKIP it. A runner testing an implementation that claims \"AITP v0.2 pinned-admission\" conformance executes it, and that implementation MUST pass it (RFC-AITP-0001 §10 item 9).",
   "description": "The §3.4 check order puts the `message_id` deny list before the per-source rate limit (RFC-AITP-0002 §3.4 check order, steps 1 and 2). The limit is one presentation per source. Step 1 admits id-019's presentation from source 198.51.100.7, which records its `message_id` and uses the source's one slot. Step 2 replays the same envelope from the same source, which has no slot left: the deny list answers first with REPLAY_DETECTED. Step 3 sends a fresh `message_id` from that source and is rate-limited (HTTP 429) before any later check. Step 4 sends step 3's envelope from a new source; it passes both gates and fails at the nonce lookup, because step 1 consumed the nonce. A verifier that rate-limits before the deny list returns 429 at step 2.",
   "tags": [
     "failure",
@@ -116,7 +116,7 @@
         "expected": {
           "outcome": "failure",
           "http_status": 429,
-          "rationale": "A fresh `message_id`, so the deny list passes; the source used its one slot at step 1, so check-order step 2 rejects with HTTP 429 and no AITP error envelope (RFC-AITP-0009 §3.1). No later check runs."
+          "rationale": "A fresh `message_id`, so the deny list passes; the source used its one slot at step 1, so check-order step 2 rejects with HTTP 429 and no AITP error envelope (RFC-AITP-0002 §3.4 requires exactly 429 within the profile, tightening RFC-AITP-0009 §3.1). No later check runs."
         }
       },
       {

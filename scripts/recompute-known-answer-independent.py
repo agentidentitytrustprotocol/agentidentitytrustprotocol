@@ -567,6 +567,18 @@ def main() -> int:
           c19["iss"] == c19["sub"] == c19["aud"] == k1["aid"] and c19["grants"] == ["aitp.attestation"]
           and c19["cnf"]["jkt"] == c20["cnf"]["jkt"] and c19["ext"] and f19t["input"]["expected_ext_key"] not in c19["ext"]
           and f19t["expected"]["error_code"] == "TCT_SIGNATURE_INVALID" and f19t["status"] == "extension")
+    f21t = load(CONF / "tct-021-attestation-issuer-not-trusted-at-iat-rejected.json")
+    c21 = f21t["input"]["tct_token_claims"]
+    h64, p64, s64 = f21t["input"]["tct_token"].split(".")
+    rest = lambda f: {k: v for k, v in f["input"].items() if k != "trust_store"}
+    check("tct-021: carries kat-tct-002 verbatim; signature verifies; only trust_store differs from tct-020, and it lacks the issuer; TCT_SIGNATURE_INVALID",
+          f21t["input"]["tct_token"] == kat2["tct_token"]
+          and ed_verify_strict(A1, f"{h64}.{p64}".encode(), b64d(s64))
+          and json.loads(b64d(p64)) == c21 == kat2["decoded_claims"]
+          and rest(f21t) == rest(f20t) and f21t["input"]["trust_store"]
+          and c21["iss"] not in f21t["input"]["trust_store"] and c21["iss"] in f20t["input"]["trust_store"]
+          and f21t["expected"]["outcome"] == "failure" and f21t["expected"]["error_code"] == "TCT_SIGNATURE_INVALID"
+          and f21t["status"] == "extension" and f21t["feature"] == "aitp-self-attestation")
     f18t = load(CONF / "tct-018-attestation-marker-beside-grant-rejected.json")
     c18 = f18t["input"]["tct_token_claims"]
     check("tct-018: marker beside and after an ordinary grant, iss != sub, verify_tct, core; TCT_SIGNATURE_INVALID",

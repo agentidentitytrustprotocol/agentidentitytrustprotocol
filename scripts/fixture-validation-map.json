@@ -1383,6 +1383,15 @@
           "expect": "valid"
         }
       ]
+    },
+    "tct-021": {
+      "artifacts": [
+        {
+          "pointer": "/input/tct_token_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
     }
   }
 }
