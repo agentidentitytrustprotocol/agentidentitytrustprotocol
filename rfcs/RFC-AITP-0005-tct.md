@@ -2,7 +2,7 @@
 # Trust Context Token (TCT)
 
 **Document:** RFC-AITP-0005
-**Version:** 0.2.5-draft
+**Version:** 0.2.6-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0004 Mutual Handshake](RFC-AITP-0004-mutual-handshake.md)
 
@@ -449,7 +449,7 @@ A self-attestation (§5.3) is not peer-issued, and these TTLs do not apply to it
 ### 10.3 SHOULD
 
 - Verify proof-of-possession per the issuing peer's per-grant policy (§6). Consumers that omit downstream PoP MUST NOT claim conformance for environments lacking equivalent channel binding.
-- Check revocation status by querying the issuer's `ListRevoked` endpoint.
+- Check revocation status by querying the issuer's `ListRevoked` endpoint, located through the `rfc-aitp-0008.revocation_list_uri` key in the issuer's Manifest (§11).
 
 ### 10.4 Manifest expiry bound (conditional)
 
@@ -469,15 +469,17 @@ A self-attestation (§5.3) whose issuer publishes no Manifest has no bound to ch
 
 ## 11. Peer-Issued TCT Verification API
 
-Each agent that issues TCTs MUST expose three HTTPS endpoints for peers to verify and manage revocation of its TCTs:
+Each agent that issues TCTs exposes the following HTTPS operations for peers to verify and manage revocation of its TCTs. Only `ListRevoked` is REQUIRED:
 
-| Operation | Method | Description |
-|---|---|---|
-| `Verify` | POST | Convenience verification — consuming peer can verify locally using only the issuing peer's Manifest key, but MAY call this for a freshness check. |
-| `Revoke` | POST | Admin-only; adds a `jti` to the issuing peer's deny list. |
-| `ListRevoked` | GET | Returns the issuing peer's signed revocation snapshot (RFC-AITP-0008 §1.5). |
+| Operation | Method | Requirement | Description |
+|---|---|---|---|
+| `ListRevoked` | GET | MUST | Returns the issuing peer's signed revocation snapshot (RFC-AITP-0008 §1.5). |
+| `Verify` | POST | MAY | Convenience verification — consuming peer can verify locally using only the issuing peer's Manifest key, but MAY call this for a freshness check. |
+| `Revoke` | POST | MAY | Admin-only; adds a `jti` to the issuing peer's deny list. An administrative surface of the issuing deployment, not a peer-protocol operation. |
 
-Concrete URL paths are deployment-defined. The Manifest MAY advertise the verify and revocation endpoints in `extensions` (RFC-AITP-0012); v0.2 does not normatively pin those advertisement fields.
+**Advertisement.** An issuing peer MUST advertise its `ListRevoked` URL in its Manifest's `extensions` under the registered key `rfc-aitp-0008.revocation_list_uri` ([`registries/extension-keys.md`](../registries/extension-keys.md); RFC-AITP-0012). The value is an HTTPS URL. This is how consuming peers locate the snapshot they poll (RFC-AITP-0008 §1.4). The obligation is on the issuer: a verifier MUST NOT reject a Manifest solely because the key is absent. It treats the issuer's revocation status as unavailable and applies its configured revocation policy (RFC-AITP-0008 §3).
+
+A peer that exposes `Verify` MAY advertise it under `rfc-aitp-0005.verify_uri`. Concrete URL paths for all three operations are deployment-defined; request and response bodies for `Verify` and `Revoke` are not pinned by this RFC.
 
 ---
 

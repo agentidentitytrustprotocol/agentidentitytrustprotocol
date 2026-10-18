@@ -161,8 +161,10 @@ when a TCT is presented after the handshake.
 ## Delegating verification to the issuing peer
 
 Instead of verifying locally, you can ask the issuing peer: an issuer's
-`Verify` operation offers convenience verification and a freshness check,
-alongside `Revoke` and `ListRevoked`. What the RFCs require of these
+OPTIONAL `Verify` operation offers convenience verification and a freshness
+check, alongside the OPTIONAL `Revoke` and the REQUIRED `ListRevoked` (whose
+URL every TCT issuer advertises under the `rfc-aitp-0008.revocation_list_uri`
+Manifest extension key). What the RFCs require of these
 issuer operations, and which parts are deployment-defined (concrete URL
 paths among them), is stated in
 [RFC-AITP-0005 §11](../rfcs/RFC-AITP-0005-tct.md#11-peer-issued-tct-verification-api)

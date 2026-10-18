@@ -16,8 +16,8 @@ Capability strings appear in `requested_grants` (`MUTUAL_HELLO` / `MUTUAL_HELLO_
 |---|---|---|---|
 | `aitp.handshake.v1` | AITP core | Base handshake support. | Stable |
 | `aitp.delegation.v1` | AITP core | Single-hop delegation. | Stable |
-| `aitp.tct.verify.v1` | AITP core | TCT verification API. | Stable |
-| `aitp.tct.revoke.v1` | AITP core | TCT revocation API. | Stable |
+| `aitp.tct.verify.v1` | AITP core | TCT verification API: the OPTIONAL `Verify` operation ([RFC-AITP-0005 §11](../rfcs/RFC-AITP-0005-tct.md#11-peer-issued-tct-verification-api)). | Stable |
+| `aitp.tct.revoke.v1` | AITP core | TCT revocation API ([RFC-AITP-0005 §11](../rfcs/RFC-AITP-0005-tct.md#11-peer-issued-tct-verification-api)). Advertising it signals the OPTIONAL `Revoke` operation; it is not needed to locate `ListRevoked`, which every TCT issuer serves at the URL advertised under the `rfc-aitp-0008.revocation_list_uri` extension key. | Stable |
 | `aitp.attestation` | AITP core | Marker grant for a self-attestation TCT (RFC-AITP-0005 §5.3). Confers no capability; rejected in every grant context. The one exception to the three-segment naming form. | Provisional |
 | `macp.*` | Multi-Agent Coordination Protocol | Coordination kernel grants (e.g. `macp.session.start`, `macp.mode.task.v1`). | Stable |
 
