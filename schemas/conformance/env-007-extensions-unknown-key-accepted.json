@@ -6,7 +6,7 @@
   "required_for_v0_2": true,
   "feature": null,
   "$comment": "Positive half of the env-006/env-007 pair. `extensions.com.example.debug_trace` is a vendor-namespaced key (registries/extension-keys.md naming rules; RFC-AITP-0012 §1) that is NOT in the extension-key registry — deliberately unrecognized, as distinct from bundle-005's use of the RFC-AITP-0012 §3-reserved `extensions.tee` container. `extensions` is schema-permitted at the envelope's top level (`aitp-envelope.schema.json` properties.extensions) and covered by the envelope signing input (RFC-AITP-0001 §5.4) like any other member, so it is schema-permitted rather than exempt from signing.",
-  "description": "Envelope carries an unrecognized, vendor-namespaced key (`extensions.com.example.debug_trace`) INSIDE the OPTIONAL top-level `extensions` member. RFC-AITP-0001 §7 and RFC-AITP-0012 §5: unknown keys inside `extensions` MUST be ignored and MUST NOT drive a trust decision, but `extensions` itself remains a schema-permitted, ordinary part of the signed envelope. The receiver accepts: the envelope is otherwise identical to env-005's fresh, valid shape, and the unrecognized nested key does not affect envelope verification. Counterpart: env-006, where the same kind of unrecognized field placed OUTSIDE `extensions` is rejected with UNKNOWN_FIELD.",
+  "description": "Envelope carries an unrecognized, vendor-namespaced key (`extensions.com.example.debug_trace`) INSIDE the OPTIONAL top-level `extensions` member. RFC-AITP-0001 §7 and RFC-AITP-0012 §5: unknown keys inside `extensions` MUST be ignored and MUST NOT drive a trust decision, but `extensions` itself remains a schema-permitted, ordinary envelope member. It is not covered by the `aitp/0.2` envelope signing input (RFC-AITP-0001 §5.4). The receiver accepts: the envelope is otherwise identical to env-005's fresh, valid shape, and the unrecognized nested key does not affect envelope verification. Counterpart: env-006, where the same kind of unrecognized field placed OUTSIDE `extensions` is rejected with UNKNOWN_FIELD.",
   "tags": [
     "success",
     "envelope",
@@ -37,6 +37,6 @@
   },
   "expected": {
     "outcome": "success",
-    "rationale": "Envelope is fresh, structurally valid, and the signature verifies over the envelope signing input INCLUDING `extensions`. The unrecognized `extensions.com.example.debug_trace` key is ignored for trust-decision purposes per RFC-AITP-0001 §7 and RFC-AITP-0012 §5, but remains part of the signed bytes and MUST NOT be treated as an unpermitted field."
+    "rationale": "Envelope is fresh, structurally valid, and the signature verifies over the RFC-AITP-0001 §5.4 envelope signing input, which does not cover `extensions`. The unrecognized `extensions.com.example.debug_trace` key is ignored for trust-decision purposes per RFC-AITP-0001 §7 and RFC-AITP-0012 §5, and MUST NOT be treated as an unpermitted field."
   }
 }
