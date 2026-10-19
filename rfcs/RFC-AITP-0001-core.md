@@ -2,7 +2,7 @@
 # Agent Identity & Trust Protocol (AITP) — Core
 
 **Document:** RFC-AITP-0001
-**Version:** 0.2.12-draft
+**Version:** 0.2.13-draft
 **Status:** Community Standards Track (Draft)
 **Canonical wire format:** JSON
 **Normative transport:** HTTPS (any HTTP/1.1+ runtime)
@@ -151,7 +151,7 @@ Every AITP protocol message — `mutual_hello`, `mutual_hello_ack`, `mutual_comm
 | `sender.agent_id` | string | REQUIRED | AID of the sending agent. |
 | `payload` | object | REQUIRED | Message-type-specific content. |
 | `signature` | string | REQUIRED | base64url-encoded envelope signature. |
-| `extensions` | object | OPTIONAL | Extension namespace per §7 and [RFC-AITP-0012](RFC-AITP-0012-extensions.md). Unknown keys *inside* `extensions` MUST be ignored; an unknown member anywhere else in the envelope is rejected with `UNKNOWN_FIELD` (§7). An ordinary member of the envelope: when present it is covered by the envelope signature like any other member (§5.4.1). |
+| `extensions` | object | OPTIONAL | Extension namespace per §7 and [RFC-AITP-0012](RFC-AITP-0012-extensions.md). Unknown keys *inside* `extensions` MUST be ignored; an unknown member anywhere else in the envelope is rejected with `UNKNOWN_FIELD` (§7). An ordinary member of the envelope, but **not authenticated in `aitp/0.2`**: the §5.4 envelope signing input does not cover it. Receivers MUST NOT treat envelope `extensions` content as sender-authenticated. |
 
 The canonical schema is the JSON Schema at [`schemas/json/aitp-envelope.schema.json`](../schemas/json/aitp-envelope.schema.json).
 
@@ -207,7 +207,7 @@ AITP v0.2 defines **two signing profiles**:
 
 | Profile | Artifacts | Defined in |
 |---|---|---|
-| **JCS embedded-signature profile** — the signature is a field of the JSON object, computed over the object's RFC 8785 canonical form | envelopes, Agent Manifests, revocation snapshots, session trust bundles, handshake payloads | §5.4.1–§5.4.4, §5.4.6, §5.4.7 |
+| **JCS embedded-signature profile** — the signature is a field of the JSON object, computed over the object's RFC 8785 canonical form (for envelopes, over the §5.4 signing input, which covers the canonical `payload` but not `version`, `message_type` or `extensions`) | envelopes, Agent Manifests, revocation snapshots, session trust bundles, handshake payloads | §5.4.1–§5.4.4, §5.4.6, §5.4.7 |
 | **Compact JWS profile** — the artifact *is* an RFC 7515 compact JWS string; the signature covers the exact transmitted bytes | TCT, grant voucher, delegation token | §5.4.5, §5.4.7 |
 
 The boundary rule is normative:
@@ -238,6 +238,8 @@ signature = base64url(SIGN_alg(sender_private_key, d))
 
 `SIGN_alg` is the per-algorithm signing primitive defined in §5.4.6; `d` is hashed exactly once. Verification is subject to §5.4.7.
 
+The envelope signing input covers `message_id`, `timestamp`, `sender.agent_id` and `payload` only. It does not cover `version`, `message_type` or `extensions`: an on-path party can change those members without invalidating the signature. Receivers MUST NOT treat them as sender-authenticated, and MUST NOT base a trust decision on envelope `extensions`. Anything a verifier relies on belongs in `payload`.
+
 The `payload` object MUST be canonicalized per **[RFC 8785 — JSON Canonicalization Scheme (JCS)](https://datatracker.ietf.org/doc/html/rfc8785)** before hashing. JCS specifies compact JSON with no whitespace, lexicographically sorted keys at every nesting level, ECMAScript-style number formatting, and well-defined Unicode handling. Implementations MUST NOT use ad-hoc canonicalization; cross-implementation signature interop depends on JCS.
 
 All `signature`, `pop_signature`, `cnf`, `proof`, and the AID identifier component (`aid:<method>:<identifier>`) are encoded as **unpadded base64url** per [RFC 4648 §5](https://datatracker.ietf.org/doc/html/rfc4648#section-5). Implementations MUST NOT emit `=` padding. Implementations SHOULD reject input that contains `=` padding; if they choose to accept it for compatibility with non-conformant senders, they MUST normalize to unpadded form before any signature verification.
@@ -262,7 +264,7 @@ verification.
 
 #### 5.4.1 Signing input (JCS profile)
 
-All JCS-profile signatures (envelope, Manifest, revocation snapshot, session bundle, handshake payloads) are computed over the **canonical JSON** form of the object per RFC 8785 (JCS). JSON is the only canonical form for the JCS profile: there is no Protobuf signing input, no CBOR signing input, no transport-specific signing input.
+All JCS-profile signatures (envelope, Manifest, revocation snapshot, session bundle, handshake payloads) are computed over a **canonical JSON** form per RFC 8785 (JCS). For the envelope that form is the canonical JSON of `payload`, inside the §5.4 signing input, which does not cover `version`, `message_type` or `extensions`. For the other objects it is the canonical JSON of the object itself. JSON is the only canonical form for the JCS profile: there is no Protobuf signing input, no CBOR signing input, no transport-specific signing input.
 
 The portable trust artifacts (TCT, grant voucher, delegation token) are **not** JCS-signed in v0.2 — they are compact JWS strings (§5.4.5) whose signatures cover the transmitted bytes directly. (In `aitp/0.1` the TCT and delegation token were JCS-signed; that profile is retired for those artifacts.)
 
