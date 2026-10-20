@@ -2,7 +2,7 @@
 # Revocation
 
 **Document:** RFC-AITP-0008
-**Version:** 0.2.9-draft
+**Version:** 0.3.0-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md)
 
@@ -16,7 +16,7 @@ AITP defines three revocation surfaces: token revocation via the JTI deny list, 
 
 ## 1. Token Revocation (JTI Deny List)
 
-The primary revocation mechanism for v0.2 is a JTI deny list **per issuing peer**. The TCT's `jti` claim is the revocation handle, unchanged from v0.1 (RFC-AITP-0005 §2).
+The primary revocation mechanism for v0.3 is a JTI deny list **per issuing peer**. The TCT's `jti` claim is the revocation handle, unchanged from v0.1 (RFC-AITP-0005 §2).
 
 ### 1.1 Revoking a TCT
 
@@ -42,11 +42,11 @@ The `reason` field is OPTIONAL informational metadata. Implementations MUST NOT 
 
 ### 1.3 Persistence
 
-The deny list SHOULD be persisted to survive restarts. In-memory-only deny lists are acceptable for v0.2 prototypes but **not for production use**.
+The deny list SHOULD be persisted to survive restarts. In-memory-only deny lists are acceptable for v0.3 prototypes but **not for production use**.
 
 ### 1.4 Distribution
 
-Distribution is pull-based in v0.2. Every peer that issues TCTs MUST serve `ListRevoked` and MUST advertise its URL in its Manifest's `extensions` under the registered key `rfc-aitp-0008.revocation_list_uri` (RFC-AITP-0005 §11; [`registries/extension-keys.md`](../registries/extension-keys.md)). A consuming peer SHOULD poll the URL advertised in the issuing peer's Manifest (the Manifest that authenticates the TCT's `iss`, RFC-AITP-0003) with a configurable cadence.
+Distribution is pull-based in v0.3. Every peer that issues TCTs MUST serve `ListRevoked` and MUST advertise its URL in its Manifest's `extensions` under the registered key `rfc-aitp-0008.revocation_list_uri` (RFC-AITP-0005 §11; [`registries/extension-keys.md`](../registries/extension-keys.md)). A consuming peer SHOULD poll the URL advertised in the issuing peer's Manifest (the Manifest that authenticates the TCT's `iss`, RFC-AITP-0003) with a configurable cadence.
 
 An issuer Manifest that lacks the key is not invalid on that account: a verifier MUST NOT reject the Manifest solely because the key is absent. The consuming peer has no snapshot source for that issuer, so the issuer's revocation status is unavailable and the consuming peer handles it per its configured `revocation_policy.mode` (§3), exactly as for an unreachable endpoint.
 
@@ -85,7 +85,7 @@ Push-based revocation is reserved for a future RFC.
 ```json
 {
   "revocation_list": {
-    "version":    "aitp/0.2",
+    "version":    "aitp/0.3",
     "issuer":     "<issuing-peer-AID>",
     "published_at": <unix-seconds>,
     "expires_at":   <unix-seconds>,
@@ -101,13 +101,13 @@ The canonical schema is [`schemas/json/aitp-revocation-list.schema.json`](../sch
 
 | Field | Required | Description |
 |---|---|---|
-| `version` | REQUIRED | MUST be `"aitp/0.2"`. |
+| `version` | REQUIRED | MUST be `"aitp/0.3"`. |
 | `issuer` | REQUIRED | The issuing peer's AID. MUST equal the `iss` claim of every TCT covered by the entries. (The snapshot keeps its JCS-profile field name `issuer`; only the JWS-profile artifacts use the registered claim names.) |
 | `published_at` | REQUIRED | Unix timestamp when this list snapshot was signed. |
 | `expires_at` | REQUIRED | Unix timestamp after which this snapshot MUST NOT be cached. |
 | `entries` | REQUIRED | Array of revoked-entry records (may be empty). |
 | `extensions` | OPTIONAL | Extension namespace per [RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model) and [RFC-AITP-0012](RFC-AITP-0012-extensions.md). Unknown keys *inside* `extensions` MUST be ignored; unknown fields *outside* it are rejected with `UNKNOWN_FIELD` (see **Verification** below). It is an ordinary member of the signed `revocation_list` body, so when present it is covered by the signature like any other member — and because absent and empty (`{}`) canonicalize differently, an implementation MUST NOT substitute one for the other when reconstructing the signing input ([RFC-AITP-0001 §5.4.1](RFC-AITP-0001-core.md#541-signing-input-jcs-profile)). |
-| `signature` | REQUIRED | base64url signature over canonical `revocation_list` JSON (excluding `signature`), signed by the issuing peer's private key. Canonical JSON MUST be produced per [RFC 8785 (JCS)](https://datatracker.ietf.org/doc/html/rfc8785); see [RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature). The signing input is the **inner** `revocation_list` body — the `{"revocation_list": {...}, "signature": "..."}` envelope is the wire / HTTP transport shape, NOT part of the canonical signing bytes. (This matches the RFC-AITP-0010 session-bundle convention: the wrapper key names the artifact for transport routing but the issuer signs the inner body.) A worked example (`kat-revocation-001`) lives at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json). Its `object` is **the signing input defined above** — the inner `revocation_list` body — as its `signing_input: "body"` field records; implementations MUST reproduce its canonical bytes and digest byte-for-byte, and MUST use that same input when they sign. A real signed snapshot is pinned at [`known-answer/signed-examples/revocation/`](../schemas/conformance/known-answer/signed-examples/revocation/); conformant implementations MUST verify it as committed, without re-minting. **Note for implementers holding an earlier copy:** through v0.2-draft both artifacts pinned the *wrapped* form, contradicting this row; they were corrected to the inner body (see `CHANGELOG.md`, which carries the old and new digests). Implementations migrating from rc.3-era code (which signed the wrapped form) MAY accept either canonical shape during a transition window but MUST emit the inner form going forward. |
+| `signature` | REQUIRED | base64url signature over canonical `revocation_list` JSON (excluding `signature`), signed by the issuing peer's private key. Canonical JSON MUST be produced per [RFC 8785 (JCS)](https://datatracker.ietf.org/doc/html/rfc8785); see [RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature). The signing input is the **inner** `revocation_list` body — the `{"revocation_list": {...}, "signature": "..."}` envelope is the wire / HTTP transport shape, NOT part of the canonical signing bytes. (This matches the RFC-AITP-0010 session-bundle convention: the wrapper key names the artifact for transport routing but the issuer signs the inner body.) A worked example (`kat-revocation-001`) lives at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json). Its `object` is **the signing input defined above** — the inner `revocation_list` body — as its `signing_input: "body"` field records; implementations MUST reproduce its canonical bytes and digest byte-for-byte, and MUST use that same input when they sign. A real signed snapshot is pinned at [`known-answer/signed-examples/revocation/`](../schemas/conformance/known-answer/signed-examples/revocation/); conformant implementations MUST verify it as committed, without re-minting. **Note for implementers holding an earlier copy:** through v0.3-draft both artifacts pinned the *wrapped* form, contradicting this row; they were corrected to the inner body (see `CHANGELOG.md`, which carries the old and new digests). Implementations migrating from rc.3-era code (which signed the wrapped form) MAY accept either canonical shape during a transition window but MUST emit the inner form going forward. |
 
 **Verification.** Structural validation comes first, before any signature work. The snapshot MUST validate against the canonical schema [`schemas/json/aitp-revocation-list.schema.json`](../schemas/json/aitp-revocation-list.schema.json) — every REQUIRED member present, every member of the declared type, every value inside its grammar. Failure ⇒ `REVOCATION_SNAPSHOT_INVALID`. Then member-set validation: the transport wrapper MUST contain exactly the members `revocation_list` and `signature` (the sibling placement derived in the blockquote below), and every member of the `revocation_list` body MUST be a field in the table above or sit inside `extensions`. Any unknown member ⇒ `UNKNOWN_FIELD` ([RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model)); unknown keys *inside* `extensions` MUST be ignored. Rejecting a malformed snapshot at this step costs no cryptography, and it forecloses the ambiguity §7 describes: an unknown member that one implementation hashes into the reconstructed JCS signing input and another drops must never reach the signature check. A consuming peer MUST then verify the signature against the issuing peer's public key (resolved from the issuing peer's Manifest, RFC-AITP-0003). Failure ⇒ `REVOCATION_SNAPSHOT_SIGNATURE_INVALID`. That code is distinct from `TCT_SIGNATURE_INVALID`, which is about an individual token's own JWS: until this family was registered the snapshot had no code of its own and implementations borrowed the token's, reporting a *snapshot* failure as a *token* failure (issue #39). A snapshot whose `expires_at` is in the past, or whose signature does not validate, MUST be discarded; the peer SHOULD treat the absence of a fresh snapshot per its configured `revocation_policy.mode` (§3).
 
@@ -265,9 +265,9 @@ For long-running peer interactions, the issuing peer MAY signal revocation by ad
 
 Re-verification interval: RECOMMENDED every 5 minutes for sessions lasting more than 1 hour.
 
-### 4.1 Session invalidation model (v0.2)
+### 4.1 Session invalidation model (v0.3)
 
-In v0.2, "session invalidation" — terminating every active interaction with a specific subject peer — is achieved by revoking every TCT the issuer has ever issued to that subject. There is no separate session-level revocation surface. The deny list (§1) is the single source of truth; the `src_jti` linkage (§1.1) means the same revocations also invalidate the subject's vouchers and any delegations built on them.
+In v0.3, "session invalidation" — terminating every active interaction with a specific subject peer — is achieved by revoking every TCT the issuer has ever issued to that subject. There is no separate session-level revocation surface. The deny list (§1) is the single source of truth; the `src_jti` linkage (§1.1) means the same revocations also invalidate the subject's vouchers and any delegations built on them.
 
 An issuer wishing to terminate all active sessions with peer B MUST:
 
@@ -275,7 +275,7 @@ An issuer wishing to terminate all active sessions with peer B MUST:
 2. Publish a new signed revocation snapshot (§1.5) reflecting the additions. Empty-snapshot signing rules apply if the issuer had nothing else revoked.
 3. OPTIONALLY publish a short-TTL Manifest ([RFC-AITP-0003 §8](RFC-AITP-0003-manifest.md#8-manifest-rotation)) to accelerate consuming peers' cache expiry — useful when revocations propagate slower than the issuer wants.
 
-A "session-level revoke-all" API (one operation that covers a subject without enumerating individual JTIs) is reserved for a future RFC. v0.2 implementations SHOULD surface per-JTI revocation as the primary admin API; bulk-revocation-by-subject is a quality-of-life concern, not a protocol requirement.
+A "session-level revoke-all" API (one operation that covers a subject without enumerating individual JTIs) is reserved for a future RFC. v0.3 implementations SHOULD surface per-JTI revocation as the primary admin API; bulk-revocation-by-subject is a quality-of-life concern, not a protocol requirement.
 
 **Limitation (issuer JTI history).** An issuer that does not maintain a complete history of issued JTIs cannot guarantee total session revocation — it can only revoke the JTIs it remembers. Issuers SHOULD persist issued JTIs at least until `max(issued_tct.exp)` for the relevant subject so the bulk-revocation operation above is complete. After that point all unrevoked TCTs are guaranteed expired, so the JTI is no longer needed for session-revocation completeness; it MAY be garbage-collected from the issuer-side history table.
 

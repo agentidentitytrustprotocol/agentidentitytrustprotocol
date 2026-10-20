@@ -60,7 +60,7 @@
         "step": 4,
         "operation": "verify_identity_presentation",
         "envelope": {
-          "version": "aitp/0.2",
+          "version": "aitp/0.3",
           "message_type": "identity_presentation",
           "message_id": "770e8400-e29b-41d4-a716-446655440904",
           "timestamp": "__NOW__",
@@ -87,7 +87,7 @@
         "step": 5,
         "operation": "verify_identity_presentation",
         "envelope": {
-          "version": "aitp/0.2",
+          "version": "aitp/0.3",
           "message_type": "identity_presentation",
           "message_id": "770e8400-e29b-41d4-a716-446655440905",
           "timestamp": "__NOW__",

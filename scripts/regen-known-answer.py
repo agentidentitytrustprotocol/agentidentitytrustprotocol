@@ -32,8 +32,9 @@ for P-256, RFC 8032 reference arithmetic for Ed25519).
 The envelope examples under `signed-examples/envelope/` are outside this tool
 too: `kat-envelope-001-p256` and the Ed25519 `kat-envelope-002-ed25519`
 (issue #87, RFC-AITP-0001 §5.4 `sig_input_v2`), whose signature env-007 to
-env-010 commit. aitp-verifier-py does not implement that signing input. The
-independent recompute re-signs both, and `verify-known-answer.mjs` verifies them.
+env-010 commit. env-011 carries its own signature, over an `aitp/0.2` envelope;
+it is likewise outside this tool. aitp-verifier-py does not implement that
+signing input. The independent recompute re-signs all three, and `verify-known-answer.mjs` verifies them.
 
 Usage:
     python3 scripts/regen-known-answer.py [--verifier-py PATH] [--check]

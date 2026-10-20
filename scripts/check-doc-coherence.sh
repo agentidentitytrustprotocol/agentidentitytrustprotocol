@@ -30,10 +30,10 @@
 #      current standing is expected to be — not merely "some recognized
 #      word," which would let RFC-AITP-0012 claim `Draft` and pass.
 #   7. Stale-vocabulary check — docs/*.md (the files the website syncs) and
-#      README.md carry no v0.1-era token: `grant_proof` and `binding.cnf`
-#      never; `0.1.0-rc`, `aitp/0.1` and `v0.1` only in a paragraph or list
-#      item that marks itself historical in-line. The allow-list rule is in
-#      the stage's own comment below.
+#      README.md carry no token of a superseded revision: `grant_proof` and
+#      `binding.cnf` never; `0.1.0-rc`, `aitp/0.1`, `v0.1`, `aitp/0.2` and
+#      `v0.2` only in a paragraph or list item that marks itself historical
+#      in-line. The allow-list rule is in the stage's own comment below.
 #   8. Sibling-link form — every `github.com/agentidentitytrustprotocol/
 #      <repo>/blob/...` URL in a tracked markdown file uses `blob/main`, no
 #      such URL uses `/tree/`, and none names the local alias `aitp-cp`.
@@ -807,25 +807,29 @@ fi
 echo
 
 # ── 7. Stale-vocabulary check (docs/*.md and README.md) ─────────────────────
-echo "── Stale vocabulary (v0.1-era tokens in docs/*.md and README.md) ──"
+echo "── Stale vocabulary (superseded-revision tokens in docs/*.md and README.md) ──"
 
 # docs/*.md is exactly what the website sync ingests (a flat glob, no
 # subdirectories) and README.md is the repository's front page; both must
-# speak v0.2. Two token classes:
+# speak the current revision, aitp/0.3. Two token classes:
 #
-#   ALWAYS STALE -- `grant_proof` (v0.1 delegation proof; v0.2 delegates via
-#     the grant voucher) and `binding.cnf` (v0.1 key binding; v0.2 TCTs carry
-#     `cnf.jkt`). Neither has a legitimate use on these pages; a historical
-#     mention belongs in CHANGELOG.md, which this stage does not scan.
+#   ALWAYS STALE -- `grant_proof` (v0.1 delegation proof; delegation has gone
+#     through the grant voucher since v0.2) and `binding.cnf` (v0.1 key
+#     binding; TCTs have carried `cnf.jkt` since v0.2). Neither has a
+#     legitimate use on these pages; a historical mention belongs in
+#     CHANGELOG.md, which this stage does not scan.
 #
-#   STALE UNLESS MARKED HISTORICAL -- `0.1.0-rc`, `aitp/0.1`, and `v0.1` (not
-#     `v0.10`). A hit is allowed only when its paragraph or list item -- the
-#     run of non-blank lines around it, cut at headings, list-item starts, table
-#     rows and code fences -- also contains one of these in-line markers
-#     (case-insensitive):
+#   STALE UNLESS MARKED HISTORICAL -- `0.1.0-rc`, `aitp/0.1`, `v0.1` (not
+#     `v0.10`), `aitp/0.2` and `v0.2` (not `v0.20`; `v0.2.0-draft` and
+#     `schema-v0.2.0` count). A hit is allowed only when its paragraph or list
+#     item -- the run of non-blank lines around it, cut at headings, list-item
+#     starts, table rows and code fences -- also contains one of these in-line
+#     markers (case-insensitive):
 #         legacy          e.g. "the legacy untagged `aid:pubkey:<43>` form"
 #         v0.1-frozen     e.g. a fixture pinned to v0.1 bytes, like del-004
 #         v0.1 line       e.g. "the earlier v0.1 line reached `0.1.0-rc.3`"
+#         v0.2-frozen     e.g. "the v0.2-frozen envelope signing input"
+#         v0.2 line       e.g. "the v0.2 line is frozen at its last commit"
 #     The marker is wording a reader sees, so the exemption documents itself.
 #     It is deliberately NOT an HTML comment: docs/ is synced into MDX, where
 #     `<!-- -->` breaks the build. Keep the marker list this short; a hit
@@ -843,15 +847,20 @@ if not targets:
     sys.exit(1)
 
 ALWAYS = [
-    (re.compile(r'grant_proof'), "`grant_proof` (v0.2 delegates via the grant voucher)"),
-    (re.compile(r'binding\.cnf'), "`binding.cnf` (v0.2 TCTs carry `cnf.jkt`)"),
+    (re.compile(r'grant_proof'), "`grant_proof` (delegation goes through the grant voucher)"),
+    (re.compile(r'binding\.cnf'), "`binding.cnf` (TCTs carry `cnf.jkt`)"),
 ]
 UNLESS_HISTORICAL = [
     (re.compile(r'0\.1\.0-rc'), "`0.1.0-rc`"),
     (re.compile(r'aitp/0\.1(?!\d)'), "`aitp/0.1`"),
     (re.compile(r'(?<![\w.])v0\.1(?!\d)'), "`v0.1`"),
+    (re.compile(r'aitp/0\.2(?!\d)'), "`aitp/0.2`"),
+    (re.compile(r'(?<![\w.])v0\.2(?!\d)'), "`v0.2`"),
 ]
-MARKER = re.compile(r'\blegacy\b|\bv0\.1-frozen\b|\bv0\.1 line\b', re.IGNORECASE)
+MARKER = re.compile(
+    r'\blegacy\b|\bv0\.1-frozen\b|\bv0\.1 line\b|\bv0\.2-frozen\b|\bv0\.2 line\b',
+    re.IGNORECASE,
+)
 block_break = re.compile(r'^\s*(?:#{1,6}\s|[-*+]\s|\d+[.)]\s|```|~~~|\|)')
 
 failures, checked, allowed = [], 0, 0
@@ -884,8 +893,9 @@ for rel in targets:
                     allowed += 1
                     continue
                 failures.append(
-                    f"    ✗ {rel}:{n}: stale token {label} -- say v0.2, or mark the "
-                    f"paragraph historical with \"legacy\", \"v0.1-frozen\" or \"v0.1 line\""
+                    f"    ✗ {rel}:{n}: stale token {label} -- say aitp/0.3, or mark the "
+                    f"paragraph historical with \"legacy\", \"v0.1-frozen\", \"v0.1 line\", "
+                    f"\"v0.2-frozen\" or \"v0.2 line\""
                 )
 
 if failures:
@@ -895,7 +905,7 @@ if failures:
     sys.exit(1)
 
 print(
-    f"    ✓ no stale v0.1-era tokens in {len(targets)} file(s) "
+    f"    ✓ no stale superseded-revision tokens in {len(targets)} file(s) "
     f"({allowed} marked-historical mention(s) allowed)"
 )
 PYEOF

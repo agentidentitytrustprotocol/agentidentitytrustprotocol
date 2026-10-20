@@ -62,7 +62,7 @@ jobs:
 
       - name: Summary
         run: |
-          echo "✓ All AITP v0.2 validations passed"
+          echo "✓ All AITP v0.3 validations passed"
           echo "  - JSON Schemas valid"
           echo "  - JSON examples valid"
           echo "  - Conformance fixtures + KAT vectors valid"

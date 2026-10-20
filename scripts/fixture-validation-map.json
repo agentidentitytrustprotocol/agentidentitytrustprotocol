@@ -550,6 +550,16 @@
         }
       ]
     },
+    "env-011": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "invalid",
+          "reason": "Deliberately schema-invalid: input.envelope.version is the previous revision `aitp/0.2`, which the aitp/0.3 schema's `version` const rejects (strict cutover). The fixture asserts UNKNOWN_VERSION: RFC-AITP-0001 §5.4 checks `version` before schema validation, so the schema rejection here is expected and the error code comes from the version check."
+        }
+      ]
+    },
     "id-001": {
       "artifacts": [
         {

@@ -16,7 +16,7 @@
     "self_aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
     "tolerance_seconds": 300,
     "envelope": {
-      "version": "aitp/0.2",
+      "version": "aitp/0.3",
       "message_type": "mutual_hello",
       "message_id": "770e8400-e29b-41d4-a716-446655441007",
       "timestamp": 1711900000,
@@ -31,7 +31,7 @@
           "request_id": "770e8400-e29b-41d4-a716-446655449998"
         }
       },
-      "signature": "v9IsSYtz353H8F9RlXHwRh8g9rLoPa_KW5sHCBtOx3_AlZbWfMUqn-ReGckaic4PjcJGowRIb-tNAntRYqWgAw"
+      "signature": "mW2htyofIn3wJhfxaIRespw-WQpV6KYRtGiOJBJyWu_Dzj1ThhY7xFTKQiJJu3_nToWu11UviiXHRhehaswTAw"
     },
     "operation": "verify_envelope"
   },

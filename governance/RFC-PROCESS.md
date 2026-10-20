@@ -29,7 +29,7 @@ Reserved → Planned → Idea → Draft → Review → Release Candidate → Fin
 - An RFC number is allocated and a document exists at its path — possibly
   written in real detail, with examples and worked cases (as RFC-AITP-0012
   is) — but its contents are explicitly non-normative for the
-  current protocol revision (`aitp/0.2`): a future revision of *this same
+  current protocol revision (`aitp/0.3`): a future revision of *this same
   document* is expected to make it normative, rather than a new RFC
   superseding it.
 - `**Status:**` reads bare `Reserved`.
@@ -46,7 +46,7 @@ Reserved → Planned → Idea → Draft → Review → Release Candidate → Fin
   mechanism is actually written down), not a bright line like "a file
   exists" — both RFC-AITP-0012 (Reserved) and RFC-AITP-0013 (Planned)
   have files, and both currently carry a handful of real MUST/MAY
-  constraints on v0.2 implementations despite each calling itself
+  constraints on v0.3 implementations despite each calling itself
   non-normative. Neither is a numbered RFC's usual all-or-nothing
   normative/non-normative split; that pre-existing wrinkle is noted here
   rather than resolved, since resolving it changes those RFCs' actual

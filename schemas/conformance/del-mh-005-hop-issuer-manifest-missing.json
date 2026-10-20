@@ -6,7 +6,7 @@
   "required_for_v0_2": false,
   "feature": "experimental-multihop-delegation",
   "$comment": "Chain claims-sibling convention and __COMPUTED_CHAIN_HASH__ as in del-mh-001; every token is validly signed by its iss key. The only difference from del-mh-001 is `input.issuer_manifests`: the second entry is kat-keypair-004's (D's) own valid, signed Manifest in place of C's. The runner MUST supply exactly these Manifests as the verifier's whole Manifest source and MUST NOT derive a key from the hop's iss AID, synthesize a Manifest, or fetch one (README, 'Manifest inputs').",
-  "description": "Multi-hop delegation whose outer hop issuer has no Manifest (RFC-AITP-0011 §3 step 1, aitp/0.2 shape). The chain is identical to del-mh-001 and every JWS is validly signed by its iss key, but `input.issuer_manifests` holds B's Manifest and D's (kat-keypair-004), not C's. Both Manifests verify; neither designates C's AID (aid:pubkey:dqFZIESm...), so the key the outer hop (iss = C) is signed with is not in any Manifest the verifier holds. RFC-AITP-0011 §3 step 1 requires each hop's key to be resolved from its issuer's Manifest, and RFC-AITP-0007 §1 requires a peer key resolution failure to result in KEY_RESOLUTION_FAILED. A verifier that takes the key straight from the iss AID would accept this chain; this fixture catches it. Expected: KEY_RESOLUTION_FAILED.",
+  "description": "Multi-hop delegation whose outer hop issuer has no Manifest (RFC-AITP-0011 §3 step 1, aitp/0.3 shape). The chain is identical to del-mh-001 and every JWS is validly signed by its iss key, but `input.issuer_manifests` holds B's Manifest and D's (kat-keypair-004), not C's. Both Manifests verify; neither designates C's AID (aid:pubkey:dqFZIESm...), so the key the outer hop (iss = C) is signed with is not in any Manifest the verifier holds. RFC-AITP-0011 §3 step 1 requires each hop's key to be resolved from its issuer's Manifest, and RFC-AITP-0007 §1 requires a peer key resolution failure to result in KEY_RESOLUTION_FAILED. A verifier that takes the key straight from the iss AID would accept this chain; this fixture catches it. Expected: KEY_RESOLUTION_FAILED.",
   "tags": [
     "failure",
     "delegation",
@@ -18,7 +18,7 @@
     "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
     "delegation_token": "__JWS_DELEGATION__",
     "delegation_token_claims": {
-      "ver": "aitp/0.2",
+      "ver": "aitp/0.3",
       "iss": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
       "sub": "aid:pubkey:iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
       "aud": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
@@ -35,7 +35,7 @@
       ],
       "chain_claims": [
         {
-          "ver": "aitp/0.2",
+          "ver": "aitp/0.3",
           "iss": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
           "sub": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
           "aud": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
@@ -49,7 +49,7 @@
           "jti": "550e8400-e29b-41d4-a716-446655443002",
           "voucher": "__JWS_GRANT_VOUCHER__",
           "voucher_claims": {
-            "ver": "aitp/0.2",
+            "ver": "aitp/0.3",
             "iss": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
             "sub": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
             "grants": [
@@ -66,7 +66,7 @@
     },
     "issuer_manifests": [
       {
-        "version": "aitp/0.2",
+        "version": "aitp/0.3",
         "aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
         "display_name": "kat-keypair-002",
         "identity_hint": {
@@ -92,7 +92,7 @@
         "signature": "__VALID_MANIFEST_SIG__"
       },
       {
-        "version": "aitp/0.2",
+        "version": "aitp/0.3",
         "aid": "aid:pubkey:iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
         "display_name": "kat-keypair-004",
         "identity_hint": {

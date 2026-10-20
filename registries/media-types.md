@@ -1,6 +1,6 @@
 # Media Types Registry
 
-Media types used by AITP v0.2. AITP ships JSON-only (see [RFC-AITP-0001 §5.4.1](../rfcs/RFC-AITP-0001-core.md#54-signature)); no Protobuf or binary framing is part of conformance. The portable trust artifacts are compact JWS strings ([RFC-AITP-0001 §5.4.5](../rfcs/RFC-AITP-0001-core.md#545-compact-jws-profile-portable-trust-artifacts)).
+Media types used by AITP v0.3. AITP ships JSON-only (see [RFC-AITP-0001 §5.4.1](../rfcs/RFC-AITP-0001-core.md#54-signature)); no Protobuf or binary framing is part of conformance. The portable trust artifacts are compact JWS strings ([RFC-AITP-0001 §5.4.5](../rfcs/RFC-AITP-0001-core.md#545-compact-jws-profile-portable-trust-artifacts)).
 
 ## Registered media types
 
@@ -16,7 +16,7 @@ Media types used by AITP v0.2. AITP ships JSON-only (see [RFC-AITP-0001 §5.4.1]
 | Media type | Status |
 |---|---|
 | `application/aitp+json; version=0.1` | Superseded by `version=0.2`. |
-| `application/aitp-tct+json; version=0.1` | **Superseded** — the v0.1 JCS-signed JSON TCT form is retired; v0.2 TCTs are compact JWS (`application/aitp-tct+jwt`). |
+| `application/aitp-tct+json; version=0.1` | **Superseded** — the v0.1 JCS-signed JSON TCT form is retired; TCTs have been compact JWS since v0.2 (`application/aitp-tct+jwt`). |
 
 ## Carriage guidance (non-normative)
 

@@ -2,7 +2,7 @@
 
 The normative threat model is [RFC-AITP-0009 Security](../rfcs/RFC-AITP-0009-security.md). This page is a non-normative index into it: each row names the threat, the defense in one line, and the section that states it. Read the cited section for the actual requirements.
 
-## Threats addressed in v0.2
+## Threats addressed in v0.3
 
 | Threat | Defense (summary) | Normative source |
 |---|---|---|
@@ -26,9 +26,9 @@ The normative threat model is [RFC-AITP-0009 Security](../rfcs/RFC-AITP-0009-sec
 
 Operational settings that implement several of these defenses (tolerances, cache lifetimes, fail modes, rate limits) are collected with their sources in [operational-guidance.md](operational-guidance.md).
 
-## Known limitations in v0.2
+## Known limitations in v0.3
 
-The authoritative list is [RFC-AITP-0009 §2](../rfcs/RFC-AITP-0009-security.md#2-known-limitations-v02).
+The authoritative list is [RFC-AITP-0009 §2](../rfcs/RFC-AITP-0009-security.md#2-known-limitations-v03).
 
 | Limitation | Status |
 |---|---|

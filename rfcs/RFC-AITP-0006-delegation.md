@@ -2,7 +2,7 @@
 # Single-Hop Delegation
 
 **Document:** RFC-AITP-0006
-**Version:** 0.2.1-draft
+**Version:** 0.3.0-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md)
 
@@ -12,7 +12,7 @@
 
 Delegation lets an agent (B) that holds a TCT from an issuing peer (A) grant a subset of its capabilities to a third agent (C). This RFC supports **single-hop delegation only**. Multi-hop chains are reserved for [RFC-AITP-0011](RFC-AITP-0011-multihop-delegation.md).
 
-In `aitp/0.2` the delegation token is a **compact JWS** (RFC-AITP-0001 §5.4.5) signed by the delegating agent, which embeds — verbatim, as an opaque string — the **grant voucher** the issuing peer minted alongside B's TCT (RFC-AITP-0005 §8). No step of issuance or verification reconstructs any byte sequence: every signature is checked over the exact transmitted bytes.
+In `aitp/0.3` the delegation token is a **compact JWS** (RFC-AITP-0001 §5.4.5) signed by the delegating agent, which embeds — verbatim, as an opaque string — the **grant voucher** the issuing peer minted alongside B's TCT (RFC-AITP-0005 §8). No step of issuance or verification reconstructs any byte sequence: every signature is checked over the exact transmitted bytes.
 
 ---
 
@@ -51,7 +51,7 @@ and decoded claims:
 
 ```json
 {
-  "ver": "aitp/0.2",
+  "ver": "aitp/0.3",
   "iss": "aid:pubkey:ed25519:<B-key>",
   "sub": "aid:pubkey:ed25519:<C-key>",
   "aud": "aid:pubkey:ed25519:<A-key>",
@@ -64,7 +64,7 @@ and decoded claims:
 
 | Claim | Type | Required | Description |
 |---|---|---|---|
-| `ver` | string | REQUIRED | MUST be `"aitp/0.2"`. |
+| `ver` | string | REQUIRED | MUST be `"aitp/0.3"`. |
 | `iss` | string | REQUIRED | AID of the agent issuing this delegation (B, the delegator-of-record). The token is signed by this key. |
 | `sub` | string | REQUIRED | AID of the agent receiving delegation (C). |
 | `aud` | string | REQUIRED | MUST equal A's AID — the only peer this token may be presented to. |

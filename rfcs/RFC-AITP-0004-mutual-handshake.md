@@ -2,7 +2,7 @@
 # Mutual Handshake
 
 **Document:** RFC-AITP-0004
-**Version:** 0.2.5-draft
+**Version:** 0.3.0-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:**
   [RFC-AITP-0001 Core](RFC-AITP-0001-core.md),
@@ -18,7 +18,7 @@ The **Mutual Handshake** is the core agent-to-agent primitive in AITP. Two agent
 
 At the end of a successful Mutual Handshake, each agent holds a Trust Context Token (TCT) issued by its peer. Each TCT is a compact JWS (RFC-AITP-0005 §1) signed by the issuing peer, audience-bound to the recipient, capability-scoped to what the issuer is willing to grant, and proof-of-possession bound to the recipient's key. The commit messages also carry an OPTIONAL companion **grant voucher** (RFC-AITP-0005 §8), minted by the TCT issuer at TCT issuance time, which is what later makes delegation (RFC-AITP-0006) verifiable.
 
-This RFC defines a four-message protocol over two round trips. There is no central verifier and no shared-verifier "fast path"; AITP v0.2 is strictly peer-to-peer.
+This RFC defines a four-message protocol over two round trips. There is no central verifier and no shared-verifier "fast path"; AITP v0.3 is strictly peer-to-peer.
 
 ---
 
@@ -105,7 +105,7 @@ Sent by the initiating agent (A) to the target agent (B).
 
 ```json
 {
-  "version": "aitp/0.2",
+  "version": "aitp/0.3",
   "message_type": "mutual_hello",
   "message_id": "<uuid-v4>",
   "timestamp": 1711900000,
@@ -255,7 +255,7 @@ issued_grants = peer_requested_grants
 
 The issuing agent MUST NOT grant capabilities it did not offer in its Manifest. The issuing agent MUST NOT grant capabilities the peer did not request.
 
-If the resulting `issued_grants` set is **empty**, the issuing agent MUST NOT issue a TCT and MUST instead respond with `POLICY_VIOLATION`. An empty-grants TCT is forbidden in v0.2: a TCT with no grants is operationally indistinguishable from a proof-of-identity, and AITP separates identity (the Manifest's identity binding + handshake PoP) from authority (the TCT's `grants`). Peers that need an identity-only proof MUST use the Manifest, not a stripped TCT.
+If the resulting `issued_grants` set is **empty**, the issuing agent MUST NOT issue a TCT and MUST instead respond with `POLICY_VIOLATION`. An empty-grants TCT is forbidden in v0.3: a TCT with no grants is operationally indistinguishable from a proof-of-identity, and AITP separates identity (the Manifest's identity binding + handshake PoP) from authority (the TCT's `grants`). Peers that need an identity-only proof MUST use the Manifest, not a stripped TCT.
 
 ### 4.2 Audience binding
 
@@ -407,7 +407,7 @@ B MUST:
    - Header `alg` is the sole value derived from A's AID; any other
      value, including `none`, ⇒ `TOKEN_ALG_MISMATCH`.
    - JWS signature valid under A's AID public key.
-   - `ver` is `"aitp/0.2"`.
+   - `ver` is `"aitp/0.3"`.
    - `sub` equals B's AID.
    - `aud` equals B's AID.
    - `exp` is in the future.
@@ -462,7 +462,7 @@ A MUST:
    - Header `alg` is the sole value derived from B's AID; any other
      value, including `none`, ⇒ `TOKEN_ALG_MISMATCH`.
    - JWS signature valid under B's AID public key.
-   - `ver` is `"aitp/0.2"`.
+   - `ver` is `"aitp/0.3"`.
    - `sub` equals A's AID.
    - `aud` equals A's AID.
    - `exp` is in the future.
@@ -544,19 +544,19 @@ Agents MUST NOT persist `pop_nonce` values across restarts. Restarting agents MU
 
 ## 8. Handshake Renewal
 
-TCTs expire per `exp`. Peers MAY initiate a fresh Mutual Handshake before expiry to renew trust. There is no in-band renewal message in v0.2. Agents MUST NOT use an expired peer TCT. See [`docs/operational-guidance.md`](../docs/operational-guidance.md) for non-normative renewal patterns.
+TCTs expire per `exp`. Peers MAY initiate a fresh Mutual Handshake before expiry to renew trust. There is no in-band renewal message in v0.3. Agents MUST NOT use an expired peer TCT. See [`docs/operational-guidance.md`](../docs/operational-guidance.md) for non-normative renewal patterns.
 
 ### 8.1 Non-normative: shortened renewal extension
 
 Implementations MAY offer a shortened renewal endpoint as a non-normative
-extension. Shortened renewal is NOT part of v0.2 conformance and MUST be
+extension. Shortened renewal is NOT part of v0.3 conformance and MUST be
 gated behind an explicit feature or configuration opt-in. Peers MUST
 advertise support via the `extensions["rfc-aitp-0005.renew_uri"]`
 Manifest field (see [`registries/extension-keys.md`](../registries/extension-keys.md))
 so other implementations can discover it without assuming its presence.
 
 The path `/aitp/handshake/renew` is used in examples only. It is **NOT
-a reserved path** in core v0.2 — implementations MAY mount the
+a reserved path** in core v0.3 — implementations MAY mount the
 shortened-renewal endpoint at any path, host, or port that is reachable
 over HTTPS. Implementations offering shortened renewal MUST advertise
 the **actual concrete endpoint** they expose in
@@ -590,7 +590,7 @@ replacement. The issuer MUST also re-evaluate its grant policy for the
 holder; shortened renewal is not a bypass for revocation, manifest
 rotation, or trust-anchor changes.
 
-v0.2 conformance testers MUST NOT require shortened renewal support and
+v0.3 conformance testers MUST NOT require shortened renewal support and
 MUST NOT fail implementations that only support full Mutual Handshake
 renewal. The eventual standardization of this extension is reserved as
 [RFC-AITP-0013 TCT Renewal Extension](RFC-AITP-0013-tct-renewal-extension.md) (Planned).
@@ -599,11 +599,11 @@ renewal. The eventual standardization of this extension is reserved as
 
 ## 9. Integration with Multi-Agent Sessions
 
-AITP v0.2 defines bilateral A2A trust only. Multi-agent systems MAY use the bilateral handshake between a coordinator and each participant, but v0.2 does NOT define participant-to-participant trust propagation, session-wide bundles, membership changes, or session-wide revocation. Session Trust Bundle is reserved for [RFC-AITP-0010](RFC-AITP-0010-session-trust-bundle.md).
+AITP v0.3 defines bilateral A2A trust only. Multi-agent systems MAY use the bilateral handshake between a coordinator and each participant, but v0.3 does NOT define participant-to-participant trust propagation, session-wide bundles, membership changes, or session-wide revocation. Session Trust Bundle is reserved for [RFC-AITP-0010](RFC-AITP-0010-session-trust-bundle.md).
 
 ---
 
-## 10. Transport in v0.2
+## 10. Transport in v0.3
 
 The Mutual Handshake is delivered as JSON envelopes over HTTPS (RFC-AITP-0001 §8). Each peer's `handshake_endpoint` (advertised in its Manifest) accepts POST requests carrying a single AITP envelope; responses are AITP envelopes carrying either the next handshake message or an `error` envelope.
 
@@ -631,8 +631,8 @@ The `handshake_endpoint` in the Manifest is a public-facing surface. Implementat
 
 ## 12. Non-Goals
 
-- **Multi-agent session bundles.** v0.2 is bilateral only. Participant-to-participant trust propagation, session-wide bundles, membership changes, and session-wide revocation are reserved for [RFC-AITP-0010](RFC-AITP-0010-session-trust-bundle.md).
-- **Full mesh trust without a coordinator.** v0.2 does not define a gossip or decentralized trust-propagation mechanism.
+- **Multi-agent session bundles.** v0.3 is bilateral only. Participant-to-participant trust propagation, session-wide bundles, membership changes, and session-wide revocation are reserved for [RFC-AITP-0010](RFC-AITP-0010-session-trust-bundle.md).
+- **Full mesh trust without a coordinator.** v0.3 does not define a gossip or decentralized trust-propagation mechanism.
 - **Continuous identity assurance.** Once a TCT is issued, AITP does not monitor whether the peer's identity remains valid. Renewal (§8) is the mechanism for re-verifying identity at TCT expiry.
 - **Revocation push.** JTI revocation is pull-based (RFC-AITP-0008). There is no push notification to a peer when a TCT is revoked mid-session.
 
@@ -646,6 +646,6 @@ The `handshake_endpoint` in the Manifest is a public-facing surface. Implementat
 - [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md)
 - [RFC-AITP-0006 Single-Hop Delegation](RFC-AITP-0006-delegation.md)
 - [RFC-AITP-0009 Security](RFC-AITP-0009-security.md)
-- [RFC-AITP-0010 Session Trust Bundle](RFC-AITP-0010-session-trust-bundle.md) *(Draft, post-v0.2)*
+- [RFC-AITP-0010 Session Trust Bundle](RFC-AITP-0010-session-trust-bundle.md) *(Draft, opt-in)*
 - [RFC 2119 — Key words for use in RFCs](https://datatracker.ietf.org/doc/html/rfc2119)
 - [RFC 7515 — JSON Web Signature](https://datatracker.ietf.org/doc/html/rfc7515)

@@ -6,7 +6,7 @@
   "required_for_v0_2": false,
   "feature": "experimental-multihop-delegation",
   "$comment": "Chain claims-sibling convention as in del-mh-001: `chain_claims` is a parallel array of decoded-claims objects for the `chain` placeholder entries; `chain_hash` is __COMPUTED_CHAIN_HASH__ (minter computes the correct §5 commitment — every signature and the hash are valid so the scope check is the isolated failure).",
-  "description": "Multi-hop scope inflation (aitp/0.2 shape). chain[0] (B→C) declares scope [\"read_data\",\"admin\"], but the voucher embedded in chain[0] (A→B) granted only [\"read_data\",\"write_data\"]. The adjacent-pair scope rule (RFC-AITP-0011 §4) requires chain[0].scope ⊆ chain[0].voucher.grants; \"admin\" violates that at the voucher boundary. Every hop's JWS and the voucher are validly signed and chain_hash recomputes, and the OUTER pair check alone would pass (outer.scope [read_data] ⊆ chain[0].scope [read_data, admin]) — only checking every hop boundary, including the voucher boundary, catches the inflation. Verifier MUST reject with DELEGATION_SCOPE_EXCEEDED. Manifest source: `input.issuer_manifests` carries the signed Manifests of both hop issuers, B (kat-keypair-002, chain[0].iss) and C (kat-keypair-003, outer iss); each hop's JWS verifies under the key its issuer's Manifest designates (RFC-AITP-0011 §3 step 1). The voucher needs no Manifest: A verifies it under its own key.",
+  "description": "Multi-hop scope inflation (aitp/0.3 shape). chain[0] (B→C) declares scope [\"read_data\",\"admin\"], but the voucher embedded in chain[0] (A→B) granted only [\"read_data\",\"write_data\"]. The adjacent-pair scope rule (RFC-AITP-0011 §4) requires chain[0].scope ⊆ chain[0].voucher.grants; \"admin\" violates that at the voucher boundary. Every hop's JWS and the voucher are validly signed and chain_hash recomputes, and the OUTER pair check alone would pass (outer.scope [read_data] ⊆ chain[0].scope [read_data, admin]) — only checking every hop boundary, including the voucher boundary, catches the inflation. Verifier MUST reject with DELEGATION_SCOPE_EXCEEDED. Manifest source: `input.issuer_manifests` carries the signed Manifests of both hop issuers, B (kat-keypair-002, chain[0].iss) and C (kat-keypair-003, outer iss); each hop's JWS verifies under the key its issuer's Manifest designates (RFC-AITP-0011 §3 step 1). The voucher needs no Manifest: A verifies it under its own key.",
   "tags": [
     "security",
     "delegation",
@@ -18,7 +18,7 @@
     "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
     "delegation_token": "__JWS_DELEGATION__",
     "delegation_token_claims": {
-      "ver": "aitp/0.2",
+      "ver": "aitp/0.3",
       "iss": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
       "sub": "aid:pubkey:iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
       "aud": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
@@ -35,7 +35,7 @@
       ],
       "chain_claims": [
         {
-          "ver": "aitp/0.2",
+          "ver": "aitp/0.3",
           "iss": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
           "sub": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
           "aud": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
@@ -50,7 +50,7 @@
           "jti": "550e8400-e29b-41d4-a716-446655444002",
           "voucher": "__JWS_GRANT_VOUCHER__",
           "voucher_claims": {
-            "ver": "aitp/0.2",
+            "ver": "aitp/0.3",
             "iss": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
             "sub": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
             "grants": [
@@ -67,7 +67,7 @@
     },
     "issuer_manifests": [
       {
-        "version": "aitp/0.2",
+        "version": "aitp/0.3",
         "aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
         "display_name": "kat-keypair-002",
         "identity_hint": {
@@ -93,7 +93,7 @@
         "signature": "__VALID_MANIFEST_SIG__"
       },
       {
-        "version": "aitp/0.2",
+        "version": "aitp/0.3",
         "aid": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
         "display_name": "kat-keypair-003",
         "identity_hint": {

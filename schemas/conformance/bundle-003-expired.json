@@ -6,7 +6,7 @@
   "required_for_v0_2": false,
   "feature": "experimental-session-bundle",
   "$comment": "Participant TCT claims-sibling convention as in bundle-001 (tct_claims next to each __JWS_TCT__; minter strips the companions before signing the bundle with __VALID_A_SIG__).",
-  "description": "Session Trust Bundle expiry check (RFC-AITP-0010 §5 step 2, aitp/0.2 shape). Bundle is well-formed: coordinator signature verifies, embedded TCT compact JWS strings verify, expiry-window invariant holds (bundle.expires_at = min of the embedded TCTs' exp claims = 1711799000), participants non-empty. The defect is that bundle.expires_at = 1711799000 is before `now` = 1711900100. Verifier MUST reject with BUNDLE_EXPIRED before consuming any embedded TCT. Coordinator key source: `input.coordinator_manifest` carries the coordinator's (kat-keypair-001) signed Manifest; the bundle signature and the embedded TCTs verify under the key it designates (RFC-AITP-0010 §5 step 5).",
+  "description": "Session Trust Bundle expiry check (RFC-AITP-0010 §5 step 2, aitp/0.3 shape). Bundle is well-formed: coordinator signature verifies, embedded TCT compact JWS strings verify, expiry-window invariant holds (bundle.expires_at = min of the embedded TCTs' exp claims = 1711799000), participants non-empty. The defect is that bundle.expires_at = 1711799000 is before `now` = 1711900100. Verifier MUST reject with BUNDLE_EXPIRED before consuming any embedded TCT. Coordinator key source: `input.coordinator_manifest` carries the coordinator's (kat-keypair-001) signed Manifest; the bundle signature and the embedded TCTs verify under the key it designates (RFC-AITP-0010 §5 step 5).",
   "tags": [
     "failure",
     "session-bundle",
@@ -18,7 +18,7 @@
     "now": 1711900100,
     "session_bundle": {
       "session_bundle": {
-        "version": "aitp/0.2",
+        "version": "aitp/0.3",
         "session_id": "550e8400-e29b-41d4-a716-446655442110",
         "coordinator": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
         "issued_at": 1711700000,
@@ -28,7 +28,7 @@
             "aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
             "tct": "__JWS_TCT__",
             "tct_claims": {
-              "ver": "aitp/0.2",
+              "ver": "aitp/0.3",
               "jti": "550e8400-e29b-41d4-a716-446655442101",
               "iss": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
               "sub": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
@@ -47,7 +47,7 @@
             "aid": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
             "tct": "__JWS_TCT__",
             "tct_claims": {
-              "ver": "aitp/0.2",
+              "ver": "aitp/0.3",
               "jti": "550e8400-e29b-41d4-a716-446655442102",
               "iss": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
               "sub": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
@@ -67,7 +67,7 @@
       }
     },
     "coordinator_manifest": {
-      "version": "aitp/0.2",
+      "version": "aitp/0.3",
       "aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
       "display_name": "kat-keypair-001",
       "identity_hint": {

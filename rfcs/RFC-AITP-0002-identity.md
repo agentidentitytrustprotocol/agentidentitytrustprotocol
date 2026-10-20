@@ -2,7 +2,7 @@
 # Identity Binding
 
 **Document:** RFC-AITP-0002
-**Version:** 0.2.11-draft
+**Version:** 0.3.0-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md)
 
@@ -14,7 +14,7 @@ This RFC defines how an agent's AID is bound to a verifiable claim from a truste
 
 **Where identity proof appears.** Identity proof — the verifiable JWT (for OIDC) or signature (for pinned_key) — is exchanged inline during the Mutual Handshake (RFC-AITP-0004 §3). The Agent Manifest (RFC-AITP-0003 §3.1) carries only an **identity hint** (`identity_hint`): static `type`/`issuer`/`subject` metadata, with no `proof` field. The hint lets peers discover *which* identity provider an agent uses; the verifiable proof is presented fresh each handshake so it can be bound to a per-handshake nonce and to the verifying peer's AID. The `aud`, `cnf.jkt`, and `nonce` requirements in §2 apply to the handshake-level identity proof only, never to the Manifest hint.
 
-v0.2 supports two identity types: `oidc` and `pinned_key`. Future identity types extend this RFC without modifying the core envelope.
+v0.3 supports two identity types: `oidc` and `pinned_key`. Future identity types extend this RFC without modifying the core envelope.
 
 ---
 
@@ -38,7 +38,7 @@ v0.2 supports two identity types: `oidc` and `pinned_key`. Future identity types
 | `issuer` | string | REQUIRED for `oidc`; MUST be absent for `pinned_key` | Issuer URI (MUST match JWT `iss` claim). A `pinned_key` descriptor has no issuer: its trust anchor is the local `pinned_keys` store (§3.2), so an `issuer` member on it is rejected with `IDENTITY_FAILED`. The identity-descriptor schema enforces this in its non-`oidc` branch. |
 | `subject` | string | REQUIRED | Agent subject identifier. |
 | `proof` | string | REQUIRED | JWT for OIDC; for pinned_key, a JCS-profile signature in the [RFC-AITP-0001 §5.4.3](RFC-AITP-0001-core.md#543-algorithm-tagged-signature-wire-format-jcs-profile-only) wire format, Ed25519 or P-256 (§3.1). |
-| `public_key` | string | REQUIRED for `pinned_key`; MUST be absent for `oidc` | base64url-encoded public key. For `pinned_key`, this is the key the verifier looks up in its `pinned_keys` configuration (§3.2). For `oidc`, the agent's public key is already encoded in the verifying-peer envelope's `sender.agent_id` (the AID-identifier component) — there is no second copy in the descriptor, and including one would create an ambiguity over which key the JWT's `cnf.jkt` is meant to bind. The identity-descriptor schema (`schemas/json/aitp-identity.schema.json`) enforces this: its `oidc` branch forbids `public_key`, mirroring the `IdentityHint` rule that the Manifest schema applies to `identity_hint`. v0.2 verifiers MUST reject an OIDC `identity` descriptor that carries `public_key`. |
+| `public_key` | string | REQUIRED for `pinned_key`; MUST be absent for `oidc` | base64url-encoded public key. For `pinned_key`, this is the key the verifier looks up in its `pinned_keys` configuration (§3.2). For `oidc`, the agent's public key is already encoded in the verifying-peer envelope's `sender.agent_id` (the AID-identifier component) — there is no second copy in the descriptor, and including one would create an ambiguity over which key the JWT's `cnf.jkt` is meant to bind. The identity-descriptor schema (`schemas/json/aitp-identity.schema.json`) enforces this: its `oidc` branch forbids `public_key`, mirroring the `IdentityHint` rule that the Manifest schema applies to `identity_hint`. v0.3 verifiers MUST reject an OIDC `identity` descriptor that carries `public_key`. |
 | `extensions` | object | OPTIONAL | Extension namespace per [RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model) and [RFC-AITP-0012](RFC-AITP-0012-extensions.md). Unknown keys *inside* `extensions` MUST be ignored; unknown members *outside* it are rejected with `UNKNOWN_FIELD`. The identity descriptor is **not** an exception to §7's "every signed object reserves an `extensions` slot" — it reserves one like every other signed object, in both the standalone and the handshake-embedded form. |
 
 The canonical JSON Schema is [`schemas/json/aitp-identity.schema.json`](../schemas/json/aitp-identity.schema.json).
@@ -86,7 +86,7 @@ The `aud`, `nonce`, and `cnf.jkt` requirements are AITP-specific reuses of stand
 
 #### 2.2.1 Canonical JWK form for `cnf.jkt`
 
-The JWK used to compute `cnf.jkt` is the canonical JWK of the agent AID's public key in that AID's own algorithm, per [RFC-AITP-0001 §5.4.4](RFC-AITP-0001-core.md#544-jwk-thumbprint-for-cnf). The two v0.2 algorithms (RFC-AITP-0001 §5.3) give exactly these two forms:
+The JWK used to compute `cnf.jkt` is the canonical JWK of the agent AID's public key in that AID's own algorithm, per [RFC-AITP-0001 §5.4.4](RFC-AITP-0001-core.md#544-jwk-thumbprint-for-cnf). The two v0.3 algorithms (RFC-AITP-0001 §5.3) give exactly these two forms:
 
 - **Ed25519 AID** (`aid:pubkey:<identifier>` or `aid:pubkey:ed25519:<identifier>`). The OKP form, exactly:
 
@@ -106,7 +106,7 @@ The JWK used to compute `cnf.jkt` is the canonical JWK of the agent AID's public
 
 The thumbprint is computed per RFC 7638: serialize the JSON object for the AID's algorithm with its members in lexicographic order (`crv`, `kty`, `x` for OKP; `crv`, `kty`, `x`, `y` for EC), no whitespace, hash with SHA-256, encode the digest as unpadded base64url. Implementations MUST NOT include any other JWK members (no `kid`, no `alg`, no `use`) when computing the thumbprint — additional members would change the canonical serialization and the resulting hash. A verifier MUST derive the JWK form from the algorithm of the AID it is checking; computing the OKP form for a P-256 AID, or the reverse, yields a thumbprint that MUST NOT match.
 
-> **Shared convention with the portable trust artifacts.** In `aitp/0.2` this same RFC 7638 `cnf.jkt` convention is also the proof-of-possession key binding on the compact-JWS portable trust artifacts — the TCT and the delegation token ([RFC-AITP-0001 §5.4.4](RFC-AITP-0001-core.md#544-jwk-thumbprint-for-cnf), which cites this section). The v0.1 raw-public-key `binding.cnf` form on the TCT no longer exists; identity binding and token binding now use one `cnf.jkt` convention.
+> **Shared convention with the portable trust artifacts.** In `aitp/0.3` this same RFC 7638 `cnf.jkt` convention is also the proof-of-possession key binding on the compact-JWS portable trust artifacts — the TCT and the delegation token ([RFC-AITP-0001 §5.4.4](RFC-AITP-0001-core.md#544-jwk-thumbprint-for-cnf), which cites this section). The v0.1 raw-public-key `binding.cnf` form on the TCT no longer exists; identity binding and token binding now use one `cnf.jkt` convention.
 
 > **Known-answer test.** For the pinned all-zero-seed Ed25519 keypair (`kat-keypair-001` in [`schemas/conformance/known-answer/keypairs.json`](../schemas/conformance/known-answer/keypairs.json)), `aid-identifier = O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik`, the canonical JWK input is `{"crv":"Ed25519","kty":"OKP","x":"O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik"}` (87 bytes), and the resulting `jkt` MUST be `9ZP03Nu8GrXPAUkbKNxHOKBzxPX83SShgFkRNK-f2lw`. For the pinned P-256 keypair (`kat-keypair-005-p256`), `aid = aid:pubkey:p256:AweBDql0zqV3PmO4l_N-O-mgnnpf6blxpE0QZawqOpMR`, the canonical JWK input is `{"crv":"P-256","kty":"EC","x":"B4EOqXTOpXc-Y7iX83476aCeel_puXGkTRBlrCo6kxE","y":"Y35HpPmUZKD9zkSojsfXA6kYPB0GVS2eLWt2BpSBxXc"}` (126 bytes), and the resulting `jkt` MUST be `6uuEaX_87uMh4VKEtSDkENgjC0g7Evt6vliSnD7XSDE` (`kat-jwk-thumb-005-p256`). Additional vectors live at [`schemas/conformance/known-answer/jwk-thumbprints.json`](../schemas/conformance/known-answer/jwk-thumbprints.json). Conformance fixture `id-023` is an OIDC identity binding whose agent AID is this P-256 key.
 
@@ -197,7 +197,7 @@ Where:
 
 > **Erratum.** This section's text stated, through `0.2.1-draft`, that `timestamp` was encoded as `timestamp_be_8_bytes` — an 8-byte big-endian signed 64-bit integer — contradicting how this section reads now. The pinned proof in this repository's conformance pack (`id-007`'s real Ed25519 signature over `kat-keypair-003`, reused verbatim as `kat-pinned-key-proof-001` below) has been ASCII-decimal-encoded since the original conformance commit; it was never re-signed to produce this correction. No pinned bytes changed — the prose moved to match the artifact, not the other way around. That said, this is **not** a no-op for implementations: an implementation that built its proof input by following the old `timestamp_be_8_bytes` text produces a different signature than one that follows the pinned vector, and MUST switch encodings to interoperate. `id-007` alone never surfaced this, because its expected outcome is rejection at §3.2 step 3 (the public key is absent from the local `pinned_keys` store) before proof verification is ever reached — a big-endian implementation could pass `id-007`, and the rest of the v0.2 conformance pack, without the defect being caught. `kat-pinned-key-proof-001` closes that gap: it pins `proof_input`, the Ed25519 signature over `sha256(proof_input)`, and additionally pins that the same signature does NOT verify when `timestamp` is instead packed as an 8-byte big-endian integer, making the encoding machine-checkable rather than a matter of reading the prose. See `CHANGELOG.md` for the old and new values.
 
-> **Replay resistance.** v0.2 pinned-key proofs are bound to the full handshake context — the same five fields v0.1 bound (sender, receiver, message, timestamp, nonce); only `timestamp`'s on-the-wire encoding within the proof input changed, per the erratum above. A signature produced for one (sender, receiver, message, timestamp, nonce) tuple cannot be replayed against a different tuple.
+> **Replay resistance.** v0.3 pinned-key proofs are bound to the full handshake context — the same five fields v0.1 bound (sender, receiver, message, timestamp, nonce); only `timestamp`'s on-the-wire encoding within the proof input changed, per the erratum above. A signature produced for one (sender, receiver, message, timestamp, nonce) tuple cannot be replayed against a different tuple.
 
 > **Known-answer test.** The `kat-pinned-key-proof-001` vector in [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json) pins a concrete `(sender, receiver, message_id, timestamp, pop_nonce)` tuple, the resulting `proof_input` bytes, and the Ed25519 signature over `sha256(proof_input)` produced with `kat-keypair-003`. It also pins that the same signature does NOT verify when `timestamp` is instead encoded as an 8-byte big-endian integer, so the ASCII-decimal encoding is machine-checkable rather than a matter of prose interpretation. Two more vectors in the same file cover the other wire forms. `kat-pinned-key-proof-002-p256` is a `p256.`-tagged proof from the `kat-keypair-005-p256` AID, with a double-hash signature that MUST NOT verify. `kat-pinned-key-proof-003-tagged-ed25519` is an Ed25519 proof from the `aid:pubkey:ed25519:` spelling of `kat-keypair-003`; its `proof_input` differs from `-001`'s because the sender AID string is part of the input.
 
@@ -273,7 +273,7 @@ A verifier MAY admit a subject without a Mutual Handshake when all of the follow
 3. **Verification.** The verifier runs §3.2 steps 1–5 and the [RFC-AITP-0001 §5.5](RFC-AITP-0001-core.md#55-replay-protection) timestamp and `message_id` rules. A configured `pinned_keys` store is REQUIRED, per the §3.2 trust-store requirement.
 4. **Consumption.** The verifier consumes the nonce atomically before it returns success.
 
-A party that implements only this profile, as verifier or as presenter, MAY claim "AITP v0.2 pinned-admission" conformance. It MUST NOT claim conformance to [RFC-AITP-0001 §10](RFC-AITP-0001-core.md#10-conformance), which requires the Mutual Handshake and TCT issuance among other things.
+A party that implements only this profile, as verifier or as presenter, MAY claim "AITP v0.3 pinned-admission" conformance. It MUST NOT claim conformance to [RFC-AITP-0001 §10](RFC-AITP-0001-core.md#10-conformance), which requires the Mutual Handshake and TCT issuance among other things.
 
 #### Challenge and nonce rules
 
@@ -354,7 +354,7 @@ The canonical schema is [`schemas/json/aitp-trust-anchors.schema.json`](../schem
 
 | Mode | Description |
 |---|---|
-| `static_config` | Keys baked into deployment config (RECOMMENDED for v0.2). |
+| `static_config` | Keys baked into deployment config (RECOMMENDED for v0.3). |
 | `well_known_endpoint` | Fetched from `https://<issuer>/.well-known/aitp-keys`. |
 | `out_of_band` | Manually provisioned (air-gapped / offline environments). |
 
@@ -362,7 +362,7 @@ See [RFC-AITP-0007 Key Resolution](RFC-AITP-0007-key-resolution.md) for resoluti
 
 ---
 
-## 5. Future Identity Types (v0.3+)
+## 5. Future Identity Types
 
 The following identity types are reserved:
 

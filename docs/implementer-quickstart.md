@@ -8,9 +8,9 @@ independent verifier, and other implementation-side material, see
 
 ---
 
-## The headline v0.2 change: two signing profiles
+## Two signing profiles
 
-AITP v0.2 signs artifacts under **two profiles**
+AITP v0.3 signs artifacts under **two profiles**
 ([RFC-AITP-0001 §5.4](../rfcs/RFC-AITP-0001-core.md#54-signature)):
 
 - **Compact JWS** ([RFC-AITP-0001 §5.4.5](../rfcs/RFC-AITP-0001-core.md#545-compact-jws-profile-portable-trust-artifacts))
@@ -26,6 +26,24 @@ AITP v0.2 signs artifacts under **two profiles**
 
 If you are porting an earlier implementation, the TCT field-by-field
 migration table is [RFC-AITP-0005 §2.1](../rfcs/RFC-AITP-0005-tct.md#21-mapping-from-the-v01-tct).
+
+### Migrating from the v0.2 line
+
+`aitp/0.3` changes two things relative to the v0.2 line, and both break
+wire compatibility:
+
+- **The envelope signing input.** The envelope signature is computed
+  over `"aitp-envelope-v2" || 0x00 || JCS(envelope without signature)`
+  ([RFC-AITP-0001 §5.4](../rfcs/RFC-AITP-0001-core.md#54-signature)),
+  so `version`, `message_type` and `extensions` are signed. The old
+  pipe-composed input is retired.
+- **The literal.** Every `version` field and `ver` claim is `aitp/0.3`.
+
+The cutover is strict: an `aitp/0.3` peer rejects a v0.2 line
+artifact with `UNKNOWN_VERSION` (fixture env-011), with no dual-accept
+window. Everything else — the JWS profile, AIDs, Manifests, TCTs,
+delegation, revocation and error codes — is unchanged. See
+[`VERSIONING.md`](../VERSIONING.md) for the full notes.
 
 ---
 
@@ -97,8 +115,8 @@ Per the [RFC index](../rfcs/README.md), RFCs 0001–0011 are **Draft**
 (see [governance/RFC-PROCESS.md](../governance/RFC-PROCESS.md) for the
 lifecycle). Of those, RFC-AITP-0010 (Session Trust Bundle) and
 RFC-AITP-0011 (Multi-hop Delegation) are **opt-in**: Draft normative
-text, outside v0.2 core conformance. RFC-AITP-0012 (Extensions) is
-**Reserved** — its contents are non-normative for `aitp/0.2` — and
+text, outside v0.3 core conformance. RFC-AITP-0012 (Extensions) is
+**Reserved** — its contents are non-normative for `aitp/0.3` — and
 RFC-AITP-0013 (TCT Renewal Extension) is a **Planned** stub. Core
 conformance does not require implementing 0010–0013, but the
 [RFC-AITP-0012](../rfcs/RFC-AITP-0012-extensions.md) §5–§6 constraints (ignore
@@ -139,7 +157,7 @@ through all four paths.
 
 ## Conformance
 
-What a conformant v0.2 implementation MUST do is
+What a conformant v0.3 implementation MUST do is
 [RFC-AITP-0001 §10](../rfcs/RFC-AITP-0001-core.md#10-conformance). In
 short, verify against:
 

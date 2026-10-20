@@ -53,6 +53,8 @@ REPO = Path(__file__).resolve().parent.parent
 CONF = REPO / "schemas" / "conformance"
 KAT = CONF / "known-answer"
 SIGNED = KAT / "signed-examples"
+# The current revision literal, read from the schema rather than restated here.
+AITP_VERSION = json.loads((REPO / "schemas/json/aitp-envelope.schema.json").read_text(encoding="utf-8"))["properties"]["version"]["const"]
 
 failures = 0
 checks = 0
@@ -537,7 +539,7 @@ def main() -> int:
         jti = derived_uuid(att_tag, vid)
         check(f"{vid}: jti = derived UUID over {att_tag!r} and the vector id",
               jti == f["decoded_claims"]["jti"] == f["_kat_input"]["jti"] == f["_kat_input"]["jti_derivation"]["jti"])
-        claims = {"ver": "aitp/0.2", "jti": jti, "iss": aid, "sub": aid, "aud": aid,
+        claims = {"ver": AITP_VERSION, "jti": jti, "iss": aid, "sub": aid, "aud": aid,
                   "iat": 1711900000, "exp": 4867660000, "grants": ["aitp.attestation"],
                   "cnf": {"jkt": jwk_thumbprint(jwk)},
                   "ext": {"io.agentidentitytrustprotocol.kat": {"statement": f"{vid} archival attestation"}}}
@@ -691,6 +693,89 @@ def main() -> int:
           jcs(jwk23).decode() == t5["jwk_canonical"] and jwk_thumbprint(jwk23) == t5["jkt"])
     check("id-023: the OKP-shaped JWK of the same identifier gives a different jkt",
           jwk_thumbprint({"crv": "Ed25519", "kty": "OKP", "x": s23.removeprefix("aid:pubkey:p256:")}) != t5["jkt"])
+
+    print("── Ed25519 vectors and signed examples (re-minted for the aitp/0.3 revision) ──")
+    # Every Ed25519 value scripts/regen-known-answer.py or the aitp/0.3 re-mint
+    # produced is re-derived here with the RFC 8032 arithmetic above, so each
+    # pinned value is checked by a second stack and not only by its generator.
+    seeds = {}
+    for k in keypairs.values():
+        if "seed_hex" in k:
+            seeds[k["aid"]] = bytes.fromhex(k["seed_hex"])
+
+    def ed_resign(name: str, signer: str, msg: bytes, sig_b64: str) -> None:
+        sig = b64d(sig_b64)
+        check(f"{name}: Ed25519 signature re-signs byte for byte", signer in seeds and ed_sign(seeds[signer], msg) == sig)
+        check(f"{name}: Ed25519 signature verifies strictly", signer in seeds and ed_verify_strict(ed_public(seeds[signer]), msg, sig))
+
+    for vid in ("kat-manifest-001", "kat-revocation-001", "kat-session-bundle-001"):
+        v = jcsv[vid]
+        c = jcs(v["object"])
+        check(f"{vid}: version is {AITP_VERSION}", v["object"]["version"] == AITP_VERSION)
+        check(f"{vid}: canonical bytes, length and sha256 recompute",
+              c.hex() == v["jcs_canonical_hex"] and len(c) == v["jcs_canonical_len_bytes"]
+              and H(c).hex() == v["sha256_hex"] and b64e(H(c)) == v["sha256_b64url"])
+        if "coordinator_signature_b64url" in v:
+            ed_resign(f"{vid} coordinator signature", v["object"]["coordinator"], H(c), v["coordinator_signature_b64url"])
+
+    f = load(SIGNED / "manifest" / "kat-keypair-001-manifest.json")
+    check(f"kat-keypair-001 manifest: version is {AITP_VERSION}", f["manifest"]["version"] == AITP_VERSION)
+    ed_resign("kat-keypair-001 manifest", f["manifest"]["aid"], H(jcs(strip(f["manifest"]))), f["manifest"]["signature"])
+    f = load(SIGNED / "revocation" / "kat-keypair-001-snapshot.json")
+    check(f"kat-keypair-001 snapshot: version is {AITP_VERSION}", f["revocation_list"]["version"] == AITP_VERSION)
+    ed_resign("kat-keypair-001 snapshot", f["revocation_list"]["issuer"], H(jcs(f["revocation_list"])), f["signature"])
+    f = load(SIGNED / "session-bundle" / "kat-keypair-001-bundle.json")
+    check("kat-keypair-001 bundle body is kat-session-bundle-001's object, same signature",
+          strip(f["session_bundle"]) == jcsv["kat-session-bundle-001"]["object"]
+          and f["session_bundle"]["signature"] == jcsv["kat-session-bundle-001"]["coordinator_signature_b64url"])
+
+    def ed_jws(name: str, token: str, typ: str, decoded=None) -> dict:
+        h64, p64, s64 = token.split(".")
+        claims = json.loads(b64d(p64))
+        check(f"{name}: header is exactly {{alg: EdDSA, typ: {typ}}}", b64d(h64) == jcs({"alg": "EdDSA", "typ": typ}))
+        check(f"{name}: payload is the JCS form of its claims", b64d(p64) == jcs(claims))
+        check(f"{name}: ver is {AITP_VERSION}", claims.get("ver") == AITP_VERSION)
+        if decoded is not None:
+            check(f"{name}: decoded_claims equal the payload", decoded == claims)
+        ed_resign(name, claims["iss"], f"{h64}.{p64}".encode(), s64)
+        return claims
+
+    f = load(SIGNED / "tct" / "kat-keypair-001-issues-002.json")
+    ed_jws("kat-keypair-001-issues-002 TCT", f["tct_token"], "aitp-tct+jwt", f["decoded_claims"])
+    f = load(SIGNED / "grant-voucher" / "kat-voucher-001.json")
+    voucher = f["voucher_token"]
+    ed_jws("kat-voucher-001", voucher, "aitp-grant+jwt", f["decoded_claims"])
+    f = load(SIGNED / "delegation" / "single-hop-001-002-003.json")
+    single = ed_jws("single-hop delegation", f["delegation_token"], "aitp-delegation+jwt", f["decoded_claims"])
+    check("single-hop delegation embeds kat-voucher-001 verbatim", single["voucher"] == voucher)
+    for tok in jcsv["kat-session-bundle-001"]["object"]["participants"]:
+        if "tct" in tok:
+            ed_jws(f"kat-session-bundle-001 participant {tok.get('aid', '?')[:24]} TCT", tok["tct"], "aitp-tct+jwt")
+
+    v = jcsv["kat-multihop-chain-001"]
+    ed_jws("kat-multihop-chain-001 voucher_jws", v["voucher_jws"], "aitp-grant+jwt")
+    for i, entry in enumerate(v["chain"]):
+        ed_jws(f"kat-multihop-chain-001 chain[{i}]", entry, "aitp-delegation+jwt")
+    digests = [b64e(H(e.encode())) for e in v["chain"]]
+    check("kat-multihop-chain-001: per-entry digests, digest array JCS and chain_hash recompute",
+          digests == v["chain_entry_sha256_b64url"] and jcs(digests).decode() == v["digest_array_jcs"]
+          and b64e(H(jcs(digests))) == v["chain_hash"])
+    outer = ed_jws("kat-multihop-chain-001 outer_delegation_jws", v["outer_delegation_jws"], "aitp-delegation+jwt")
+    check("kat-multihop-chain-001: outer token carries the chain and chain_hash",
+          outer.get("chain") == v["chain"] and outer.get("chain_hash") == v["chain_hash"])
+    t = jcsv["kat-multihop-truncation-001"]
+    check("kat-multihop-truncation-001: chain_hash_full is chain-001's chain_hash; truncated hash recomputes",
+          t["chain_hash_full"] == v["chain_hash"] and b64e(H(jcs([]))) == t["chain_hash_truncated"])
+
+    print("── env-011: previous revision rejected (strict cutover) ──")
+    f11 = load(CONF / "env-011-previous-revision-rejected.json")
+    e11 = f11["input"]["envelope"]
+    check("env-011: version is the previous revision aitp/0.2, not the current one",
+          e11["version"] == "aitp/0.2" != AITP_VERSION)
+    ed_resign("env-011 envelope (pure sig_input_v2 over the aitp/0.2 envelope)", e11["sender"]["agent_id"],
+              H(env_v2(e11)), e11["signature"])
+    check("env-011: the expected result is UNKNOWN_VERSION",
+          f11["expected"]["outcome"] == "failure" and f11["expected"]["error_code"] == "UNKNOWN_VERSION")
 
     print()
     if failures:

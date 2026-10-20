@@ -14,7 +14,7 @@
   "input": {
     "step": "received MUTUAL_HELLO from peer",
     "envelope": {
-      "version": "aitp/0.2",
+      "version": "aitp/0.3",
       "message_type": "mutual_hello",
       "message_id": "660e8400-e29b-41d4-a716-446655440101",
       "timestamp": 1711900000,
@@ -29,7 +29,7 @@
           "proof": "__VALID_JWT__"
         },
         "manifest": {
-          "version": "aitp/0.2",
+          "version": "aitp/0.3",
           "aid": "aid:pubkey:5zTqbCtiV95yNV5HKqBaTEh-a0Y8Ap7TBt8vAbVja1g",
           "handshake_endpoint": "https://attacker.example.com/aitp/handshake",
           "accepted_trust_anchors": [

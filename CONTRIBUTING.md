@@ -7,7 +7,7 @@ AITP is an agent-to-agent trust standard. All changes MUST preserve the core inv
 - TCTs are signed, peer-issued, audience-bound (peer AID), capability-scoped, and self-contained.
 - Verification is stateless on the consuming peer's side.
 - Every agent publishes a signed Manifest at `/.well-known/aitp-manifest` (RFC-AITP-0003).
-- Delegation is single-hop in v0.2 core; chains are RFC-AITP-0011, an opt-in draft outside core conformance.
+- Delegation is single-hop in v0.3 core; chains are RFC-AITP-0011, an opt-in draft outside core conformance.
 - Replay protection is dual-controlled (`message_id` deduplication + `timestamp` window) and the Mutual Handshake binds rounds via PoP nonce echoes.
 - Identity binding is pluggable; peers MUST NOT accept issuers outside `trust_anchors`.
 
@@ -15,7 +15,7 @@ AITP is an agent-to-agent trust standard. All changes MUST preserve the core inv
 
 - Specification clarifications (non-normative)
 - New RFCs or amendments to existing RFCs
-- JSON Schema updates (canonical for v0.2)
+- JSON Schema updates (canonical for v0.3)
 - Conformance fixtures
 - Tooling and CI improvements
 - Documentation
@@ -136,7 +136,7 @@ before an artifact is checked against its schema.
 - Use present tense ("Verifiers MUST verify…", not "Verifiers should verify…").
 - JSON examples MUST be valid against the corresponding schema.
 
-## Normative RFCs (v0.2 core, Draft)
+## Normative RFCs (v0.3 core, Draft)
 
 - **[RFC-AITP-0001 Core](rfcs/RFC-AITP-0001-core.md)**
 - **[RFC-AITP-0002 Identity](rfcs/RFC-AITP-0002-identity.md)**
@@ -154,9 +154,9 @@ Statuses are from the single RFC lifecycle in
 [`governance/RFC-PROCESS.md`](governance/RFC-PROCESS.md#rfc-lifecycle); the
 per-RFC table is [`rfcs/README.md`](rfcs/README.md).
 
-- **[RFC-AITP-0010 Session Trust Bundle](rfcs/RFC-AITP-0010-session-trust-bundle.md)** *(Draft, opt-in — not part of v0.2 core conformance)*
-- **[RFC-AITP-0011 Multi-hop Delegation](rfcs/RFC-AITP-0011-multihop-delegation.md)** *(Draft, opt-in — not part of v0.2 core conformance)*
-- **[RFC-AITP-0012 Extensions](rfcs/RFC-AITP-0012-extensions.md)** *(Reserved — non-normative for `aitp/0.2`)*
+- **[RFC-AITP-0010 Session Trust Bundle](rfcs/RFC-AITP-0010-session-trust-bundle.md)** *(Draft, opt-in — not part of v0.3 core conformance)*
+- **[RFC-AITP-0011 Multi-hop Delegation](rfcs/RFC-AITP-0011-multihop-delegation.md)** *(Draft, opt-in — not part of v0.3 core conformance)*
+- **[RFC-AITP-0012 Extensions](rfcs/RFC-AITP-0012-extensions.md)** *(Reserved — non-normative for `aitp/0.3`)*
 - **[RFC-AITP-0013 TCT Renewal Extension](rfcs/RFC-AITP-0013-tct-renewal-extension.md)** *(Planned — stub reserving the number)*
 
 ## Releases

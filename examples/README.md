@@ -1,8 +1,8 @@
 # AITP Examples
 
-These are illustrative JSON artifacts for the AITP `aitp/0.2` wire format.
+These are illustrative JSON artifacts for the AITP `aitp/0.3` wire format.
 They are **not** real cryptographic material — signatures and proofs use
-placeholder strings. For the v0.2 portable trust artifacts (TCT, grant
+placeholder strings. For the portable trust artifacts (TCT, grant
 voucher, delegation token), which travel on the wire as compact JWS
 strings (RFC-AITP-0001 §5.4.5), each example shows the wire form as a
 clearly-fake three-segment placeholder string alongside a `_decoded_claims`

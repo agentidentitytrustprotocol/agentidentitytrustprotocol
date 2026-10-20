@@ -28,7 +28,7 @@
       "original_pop_nonce": "xwCb5ctck4W8hev_1sxkEw"
     },
     "envelope": {
-      "version": "aitp/0.2",
+      "version": "aitp/0.3",
       "message_type": "mutual_hello",
       "message_id": "770e8400-e29b-41d4-a716-446655440402",
       "timestamp": 1711900000,
@@ -43,7 +43,7 @@
           "proof": "__CAPTURED_PROOF_FROM_ORIGINAL_HANDSHAKE__"
         },
         "manifest": {
-          "version": "aitp/0.2",
+          "version": "aitp/0.3",
           "aid": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
           "handshake_endpoint": "https://worker-a.agents.example.com/aitp/handshake",
           "accepted_trust_anchors": [
