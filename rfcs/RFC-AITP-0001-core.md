@@ -2,7 +2,7 @@
 # Agent Identity & Trust Protocol (AITP) — Core
 
 **Document:** RFC-AITP-0001
-**Version:** 0.2.13-draft
+**Version:** 0.2.14-draft
 **Status:** Community Standards Track (Draft)
 **Canonical wire format:** JSON
 **Normative transport:** HTTPS (any HTTP/1.1+ runtime)
@@ -151,7 +151,7 @@ Every AITP protocol message — `mutual_hello`, `mutual_hello_ack`, `mutual_comm
 | `sender.agent_id` | string | REQUIRED | AID of the sending agent. |
 | `payload` | object | REQUIRED | Message-type-specific content. |
 | `signature` | string | REQUIRED | base64url-encoded envelope signature. |
-| `extensions` | object | OPTIONAL | Extension namespace per §7 and [RFC-AITP-0012](RFC-AITP-0012-extensions.md). Unknown keys *inside* `extensions` MUST be ignored; an unknown member anywhere else in the envelope is rejected with `UNKNOWN_FIELD` (§7). An ordinary member of the envelope, but **not authenticated in `aitp/0.2`**: the §5.4 envelope signing input does not cover it. Receivers MUST NOT treat envelope `extensions` content as sender-authenticated. |
+| `extensions` | object | OPTIONAL | Extension namespace per §7 and [RFC-AITP-0012](RFC-AITP-0012-extensions.md). Unknown keys *inside* `extensions` MUST be ignored; an unknown member anywhere else in the envelope is rejected with `UNKNOWN_FIELD` (§7). An ordinary member of the envelope: when present it is covered by the envelope signature like any other member (§5.4, §5.4.1). |
 
 The canonical schema is the JSON Schema at [`schemas/json/aitp-envelope.schema.json`](../schemas/json/aitp-envelope.schema.json).
 
@@ -207,7 +207,7 @@ AITP v0.2 defines **two signing profiles**:
 
 | Profile | Artifacts | Defined in |
 |---|---|---|
-| **JCS embedded-signature profile** — the signature is a field of the JSON object, computed over the object's RFC 8785 canonical form (for envelopes, over the §5.4 signing input, which covers the canonical `payload` but not `version`, `message_type` or `extensions`) | envelopes, Agent Manifests, revocation snapshots, session trust bundles, handshake payloads | §5.4.1–§5.4.4, §5.4.6, §5.4.7 |
+| **JCS embedded-signature profile** — the signature is a field of the JSON object, computed over the object's RFC 8785 canonical form (for envelopes, behind the §5.4 domain tag) | envelopes, Agent Manifests, revocation snapshots, session trust bundles, handshake payloads | §5.4.1–§5.4.4, §5.4.6, §5.4.7 |
 | **Compact JWS profile** — the artifact *is* an RFC 7515 compact JWS string; the signature covers the exact transmitted bytes | TCT, grant voucher, delegation token | §5.4.5, §5.4.7 |
 
 The boundary rule is normative:
@@ -227,20 +227,30 @@ for those artifacts. Protocol-internal messages keep the JCS profile,
 where both ends are full AITP stacks and canonical-form interop is
 pinned by known-answer tests.
 
-The envelope signature follows the JCS profile. It covers the
-canonical serialization of:
+The envelope signature follows the JCS profile. It covers the whole
+envelope except `signature`, behind a domain tag:
 
 ```
-sig_input = message_id + "|" + timestamp_string + "|" + sender.agent_id + "|" + hex(sha256(payload_canonical_json))
-d         = sha256(sig_input)                  ; 32 bytes
-signature = base64url(SIGN_alg(sender_private_key, d))
+sig_input_v2 = "aitp-envelope-v2" || 0x00 || JCS(envelope_without_signature)
+d            = sha256(sig_input_v2)            ; 32 bytes
+signature    = base64url(SIGN_alg(sender_private_key, d))
 ```
 
-`SIGN_alg` is the per-algorithm signing primitive defined in §5.4.6; `d` is hashed exactly once. Verification is subject to §5.4.7.
+- `envelope_without_signature` is the received envelope object with the `signature` member removed and every other member kept: `version`, `message_type`, `message_id`, `timestamp`, `sender`, `payload`, and `extensions` when present. A verifier re-canonicalizes the object it received (§5.4.1, including the transport-wrapper rule); it MUST NOT drop or rebuild any member before computing the input.
+- `JCS` is RFC 8785 canonicalization, and its output is UTF-8 bytes. The domain tag is the 16 ASCII bytes `aitp-envelope-v2` followed by one `0x00` byte, so `sig_input_v2` is never the bare JCS form any other JCS-profile artifact signs.
+- `SIGN_alg` is the per-algorithm signing primitive defined in §5.4.6; `d` is hashed exactly once. Verification is subject to §5.4.7. The algorithm-tagged signature format (§5.4.3) is unchanged.
 
-The envelope signing input covers `message_id`, `timestamp`, `sender.agent_id` and `payload` only. It does not cover `version`, `message_type` or `extensions`: an on-path party can change those members without invalidating the signature. Receivers MUST NOT treat them as sender-authenticated, and MUST NOT base a trust decision on envelope `extensions`. Anything a verifier relies on belongs in `payload`.
+Every envelope member other than `signature` is therefore sender-authenticated: changing `version`, `message_type`, `extensions` or any other member after signing invalidates the signature. (The input before issue #87 was the pipe-composed string `message_id|timestamp|sender.agent_id|hex(sha256(JCS(payload)))`, which covered none of `version`, `message_type` or `extensions`. It is retired; a signature over it does not verify over `sig_input_v2`.)
 
-The `payload` object MUST be canonicalized per **[RFC 8785 — JSON Canonicalization Scheme (JCS)](https://datatracker.ietf.org/doc/html/rfc8785)** before hashing. JCS specifies compact JSON with no whitespace, lexicographically sorted keys at every nesting level, ECMAScript-style number formatting, and well-defined Unicode handling. Implementations MUST NOT use ad-hoc canonicalization; cross-implementation signature interop depends on JCS.
+**Envelope check order.** A receiver verifies an envelope's structure and signature in this order, and reports the first failure:
+
+1. **`version`.** If `version` is absent or is not a protocol revision the receiver implements, reject with `UNKNOWN_VERSION` (§7). This runs before schema validation, although the schema's `version` constant would also reject the value.
+2. **Member set and structure.** Validate against the envelope schema. A member outside the schema-defined set and outside `extensions` is rejected with `UNKNOWN_FIELD` (§7); any other structural defect, including an unregistered `message_type`, is rejected with `INVALID_ENVELOPE`.
+3. **Signature.** Compute `sig_input_v2` and verify `signature` under the sender's key (§5.4.3, §5.4.6, §5.4.7). Failure is `INVALID_SIGNATURE`.
+
+These steps sit inside the endpoint order of [RFC-AITP-0009 §3.1](RFC-AITP-0009-security.md#31-rate-limiting): steps 1 and 2 run after its replay, rate-limit, timestamp and Content-Type/body-size steps, and step 3 is its envelope-signature step. A `version` changed after signing is therefore rejected with `UNKNOWN_VERSION`, not `INVALID_SIGNATURE`, when the new value is unknown, and with `INVALID_SIGNATURE` when it is known. Conformance fixtures env-008 (`extensions` changed), env-009 (`message_type` changed) and env-010 (`version` changed) pin this order.
+
+JCS is **[RFC 8785 — JSON Canonicalization Scheme](https://datatracker.ietf.org/doc/html/rfc8785)**. It specifies compact JSON with no whitespace, lexicographically sorted keys at every nesting level, ECMAScript-style number formatting, and well-defined Unicode handling. Implementations MUST NOT use ad-hoc canonicalization; cross-implementation signature interop depends on JCS.
 
 All `signature`, `pop_signature`, `cnf`, `proof`, and the AID identifier component (`aid:<method>:<identifier>`) are encoded as **unpadded base64url** per [RFC 4648 §5](https://datatracker.ietf.org/doc/html/rfc4648#section-5). Implementations MUST NOT emit `=` padding. Implementations SHOULD reject input that contains `=` padding; if they choose to accept it for compatibility with non-conformant senders, they MUST normalize to unpadded form before any signature verification.
 
@@ -264,7 +274,7 @@ verification.
 
 #### 5.4.1 Signing input (JCS profile)
 
-All JCS-profile signatures (envelope, Manifest, revocation snapshot, session bundle, handshake payloads) are computed over a **canonical JSON** form per RFC 8785 (JCS). For the envelope that form is the canonical JSON of `payload`, inside the §5.4 signing input, which does not cover `version`, `message_type` or `extensions`. For the other objects it is the canonical JSON of the object itself. JSON is the only canonical form for the JCS profile: there is no Protobuf signing input, no CBOR signing input, no transport-specific signing input.
+All JCS-profile signatures (envelope, Manifest, revocation snapshot, session bundle, handshake payloads) are computed over a **canonical JSON** form per RFC 8785 (JCS). For the envelope it is the canonical JSON of the whole envelope minus `signature`, prefixed by the §5.4 domain tag. For the other objects it is the canonical JSON of the object itself. JSON is the only canonical form for the JCS profile: there is no Protobuf signing input, no CBOR signing input, no transport-specific signing input.
 
 The portable trust artifacts (TCT, grant voucher, delegation token) are **not** JCS-signed in v0.2 — they are compact JWS strings (§5.4.5) whose signatures cover the transmitted bytes directly. (In `aitp/0.1` the TCT and delegation token were JCS-signed; that profile is retired for those artifacts.)
 
@@ -513,11 +523,11 @@ Every JCS-profile signature and every proof signature hashes its signing input e
 - `ed25519`: PureEdDSA ([RFC 8032 §5.1.6](https://datatracker.ietf.org/doc/html/rfc8032#section-5.1.6)) with `d` as the message.
 - `p256`: ECDSA on P-256 ([FIPS 186-5](https://doi.org/10.6028/NIST.FIPS.186-5), section 6.4) with the hash step **already performed**. `d` is used directly as the hashed message (`e = d`) and MUST NOT be hashed again.
 
-Equivalently, the `p256` signature is a standard ECDSA-P256-SHA256 (JOSE `ES256`) signature over the pre-hash input (`sig_input`, `proof_input`, the canonical artifact bytes, or the decoded nonce). A verifier MAY check it either way. Signers MUST use a prehash/digest interface (for example `PrehashSigner`, `Prehashed(SHA256)`, KMS `MessageType=DIGEST`, or `CKM_ECDSA`) and MUST NOT pass `d` to an interface that hashes its input. An implementation that hashes `d` again (`e = SHA-256(d)`) is non-conformant.
+Equivalently, the `p256` signature is a standard ECDSA-P256-SHA256 (JOSE `ES256`) signature over the pre-hash input (`sig_input_v2`, `proof_input`, the canonical artifact bytes, or the decoded nonce). A verifier MAY check it either way. Signers MUST use a prehash/digest interface (for example `PrehashSigner`, `Prehashed(SHA256)`, KMS `MessageType=DIGEST`, or `CKM_ECDSA`) and MUST NOT pass `d` to an interface that hashes its input. An implementation that hashes `d` again (`e = SHA-256(d)`) is non-conformant.
 
 The compact JWS profile (§5.4.5) needs no such rule: `EdDSA` signs `ASCII(header || '.' || payload)` directly, and `ES256` hashes that input once as RFC 7518 §3.4 defines.
 
-> **Known-answer test.** `kat-p256-jcs-sign-001` and `kat-manifest-pop-002-p256` in [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json) pin the single-hash P-256 value for a JCS preimage and a decoded PoP challenge. Each carries the double-hash value (`e = SHA-256(d)`) that MUST NOT verify. The signed examples under `known-answer/signed-examples/` include a P-256 envelope, Manifest, revocation snapshot and `ES256` TCT signed by `kat-keypair-005-p256`, each with its double-hash negative. Implementations MUST reproduce the signatures byte-for-byte when signing with RFC 6979 deterministic `k` and low-S normalization (§5.4.7), and MUST reject every negative.
+> **Known-answer test.** `kat-p256-jcs-sign-001` and `kat-manifest-pop-002-p256` in [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json) pin the single-hash P-256 value for a JCS preimage and a decoded PoP challenge. Each carries the double-hash value (`e = SHA-256(d)`) that MUST NOT verify. The signed examples under `known-answer/signed-examples/` include a P-256 envelope (`kat-envelope-001-p256`), Manifest, revocation snapshot and `ES256` TCT signed by `kat-keypair-005-p256`, each with its double-hash negative, and an Ed25519 envelope with a non-empty `extensions` member (`kat-envelope-002-ed25519`, signed by `kat-keypair-001`). Each envelope example pins its `sig_input_v2` bytes and digest, and carries the retired pipe-input signature as a negative that MUST NOT verify. Implementations MUST reproduce the signatures byte-for-byte when signing with RFC 6979 deterministic `k` and low-S normalization (§5.4.7), and MUST reject every negative.
 
 #### 5.4.7 Verification strictness
 
@@ -612,11 +622,11 @@ AITP uses a layered compatibility model:
 - **TCT version** governs the canonical token contract (the `ver` claim).
 - **Manifest version** governs the agent self-description format.
 
-Major protocol version mismatches are not compatible. Minor versions are expected to be backward compatible. Verifiers receiving an unknown `version` MUST respond with `UNKNOWN_VERSION`.
+Major protocol version mismatches are not compatible. Minor versions are expected to be backward compatible. Verifiers receiving an unknown `version` MUST respond with `UNKNOWN_VERSION`. On an envelope the `version` check comes first, before the member-set check (`UNKNOWN_FIELD`) and the signature check (`INVALID_SIGNATURE`); §5.4 gives the normative order.
 
 Unknown JSON fields outside explicit `extensions` namespaces MUST be rejected, with the error code `UNKNOWN_FIELD` ([registry](../registries/error-codes.md)). Signed AITP objects depend on canonical JCS representation; silently ignoring unknown fields would create signature ambiguity across implementations (one peer hashes the field in, another hashes it out, and the same wire bytes verify differently). Forward compatibility is provided exclusively through explicit `extensions` objects (see [RFC-AITP-0012](RFC-AITP-0012-extensions.md)) — every signed object reserves an `extensions` slot, and unknown keys *inside* `extensions` MUST be ignored, never rejected. The rule is asymmetric by design: an unknown member *beside* the namespace ⇒ reject with `UNKNOWN_FIELD`; an unknown key *inside* it ⇒ ignore. On the compact-JWS artifacts the namespace is the `ext` claim (§5.4.5; RFC-AITP-0005 §2) and the unknown member is an unknown *claim* in the decoded payload — same rule, same code.
 
-This check is not only stated here: each artifact RFC carries it as an explicit step in its own verification algorithm, positioned before the cryptographic steps so a malformed object is rejected before any signature verification is spent on it — RFC-AITP-0003 §5 step 2 (Manifest), RFC-AITP-0004 §5 step 2 of each of the four payload procedures (handshake), RFC-AITP-0005 §7.2 step 1 (TCT claims), RFC-AITP-0008 §1.5 (revocation snapshot), and RFC-AITP-0010 §5 (session bundle).
+This check is not only stated here: each artifact RFC carries it as an explicit step in its own verification algorithm, positioned before the cryptographic steps so a malformed object is rejected before any signature verification is spent on it — the envelope check order in §5.4, RFC-AITP-0003 §5 step 2 (Manifest), RFC-AITP-0004 §5 step 2 of each of the four payload procedures (handshake), RFC-AITP-0005 §7.2 step 1 (TCT claims), RFC-AITP-0008 §1.5 (revocation snapshot), and RFC-AITP-0010 §5 (session bundle).
 
 ---
 

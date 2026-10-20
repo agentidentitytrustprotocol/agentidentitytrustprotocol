@@ -21,6 +21,13 @@ and requires the committed bytes exactly; it verifies strictly; and it
 requires every double-hash negative to be a valid signature over
 sha256(sha256(preimage)) that does not verify over the single-hash input.
 
+The envelope examples (RFC-AITP-0001 §5.4 sig_input_v2, issue #87) are covered
+for both algorithms: kat-envelope-001-p256 and kat-envelope-002-ed25519 are
+re-signed from their envelopes, each v1 (pipe-input) negative is re-signed over
+the retired input and must not verify over sig_input_v2, and env-007 to env-010
+are checked against kat-envelope-002-ed25519: env-007 verifies, and the
+committed signature fails over each of the three changed envelopes.
+
 Usage:
     python3 scripts/recompute-known-answer-independent.py
 
@@ -414,16 +421,84 @@ def main() -> int:
     check("sig-003 lax accepts", p256_verify_lax(vk, d, untag(v["signature"], "p256")))
     check("sig-003 strict rejects", not p256_verify_strict(vk, d, untag(v["signature"], "p256")))
 
-    print("── signed examples (P-256) ──")
+    print("── envelope signing input v2 (RFC-AITP-0001 §5.4, issue #87) ──")
+    strip = lambda o: {k: x for k, x in o.items() if k != "signature"}
+
+    def env_v2(e) -> bytes:
+        """sig_input_v2 = "aitp-envelope-v2" || 0x00 || JCS(envelope without signature)."""
+        return b"aitp-envelope-v2\0" + jcs(strip(e))
+
+    def env_v1(e) -> str:
+        """The retired pipe-composed input, kept only to check the v1 negatives."""
+        return f"{e['message_id']}|{e['timestamp']}|{e['sender']['agent_id']}|{H(jcs(e['payload'])).hex()}"
+
+    def preimage_fields(name, f, pre):
+        check(f"{name}: signing_input, sig_input_v2_hex, length and sha256 recompute from the envelope",
+              f["signing_input"] == "sig_input_v2" and pre.hex() == f["sig_input_v2_hex"]
+              and len(pre) == f["sig_input_v2_len_bytes"] and H(pre).hex() == f["sig_input_v2_sha256_hex"])
+
     f = load(SIGNED / "envelope" / "kat-keypair-005-envelope.json")
     env = f["envelope"]
-    sig_input = f"{env['message_id']}|{env['timestamp']}|{env['sender']['agent_id']}|{H(jcs(env['payload'])).hex()}"
-    check("envelope sig_input", sig_input == f["sig_input"] and H(sig_input.encode()).hex() == f["sig_input_sha256_hex"])
-    check("envelope signer", env["sender"]["agent_id"] == aid5)
-    p256_signature("envelope", sk, vk, sig_input.encode(), env["signature"], f["_must_not_verify"]["double_hash_signature"])
+    pre = env_v2(env)
+    mnv = f["_must_not_verify"]
+    check("kat-envelope-001-p256: kat_id and signer", f["_kat_input"]["kat_id"] == "kat-envelope-001-p256"
+          and env["sender"]["agent_id"] == aid5)
+    preimage_fields("kat-envelope-001-p256", f, pre)
+    p256_signature("kat-envelope-001-p256", sk, vk, pre, env["signature"], mnv["double_hash_signature"])
+    v1 = env_v1(env)
+    check("kat-envelope-001-p256: v1_signature re-signs over v1_sig_input and verifies there",
+          mnv["v1_sig_input"] == v1 and "p256." + b64e(p256_sign(sk, H(v1.encode()))) == mnv["v1_signature"]
+          and p256_verify_strict(vk, H(v1.encode()), untag(mnv["v1_signature"], "p256")))
+    check("kat-envelope-001-p256: v1_signature does NOT verify over sig_input_v2",
+          not p256_verify_strict(vk, H(pre), untag(mnv["v1_signature"], "p256")))
     fixture = load(CONF / "env-005-p256-envelope-success.json")["input"]["envelope"]
-    strip = lambda o: {k: x for k, x in o.items() if k != "signature"}
-    check("envelope equals env-005 input apart from signature", jcs(strip(env)) == jcs(strip(fixture)))
+    check("kat-envelope-001-p256 equals env-005 input apart from signature", jcs(strip(env)) == jcs(strip(fixture)))
+
+    f = load(SIGNED / "envelope" / "kat-keypair-001-envelope.json")
+    env = f["envelope"]
+    pre = env_v2(env)
+    mnv = f["_must_not_verify"]
+    sig = b64d(env["signature"])
+    check("kat-envelope-002-ed25519: kat_id, signer and non-empty extensions",
+          f["_kat_input"]["kat_id"] == "kat-envelope-002-ed25519" and env["sender"]["agent_id"] == k1["aid"]
+          and bool(env.get("extensions")))
+    preimage_fields("kat-envelope-002-ed25519", f, pre)
+    check("kat-envelope-002-ed25519: signature re-signs byte for byte over d = sha256(sig_input_v2)",
+          ed_sign(seed1, H(pre)) == sig)
+    check("kat-envelope-002-ed25519: signature verifies strictly", ed_verify_strict(A1, H(pre), sig))
+    v1 = env_v1(env)
+    v1sig = b64d(mnv["v1_signature"])
+    check("kat-envelope-002-ed25519: v1_signature re-signs over v1_sig_input and verifies there",
+          mnv["v1_sig_input"] == v1 and ed_sign(seed1, H(v1.encode())) == v1sig
+          and ed_verify_strict(A1, H(v1.encode()), v1sig))
+    check("kat-envelope-002-ed25519: v1_signature does NOT verify over sig_input_v2",
+          not ed_verify_strict(A1, H(pre), v1sig) and not ed_verify_lax(A1, H(pre), v1sig))
+
+    f7 = load(CONF / "env-007-extensions-unknown-key-accepted.json")
+    e7 = f7["input"]["envelope"]
+    check("env-007: envelope equals kat-envelope-002-ed25519, committed signature included, verifies",
+          e7 == env and ed_verify_strict(A1, H(env_v2(e7)), b64d(e7["signature"]))
+          and f7["expected"]["outcome"] == "success")
+    for fname, member, code in [
+        ("env-008-extensions-tampered-rejected.json", "extensions", "INVALID_SIGNATURE"),
+        ("env-009-message-type-substituted-rejected.json", "message_type", "INVALID_SIGNATURE"),
+        ("env-010-version-altered-rejected.json", "version", "UNKNOWN_VERSION"),
+    ]:
+        fx = load(CONF / fname)
+        e = fx["input"]["envelope"]
+        changed = sorted(k for k in set(e) | set(e7) if e.get(k) != e7.get(k))
+        others_same = {k: v for k, v in fx["input"].items() if k != "envelope"} == \
+            {k: v for k, v in f7["input"].items() if k != "envelope"}
+        sg = b64d(e["signature"])
+        check(f"{fx['id']}: only {member} differs from env-007; same signature; expects {code}",
+              changed == [member] and others_same and e["signature"] == e7["signature"]
+              and fx["expected"]["outcome"] == "failure" and fx["expected"]["error_code"] == code)
+        check(f"{fx['id']}: signature does NOT verify over its sig_input_v2 (strict or lax)",
+              not ed_verify_strict(A1, H(env_v2(e)), sg) and not ed_verify_lax(A1, H(env_v2(e)), sg))
+        check(f"{fx['id']}: the v1 signature still verifies over its v1 input (the change is invisible to v1)",
+              ed_verify_strict(A1, H(env_v1(e).encode()), v1sig))
+
+    print("── signed examples (P-256) ──")
 
     f = load(SIGNED / "manifest" / "kat-keypair-005-manifest.json")
     body = f["manifest"]

@@ -204,6 +204,18 @@ with S replaced by n − S. It verifies under RFC 7518 alone; the
 RFC-AITP-0001 §5.4.7 low-S rule is what rejects it, and
 `make kat-verify` asserts both halves.
 
+`env-007` to `env-010` carry literal committed envelope signatures for the
+same reason. `env-007` carries `kat-envelope-002-ed25519`, kat-keypair-001's
+signature over its envelope (RFC-AITP-0001 §5.4, `extensions` included).
+`env-008`, `env-009` and `env-010` carry the same signature over env-007's
+envelope with one member changed after signing: an `extensions` key,
+`message_type`, and `version`. A runner that minted a fresh signature would
+sign the changed envelope and the negatives would pass. `make kat-verify`
+asserts that the signature verifies over env-007's envelope and over none of
+the three changed ones. `env-010` also pins the RFC-AITP-0001 §5.4 check
+order: the unknown `version` is reported as `UNKNOWN_VERSION` although the
+signature fails too.
+
 `tct-015`, `tct-016` and `tct-018` are validly signed and schema-valid:
 `verify_tct` is a grant context, and RFC-AITP-0005 §5.3 rejects a self-issued
 TCT, or any TCT carrying the `aitp.attestation` marker (alone, with a distinct
@@ -340,13 +352,13 @@ The runner interface is implementation-defined.
 
 | Tier | Count | Required for v0.2 |
 |---|---|---|
-| `core` (v0.2-required) | 74 | ✅ Yes |
+| `core` (v0.2-required) | 77 | ✅ Yes |
 | `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (v0.1 runners only) |
 | `extension` — pinned-admission profile (RFC-AITP-0002 §3.4, `feature: aitp-pinned-admission`) | 8 | ❌ No (required of an implementation claiming the profile) |
-| `extension` — attestation verification (RFC-AITP-0005 §5.3, `feature: aitp-self-attestation`) | 2 | ❌ No (required of an implementation claiming the role) |
+| `extension` — attestation verification (RFC-AITP-0005 §5.3, `feature: aitp-self-attestation`) | 3 | ❌ No (required of an implementation claiming the role) |
 | `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 7 | ❌ No |
 | `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 5 | ❌ No |
-| **Total** | **97** | |
+| **Total** | **101** | |
 
 Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A v0.2 conformance runner MUST execute every `required_for_v0_2` core fixture; `draft` and `extension` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
@@ -364,7 +376,10 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | `env-004` | Replayed envelope `message_id` rejected by deny list | failure: REPLAY_DETECTED |
 | `env-005` | P-256 sender (`aid:pubkey:p256:`) envelope with algorithm-tagged signature verifies (RFC-AITP-0001 §5.4.3) | success |
 | `env-006` | Envelope carries an unknown top-level member (`trace_id`) outside `extensions` | failure: UNKNOWN_FIELD |
-| `env-007` | Envelope carries an unrecognized, vendor-namespaced key inside `extensions` — ignored | success |
+| `env-007` | Envelope carries an unrecognized, vendor-namespaced key inside `extensions` — ignored; committed signature `kat-envelope-002-ed25519` | success |
+| `env-008` | env-007's signed envelope with an `extensions` key renamed after signing | failure: INVALID_SIGNATURE |
+| `env-009` | env-007's signed envelope with `message_type` changed to `mutual_hello_ack` after signing | failure: INVALID_SIGNATURE |
+| `env-010` | env-007's signed envelope with `version` changed to an unknown value after signing; the version check runs before the signature check | failure: UNKNOWN_VERSION |
 
 ### Manifest (RFC-AITP-0003)
 
