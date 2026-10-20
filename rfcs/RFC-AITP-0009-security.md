@@ -2,7 +2,7 @@
 # Security & Threat Model
 
 **Document:** RFC-AITP-0009
-**Version:** 0.3.0-draft
+**Version:** 0.3.1-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** All preceding RFCs.
 
@@ -166,6 +166,7 @@ This RFC enumerates the threats AITP defends against in the agent-to-agent setti
 | Zero-knowledge compliance proofs | Requires ZK extension — reserved in [RFC-AITP-0012](RFC-AITP-0012-extensions.md). |
 | Real-time key-revocation propagation | Out-of-band in v0.3 (pull-based). |
 | Cross-domain trust federation | Future specification. |
+| Signature-string malleability (an Ed25519 JCS-profile signature verifies both untagged and with the `ed25519.` tag) | Documented, not prevented: a signature field is outside its own signing input, so an on-path party can switch the form without breaking the signature. Replay and dedup MUST key on signed content (`message_id`, or the JCS form without the signature), never on raw object bytes ([RFC-AITP-0001 §5.4.3](RFC-AITP-0001-core.md#543-algorithm-tagged-signature-wire-format-jcs-profile-only)). A later revision may make the tag mandatory. |
 | Multi-hop delegation chains | Specified in [RFC-AITP-0011](RFC-AITP-0011-multihop-delegation.md) (Draft; opt-in). |
 | Multi-agent session scaling (O(N²) handshakes) | Specified in [RFC-AITP-0010](RFC-AITP-0010-session-trust-bundle.md) (Draft; opt-in). |
 
