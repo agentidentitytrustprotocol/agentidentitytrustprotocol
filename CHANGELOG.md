@@ -46,6 +46,7 @@
 **The fix.** The text now states what the signing input covers. RFC-AITP-0001 §5.4 adds: receivers MUST NOT treat `version`, `message_type` or `extensions` as sender-authenticated, and MUST NOT base a trust decision on envelope `extensions`. Signing the whole envelope is proposed for `aitp/0.3` in #87.
 
 **Version bumps.** RFC-AITP-0001 0.2.12-draft → 0.2.13-draft; RFC-AITP-0012 0.2.1-reserved → 0.2.2-reserved.
+
 ### Delegation and session-bundle fixtures carry signed issuer and coordinator Manifests (aitp-rs #237, #238, #239)
 
 **Change class.** Conformance fixtures only: new fixture input fields, two new negative fixtures and the README, `PLACEHOLDERS.md` and validation-map entries that go with them. No RFC text, schema, error code or known-answer value changes.
@@ -64,7 +65,6 @@
 **Verification.** `scripts/fixture-validation-map.json` validates every new Manifest against `aitp-manifest.schema.json`, so the fixture-input floor `FIXTURE_INPUT_MIN_CHECKS` rises from 187 to 220. With the new fixtures, aitp-rs 0.15.0 passes every changed fixture. It fails `del-mh-005`, because its adapter still adds stand-in Manifests, and `bundle-007`, because it reports `SESSION_BUNDLE_INVALID`. Both are fixed on the aitp-rs side.
 
 **Version bumps.** None.
-||||||| parent of b6a9fb1 (spec: envelope erratum — aitp/0.2 signing input does not cover version, message_type or extensions (#87))
 
 ### Pinned-admission and self-attestation follow-ups (#79)
 
