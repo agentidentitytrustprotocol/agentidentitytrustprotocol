@@ -117,9 +117,8 @@ Downstream consumers pin to a specific tag and upgrade on their own schedule.
 **The v0.2 line is frozen** at commit `f9ee7ea`, the last commit whose literal is
 `aitp/0.2` (it already carries the new envelope signing input, landed one step ahead of
 the literal). The existing `v0.2.0-draft` and `schema-v0.2.0` tags point at an earlier
-v0.2 line commit (`ea22c71`); a freeze tag for `f9ee7ea` (for example `schema-v0.2.1`)
-is cut at release, together with the first `aitp/0.3` tags, once both reference
-implementations pass the conformance suite. No tag has been created for either yet.
+v0.2 line commit (`ea22c71`); `f9ee7ea` itself is tagged `v0.2.1-draft` and
+`schema-v0.2.1`. The first `aitp/0.3` tags are `v0.3.0-draft` and `schema-v0.3.0`.
 
 ## Status ladder
 

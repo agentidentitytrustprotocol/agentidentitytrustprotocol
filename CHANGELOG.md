@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.3.0-draft (2026-10-20)
+
+Protocol revision `aitp/0.3`. Tags: `v0.3.0-draft`, `schema-v0.3.0`. The v0.2 line is frozen at `f9ee7ea` under `v0.2.1-draft` / `schema-v0.2.1`. Reference implementations passing the conformance suite at release: aitp-rs 0.17.0 and aitp-verifier-py `f335f4f`.
+
 ### The JCS-profile signature string is not canonical; unknown-version codes are per artifact
 
 **Change class.** Editorial and security considerations; no wire change, no fixture or vector change. Reported by aitp-rs while implementing `aitp/0.3`.
