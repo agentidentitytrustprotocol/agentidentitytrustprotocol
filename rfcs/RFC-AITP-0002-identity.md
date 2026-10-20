@@ -2,7 +2,7 @@
 # Identity Binding
 
 **Document:** RFC-AITP-0002
-**Version:** 0.2.10-draft
+**Version:** 0.2.11-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md)
 
@@ -269,7 +269,7 @@ Inside the handshake, the envelope signature over the payload authenticates the 
 A verifier MAY admit a subject without a Mutual Handshake when all of the following hold:
 
 1. **Challenge.** The verifier issues a fresh `pop_nonce` of 16 bytes drawn from a CSPRNG ([RFC-AITP-0001 §11](RFC-AITP-0001-core.md#11-security-considerations)). The nonce is single-use, expires at most 300 seconds after issuance, and is bound to the verifier's own AID.
-2. **Presentation.** The subject returns an [RFC-AITP-0001 §5](RFC-AITP-0001-core.md#5-message-envelope) envelope with `message_type` `identity_presentation`, whose `payload` is exactly `{identity, pop_nonce}`. The envelope signature ([RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature)) covers `sha256(JCS(payload))`, so it authenticates the descriptor's `type`, `subject` and `extensions`. It does not cover the envelope-level `extensions`, `version` or `message_type`, and the verifier MUST NOT rely on them. The verifier MUST reject an envelope whose `message_type` is not `identity_presentation` with `INVALID_ENVELOPE`. The `proof` is computed per §3.1 with `receiver_aid_bytes` taken from the verifier's AID and `pop_nonce_decoded_bytes` from the challenge nonce.
+2. **Presentation.** The subject returns an [RFC-AITP-0001 §5](RFC-AITP-0001-core.md#5-message-envelope) envelope with `message_type` `identity_presentation`, whose `payload` is exactly `{identity, pop_nonce}`. The envelope signature ([RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature)) covers the whole envelope except `signature`, so it authenticates the descriptor's `type`, `subject` and `extensions` inside `payload`, and the envelope's own `message_type`, `version` and `extensions`. The verifier MUST reject an envelope whose `message_type` is not `identity_presentation` with `INVALID_ENVELOPE`. The `proof` is computed per §3.1 with `receiver_aid_bytes` taken from the verifier's AID and `pop_nonce_decoded_bytes` from the challenge nonce.
 3. **Verification.** The verifier runs §3.2 steps 1–5 and the [RFC-AITP-0001 §5.5](RFC-AITP-0001-core.md#55-replay-protection) timestamp and `message_id` rules. A configured `pinned_keys` store is REQUIRED, per the §3.2 trust-store requirement.
 4. **Consumption.** The verifier consumes the nonce atomically before it returns success.
 
@@ -314,7 +314,7 @@ The verifier MUST process a presentation in this order:
 1. **`message_id` deny list** (RFC-AITP-0001 §5.5) ⇒ `REPLAY_DETECTED`. As at the handshake endpoint, a replay does not consume a rate-limit slot.
 2. **Per-source rate limit** (RFC-AITP-0009 §3.1) ⇒ HTTP 429 with no AITP error envelope. Within this profile 429 is REQUIRED (see the rate-limiting rule above).
 3. **Timestamp window** (RFC-AITP-0001 §5.5) ⇒ `TIMESTAMP_EXPIRED`.
-4. **Envelope structure**: schema-valid, `message_type` is `identity_presentation`, payload members exactly `identity` and `pop_nonce` ⇒ `INVALID_ENVELOPE` (`UNKNOWN_FIELD` when the only defect is an unknown member).
+4. **Envelope structure**, in the RFC-AITP-0001 §5.4 envelope check order: an unknown `version` first ⇒ `UNKNOWN_VERSION`; then schema-valid, `message_type` is `identity_presentation`, payload members exactly `identity` and `pop_nonce` ⇒ `INVALID_ENVELOPE` (`UNKNOWN_FIELD` when the only defect is an unknown member).
 5. **Nonce length**: `pop_nonce` decodes to 16 bytes ⇒ `IDENTITY_FAILED`.
 6. **§3.2 steps 1–3**: `type`, key equality and the `pinned_keys` lookup ⇒ `IDENTITY_FAILED`.
 7. **Envelope signature** (RFC-AITP-0001 §5.4) ⇒ `INVALID_SIGNATURE`.

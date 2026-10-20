@@ -522,6 +522,34 @@
         }
       ]
     },
+    "env-008": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "env-009": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "env-010": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "invalid",
+          "reason": "Deliberately schema-invalid: input.envelope.version is `aitp/9.9`, which the schema's `version` const rejects. The fixture asserts UNKNOWN_VERSION: RFC-AITP-0001 §5.4 checks `version` before schema validation, so the schema rejection here is expected and the error code comes from the version check."
+        }
+      ]
+    },
     "id-001": {
       "artifacts": [
         {

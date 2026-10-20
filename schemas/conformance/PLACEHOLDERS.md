@@ -129,7 +129,7 @@ the next section.
 
 | Token | Signing key | Signing input |
 |---|---|---|
-| `__VALID_ENVELOPE_SIG__` | Sender's pinned signing key | Envelope signing input per RFC-AITP-0001 §5.4. In `env-005` (P-256 sender) the value is committed rather than minted: substitute the `signature` of [`signed-examples/envelope/kat-keypair-005-envelope.json`](known-answer/signed-examples/envelope/kat-keypair-005-envelope.json), whose envelope is otherwise identical to the fixture's. |
+| `__VALID_ENVELOPE_SIG__` | Sender's pinned signing key | Envelope signing input per RFC-AITP-0001 §5.4: `sig_input_v2` = `aitp-envelope-v2` ‖ `0x00` ‖ JCS(envelope without `signature`), so the signature covers every other member, `extensions` included, exactly as the fixture carries them after substitution. In `env-005` (P-256 sender) the value is committed rather than minted: substitute the `signature` of [`signed-examples/envelope/kat-keypair-005-envelope.json`](known-answer/signed-examples/envelope/kat-keypair-005-envelope.json) (`kat-envelope-001-p256`), whose envelope is otherwise identical to the fixture's. `env-007` carries no placeholder: its literal `signature` is that of [`signed-examples/envelope/kat-keypair-001-envelope.json`](known-answer/signed-examples/envelope/kat-keypair-001-envelope.json) (`kat-envelope-002-ed25519`, signed by kat-keypair-001), and `env-008`, `env-009` and `env-010` carry the same literal signature over an envelope changed after signing. A runner MUST NOT re-mint any of these four. |
 | `__VALID_MANIFEST_SIG__` | Manifest agent's signing key | JCS canonical **inner** Manifest body excluding `signature` — never the `{"manifest": …}` wrapper (RFC-AITP-0003 §6.1) |
 | `__VALID_POP_SIG__` | Manifest agent's signing key | `sha256(decoded_bytes(challenge))` (RFC-AITP-0003 §3.1) |
 | `__VALID_A_SIG__` | Initiating peer (A)'s signing key | Resolved from the enclosing artifact, per the table below — **never** "whatever the minting tool decides". |
@@ -159,7 +159,7 @@ diverged between implementations (see the signing-input entry in
 |---|---|
 | `snapshot` (a `{"revocation_list": …, "signature": …}` object) | JCS canonical form of the **inner `revocation_list` body**. The `signature` is a sibling of the body, not a member of it, so nothing is removed before canonicalizing. RFC-AITP-0008 §1.5. |
 | `session_bundle` (a `{"session_bundle": …}` object) | JCS canonical form of the **inner `session_bundle` body**, excluding its `signature` member. RFC-AITP-0010 §3. |
-| an envelope | The envelope signing input of RFC-AITP-0001 §5.4 — a pipe-composed string, *not* canonical JSON of the envelope. |
+| an envelope | The envelope signing input of RFC-AITP-0001 §5.4: the 16 ASCII bytes `aitp-envelope-v2`, one `0x00` byte, then JCS of the whole envelope minus `signature` (`extensions` included). Not the bare JCS form, and not the retired pipe-composed string. |
 
 **General rule for every JCS-profile artifact carried inside an artifact-name
 wrapper** (`{"manifest": …}`, `{"revocation_list": …}`, `{"session_bundle": …}`):

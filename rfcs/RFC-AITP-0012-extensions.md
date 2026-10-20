@@ -2,7 +2,7 @@
 # Extensions (ZK, TEE) — Reserved
 
 **Document:** RFC-AITP-0012
-**Version:** 0.2.2-reserved
+**Version:** 0.2.3-reserved
 **Status:** Reserved
 
 ---
@@ -133,7 +133,7 @@ A v0.2 peer receiving an envelope or Manifest with an `extensions` object — or
 The contents of `extensions.zk`, `extensions.tee`, and `ext.sd_grant` are non-normative for v0.2. Implementations MUST treat extension data as advisory metadata and MUST NOT make a trust decision based on it, except for the self-attestation statement of [RFC-AITP-0005 §5.3](RFC-AITP-0005-tct.md#53-self-issued-attestation-tcts) (§5). A future, normative version of this RFC will specify the security model for each extension family. Pending that work, the following constraints are already in force:
 
 - **No silent trust elevation.** A v0.2 peer MUST NOT grant additional capabilities or extend a TCT's lifetime because a peer presented `extensions.zk`, `extensions.tee`, or `ext.sd_grant` data.
-- **Unknown extensions ignored for trust decisions.** Unknown keys under `extensions` (and inside the JWS `ext` claim) MUST NOT cause a verification failure (RFC-AITP-0001 §7). On the Manifest, the handshake payloads, the identity descriptor, the revocation snapshot and the session bundle they are still part of the *signed object*: the JCS canonical form covers the entire `extensions` field if present. On a compact-JWS artifact the `ext` claim is covered by the signature over the transmitted bytes. On those objects, removing a key changes the signing input and breaks the signature. The **envelope** is the exception: its `aitp/0.2` signing input does not cover envelope `extensions` (RFC-AITP-0001 §5.4), so envelope `extensions` are not authenticated. v0.2 implementations MUST NOT grant additional authority based on extension content; a self-attestation statement (RFC-AITP-0005 §5.3) grants none. Future RFCs may make specific extension keys normative.
+- **Unknown extensions ignored for trust decisions.** Unknown keys under `extensions` (and inside the JWS `ext` claim) MUST NOT cause a verification failure (RFC-AITP-0001 §7). They are still part of the *signed object*: on the envelope, the Manifest, the handshake payloads, the identity descriptor, the revocation snapshot and the session bundle the JCS canonical form covers the entire `extensions` field if present (for the envelope, behind the RFC-AITP-0001 §5.4 domain tag), and on a compact-JWS artifact the `ext` claim is covered by the signature over the transmitted bytes. Removing or changing a key changes the signing input and breaks the signature. v0.2 implementations MUST NOT grant additional authority based on extension content; a self-attestation statement (RFC-AITP-0005 §5.3) grants none. Future RFCs may make specific extension keys normative.
 - **Vendor namespacing.** Vendor extensions under reverse-domain prefixes (`extensions.com.example.feature`) inherit the same constraints. Vendors MUST NOT use vendor namespaces to inject implicit trust signals.
 - **Replay surface.** Once an extension is normative, its inputs (e.g. ZK proof public inputs, TEE attestation nonces) MUST be bound to the same handshake nonce or envelope `message_id` that protects the rest of the payload.
 

@@ -2,6 +2,41 @@
 
 ## Unreleased
 
+### Envelope signing input v2: sign the whole envelope (#87)
+
+**Change class.** Normative, wire-breaking change to the envelope signing input in RFC-AITP-0001 §5.4, with matching text in RFC-AITP-0002 §3.4, RFC-AITP-0012 §6, `docs/GLOSSARY.md` and `registries/message-types.md`. One known answer is re-minted, one is added, env-007 gets a committed signature and three core fixtures are added. Strict cutover: a verifier implementing this revision rejects envelopes signed over the old input, and the reverse. The `aitp/0.2` version literal is unchanged. PR 1 of 2 for #87 (proposal #89).
+
+**The gap.** The envelope signing input was `message_id|timestamp|sender.agent_id|hex(sha256(JCS(payload)))`. It left `version`, `message_type` and `extensions` unsigned, so anyone on the path could change them without breaking the signature. The previous entry documented the gap; this one closes it.
+
+**The fix.**
+
+1. **RFC-AITP-0001 §5.4.** The envelope signs `sig_input_v2 = "aitp-envelope-v2" || 0x00 || JCS(envelope_without_signature)`: the 16 ASCII bytes of the domain tag, one zero byte, then the RFC 8785 form of the whole envelope minus `signature`. `d = sha256(sig_input_v2)` is signed per §5.4.6 and verified with the §5.4.7 strictness rules. Every member except `signature` is now covered, including `version`, `message_type` and `extensions`. The #88 sentences saying those members are not signed are removed. §5.2, the §5.4 profile table, §5.4.1 and §5.4.6 now describe the new input.
+2. **Envelope check order (normative, RFC-AITP-0001 §5.4).** (1) `version`: an unknown value ⇒ `UNKNOWN_VERSION`, before schema validation. (2) Member set and structure ⇒ `UNKNOWN_FIELD` / `INVALID_ENVELOPE`. (3) Signature ⇒ `INVALID_SIGNATURE`. Steps 1 and 2 run after RFC-AITP-0009 §3.1's replay, rate-limit, timestamp and Content-Type/body-size steps, and step 3 is its envelope-signature step. RFC-AITP-0009 is not edited. §7 cross-references the order.
+3. **RFC-AITP-0002 §3.4.** The pinned-admission rule that receivers MUST NOT rely on `message_type` being signed (added with #78) is replaced: the envelope signature now covers it. Step 4 of the §3.4 check order now follows the RFC-AITP-0001 §5.4 envelope check order. `id-015`, which expects `INVALID_ENVELOPE` at that step, is unaffected.
+4. **RFC-AITP-0012 §6, glossary, message-type registry.** Envelope `extensions` and `message_type` are covered by the signature like any other member.
+
+**Known answers.**
+
+- `kat-envelope-001-p256` (`signed-examples/envelope/kat-keypair-005-envelope.json`, env-005's envelope) is re-minted. The file now carries `"signing_input": "sig_input_v2"`, `sig_input_v2_hex`, `sig_input_v2_len_bytes` and `sig_input_v2_sha256_hex` in place of `sig_input` and `sig_input_sha256_hex`.
+  - Old: `sig_input` sha256 `899070806444e28a20a08e8621aa7d1b56346876b90e2110ca22db512e138bf6`; signature `p256.x8byAWOkPakdN1zUauZZWaBm0hacdCOcWJ236euSREtnL_wz-SQFm-p-c4WSoWv_aPRH6QAYP2QMSkNcoYvCiQ`; double-hash negative `p256.2q_zGfNz6HV1qtA1BDMsEb85Ixl7YrR1SG0Vq07fnktQ-D3G7j96yi33yokBEDiWUIi3At4QzVvGSmHBBTN04A`.
+  - New: `sig_input_v2` 254 bytes, sha256 `18ef5b4a02d6bfb05ff93cd173c05d6be48f729e0aa296fbee982f4ba8f94885`; signature `p256.zpVe0l_qTePUWQ0q829FnebYx0S5IDrFWSKgp1hNuo173QViku6Ocsmy-TsDgPlbSKiEgBDh63kGcSAHm7E2dA`; double-hash negative `p256.XLbKANH7oZ0YUWvx2nUcQ4pReaYe5zHp6RTKWEijVrg7JQ3HTr88MAHSi0uIV134gVaMGAuD6x4qkhbM4bdM0Q`.
+  - The old signature is kept as `_must_not_verify.v1_signature`, beside the v1 input it signs (`v1_sig_input`). It MUST NOT verify over `sig_input_v2`.
+- `kat-envelope-002-ed25519` (new, `signed-examples/envelope/kat-keypair-001-envelope.json`) is env-007's envelope with its non-empty `extensions`, signed by kat-keypair-001: `sig_input_v2` 343 bytes, sha256 `f1b0e17ced992c275fc58068a564e1ba3dfdd319963bcd77cb9c516bcdc704a0`; signature `v9IsSYtz353H8F9RlXHwRh8g9rLoPa_KW5sHCBtOx3_AlZbWfMUqn-ReGckaic4PjcJGowRIb-tNAntRYqWgAw`. Its `_must_not_verify.v1_signature` is `9m2fJO0wxMk3xtffyKKR0TUwyKcNo7XF8HipC7DdOXDX4qGnUjFVB1XQ6Rufg0foC3Lwz7w61C65Qdt0XTNjAA`, the signature over the retired input.
+
+**Fixtures.**
+
+- `env-007` now commits the `kat-envelope-002-ed25519` signature in place of a placeholder, so `extensions` coverage is pinned by real bytes.
+- New `core` fixtures, each env-007's envelope and committed signature with one member changed after signing: `env-008` renames an `extensions` key (`INVALID_SIGNATURE`), `env-009` changes `message_type` to `mutual_hello_ack` (`INVALID_SIGNATURE`), and `env-010` changes `version` to `aitp/9.9` (`UNKNOWN_VERSION`, which pins the version-first order). Under the v1 input all three changes would still verify. `PLACEHOLDERS.md` says runners MUST NOT re-mint these literals.
+- Conformance index: `core` (v0.2-required) 74 → 77, total 97 → 101. The self-attestation row is corrected from 2 to 3: `tct-021` (#79) was never counted in it.
+
+**Verification.**
+
+- `scripts/verify-known-answer.mjs` (149 → 161 checks). For both envelope vectors it rebuilds `sig_input_v2` and requires the hex, length and digest. It verifies the signature, and requires that it does not verify over the untagged JCS or the v1 input. It requires `v1_signature` to verify over the v1 input and not over `sig_input_v2`, and checks the P-256 double-hash negative. For env-008 to env-010 it requires that exactly one member differs from env-007, that the committed signature fails over the changed envelope, and the expected codes.
+- `scripts/recompute-known-answer-independent.py` (132 → 150 checks) re-signs both vectors and both v1 negatives byte for byte (python-ecdsa; RFC 8032 reference arithmetic), and checks env-007 to env-010 the same way.
+- `scripts/fixture-validation-map.json` maps the three new fixtures. env-010's envelope is expected to be schema-invalid, because the `version` const rejects `aitp/9.9`. `FIXTURE_INPUT_MIN_CHECKS` rises from 220 to 223.
+
+**Version bumps.** RFC-AITP-0001 0.2.13-draft → 0.2.14-draft; RFC-AITP-0002 0.2.10-draft → 0.2.11-draft; RFC-AITP-0012 0.2.2-reserved → 0.2.3-reserved.
+
 ### Envelope erratum: `version`, `message_type` and `extensions` are not signed in `aitp/0.2` (#87)
 
 **Change class.** Normative correction to RFC-AITP-0001 and RFC-AITP-0012, plus matching wording in `docs/GLOSSARY.md` and the env-007 fixture text. No wire, schema, error-code, known-answer or fixture-outcome change.

@@ -114,7 +114,7 @@ fi
 # Lower FIXTURE_INPUT_MIN_CHECKS only in the same commit that removes fixtures,
 # and say why in the commit message — the same rule verify-known-answer.mjs uses
 # for EXPECTED_MIN_CHECKS.
-FIXTURE_INPUT_MIN_CHECKS=220
+FIXTURE_INPUT_MIN_CHECKS=223
 FIXTURE_MAP="${SCRIPT_DIR}/fixture-validation-map.json"
 NORMALIZER="${SCRIPT_DIR}/normalize-fixture-input.py"
 
@@ -491,7 +491,8 @@ fi
 #
 # An optional 4th argument names a member to unwrap and validate on its own.
 # The envelope example uses it: its schema is the bare envelope, and the
-# companions `sig_input` / `sig_input_sha256_hex` sit beside it.
+# companions `sig_input_v2_hex` / `sig_input_v2_len_bytes` / `sig_input_v2_sha256_hex`
+# sit beside it.
 validate_signed_kat() {
     local dir="$1"
     local schema="$2"

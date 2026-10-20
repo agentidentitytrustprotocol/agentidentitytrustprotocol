@@ -1199,6 +1199,7 @@ function checkSignedExamples() {
   }
 
   checkEnvelopeExample();
+  checkEnvelopeTamperedFixtures();
   checkSelfAttestations();
 }
 
@@ -1252,50 +1253,145 @@ function checkSelfAttestations() {
   }
 }
 
-// The P-256 envelope example (RFC-AITP-0001 §5.4): the only committed envelope
-// signature. sig_input is message_id|timestamp|sender.agent_id|hex(sha256(JCS(payload))),
-// d = sha256(sig_input), and the P-256 signature uses e = d (§5.4.6).
+// The envelope examples (RFC-AITP-0001 §5.4, issue #87):
+//   sig_input_v2 = "aitp-envelope-v2" || 0x00 || JCS(envelope without `signature`)
+//   d = sha256(sig_input_v2); Ed25519 signs d, P-256 uses e = d (§5.4.6).
+// Every member other than `signature` is covered, `extensions` included. Each
+// file also carries the retired pipe-input signature (v1), which must be a real
+// signature over the v1 string and must not verify over sig_input_v2.
+const ENVELOPE_TAG = Buffer.concat([utf8('aitp-envelope-v2'), Buffer.from([0])]);
+const stripSignature = (o) => Object.fromEntries(Object.entries(o).filter(([k]) => k !== 'signature'));
+const envelopeSigInputV2 = (env) => Buffer.concat([ENVELOPE_TAG, utf8(jcs(stripSignature(env)))]);
+const envelopeSigInputV1 = (env) =>
+  utf8(`${env.message_id}|${env.timestamp}|${env.sender?.agent_id}|${sha256(utf8(jcs(env.payload))).toString('hex')}`);
+
+const ENVELOPE_EXAMPLES = [
+  { rel: 'envelope/kat-keypair-005-envelope.json', kat: 'kat-envelope-001-p256', seed: 'kat-keypair-005-p256',
+    fixture: 'env-005-p256-envelope-success.json', doubleHash: true },
+  { rel: 'envelope/kat-keypair-001-envelope.json', kat: 'kat-envelope-002-ed25519', seed: 'kat-keypair-001',
+    fixture: 'env-007-extensions-unknown-key-accepted.json', doubleHash: false },
+];
+
 function checkEnvelopeExample() {
-  const rel = 'envelope/kat-keypair-005-envelope.json';
-  const path = join(SIGNED, rel);
-  check(`${rel} exists`, () => { if (!existsSync(path)) throw new Error('file is missing'); });
-  if (!existsSync(path)) return;
-  const file = readJson(path);
-  const env = file.envelope;
-  let sigInput;
-  check(`${rel} sig_input recomputes from the envelope`, () => {
-    eq(file.signing_input, 'sig_input', 'signing_input');
-    if (!env || typeof env !== 'object') throw new Error('no "envelope" member');
-    sigInput = `${env.message_id}|${env.timestamp}|${env.sender?.agent_id}|${sha256(utf8(jcs(env.payload))).toString('hex')}`;
-    eq(sigInput, file.sig_input, 'sig_input');
-    eq(sha256(utf8(sigInput)).toString('hex'), file.sig_input_sha256_hex, 'sig_input_sha256_hex');
-  });
-  if (sigInput === undefined) return;
-  const aid = env.sender.agent_id;
-  check(`${rel} signature verifies over sig_input (single hash, strict)`, () => {
-    if (!verifySingleHash(aid, utf8(sigInput), env.signature)) throw new Error('signature does not verify over sig_input');
-  });
-  check(`${rel} signature does NOT verify over JCS(envelope minus signature)`, () => {
-    const rest = Object.fromEntries(Object.entries(env).filter(([k]) => k !== 'signature'));
-    if (verifySingleHash(aid, utf8(jcs(rest)), env.signature)) {
-      throw new Error('signature verifies over the JCS envelope — the example pins no convention');
+  const keypairs = readJson(join(KAT, 'keypairs.json')).vectors;
+  for (const ex of ENVELOPE_EXAMPLES) {
+    const rel = ex.rel;
+    const path = join(SIGNED, rel);
+    check(`${rel} exists`, () => { if (!existsSync(path)) throw new Error('file is missing'); });
+    if (!existsSync(path)) continue;
+    const file = readJson(path);
+    const env = file.envelope;
+    let pre;
+    check(`${rel} (${ex.kat}) sig_input_v2 recomputes from the envelope`, () => {
+      eq(file._kat_input?.kat_id, ex.kat, '_kat_input.kat_id');
+      eq(file._kat_input?.signer_seed_id, ex.seed, '_kat_input.signer_seed_id');
+      eq(file._kat_input?.source_fixture, ex.fixture, '_kat_input.source_fixture');
+      eq(file.signing_input, 'sig_input_v2', 'signing_input');
+      if (!env || typeof env !== 'object') throw new Error('no "envelope" member');
+      const kp = keypairs.find((k) => k.id === ex.seed);
+      if (!kp) throw new Error(`keypair ${ex.seed} is not in keypairs.json`);
+      eq(env.sender?.agent_id, kp.aid, 'sender vs the pinned keypair AID');
+      const p = envelopeSigInputV2(env);
+      eq(p.subarray(0, 17).toString('hex'), '616974702d656e76656c6f70652d763200', 'domain tag');
+      eq(p.toString('hex'), file.sig_input_v2_hex, 'sig_input_v2_hex');
+      eq(p.length, file.sig_input_v2_len_bytes, 'sig_input_v2_len_bytes');
+      eq(sha256(p).toString('hex'), file.sig_input_v2_sha256_hex, 'sig_input_v2_sha256_hex');
+      pre = p;
+    });
+    if (pre === undefined) continue;
+    const aid = env.sender.agent_id;
+    check(`${rel} signature verifies over sig_input_v2 (single hash, strict)`, () => {
+      if (!verifySingleHash(aid, pre, env.signature)) throw new Error('signature does not verify over sig_input_v2');
+    });
+    check(`${rel} signature does NOT verify over the untagged JCS or the v1 pipe input`, () => {
+      if (verifySingleHash(aid, utf8(jcs(stripSignature(env))), env.signature)) {
+        throw new Error('signature verifies over JCS(envelope minus signature) without the domain tag');
+      }
+      if (verifySingleHash(aid, envelopeSigInputV1(env), env.signature)) {
+        throw new Error('signature verifies over the retired v1 pipe input');
+      }
+    });
+    check(`${rel} v1 signature is valid over the v1 pipe input and does NOT verify over sig_input_v2`, () => {
+      const m = file._must_not_verify ?? {};
+      eq(m.v1_sig_input, envelopeSigInputV1(env).toString('utf8'), '_must_not_verify.v1_sig_input');
+      if (!nonEmptyString(m.v1_signature)) throw new Error('missing _must_not_verify.v1_signature');
+      if (!verifySingleHash(aid, utf8(m.v1_sig_input), m.v1_signature, 'v1_signature')) {
+        throw new Error('v1_signature does not verify over v1_sig_input, so it is not a real v1 signature');
+      }
+      if (verifySingleHash(aid, pre, m.v1_signature, 'v1_signature')) throw new Error('v1_signature verifies over sig_input_v2');
+    });
+    if (ex.doubleHash) {
+      check(`${rel} double-hash signature does NOT verify over sig_input_v2`, () => {
+        const dbl = file._must_not_verify?.double_hash_signature;
+        if (!nonEmptyString(dbl)) throw new Error('missing _must_not_verify.double_hash_signature');
+        assertDoubleHashNegative(aid, pre, dbl, '_must_not_verify.double_hash_signature');
+      });
     }
+    check(`${rel} is ${ex.fixture}'s input envelope with the signature filled in`, () => {
+      const fenv = readJson(join(ROOT, 'schemas/conformance', ex.fixture)).input?.envelope;
+      if (!fenv) throw new Error('the source fixture has no input.envelope');
+      eq(jcs(stripSignature(env)), jcs(stripSignature(fenv)), 'envelope members other than signature');
+      if (fenv.signature !== '__VALID_ENVELOPE_SIG__' && fenv.signature !== env.signature) {
+        throw new Error(`fixture signature is neither the placeholder nor the committed signature: ${fenv.signature}`);
+      }
+      if (ex.kat === 'kat-envelope-002-ed25519') {
+        eq(fenv.signature, env.signature, 'env-007 commits the kat-envelope-002-ed25519 signature');
+        if (!env.extensions || Object.keys(env.extensions).length === 0) throw new Error('extensions is empty');
+      }
+    });
+  }
+}
+
+// env-008, env-009, env-010: env-007's envelope and committed signature, with
+// exactly one member changed after signing. The signature must verify over
+// env-007's envelope and not over the changed one, and nothing the RFC-AITP-0001
+// §5.4 check order runs earlier may already reject env-008 or env-009.
+const ENVELOPE_TAMPERED = [
+  { file: 'env-008-extensions-tampered-rejected.json', id: 'env-008', member: 'extensions', code: 'INVALID_SIGNATURE' },
+  { file: 'env-009-message-type-substituted-rejected.json', id: 'env-009', member: 'message_type', code: 'INVALID_SIGNATURE' },
+  { file: 'env-010-version-altered-rejected.json', id: 'env-010', member: 'version', code: 'UNKNOWN_VERSION' },
+];
+function checkEnvelopeTamperedFixtures() {
+  console.log('── env-007..env-010: committed envelope signatures (RFC-AITP-0001 §5.4) ──');
+  const conf = join(ROOT, 'schemas/conformance');
+  const f7 = readJson(join(conf, 'env-007-extensions-unknown-key-accepted.json'));
+  const e7 = f7.input.envelope;
+  const schema = readJson(join(ROOT, 'schemas/json/aitp-envelope.schema.json'));
+  const v1Signature = readJson(join(SIGNED, 'envelope/kat-keypair-001-envelope.json'))._must_not_verify.v1_signature;
+  check('env-007: committed signature verifies over sig_input_v2 of its own envelope', () => {
+    if (!verifySingleHash(e7.sender.agent_id, envelopeSigInputV2(e7), e7.signature)) throw new Error('does not verify');
+    eq(f7.expected.outcome, 'success', 'expected.outcome');
   });
-  check(`${rel} double-hash signature does NOT verify over sig_input`, () => {
-    const dbl = file._must_not_verify?.double_hash_signature;
-    if (!nonEmptyString(dbl)) throw new Error('missing _must_not_verify.double_hash_signature');
-    assertDoubleHashNegative(aid, utf8(sigInput), dbl, '_must_not_verify.double_hash_signature');
-  });
-  check(`${rel} is env-005's input envelope with the signature filled in`, () => {
-    const fixture = readJson(join(ROOT, 'schemas/conformance', file._kat_input?.source_fixture ?? 'env-005-p256-envelope-success.json'));
-    const fenv = fixture.input?.envelope;
-    if (!fenv) throw new Error('the source fixture has no input.envelope');
-    const strip = (o) => Object.fromEntries(Object.entries(o).filter(([k]) => k !== 'signature'));
-    eq(jcs(strip(env)), jcs(strip(fenv)), 'envelope members other than signature');
-    if (fenv.signature !== '__VALID_ENVELOPE_SIG__' && fenv.signature !== env.signature) {
-      throw new Error(`fixture signature is neither the placeholder nor the committed signature: ${fenv.signature}`);
-    }
-  });
+  for (const t of ENVELOPE_TAMPERED) {
+    check(`${t.id}: env-007's envelope with only \`${t.member}\` changed; signature fails over it; ${t.code}`, () => {
+      const f = readJson(join(conf, t.file));
+      eq(f.id, t.id, 'id');
+      eq(f.status, 'core', 'status');
+      eq(f.required_for_v0_2, true, 'required_for_v0_2');
+      eq(f.input.operation, 'verify_envelope', 'operation');
+      eq(jcs(Object.fromEntries(Object.entries(f.input).filter(([k]) => k !== 'envelope'))),
+        jcs(Object.fromEntries(Object.entries(f7.input).filter(([k]) => k !== 'envelope'))), 'inputs other than the envelope');
+      const e = f.input.envelope;
+      eq(e.signature, e7.signature, 'signature (committed, copied from env-007)');
+      const changed = [...new Set([...Object.keys(e), ...Object.keys(e7)])]
+        .filter((k) => jcs(e[k] ?? null) !== jcs(e7[k] ?? null));
+      eq(jcs(changed), jcs([t.member]), 'changed members');
+      if (verifySingleHash(e.sender.agent_id, envelopeSigInputV2(e), e.signature)) {
+        throw new Error('the signature verifies over the changed envelope');
+      }
+      if (!verifySingleHash(e.sender.agent_id, envelopeSigInputV1(e), v1Signature)) {
+        throw new Error('the v1 signature does not verify over this envelope: the change was not invisible to v1, so the fixture does not pin the issue #87 gap');
+      }
+      eq(f.expected.outcome, 'failure', 'expected.outcome');
+      eq(f.expected.error_code, t.code, 'expected.error_code');
+      if (t.member === 'message_type') {
+        if (!schema.properties.message_type.enum.includes(e.message_type)) throw new Error('substituted type is not registered');
+        eq(e.version, 'aitp/0.2', 'version');
+      }
+      if (t.member === 'extensions') eq(e.version, 'aitp/0.2', 'version');
+      if (t.member === 'version' && e.version === schema.properties.version.const) throw new Error('version is the known value');
+    });
+  }
 }
 
 // The two Ed25519 reasons and one P-256 reason §5.4.7 adds. Each vector must be
@@ -1754,7 +1850,7 @@ checkOidcP256Fixture();
 // emptied vector member; this catches coverage lost any other way — a check
 // commented out, a loop that stops early, a gate that stops matching. Coverage may
 // grow (raise this number in the same commit); it may never silently shrink.
-const EXPECTED_MIN_CHECKS = 149;
+const EXPECTED_MIN_CHECKS = 161;
 if (checks < EXPECTED_MIN_CHECKS) {
   failures.push(
     `coverage regression: ran ${checks} checks, expected at least ${EXPECTED_MIN_CHECKS}. ` +

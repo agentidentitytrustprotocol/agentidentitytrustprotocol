@@ -2,7 +2,7 @@
 
 Registered values for the envelope `message_type` ([RFC-AITP-0001 §5.2](../rfcs/RFC-AITP-0001-core.md#52-fields)). The envelope schema ([`aitp-envelope.schema.json`](../schemas/json/aitp-envelope.schema.json)) enumerates exactly these values, so an envelope carrying any other `message_type` fails schema validation with `INVALID_ENVELOPE`.
 
-> **Authentication (informative).** This registry adds no requirement. In v0.2 the envelope signature covers `message_id`, `timestamp`, `sender.agent_id` and the payload digest, not `message_type` ([RFC-AITP-0001 §5.4](../rfcs/RFC-AITP-0001-core.md#54-signature)). For `identity_presentation`, [RFC-AITP-0002 §3.4](../rfcs/RFC-AITP-0002-identity.md#34-one-way-pinned-key-admission-optional-profile-pinned-admission) (rule 2 and check-order step 4) states what the verifier checks and which code it returns.
+> **Authentication (informative).** This registry adds no requirement. The envelope signature covers every envelope member except `signature`, `message_type` included ([RFC-AITP-0001 §5.4](../rfcs/RFC-AITP-0001-core.md#54-signature)), so a `message_type` changed after signing fails with `INVALID_SIGNATURE`. For `identity_presentation`, [RFC-AITP-0002 §3.4](../rfcs/RFC-AITP-0002-identity.md#34-one-way-pinned-key-admission-optional-profile-pinned-admission) (rule 2 and check-order step 4) states what the verifier checks and which code it returns.
 
 | Value | Sender → receiver | Payload | Status | Spec |
 |---|---|---|---|---|
