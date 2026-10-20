@@ -6,7 +6,7 @@
   "required_for_v0_2": false,
   "feature": "experimental-multihop-delegation",
   "$comment": "Chain claims-sibling convention as in del-mh-001. The chain_hash here is a literal wrong value (43 'A' chars), NOT a placeholder: the minter signs the outer token over these claims as-is, so the outer JWS signature is VALID over the wrong chain_hash — the recomputation check (RFC-AITP-0011 §5) is the isolated failure.",
-  "description": "Multi-hop chain_hash truncation defense (aitp/0.2 shape). The chain is identical to del-mh-001 — every hop's JWS and the voucher inside chain[0] verify, continuity, expiry, and scope all pass — but the outer token's `chain_hash` claim does not match the recomputed digest-array commitment base64url(sha256(JCS([d_0]))) where d_0 = base64url(sha256(ASCII(chain[0])))). The verifier MUST recompute chain_hash from the received chain array and reject on mismatch with DELEGATION_CHAIN_HASH_MISMATCH (RFC-AITP-0011 §5). This models a final delegator committing to a different chain than it carries (equivalent in effect to truncation or substitution). Note: unlike the v0.1-era vector, the outer signature is VALID here — the wrong chain_hash is bound under C's signature at mint time — so the recomputation step, not signature verification, is what fails. The reference recomputation is pinned at kat-multihop-truncation-001 (re-specified for aitp/0.2 digest-array form). Manifest source: `input.issuer_manifests` carries the signed Manifests of both hop issuers, B (kat-keypair-002, chain[0].iss) and C (kat-keypair-003, outer iss); each hop's JWS verifies under the key its issuer's Manifest designates (RFC-AITP-0011 §3 step 1). The voucher needs no Manifest: A verifies it under its own key.",
+  "description": "Multi-hop chain_hash truncation defense (aitp/0.3 shape). The chain is identical to del-mh-001 — every hop's JWS and the voucher inside chain[0] verify, continuity, expiry, and scope all pass — but the outer token's `chain_hash` claim does not match the recomputed digest-array commitment base64url(sha256(JCS([d_0]))) where d_0 = base64url(sha256(ASCII(chain[0])))). The verifier MUST recompute chain_hash from the received chain array and reject on mismatch with DELEGATION_CHAIN_HASH_MISMATCH (RFC-AITP-0011 §5). This models a final delegator committing to a different chain than it carries (equivalent in effect to truncation or substitution). Note: unlike the v0.1-era vector, the outer signature is VALID here — the wrong chain_hash is bound under C's signature at mint time — so the recomputation step, not signature verification, is what fails. The reference recomputation is pinned at kat-multihop-truncation-001 (re-specified for aitp/0.3 digest-array form). Manifest source: `input.issuer_manifests` carries the signed Manifests of both hop issuers, B (kat-keypair-002, chain[0].iss) and C (kat-keypair-003, outer iss); each hop's JWS verifies under the key its issuer's Manifest designates (RFC-AITP-0011 §3 step 1). The voucher needs no Manifest: A verifies it under its own key.",
   "tags": [
     "security",
     "delegation",
@@ -18,7 +18,7 @@
     "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
     "delegation_token": "__JWS_DELEGATION__",
     "delegation_token_claims": {
-      "ver": "aitp/0.2",
+      "ver": "aitp/0.3",
       "iss": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
       "sub": "aid:pubkey:iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w",
       "aud": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
@@ -35,7 +35,7 @@
       ],
       "chain_claims": [
         {
-          "ver": "aitp/0.2",
+          "ver": "aitp/0.3",
           "iss": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
           "sub": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
           "aud": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
@@ -49,7 +49,7 @@
           "jti": "550e8400-e29b-41d4-a716-446655443002",
           "voucher": "__JWS_GRANT_VOUCHER__",
           "voucher_claims": {
-            "ver": "aitp/0.2",
+            "ver": "aitp/0.3",
             "iss": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
             "sub": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
             "grants": [
@@ -66,7 +66,7 @@
     },
     "issuer_manifests": [
       {
-        "version": "aitp/0.2",
+        "version": "aitp/0.3",
         "aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
         "display_name": "kat-keypair-002",
         "identity_hint": {
@@ -92,7 +92,7 @@
         "signature": "__VALID_MANIFEST_SIG__"
       },
       {
-        "version": "aitp/0.2",
+        "version": "aitp/0.3",
         "aid": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
         "display_name": "kat-keypair-003",
         "identity_hint": {

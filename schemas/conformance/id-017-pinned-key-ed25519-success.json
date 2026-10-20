@@ -18,7 +18,7 @@
       "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU"
     ],
     "envelope": {
-      "version": "aitp/0.2",
+      "version": "aitp/0.3",
       "message_type": "mutual_hello",
       "message_id": "770e8400-e29b-41d4-a716-446655440701",
       "timestamp": 1711900000,
@@ -33,7 +33,7 @@
           "proof": "vdLCEPGuUvVryXxnPdo_ZNYqaZmGuByZ5kRMU0ikKeVbn3SUjj2DD7y8e5pNBtp7jSHZ-Z0wzNdOl0NS1mSpCQ"
         },
         "manifest": {
-          "version": "aitp/0.2",
+          "version": "aitp/0.3",
           "aid": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
           "handshake_endpoint": "https://worker-a.agents.example.com/aitp/handshake",
           "accepted_trust_anchors": [],

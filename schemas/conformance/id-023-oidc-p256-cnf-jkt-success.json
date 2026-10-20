@@ -17,7 +17,7 @@
     "step": "received MUTUAL_HELLO from peer",
     "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
     "envelope": {
-      "version": "aitp/0.2",
+      "version": "aitp/0.3",
       "message_type": "mutual_hello",
       "message_id": "770e8400-e29b-41d4-a716-446655442301",
       "timestamp": 1711900000,
@@ -32,7 +32,7 @@
           "proof": "__VALID_JWT__"
         },
         "manifest": {
-          "version": "aitp/0.2",
+          "version": "aitp/0.3",
           "aid": "aid:pubkey:p256:AweBDql0zqV3PmO4l_N-O-mgnnpf6blxpE0QZawqOpMR",
           "handshake_endpoint": "https://p256.agents.example.com/aitp/handshake",
           "accepted_trust_anchors": [

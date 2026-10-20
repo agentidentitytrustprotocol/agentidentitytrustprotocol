@@ -2,21 +2,21 @@
 # Multi-hop Delegation
 
 **Document:** RFC-AITP-0011
-**Version:** 0.2.2-draft
+**Version:** 0.3.0-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md), [RFC-AITP-0006 Single-Hop Delegation](RFC-AITP-0006-delegation.md), [RFC-AITP-0008 Revocation](RFC-AITP-0008-revocation.md)
 
 ---
 
 > **Status: Draft.** Multi-hop delegation is **not** part of AITP core
-> conformance (v0.1 or v0.2) — implementations that do not opt into this
+> conformance (v0.1, v0.2 or v0.3) — implementations that do not opt into this
 > RFC MUST reject multi-hop tokens with
 > `DELEGATION_MULTIHOP_NOT_SUPPORTED` (RFC-AITP-0006 §4, multi-hop
 > guard). This revision rewrites the chain mechanics for the `aitp/0.2`
 > compact-JWS profile: the v0.1 `DelegationStep` record, its
 > reconstruction recipe, and the hop-0 "peer-issued TCT projection"
 > dispatch are deleted. This RFC specifies the format and verification
-> rules so v0.2 implementations have a stable opt-in target.
+> rules so v0.3 implementations have a stable opt-in target.
 
 ---
 
@@ -34,7 +34,7 @@ A multi-hop delegation token is a delegation compact JWS per [RFC-AITP-0006 §2]
 
 ```json
 {
-  "ver": "aitp/0.2",
+  "ver": "aitp/0.3",
   "iss": "aid:pubkey:ed25519:<C-key>",
   "sub": "aid:pubkey:ed25519:<D-key>",
   "aud": "aid:pubkey:ed25519:<A-key>",
@@ -197,7 +197,7 @@ Both are Draft codes scoped to this RFC. `TOKEN_TYP_MISMATCH`, `TOKEN_ALG_MISMAT
 
 ## 8. Conformance Surface
 
-Multi-hop is **opt-in** for v0.2; it is not part of core conformance. An implementation that does not opt in MUST reject any delegation token with a non-empty `chain` using `DELEGATION_MULTIHOP_NOT_SUPPORTED` (RFC-AITP-0006 §4). A v0.2 implementation that opts in MUST:
+Multi-hop is **opt-in** for v0.3; it is not part of core conformance. An implementation that does not opt in MUST reject any delegation token with a non-empty `chain` using `DELEGATION_MULTIHOP_NOT_SUPPORTED` (RFC-AITP-0006 §4). A v0.3 implementation that opts in MUST:
 
 1. Implement §2 hop limiting and §3 per-hop verification for chains up to its configured `max_delegation_hops`.
 2. Implement §4 adjacent-pair scope checking at every hop boundary, including the voucher boundary.

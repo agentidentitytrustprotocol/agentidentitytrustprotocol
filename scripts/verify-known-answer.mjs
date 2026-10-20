@@ -1129,7 +1129,7 @@ function checkSignedExamples() {
     // The session bundle's standalone signed example must be the SAME artifact
     // as the pinned kat-session-bundle-001 vector in jcs-sha256.json, not a
     // freshly-minted lookalike. Its 922-byte canonical form and
-    // c577854d… digest are load-bearing (referenced by CHANGELOG as a
+    // b0e7a9e5… digest (c577854d… before the aitp/0.3 re-mint) are load-bearing (referenced by CHANGELOG as a
     // migration record); this check pins the new file to those existing
     // values rather than letting it drift into a second, unpinned artifact.
     if (art.rel === 'session-bundle/kat-keypair-001-bundle.json') {
@@ -1352,7 +1352,7 @@ const ENVELOPE_TAMPERED = [
   { file: 'env-010-version-altered-rejected.json', id: 'env-010', member: 'version', code: 'UNKNOWN_VERSION' },
 ];
 function checkEnvelopeTamperedFixtures() {
-  console.log('── env-007..env-010: committed envelope signatures (RFC-AITP-0001 §5.4) ──');
+  console.log('── env-007..env-011: committed envelope signatures (RFC-AITP-0001 §5.4) ──');
   const conf = join(ROOT, 'schemas/conformance');
   const f7 = readJson(join(conf, 'env-007-extensions-unknown-key-accepted.json'));
   const e7 = f7.input.envelope;
@@ -1386,12 +1386,29 @@ function checkEnvelopeTamperedFixtures() {
       eq(f.expected.error_code, t.code, 'expected.error_code');
       if (t.member === 'message_type') {
         if (!schema.properties.message_type.enum.includes(e.message_type)) throw new Error('substituted type is not registered');
-        eq(e.version, 'aitp/0.2', 'version');
+        eq(e.version, schema.properties.version.const, 'version');
       }
-      if (t.member === 'extensions') eq(e.version, 'aitp/0.2', 'version');
+      if (t.member === 'extensions') eq(e.version, schema.properties.version.const, 'version');
       if (t.member === 'version' && e.version === schema.properties.version.const) throw new Error('version is the known value');
     });
   }
+  // env-011: strict cutover. A correctly signed envelope from the previous
+  // revision is still UNKNOWN_VERSION; nothing about it is tampered.
+  check('env-011: well-signed aitp/0.2 envelope (pure sig_input_v2); UNKNOWN_VERSION', () => {
+    const f = readJson(join(conf, 'env-011-previous-revision-rejected.json'));
+    eq(f.id, 'env-011', 'id');
+    eq(f.status, 'core', 'status');
+    eq(f.required_for_v0_2, true, 'required_for_v0_2');
+    eq(f.input.operation, 'verify_envelope', 'operation');
+    const e = f.input.envelope;
+    eq(e.version, 'aitp/0.2', 'version');
+    if (e.version === schema.properties.version.const) throw new Error('version is the current revision');
+    if (!verifySingleHash(e.sender.agent_id, envelopeSigInputV2(e), e.signature)) {
+      throw new Error('the signature does not verify over sig_input_v2 of its own envelope');
+    }
+    eq(f.expected.outcome, 'failure', 'expected.outcome');
+    eq(f.expected.error_code, 'UNKNOWN_VERSION', 'expected.error_code');
+  });
 }
 
 // The two Ed25519 reasons and one P-256 reason §5.4.7 adds. Each vector must be
@@ -1850,7 +1867,7 @@ checkOidcP256Fixture();
 // emptied vector member; this catches coverage lost any other way — a check
 // commented out, a loop that stops early, a gate that stops matching. Coverage may
 // grow (raise this number in the same commit); it may never silently shrink.
-const EXPECTED_MIN_CHECKS = 161;
+const EXPECTED_MIN_CHECKS = 162;
 if (checks < EXPECTED_MIN_CHECKS) {
   failures.push(
     `coverage regression: ran ${checks} checks, expected at least ${EXPECTED_MIN_CHECKS}. ` +

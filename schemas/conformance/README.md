@@ -204,7 +204,7 @@ with S replaced by n − S. It verifies under RFC 7518 alone; the
 RFC-AITP-0001 §5.4.7 low-S rule is what rejects it, and
 `make kat-verify` asserts both halves.
 
-`env-007` to `env-010` carry literal committed envelope signatures for the
+`env-007` to `env-011` carry literal committed envelope signatures for the
 same reason. `env-007` carries `kat-envelope-002-ed25519`, kat-keypair-001's
 signature over its envelope (RFC-AITP-0001 §5.4, `extensions` included).
 `env-008`, `env-009` and `env-010` carry the same signature over env-007's
@@ -214,7 +214,11 @@ sign the changed envelope and the negatives would pass. `make kat-verify`
 asserts that the signature verifies over env-007's envelope and over none of
 the three changed ones. `env-010` also pins the RFC-AITP-0001 §5.4 check
 order: the unknown `version` is reported as `UNKNOWN_VERSION` although the
-signature fails too.
+signature fails too. `env-011` pins the strict cutover between revisions: it
+is env-007's envelope with `version` set to the previous revision `aitp/0.2`
+and a fresh `message_id`, and its committed signature is kat-keypair-001's
+valid signature over those exact bytes. Nothing is tampered, so the only
+reason to reject is the revision literal: `UNKNOWN_VERSION`.
 
 `tct-015`, `tct-016` and `tct-018` are validly signed and schema-valid:
 `verify_tct` is a grant context, and RFC-AITP-0005 §5.3 rejects a self-issued
@@ -232,7 +236,7 @@ exercise the OPTIONAL profile of RFC-AITP-0002 §3.4 through the
 OPTIONAL, they are extension-gated: `status: extension`, `required_for_v0_2:
 false`, `feature: aitp-pinned-admission`. The default runner MUST SKIP them, so
 an implementation that does not claim the profile is not failed. A runner
-testing an implementation that claims "AITP v0.2 pinned-admission" conformance
+testing an implementation that claims "AITP v0.3 pinned-admission" conformance
 opts into the feature, and that implementation MUST pass them (RFC-AITP-0001 §10
 item 9). The proofs in `id-013`, `id-014`, `id-015`, `id-019`, `id-020`,
 `id-021` and `id-022` are real Ed25519 signatures by kat-keypair-003, which
@@ -245,7 +249,7 @@ self-attestation (RFC-AITP-0005 §5.3, "Verification") through the
 `verify_attestation` operation. That is not a grant context, and consuming
 attestations is a role RFC-AITP-0001 §10 does not require, so all three are
 `status: extension` under `feature: aitp-self-attestation`; an implementation
-that claims "AITP v0.2 self-attestation" conformance MUST pass them. `tct-020` carries
+that claims "AITP v0.3 self-attestation" conformance MUST pass them. `tct-020` carries
 the committed known answer `kat-tct-002` verbatim and expects success for a
 third-party relying party whose AID is not the token's `aud`; `tct-019` is an
 otherwise valid attestation whose `ext` lacks the key the relying party expects;
@@ -350,17 +354,17 @@ The runner interface is implementation-defined.
 
 ## Fixture summary
 
-| Tier | Count | Required for v0.2 |
+| Tier | Count | Required for v0.3 |
 |---|---|---|
-| `core` (v0.2-required) | 77 | ✅ Yes |
+| `core` (`required_for_v0_2`) | 78 | ✅ Yes |
 | `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (v0.1 runners only) |
 | `extension` — pinned-admission profile (RFC-AITP-0002 §3.4, `feature: aitp-pinned-admission`) | 8 | ❌ No (required of an implementation claiming the profile) |
 | `extension` — attestation verification (RFC-AITP-0005 §5.3, `feature: aitp-self-attestation`) | 3 | ❌ No (required of an implementation claiming the role) |
 | `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 7 | ❌ No |
 | `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 5 | ❌ No |
-| **Total** | **101** | |
+| **Total** | **102** | |
 
-Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A v0.2 conformance runner MUST execute every `required_for_v0_2` core fixture; `draft` and `extension` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
+Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A conformance runner for the current revision, `aitp/0.3`, MUST execute every `required_for_v0_2` core fixture (the key keeps its v0.2 name so existing runners keep working; for `aitp/0.3` it marks the core tier); `draft` and `extension` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
 ---
 
@@ -380,6 +384,7 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | `env-008` | env-007's signed envelope with an `extensions` key renamed after signing | failure: INVALID_SIGNATURE |
 | `env-009` | env-007's signed envelope with `message_type` changed to `mutual_hello_ack` after signing | failure: INVALID_SIGNATURE |
 | `env-010` | env-007's signed envelope with `version` changed to an unknown value after signing; the version check runs before the signature check | failure: UNKNOWN_VERSION |
+| `env-011` | A correctly signed envelope from the previous revision (`version` `aitp/0.2`); strict cutover, no dual-accept | failure: UNKNOWN_VERSION |
 
 ### Manifest (RFC-AITP-0003)
 
@@ -560,7 +565,7 @@ which also pins:
   of the last raw signature byte) so failure-injection placeholders
   reproduce.
 
-The v0.2 portable trust artifacts (TCT, grant voucher, delegation
+The portable trust artifacts (TCT, grant voucher, delegation
 token) are placeheld as **whole compact-JWS tokens** (`__JWS_*__`)
 with decoded-claims companion fields per the claims-sibling convention
 in PLACEHOLDERS.md. Real-signature reference artifacts (minted from

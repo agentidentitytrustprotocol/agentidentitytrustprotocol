@@ -56,7 +56,7 @@ Most fixtures use placeholder AIDs of the form
 `aid:pubkey:agent<X>_pubkey_AID_v01_placeholder_<X>...`. The minting
 tool MUST replace these with the real AIDs derived from the pinned
 known-answer keypairs. Fixtures keep the legacy untagged
-`aid:pubkey:<43-char>` AID form (still valid in v0.2 per
+`aid:pubkey:<43-char>` AID form (still valid in v0.3 per
 RFC-AITP-0001 §5.3, implying Ed25519/`EdDSA`); P-256 fixtures use the
 `aid:pubkey:p256:` form. The mapping is normative:
 
@@ -129,7 +129,7 @@ the next section.
 
 | Token | Signing key | Signing input |
 |---|---|---|
-| `__VALID_ENVELOPE_SIG__` | Sender's pinned signing key | Envelope signing input per RFC-AITP-0001 §5.4: `sig_input_v2` = `aitp-envelope-v2` ‖ `0x00` ‖ JCS(envelope without `signature`), so the signature covers every other member, `extensions` included, exactly as the fixture carries them after substitution. In `env-005` (P-256 sender) the value is committed rather than minted: substitute the `signature` of [`signed-examples/envelope/kat-keypair-005-envelope.json`](known-answer/signed-examples/envelope/kat-keypair-005-envelope.json) (`kat-envelope-001-p256`), whose envelope is otherwise identical to the fixture's. `env-007` carries no placeholder: its literal `signature` is that of [`signed-examples/envelope/kat-keypair-001-envelope.json`](known-answer/signed-examples/envelope/kat-keypair-001-envelope.json) (`kat-envelope-002-ed25519`, signed by kat-keypair-001), and `env-008`, `env-009` and `env-010` carry the same literal signature over an envelope changed after signing. A runner MUST NOT re-mint any of these four. |
+| `__VALID_ENVELOPE_SIG__` | Sender's pinned signing key | Envelope signing input per RFC-AITP-0001 §5.4: `sig_input_v2` = `aitp-envelope-v2` ‖ `0x00` ‖ JCS(envelope without `signature`), so the signature covers every other member, `extensions` included, exactly as the fixture carries them after substitution. In `env-005` (P-256 sender) the value is committed rather than minted: substitute the `signature` of [`signed-examples/envelope/kat-keypair-005-envelope.json`](known-answer/signed-examples/envelope/kat-keypair-005-envelope.json) (`kat-envelope-001-p256`), whose envelope is otherwise identical to the fixture's. `env-007` carries no placeholder: its literal `signature` is that of [`signed-examples/envelope/kat-keypair-001-envelope.json`](known-answer/signed-examples/envelope/kat-keypair-001-envelope.json) (`kat-envelope-002-ed25519`, signed by kat-keypair-001), and `env-008`, `env-009` and `env-010` carry the same literal signature over an envelope changed after signing. `env-011` carries its own literal signature, kat-keypair-001's valid signature over its `aitp/0.2` envelope. A runner MUST NOT re-mint any of these five. |
 | `__VALID_MANIFEST_SIG__` | Manifest agent's signing key | JCS canonical **inner** Manifest body excluding `signature` — never the `{"manifest": …}` wrapper (RFC-AITP-0003 §6.1) |
 | `__VALID_POP_SIG__` | Manifest agent's signing key | `sha256(decoded_bytes(challenge))` (RFC-AITP-0003 §3.1) |
 | `__VALID_A_SIG__` | Initiating peer (A)'s signing key | Resolved from the enclosing artifact, per the table below — **never** "whatever the minting tool decides". |
@@ -179,9 +179,9 @@ TCT and delegation token are compact JWS strings — there is no
 embedded signature field to substitute. Minting tools MUST still
 recognize these tokens when minting the frozen v0.1 fixtures.
 
-## Compact-JWS token placeholders (v0.2 portable trust artifacts)
+## Compact-JWS token placeholders (portable trust artifacts)
 
-The v0.2 TCT, grant voucher, and delegation token are opaque compact
+The TCT, grant voucher, and delegation token are opaque compact
 JWS strings (RFC-AITP-0001 §5.4.5). They are placeheld as **whole
 tokens**, not per-field signatures.
 
@@ -270,7 +270,7 @@ no signature is verified against them.
 | `__ANY_CHAIN_STEP_SIG__` | `delegation.chain[i].signature` (v0.1 shape) | v0.1-frozen fixture only (`del-004`): v0.1 implementations reject any delegation token with a non-empty `chain` field at the structural check before any per-hop signature work. | Any 86-char unpadded base64url string. RECOMMENDED: a real Ed25519 signature under `kat-keypair-001` over the JCS-canonical chain-step body, so the same minter path produces it. |
 | `__ANY_CHAIN_HASH__` | `chain_hash` | `chain_hash` is recomputed during multi-hop verification, which a core (non-opted-in) implementation never reaches. Used by `del-004` (v0.1 shape) and the v0.2 structural-rejection sibling. | Any 43-char unpadded base64url (32 bytes); RECOMMENDED: the correctly computed hash so the value is internally consistent even though no verifier checks it. |
 | `__ANY_DELEGATION_SIG__` | outer `delegation.signature` (v0.1 shape) | v0.1-frozen fixture only (`del-004`): the outer signature is not verified before the structural rejection. | Any 86-char unpadded base64url string; RECOMMENDED: a real Ed25519 signature so cross-fixture minter paths stay uniform. |
-| `__ANY_JWS__` | `chain[i]` entries (v0.2 shape) | Core v0.2 implementations reject any delegation token carrying a `chain` claim with `DELEGATION_MULTIHOP_NOT_SUPPORTED` before processing entries. | See the compact-JWS table above. |
+| `__ANY_JWS__` | `chain[i]` entries (v0.2 and later shape) | Core v0.3 implementations reject any delegation token carrying a `chain` claim with `DELEGATION_MULTIHOP_NOT_SUPPORTED` before processing entries. | See the compact-JWS table above. |
 
 A runner that exercises the multi-hop opt-in (`feature:
 experimental-multihop-delegation`) does verify these fields and uses

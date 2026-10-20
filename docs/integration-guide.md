@@ -1,7 +1,7 @@
 # Integration Guide
 
 How a peer agent consumes a peer-issued Trust Context Token (TCT) — the
-common case in AITP v0.2. This page sequences the normative rules and
+common case in AITP v0.3. This page sequences the normative rules and
 points at maintained code; the rules themselves live in
 [RFC-AITP-0005](../rfcs/RFC-AITP-0005-tct.md), and SDK usage lives in the
 sibling repositories listed in [`docs/ecosystem.md`](ecosystem.md).

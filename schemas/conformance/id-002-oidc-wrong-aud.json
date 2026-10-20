@@ -18,7 +18,7 @@
     "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
     "jwt_aud_claim": "aid:pubkey:JIrL26-eBQGW3nBL6i1odw5RkVDRA7WH2uLZytU92TA",
     "envelope": {
-      "version": "aitp/0.2",
+      "version": "aitp/0.3",
       "message_type": "mutual_hello",
       "message_id": "770e8400-e29b-41d4-a716-446655440202",
       "timestamp": 1711900000,
@@ -33,7 +33,7 @@
           "proof": "__JWT_AUD_TARGETS_DIFFERENT_PEER__"
         },
         "manifest": {
-          "version": "aitp/0.2",
+          "version": "aitp/0.3",
           "aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
           "handshake_endpoint": "https://a.agents.example.com/aitp/handshake",
           "accepted_trust_anchors": [

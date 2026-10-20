@@ -13,7 +13,7 @@ disagree, the RFC wins.
 
 ## Handshake renewal
 
-TCTs expire per their `exp` claim. In v0.2 core there is **no in-band
+TCTs expire per their `exp` claim. In v0.3 core there is **no in-band
 renewal message**: a peer that needs a continuing trust relationship runs a
 fresh Mutual Handshake before expiry, and agents MUST NOT use an expired peer
 TCT ([RFC-AITP-0004 §8](../rfcs/RFC-AITP-0004-mutual-handshake.md#8-handshake-renewal)).
@@ -33,7 +33,7 @@ Operational pattern:
   newer `published_at`; accept it if it verifies and discard the cached copy
   ([RFC-AITP-0004 §11.3](../rfcs/RFC-AITP-0004-mutual-handshake.md#113-race-condition-on-manifest-refresh)).
 
-### Shortened renewal (opt-in, not part of v0.2 conformance)
+### Shortened renewal (opt-in, not part of v0.3 conformance)
 
 [RFC-AITP-0004 §8.1](../rfcs/RFC-AITP-0004-mutual-handshake.md#81-non-normative-shortened-renewal-extension)
 sketches a non-normative shortened renewal endpoint; its standardization is
@@ -51,8 +51,8 @@ reserved as [RFC-AITP-0013](../rfcs/RFC-AITP-0013-tct-renewal-extension.md)
 - The response is a fresh TCT with a new `jti`, accompanied per issuer
   policy by a freshly minted grant voucher; vouchers bound to the old TCT's
   `jti` do not carry over to the renewed token (RFC-AITP-0004 §8.1,
-  [RFC-AITP-0013](../rfcs/RFC-AITP-0013-tct-renewal-extension.md#sketch-under-aitp02-non-normative)).
-- v0.2 conformance testers MUST NOT require it (RFC-AITP-0004 §8.1).
+  [RFC-AITP-0013](../rfcs/RFC-AITP-0013-tct-renewal-extension.md#sketch-under-aitp03-non-normative)).
+- v0.3 conformance testers MUST NOT require it (RFC-AITP-0004 §8.1).
 
 How the reference implementation exposes it (wire format, issuer-side
 algorithm, SDK calls, known limitations):

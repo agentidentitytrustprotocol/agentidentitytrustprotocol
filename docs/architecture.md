@@ -3,7 +3,7 @@
 This document is non-normative. It explains the problem AITP solves, the
 shape of the protocol, and how the pieces fit together so an implementer
 can build a peer agent without re-reading every RFC. It describes the
-current protocol revision, **`aitp/0.2`**. The authoritative documents are
+current protocol revision, **`aitp/0.3`**. The authoritative documents are
 the RFCs in [`rfcs/`](../rfcs/README.md); where this page and an RFC
 disagree, the RFC wins. For where implementation, deployment and tooling
 docs live, see [ecosystem.md](ecosystem.md).
@@ -74,7 +74,7 @@ third-party lookup.
 
 ### 2.1 Two signing profiles
 
-AITP v0.2 signs its artifacts in one of two ways
+AITP v0.3 signs its artifacts in one of two ways
 ([RFC-AITP-0001 §5.4](../rfcs/RFC-AITP-0001-core.md#54-signature)):
 
 | Profile | Artifacts |
@@ -91,7 +91,7 @@ For the canonical-JSON details (wrapper stripping, signing input, known-answer
 vectors) see the aitp-rs
 [JCS notes](https://github.com/agentidentitytrustprotocol/aitp-rs/blob/main/docs/jcs.md).
 
-Signatures under both profiles use Ed25519 or ECDSA P-256; a v0.2 peer MUST
+Signatures under both profiles use Ed25519 or ECDSA P-256; a v0.3 peer MUST
 be able to verify both
 ([RFC-AITP-0001 §5.4.3](../rfcs/RFC-AITP-0001-core.md#543-algorithm-tagged-signature-wire-format-jcs-profile-only) for the JCS profile; §5.4.5 for the compact JWS profile).
 The algorithm is fixed by the AID (`aid:pubkey:ed25519:…` or
@@ -180,7 +180,7 @@ signature check
 ([RFC-AITP-0008 §3.3](../rfcs/RFC-AITP-0008-revocation.md#33-revocation-lookup-ordering)).
 If the issuer declined to mint a voucher, the subject cannot delegate.
 
-Core v0.2 is single-hop only: a core implementation MUST reject a
+Core v0.3 is single-hop only: a core implementation MUST reject a
 delegation token carrying a `chain` claim with
 `DELEGATION_MULTIHOP_NOT_SUPPORTED`. Multi-hop chains are the opt-in
 [RFC-AITP-0011](../rfcs/RFC-AITP-0011-multihop-delegation.md).
@@ -200,7 +200,7 @@ strings
 |---|---|
 | HTTPS + JSON | Normative. Every conformant peer exposes the well-known Manifest endpoint and its `handshake_endpoint` over HTTPS ([RFC-AITP-0001 §8](../rfcs/RFC-AITP-0001-core.md#8-transport)). |
 | Message bus / queue with the JSON envelope | Permitted; subject names are deployment-defined. |
-| Other framings (binary RPC, CBOR, MessagePack) | Permitted as long as signing and verification use the canonical JSON form. Not part of v0.2 conformance ([RFC-AITP-0001 §10](../rfcs/RFC-AITP-0001-core.md#10-conformance)). |
+| Other framings (binary RPC, CBOR, MessagePack) | Permitted as long as signing and verification use the canonical JSON form. Not part of v0.3 conformance ([RFC-AITP-0001 §10](../rfcs/RFC-AITP-0001-core.md#10-conformance)). |
 
 ---
 
@@ -215,7 +215,7 @@ strings
 | Resolved identity-issuer keys | Each peer | TTL cache (default 3600 s). | [RFC-AITP-0007 §2.1](../rfcs/RFC-AITP-0007-key-resolution.md#21-cache) |
 | Held peer TCTs and their grant vouchers | Each peer | Stored verbatim until TCT `exp` or revocation. | [RFC-AITP-0004 §7](../rfcs/RFC-AITP-0004-mutual-handshake.md#7-state-management) |
 | TCT JTI deny list (TCTs it issued) | Each issuing peer | SHOULD persist across restarts; in-memory only is not for production. | [RFC-AITP-0008 §1.3](../rfcs/RFC-AITP-0008-revocation.md#13-persistence) |
-| Issued-JTI history | Each issuing peer | SHOULD persist issued JTIs until `max(issued_tct.exp)` per subject, so revoke-all-for-a-subject is complete. | [RFC-AITP-0008 §4.1](../rfcs/RFC-AITP-0008-revocation.md#41-session-invalidation-model-v02) |
+| Issued-JTI history | Each issuing peer | SHOULD persist issued JTIs until `max(issued_tct.exp)` per subject, so revoke-all-for-a-subject is complete. | [RFC-AITP-0008 §4.1](../rfcs/RFC-AITP-0008-revocation.md#41-session-invalidation-model-v03) |
 | Cached revocation snapshots (other issuers') | Each consuming peer | Bounded by `revocation_policy.max_staleness_secs` (schema default 300) and the snapshot's `expires_at`; past that, `revocation_policy.mode` applies. | [RFC-AITP-0008 §3.2](../rfcs/RFC-AITP-0008-revocation.md#32-staleness) |
 
 The RFCs do not require issuers to retain the grant vouchers they mint: during
@@ -248,7 +248,7 @@ Status is the single lifecycle ladder in
 [`governance/RFC-PROCESS.md`](../governance/RFC-PROCESS.md); the live table
 is [`rfcs/README.md`](../rfcs/README.md).
 
-**Core (Draft; v0.2 core conformance):**
+**Core (Draft; v0.3 core conformance):**
 
 | RFC | Role |
 |---|---|
@@ -262,15 +262,15 @@ is [`rfcs/README.md`](../rfcs/README.md).
 | **0008 Revocation** | Per-issuer JTI deny list, signed revocation snapshots, `revocation_policy`, lookup ordering. |
 | **0009 Security** | A2A threat model (including algorithm and token-type confusion) and required defenses. |
 
-**Opt-in (Draft; normative text published, NOT part of v0.2 core conformance):**
+**Opt-in (Draft; normative text published, NOT part of v0.3 core conformance):**
 
 - **0010 Session Trust Bundle** — coordinator-mediated trust for N-agent sessions. Core runners SKIP the `bundle-*` fixtures.
 - **0011 Multi-hop Delegation** — chains beyond a single hop. Core implementations reject `del-mh-*` tokens with `DELEGATION_MULTIHOP_NOT_SUPPORTED`
   ([RFC-AITP-0001 §10](../rfcs/RFC-AITP-0001-core.md#10-conformance)).
 
-**Reserved** (a real document whose contents are non-normative for `aitp/0.2`):
+**Reserved** (a real document whose contents are non-normative for `aitp/0.3`):
 
-- **0012 Extensions** — reserves `extensions.zk`, `extensions.tee` and the selective-disclosure `ext.sd_grant` key. It still constrains v0.2 peers: they MUST NOT make a trust decision based on that extension data
+- **0012 Extensions** — reserves `extensions.zk`, `extensions.tee` and the selective-disclosure `ext.sd_grant` key. It still constrains v0.3 peers: they MUST NOT make a trust decision based on that extension data
   ([RFC-AITP-0012 §5](../rfcs/RFC-AITP-0012-extensions.md#5-compatibility)).
 
 **Planned** (stub document only):
@@ -301,10 +301,10 @@ possession of its claimed key.
 ## 9. What AITP does not do
 
 - It does not authenticate the transport. Run AITP over TLS.
-- It does not issue identities. AITP is a trust evaluation layer; in v0.2 identity comes from OIDC or pinned keys. `did`, `x509` and `wallet` are reserved future identity types ([RFC-AITP-0002 §5](../rfcs/RFC-AITP-0002-identity.md#5-future-identity-types-v03)).
+- It does not issue identities. AITP is a trust evaluation layer; in v0.3 identity comes from OIDC or pinned keys. `did`, `x509` and `wallet` are reserved future identity types ([RFC-AITP-0002 §5](../rfcs/RFC-AITP-0002-identity.md#5-future-identity-types)).
 - It does not define a policy language. Each agent's local policy decides what to grant.
 - It does not define what `grants` mean. That is the namespace owner's domain ([RFC-AITP-0005 §4.2.1](../rfcs/RFC-AITP-0005-tct.md#421-capability-ownership)).
-- It does not define a service-consumer model. AITP v0.2 is strictly peer-to-peer.
+- It does not define a service-consumer model. AITP v0.3 is strictly peer-to-peer.
 - It does not define audit logging beyond requiring that authentication failures are logged with sufficient context for forensic analysis ([RFC-AITP-0009 §3](../rfcs/RFC-AITP-0009-security.md#3-implementation-security-requirements)).
 - It does not specify how a peer's Manifest URL is discovered initially — that is operations (DNS, service discovery, configuration); see [discovery.md](discovery.md).
 

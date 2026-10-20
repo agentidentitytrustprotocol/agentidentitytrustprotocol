@@ -4,7 +4,7 @@ This directory holds **real, cryptographically valid** AITP artifacts
 minted from the pinned known-answer keypairs in
 [`../keypairs.json`](../keypairs.json). It is the canonical location
 for cross-implementation interop fixtures — files here MUST verify
-under any conformant AITP v0.2 implementation, byte-for-byte, without
+under any conformant AITP v0.3 implementation, byte-for-byte, without
 any placeholder substitution.
 
 The portable trust artifacts (TCT, grant voucher, delegation token)
@@ -50,7 +50,7 @@ would have caught it.
 The session bundle's inner body and coordinator signature are the same
 pinned artifact as vector `kat-session-bundle-001` in
 [`../jcs-sha256.json`](../jcs-sha256.json) (922 canonical bytes,
-`sha256_hex` starting `c577854d…`) — restated here as a full, standalone,
+`sha256_hex` starting `b0e7a9e5…`) — restated here as a full, standalone,
 schema-validating artifact rather than a replacement for that vector.
 
 ## Layout
@@ -159,6 +159,6 @@ are minted outside `scripts/regen-known-answer.py` and recomputed by
 
 ## Stability
 
-A populated file's byte sequence is stable for the AITP v0.2
+A populated file's byte sequence is stable for the AITP v0.3
 lifecycle. Editing it (other than to fix a verified divergence from
 the spec) is a breaking change to the conformance suite.

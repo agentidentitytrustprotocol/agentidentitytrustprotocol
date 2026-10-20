@@ -2,7 +2,7 @@
   "_comment": "Single-hop delegation token (RFC-AITP-0006). B (the delegator-of-record, the peer the issuing peer actually granted) delegates a subset of its grants to C, audience-bound to the issuing peer. On the wire the token is an opaque compact JWS (typ 'aitp-delegation+jwt') signed by B; it embeds the issuing peer's grant voucher verbatim as the 'voucher' claim — the voucher replaces the v0.1 grant_proof. Both tokens below are PLACEHOLDERS: header segments are real base64url of the protected headers, but payload and signature segments are human-readable stand-ins and will fail cryptographic verification. _decoded_claims shows the outer token's payload; _decoded_voucher_claims shows the embedded voucher's payload (it is the same voucher as examples/grant-voucher/voucher.json). For real, verifiable tokens see schemas/conformance/known-answer/signed-examples/delegation/.",
   "delegation_token": "eyJhbGciOiJFZERTQSIsInR5cCI6ImFpdHAtZGVsZWdhdGlvbitqd3QifQ.DELEGATION_PAYLOAD_NOT_REAL_see_decoded_claims_placeholder.DELEGATION_SIGNATURE_NOT_REAL_placeholder_AAAAAAAAAAAAAAAA",
   "_decoded_claims": {
-    "ver": "aitp/0.2",
+    "ver": "aitp/0.3",
     "iss": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
     "sub": "aid:pubkey:agentC_pubkey_AID_v01_placeholder_CCCCCCCCC",
     "aud": "aid:pubkey:issuingPeer_pubkey_AID_v01_placeholderPPPPP",
@@ -16,7 +16,7 @@
     "voucher": "eyJhbGciOiJFZERTQSIsInR5cCI6ImFpdHAtZ3JhbnQrand0In0.VOUCHER_PAYLOAD_NOT_REAL_see_decoded_claims_placeholder.VOUCHER_SIGNATURE_NOT_REAL_placeholder_AAAAAAAAAAAAAAAAAAAA"
   },
   "_decoded_voucher_claims": {
-    "ver": "aitp/0.2",
+    "ver": "aitp/0.3",
     "iss": "aid:pubkey:issuingPeer_pubkey_AID_v01_placeholderPPPPP",
     "sub": "aid:pubkey:agentB_pubkey_AID_v01_placeholder_BBBBBBBBB",
     "grants": [

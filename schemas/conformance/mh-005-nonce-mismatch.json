@@ -15,7 +15,7 @@
     "step": "initiator received MUTUAL_HELLO_ACK",
     "sent_pop_nonce": "fRVe56NIsF6e0msvD0ORaQ",
     "envelope": {
-      "version": "aitp/0.2",
+      "version": "aitp/0.3",
       "message_type": "mutual_hello_ack",
       "message_id": "660e8400-e29b-41d4-a716-446655440104",
       "timestamp": 1711900000,
@@ -30,7 +30,7 @@
           "proof": "__VALID_JWT__"
         },
         "manifest": {
-          "version": "aitp/0.2",
+          "version": "aitp/0.3",
           "aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
           "handshake_endpoint": "https://b.agents.example.com/aitp/handshake",
           "accepted_trust_anchors": [

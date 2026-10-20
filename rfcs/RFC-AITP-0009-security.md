@@ -2,7 +2,7 @@
 # Security & Threat Model
 
 **Document:** RFC-AITP-0009
-**Version:** 0.2.5-draft
+**Version:** 0.3.0-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** All preceding RFCs.
 
@@ -10,11 +10,11 @@
 
 ## Abstract
 
-This RFC enumerates the threats AITP defends against in the agent-to-agent setting, the defenses, the v0.2 limitations, and the implementation requirements that conformant deployments MUST follow.
+This RFC enumerates the threats AITP defends against in the agent-to-agent setting, the defenses, the v0.3 limitations, and the implementation requirements that conformant deployments MUST follow.
 
 ---
 
-## 1. Threats Addressed in v0.2
+## 1. Threats Addressed in v0.3
 
 ### 1.1 Impersonation
 
@@ -109,13 +109,13 @@ This RFC enumerates the threats AITP defends against in the agent-to-agent setti
 
 **Threat:** An agent's private key is compromised.
 
-**Partial defense (v0.2):**
+**Partial defense (v0.3):**
 - The compromised peer SHOULD revoke all TCTs it issued (add JTIs to its deny list).
 - The compromised peer SHOULD re-publish its Manifest under a new `aid`.
 - Identity-issuer key revocation propagates through the cache TTL or `max_staleness_secs`.
 - Short TTLs limit exposure window.
 
-**Known limitation:** AITP v0.2 does not provide real-time key-compromise detection. Operators MUST establish out-of-band key-rotation procedures.
+**Known limitation:** AITP v0.3 does not provide real-time key-compromise detection. Operators MUST establish out-of-band key-rotation procedures.
 
 ### 1.11 Manifest PoP Bypass
 
@@ -157,14 +157,14 @@ This RFC enumerates the threats AITP defends against in the agent-to-agent setti
 
 ---
 
-## 2. Known Limitations (v0.2)
+## 2. Known Limitations (v0.3)
 
 | Threat | Status |
 |---|---|
 | Sybil attacks | Delegated to identity providers (see [non-goals](#5-non-goals)). |
 | Runtime integrity (is the agent running expected code?) | Requires TEE — reserved in [RFC-AITP-0012](RFC-AITP-0012-extensions.md). |
 | Zero-knowledge compliance proofs | Requires ZK extension — reserved in [RFC-AITP-0012](RFC-AITP-0012-extensions.md). |
-| Real-time key-revocation propagation | Out-of-band in v0.2 (pull-based). |
+| Real-time key-revocation propagation | Out-of-band in v0.3 (pull-based). |
 | Cross-domain trust federation | Future specification. |
 | Multi-hop delegation chains | Specified in [RFC-AITP-0011](RFC-AITP-0011-multihop-delegation.md) (Draft; opt-in). |
 | Multi-agent session scaling (O(N²) handshakes) | Specified in [RFC-AITP-0010](RFC-AITP-0010-session-trust-bundle.md) (Draft; opt-in). |
@@ -224,9 +224,9 @@ This ordering is normative: replay-before-rate-limit prevents an attacker from b
 
 ## 4. Cryptographic Agility
 
-AITP v0.2 mandates two signature algorithms: **Ed25519** (RFC 8032; JOSE `EdDSA`) and **ECDSA on P-256 with SHA-256** (JOSE `ES256`). A v0.2 peer MUST be able to verify both, even if it only signs with one (RFC-AITP-0001 §5.4.3); Manifests MAY advertise acceptance via `accepted_signature_algorithms` (v0.2 default `["ed25519", "p256"]`, RFC-AITP-0003 §3.2). The algorithm is determined by the AID key type, not by a negotiated parameter, to prevent algorithm-downgrade attacks.
+AITP v0.3 mandates two signature algorithms: **Ed25519** (RFC 8032; JOSE `EdDSA`) and **ECDSA on P-256 with SHA-256** (JOSE `ES256`). A v0.3 peer MUST be able to verify both, even if it only signs with one (RFC-AITP-0001 §5.4.3); Manifests MAY advertise acceptance via `accepted_signature_algorithms` (v0.3 default `["ed25519", "p256"]`, RFC-AITP-0003 §3.2). The algorithm is determined by the AID key type, not by a negotiated parameter, to prevent algorithm-downgrade attacks.
 
-`version: "aitp/0.2"` artifacts carry their algorithm in one of two ways, depending on the signing profile (RFC-AITP-0001 §5.4):
+`version: "aitp/0.3"` artifacts carry their algorithm in one of two ways, depending on the signing profile (RFC-AITP-0001 §5.4):
 
 - **JCS embedded-signature profile** (envelopes, Manifests, revocation snapshots, session trust bundles, handshake payloads): the algorithm-tagged signature grammar `<alg>.<base64url-sig>` of [RFC-AITP-0001 §5.4.3](RFC-AITP-0001-core.md#543-algorithm-tagged-signature-wire-format-jcs-profile-only). The tag MUST match the signing AID's algorithm; the legacy untagged 86-char form remains valid and means Ed25519.
 - **Compact JWS profile** (TCT, grant voucher, delegation token — v0.2 re-serializes these portable trust artifacts as compact JWS, [RFC-AITP-0001 §5.4.5](RFC-AITP-0001-core.md#545-compact-jws-profile-portable-trust-artifacts)): the JOSE protected-header `alg` parameter carries the algorithm, pinned by the same AID-derived rule — the verifier derives the sole acceptable value from the signer's AID before verification and rejects anything else with `TOKEN_ALG_MISMATCH` (§1.12, §1.14).
@@ -241,7 +241,7 @@ A future major version MAY add algorithms via the RFC process. Removing algorith
 
 ## 5. Non-Goals
 
-The following are explicitly out of scope for AITP v0.2:
+The following are explicitly out of scope for AITP v0.3:
 
 | Non-goal | Rationale |
 |---|---|
@@ -249,7 +249,7 @@ The following are explicitly out of scope for AITP v0.2:
 | Global reputation standardization | Domain-specific; reserved as a future extension. |
 | Sybil resistance | Belongs in identity providers, not a trust evaluation protocol. |
 | Identity issuance | AITP is a trust evaluation/expression layer, not an identity system. |
-| Real-time key-revocation push | Adds significant complexity; bounded by `max_staleness_secs` in v0.2. |
+| Real-time key-revocation push | Adds significant complexity; bounded by `max_staleness_secs` in v0.3. |
 | Multi-hop delegation chains | Specified in [RFC-AITP-0011](RFC-AITP-0011-multihop-delegation.md) (Draft; opt-in). |
 | ZK proof verification (core) | Tooling still maturing; reserved as an extension. |
 | TEE attestation (core) | Hardware dependency; reserved as an extension. |

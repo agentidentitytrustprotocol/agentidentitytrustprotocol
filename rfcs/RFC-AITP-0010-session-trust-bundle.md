@@ -2,7 +2,7 @@
 # Session Trust Bundle
 
 **Document:** RFC-AITP-0010
-**Version:** 0.2.6-draft
+**Version:** 0.3.0-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0004 Mutual Handshake](RFC-AITP-0004-mutual-handshake.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md), [RFC-AITP-0008 Revocation](RFC-AITP-0008-revocation.md)
 
@@ -11,7 +11,7 @@
 > **Status: Draft.** Normative text below resolves the four open questions tracked in earlier "Reserved" revisions of this RFC. The bundle wire format and conformance surface are still being implemented; consumers MUST treat the schema as Draft until this RFC is promoted to Release Candidate.
 
 > **Conformance scope.** RFC-AITP-0010 is **not part of AITP core
-> conformance** (v0.1 or v0.2). Implementations MUST NOT fail core
+> conformance** (v0.1, v0.2 or v0.3). Implementations MUST NOT fail core
 > conformance tests because they do not implement Session Trust Bundles.
 > Conformance runners MUST treat the `bundle-*` fixture set in
 > [`schemas/conformance/`](../schemas/conformance/) as SKIP unless the
@@ -63,7 +63,7 @@ The bundle itself is a **JCS-signed JSON object** — a protocol-internal artifa
 ```json
 {
   "session_bundle": {
-    "version": "aitp/0.2",
+    "version": "aitp/0.3",
     "session_id": "<uuid-v4>",
     "coordinator": "aid:pubkey:ed25519:<coordinator-base64url>",
     "issued_at": 1711900000,
@@ -81,7 +81,7 @@ The bundle itself is a **JCS-signed JSON object** — a protocol-internal artifa
 
 | Field | Required | Description |
 |---|---|---|
-| `version` | REQUIRED | MUST be `"aitp/0.2"` for this RFC. |
+| `version` | REQUIRED | MUST be `"aitp/0.3"` for this RFC. |
 | `session_id` | REQUIRED | UUID v4 unique to this session. Used as a replay-binding scope. |
 | `coordinator` | REQUIRED | The coordinator's AID. MUST match the `iss` claim of every embedded `tct`. |
 | `issued_at` | REQUIRED | Unix timestamp when this bundle was signed. |
@@ -158,11 +158,11 @@ HTTP transport is a delivery convenience, not a trust upgrade.
 
 ## 5. Verification
 
-Member-set validation comes first, before every numbered check below: every member of the received inner `session_bundle` body MUST be a field defined in §3 or sit inside `extensions`. Any unknown member of the signed body outside `extensions` ⇒ the **core** code `UNKNOWN_FIELD` ([RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model)); unknown keys *inside* `extensions` MUST be ignored. (A `signature` sitting beside the `session_bundle` wrapper key instead of inside the body is the distinct pre-v0.2 shape, rejected per §3 — the signed body is then also missing its required `signature` member.) This structural check is deliberately not a numbered step — the step numbers below are load-bearing, cited by §8 and by the pinned conformance fixtures — but it precedes them all: a bundle carrying an unknown member is rejected before coordinator key resolution (step 5) triggers any network fetch and before any signature verification (steps 6–7) is spent on it.
+Member-set validation comes first, before every numbered check below: every member of the received inner `session_bundle` body MUST be a field defined in §3 or sit inside `extensions`. Any unknown member of the signed body outside `extensions` ⇒ the **core** code `UNKNOWN_FIELD` ([RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model)); unknown keys *inside* `extensions` MUST be ignored. (A `signature` sitting beside the `session_bundle` wrapper key instead of inside the body is the distinct pre-v0.3 shape, rejected per §3 — the signed body is then also missing its required `signature` member.) This structural check is deliberately not a numbered step — the step numbers below are load-bearing, cited by §8 and by the pinned conformance fixtures — but it precedes them all: a bundle carrying an unknown member is rejected before coordinator key resolution (step 5) triggers any network fetch and before any signature verification (steps 6–7) is spent on it.
 
 A participant receiving a bundle MUST, in order:
 
-1. **Version check** — `session_bundle.version` MUST be `"aitp/0.2"` or a later supported version. Failure ⇒ `BUNDLE_VERSION_MISMATCH`.
+1. **Version check** — `session_bundle.version` MUST be `"aitp/0.3"` or a later supported version. Failure ⇒ `BUNDLE_VERSION_MISMATCH`.
 2. **Expiry check** — `session_bundle.expires_at` MUST be in the future. Failure ⇒ `BUNDLE_EXPIRED`.
 3. **Expiry-window invariant** — `session_bundle.expires_at` MUST equal the minimum `exp` claim across the embedded participant TCTs (§6). Failure ⇒ `BUNDLE_EXPIRY_WINDOW_INVARIANT`.
 4. **Participants non-empty** — `participants` MUST contain at least one entry. Failure ⇒ `BUNDLE_EMPTY_PARTICIPANTS`.
@@ -200,7 +200,7 @@ A coordinator that wishes to terminate a session entirely MUST add every embedde
 | Code | Meaning | Retryable |
 |---|---|---|
 | `BUNDLE_INVALID_SIGNATURE` | Coordinator's outer bundle signature failed verification under the coordinator's Manifest key | false |
-| `BUNDLE_VERSION_MISMATCH` | `version` is not `"aitp/0.2"` (or a later version this implementation supports) | false |
+| `BUNDLE_VERSION_MISMATCH` | `version` is not `"aitp/0.3"` (or a later version this implementation supports) | false |
 | `BUNDLE_EXPIRED` | `expires_at` is in the past at verification time | false |
 | `BUNDLE_EXPIRY_WINDOW_INVARIANT` | `expires_at` is greater than the minimum `exp` claim across the embedded participant TCTs (violates §6) | false |
 | `BUNDLE_COORDINATOR_ISSUER_MISMATCH` | One or more embedded TCTs carry an `iss` claim that does not equal `coordinator` | false |
@@ -222,7 +222,7 @@ An unknown member inside the signed `session_bundle` body, outside `extensions`,
 | `issue_session_bundle` | Coordinator op: take N coordinator-issued TCTs and produce a signed bundle. |
 | `verify_session_bundle` | Participant op: run §5 verification on a received bundle. |
 
-A conformant v0.2 implementation that opts into RFC-AITP-0010 MUST expose both operations in its conformance harness. Implementations that do not expose them MUST report SKIP for any `bundle-*` fixture rather than FAIL.
+A conformant v0.3 implementation that opts into RFC-AITP-0010 MUST expose both operations in its conformance harness. Implementations that do not expose them MUST report SKIP for any `bundle-*` fixture rather than FAIL.
 
 KAT vector `kat-session-bundle-001` lives in [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json) and pins (coordinator key kat-keypair-001 + one participant TCT compact JWS string → canonical **inner** bundle body → SHA-256 → Ed25519 signature). Its `object` is the signing input itself, as its `signing_input: "body"` field records — not the `{"session_bundle": {…}}` transport form — and its pinned `coordinator_signature_b64url` verifies over exactly those bytes. Implementations MUST reproduce the canonical bytes and the digest byte-for-byte and MUST verify the pinned signature. **Note for implementers holding an earlier copy:** through v0.2-draft this vector pinned the *wrapped* form and its signature was minted over it; both were corrected (see `CHANGELOG.md` for the old and new digests). The vector is reworked for `aitp/0.2`: the bundle's own JCS form survives, but its embedded TCT members are opaque compact JWS strings (minted per the RFC-AITP-0005 signed-example vectors), covered verbatim by the JCS body. Conformance fixtures exercising the bundle verification path live at [`schemas/conformance/bundle-001-success.json`](../schemas/conformance/bundle-001-success.json), [`bundle-002-not-member.json`](../schemas/conformance/bundle-002-not-member.json), and [`bundle-003-expired.json`](../schemas/conformance/bundle-003-expired.json).
 
@@ -238,9 +238,9 @@ KAT vector `kat-session-bundle-001` lives in [`schemas/conformance/known-answer/
   2. All participants MUST treat bundles whose `coordinator` field equals the old (compromised) coordinator AID as untrusted from the moment of compromise notification, regardless of whether the bundle's `signature` still cryptographically verifies. The attacker holds the old signing key; outer-signature validity is no longer evidence of legitimate issuance.
   3. The legitimate coordinator SHOULD notify participants out-of-band (the same channel that bootstraps coordinator trust in the first place — operator broadcast, MACP `SessionEnd`, etc.) and distribute a **fresh bundle under the new AID** by re-running the bilateral handshakes with each participant (RFC-AITP-0004) and issuing fresh per-participant TCTs that the new bundle embeds.
   4. Bundle lifetime is bounded by `expires_at` (§6). Bundles whose `expires_at` is in the past MUST NOT be used regardless of provenance — including bundles signed by the compromised key. This means an unrevoked old bundle expires on its own schedule even if the compromise notification does not reach every consumer immediately; the worst-case exposure window for a stolen coordinator key is bounded by the minimum `exp` claim across the embedded participant TCTs plus the compromise-detection delay.
-  5. Participants that learn of compromise MUST NOT silently downgrade to a non-bundle session topology that papers over the missing trust artifact. Either a fresh bundle under the new AID arrives, or the session terminates — there is no "operate without bundle until further notice" middle state in v0.2.
+  5. Participants that learn of compromise MUST NOT silently downgrade to a non-bundle session topology that papers over the missing trust artifact. Either a fresh bundle under the new AID arrives, or the session terminates — there is no "operate without bundle until further notice" middle state in v0.3.
 
-  This recovery model assumes coordinator-compromise detection is out-of-band; AITP v0.1/v0.2 do not specify push-based compromise notification. Push-based notification is a candidate for a future RFC.
+  This recovery model assumes coordinator-compromise detection is out-of-band; AITP v0.1 through v0.3 do not specify push-based compromise notification. Push-based notification is a candidate for a future RFC.
 - **Bundle replay.** A bundle issued in session X MUST NOT be reusable in session Y. The `session_id` field and the minimum-TCT-`exp` expiry bound (§6) are the primary defenses; consumers MUST reject bundles whose `session_id` they have already accepted with a different signature.
 - **Transitive trust inflation.** Participants that never directly handshake with each other inherit only coordinator-attested membership, not peer-to-peer binding. The trust model (§2) makes this limit explicit; it does not provide proof of peer-to-peer identity binding.
 - **Mid-session revocation.** Resolved per §7 (per-pair degradation). The coordinator's deny list is the single source of truth.

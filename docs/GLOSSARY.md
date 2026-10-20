@@ -1,6 +1,6 @@
 # AITP Glossary
 
-Terms used across AITP RFCs, schemas, and registries, for the current protocol revision `aitp/0.2`. The authoritative definitions live in the RFC sections referenced from each entry; this glossary is a non-normative quick reference. Where an entry and the RFC differ, the RFC wins.
+Terms used across AITP RFCs, schemas, and registries, for the current protocol revision `aitp/0.3`. The authoritative definitions live in the RFC sections referenced from each entry; this glossary is a non-normative quick reference. Where an entry and the RFC differ, the RFC wins.
 
 ---
 
@@ -43,15 +43,15 @@ A one-line "what is X / where is it defined" lookup for the core AITP concepts. 
 
 ## A
 
-**A2A (Agent-to-Agent).** The trust model AITP defines: two autonomous agents establish bilateral trust without a central verifier. There is no service-consumer profile in v0.2. See [RFC-AITP-0001 §3](../rfcs/RFC-AITP-0001-core.md#3-scope-and-design-goals).
+**A2A (Agent-to-Agent).** The trust model AITP defines: two autonomous agents establish bilateral trust without a central verifier. There is no service-consumer profile in v0.3. See [RFC-AITP-0001 §3](../rfcs/RFC-AITP-0001-core.md#3-scope-and-design-goals).
 
 **`accepted_identity_types`.** Optional Manifest field listing the identity binding types the agent accepts from peers (`"oidc"`, `"pinned_key"`). Absent means `["oidc"]`; an explicit `[]` accepts none and yields `INCOMPATIBLE_IDENTITY_TYPE` for every peer. The absent-vs-empty distinction is preserved in the signed bytes. See [RFC-AITP-0003 §3.2](../rfcs/RFC-AITP-0003-manifest.md#32-optional-fields).
 
-**`accepted_signature_algorithms`.** Optional Manifest field listing the signature algorithms the agent accepts (`"ed25519"`, `"p256"`). Absent defaults to the mandatory set for the Manifest's `version` — `["ed25519", "p256"]` for `aitp/0.2`; an explicit `[]` accepts none. See [RFC-AITP-0003 §3.2](../rfcs/RFC-AITP-0003-manifest.md#32-optional-fields).
+**`accepted_signature_algorithms`.** Optional Manifest field listing the signature algorithms the agent accepts (`"ed25519"`, `"p256"`). Absent defaults to the mandatory set for the Manifest's `version` — `["ed25519", "p256"]` for `aitp/0.3`; an explicit `[]` accepts none. See [RFC-AITP-0003 §3.2](../rfcs/RFC-AITP-0003-manifest.md#32-optional-fields).
 
 **`accepted_trust_anchors`.** Required Manifest field: the "OIDC issuer URIs this agent accepts from peers". At discovery, a fetcher whose own identity is `oidc` requires the target Manifest's `accepted_trust_anchors` to contain an issuer in the fetcher's own `trust_anchors` (else `INCOMPATIBLE_TRUST_ANCHORS`); for a `pinned_key` fetcher it is not consulted — `accepted_identity_types` is checked instead. The publisher MUST keep it consistent with its runtime `trust_anchors`. See [RFC-AITP-0003 §5](../rfcs/RFC-AITP-0003-manifest.md#5-manifest-verification) step 6 and [RFC-AITP-0003 §5.1](../rfcs/RFC-AITP-0003-manifest.md#51-trust-anchor-consistency-requirement).
 
-**AID (Agent Identifier).** The canonical, public identifier of an agent, `aid:<method>:<identifier>`. v0.2 forms:
+**AID (Agent Identifier).** The canonical, public identifier of an agent, `aid:<method>:<identifier>`. v0.3 forms:
 
 - `aid:pubkey:ed25519:<43 chars>` — unpadded base64url of the 32-byte raw Ed25519 public key;
 - `aid:pubkey:p256:<44 chars>` — unpadded base64url of the 33-byte SEC1-compressed P-256 public key;
@@ -69,7 +69,7 @@ New AIDs SHOULD use the tagged form. The legacy form is canonically equivalent t
 
 ## B
 
-**Binding (proof-of-possession binding).** What ties a TCT or delegation token to its subject's private key so a downstream consumer can challenge the holder: the top-level `cnf` claim, `{"jkt": …}`. `cnf` is REQUIRED on every v0.2 peer-issued TCT; there is no bearer-TCT profile. See [RFC-AITP-0005 §3](../rfcs/RFC-AITP-0005-tct.md#3-confirmation-claim-cnf), [RFC-AITP-0005 §6](../rfcs/RFC-AITP-0005-tct.md#6-binding-proof-of-possession).
+**Binding (proof-of-possession binding).** What ties a TCT or delegation token to its subject's private key so a downstream consumer can challenge the holder: the top-level `cnf` claim, `{"jkt": …}`. `cnf` is REQUIRED on every v0.3 peer-issued TCT; there is no bearer-TCT profile. See [RFC-AITP-0005 §3](../rfcs/RFC-AITP-0005-tct.md#3-confirmation-claim-cnf), [RFC-AITP-0005 §6](../rfcs/RFC-AITP-0005-tct.md#6-binding-proof-of-possession).
 
 ---
 
@@ -77,7 +77,7 @@ New AIDs SHOULD use the tagged form. The legacy form is canonically equivalent t
 
 **Capability.** An opaque string identifying an action a peer is willing to grant or accept. AITP does not define what a capability means — that is owned by the namespace prefix (e.g. `macp.*`, `aitp.*`, `com.example.*`). See [RFC-AITP-0005 §4.2.1](../rfcs/RFC-AITP-0005-tct.md#421-capability-ownership) and [`registries/capabilities.md`](../registries/capabilities.md).
 
-**`cnf` (Confirmation Claim).** The RFC 7800 confirmation claim on a TCT or delegation token. In `aitp/0.2` it is a top-level claim in the `jkt` form only: `{"jkt": "<RFC 7638 JWK thumbprint>"}`. `cnf.jkt` MUST equal the thumbprint of the public key encoded in the token's `sub` AID; verifiers derive the expected value from `sub`. See [RFC-AITP-0001 §5.4.4](../rfcs/RFC-AITP-0001-core.md#544-jwk-thumbprint-for-cnf), [RFC-AITP-0005 §3](../rfcs/RFC-AITP-0005-tct.md#3-confirmation-claim-cnf).
+**`cnf` (Confirmation Claim).** The RFC 7800 confirmation claim on a TCT or delegation token. In `aitp/0.3` it is a top-level claim in the `jkt` form only: `{"jkt": "<RFC 7638 JWK thumbprint>"}`. `cnf.jkt` MUST equal the thumbprint of the public key encoded in the token's `sub` AID; verifiers derive the expected value from `sub`. See [RFC-AITP-0001 §5.4.4](../rfcs/RFC-AITP-0001-core.md#544-jwk-thumbprint-for-cnf), [RFC-AITP-0005 §3](../rfcs/RFC-AITP-0005-tct.md#3-confirmation-claim-cnf).
 
 **Compact JWS profile.** The signing profile for the portable trust artifacts (TCT, grant voucher, delegation token): each is an RFC 7515 compact JWS `header.payload.signature`. The protected header contains exactly `alg` and `typ`; the payload carries `ver` and the artifact's claims; unknown claims outside `ext` are rejected with `UNKNOWN_FIELD`; verifiers never re-serialize. Embedded in JSON, the artifact is an opaque string. See [RFC-AITP-0001 §5.4.5](../rfcs/RFC-AITP-0001-core.md#545-compact-jws-profile-portable-trust-artifacts).
 
@@ -101,9 +101,9 @@ New AIDs SHOULD use the tagged form. The legacy form is canonically equivalent t
 
 **`ext`.** The OPTIONAL private claim on compact-JWS artifacts that mirrors the `extensions` slot: unknown keys *inside* `ext` MUST be ignored; unknown claims outside it are rejected with `UNKNOWN_FIELD`. See [RFC-AITP-0001 §5.4.5](../rfcs/RFC-AITP-0001-core.md#545-compact-jws-profile-portable-trust-artifacts), [RFC-AITP-0012 §1.1](../rfcs/RFC-AITP-0012-extensions.md#11-the-ext-claim-on-compact-jws-artifacts).
 
-**`ext.sd_grant`.** Extension key reserved for a future SD-JWT-style selective-disclosure grant voucher. v0.2 peers MUST NOT make a trust decision based on it. See [RFC-AITP-0012 §4](../rfcs/RFC-AITP-0012-extensions.md#4-selective-disclosure-grant-voucher-extsd_grant).
+**`ext.sd_grant`.** Extension key reserved for a future SD-JWT-style selective-disclosure grant voucher. v0.3 peers MUST NOT make a trust decision based on it. See [RFC-AITP-0012 §4](../rfcs/RFC-AITP-0012-extensions.md#4-selective-disclosure-grant-voucher-extsd_grant).
 
-**Extensions.** The optional `extensions` object on JCS-profile objects (envelope, Manifest, handshake payloads, identity descriptor, revocation snapshot, session bundle). It is covered by the signature like any other member, on the envelope too ([RFC-AITP-0001 §5.4](../rfcs/RFC-AITP-0001-core.md#54-signature)); unknown keys inside it MUST be ignored, while an unknown member beside it is rejected with `UNKNOWN_FIELD` ([RFC-AITP-0001 §7](../rfcs/RFC-AITP-0001-core.md#7-compatibility-model)). [RFC-AITP-0012](../rfcs/RFC-AITP-0012-extensions.md) (Reserved, non-normative for `aitp/0.2`) reserves `extensions.zk` and `extensions.tee`; v0.2 peers MUST NOT make a trust decision based on them.
+**Extensions.** The optional `extensions` object on JCS-profile objects (envelope, Manifest, handshake payloads, identity descriptor, revocation snapshot, session bundle). It is covered by the signature like any other member, on the envelope too ([RFC-AITP-0001 §5.4](../rfcs/RFC-AITP-0001-core.md#54-signature)); unknown keys inside it MUST be ignored, while an unknown member beside it is rejected with `UNKNOWN_FIELD` ([RFC-AITP-0001 §7](../rfcs/RFC-AITP-0001-core.md#7-compatibility-model)). [RFC-AITP-0012](../rfcs/RFC-AITP-0012-extensions.md) (Reserved, non-normative for `aitp/0.3`) reserves `extensions.zk` and `extensions.tee`; v0.3 peers MUST NOT make a trust decision based on them.
 
 ---
 
@@ -117,7 +117,7 @@ New AIDs SHOULD use the tagged form. The legacy form is canonically equivalent t
 
 ## I
 
-**Identity binding.** The mechanism by which an AID is associated with an external identity claim. v0.2 defines `oidc` and `pinned_key`; `did`, `x509` and `wallet` are reserved future types. See [RFC-AITP-0002](../rfcs/RFC-AITP-0002-identity.md), [`registries/identity-types.md`](../registries/identity-types.md).
+**Identity binding.** The mechanism by which an AID is associated with an external identity claim. v0.3 defines `oidc` and `pinned_key`; `did`, `x509` and `wallet` are reserved future types. See [RFC-AITP-0002](../rfcs/RFC-AITP-0002-identity.md), [`registries/identity-types.md`](../registries/identity-types.md).
 
 **Identity descriptor.** The `identity` object a peer presents in `MUTUAL_HELLO` / `MUTUAL_HELLO_ACK`: `type`, `subject`, `proof`, plus `issuer` (required for `oidc`, MUST be absent for `pinned_key`) and `public_key` (required for `pinned_key`, MUST be absent for `oidc`), and an optional `extensions`. A `pinned_key` descriptor may carry an Ed25519 or a P-256 key. Structural defects — including an `oidc` descriptor carrying `public_key`, or a `pinned_key` descriptor carrying `issuer` — are rejected with `IDENTITY_FAILED`. The canonical schema is `aitp-identity.schema.json`; the handshake schema carries a mirror of it. See [RFC-AITP-0002 §1](../rfcs/RFC-AITP-0002-identity.md#1-identity-descriptor).
 
@@ -169,7 +169,7 @@ New AIDs SHOULD use the tagged form. The legacy form is canonically equivalent t
 
 **Peer.** Either party in an A2A interaction. AITP has no asymmetric roles — every peer is both an issuer and an audience.
 
-**Pinned-admission profile.** The OPTIONAL one-way admission profile `pinned-admission`: a verifier admits a client whose pinned key it already trusts from one `identity_presentation` envelope, without a Mutual Handshake. The client's proof is the §3.1 pinned-key proof over a nonce the verifier issued, bound to the verifier's own AID, single-use and unexpired. The verifier runs a fixed check order (deny list, then rate limit, then timestamp, structure, nonce, proof, atomic consume) answers a rate-limited request with exactly HTTP 429, and refuses a challenge with `CHALLENGE_REFUSED` when its outstanding-nonce bound is reached. The refusal is not an error envelope; it travels in the challenge's own transport (informatively HTTP 503 with `Retry-After`), distinguishable from the 429. A party implementing only this profile MAY claim "AITP v0.2 pinned-admission" but not RFC-AITP-0001 §10 conformance; its fixtures are `status: extension`, `feature: aitp-pinned-admission`. See [RFC-AITP-0002 §3.4](../rfcs/RFC-AITP-0002-identity.md#34-one-way-pinned-key-admission-optional-profile-pinned-admission).
+**Pinned-admission profile.** The OPTIONAL one-way admission profile `pinned-admission`: a verifier admits a client whose pinned key it already trusts from one `identity_presentation` envelope, without a Mutual Handshake. The client's proof is the §3.1 pinned-key proof over a nonce the verifier issued, bound to the verifier's own AID, single-use and unexpired. The verifier runs a fixed check order (deny list, then rate limit, then timestamp, structure, nonce, proof, atomic consume) answers a rate-limited request with exactly HTTP 429, and refuses a challenge with `CHALLENGE_REFUSED` when its outstanding-nonce bound is reached. The refusal is not an error envelope; it travels in the challenge's own transport (informatively HTTP 503 with `Retry-After`), distinguishable from the 429. A party implementing only this profile MAY claim "AITP v0.3 pinned-admission" but not RFC-AITP-0001 §10 conformance; its fixtures are `status: extension`, `feature: aitp-pinned-admission`. See [RFC-AITP-0002 §3.4](../rfcs/RFC-AITP-0002-identity.md#34-one-way-pinned-key-admission-optional-profile-pinned-admission).
 
 **PoP (Proof-of-Possession).** A signature proving the presenter holds the private key for a public key (the Manifest's AID, a handshake peer's AID, or a TCT's `cnf`). Every PoP signing input uses the base64url-*decoded* nonce or challenge bytes, never the ASCII string — `sha256(base64url_decode(nonce_or_challenge))`. Sites: Manifest PoP ([RFC-AITP-0003 §3.1](../rfcs/RFC-AITP-0003-manifest.md#31-required-fields), verified at [RFC-AITP-0003 §5](../rfcs/RFC-AITP-0003-manifest.md#5-manifest-verification) step 4), handshake round-2 PoP (RFC-AITP-0004 §3.3), downstream TCT PoP ([RFC-AITP-0005 §6.1](../rfcs/RFC-AITP-0005-tct.md#61-downstream-pop-exchange)), and the pinned-key identity proof. See [RFC-AITP-0001 §5.4.2](../rfcs/RFC-AITP-0001-core.md#542-pop-signing-input-convention).
 
@@ -195,9 +195,9 @@ New AIDs SHOULD use the tagged form. The legacy form is canonically equivalent t
 
 **Scope.** A delegation token's `scope` array — the capabilities delegated to the delegatee. It MUST satisfy `scope ⊆ voucher.grants`, else `DELEGATION_SCOPE_EXCEEDED`. See [RFC-AITP-0006 §4](../rfcs/RFC-AITP-0006-delegation.md#4-verification-rules) step 6.
 
-**Self-attestation TCT.** A TCT an agent issues about itself: `iss == sub == aud`, `grants` exactly `["aitp.attestation"]`, `cnf.jkt` its own key's thumbprint, and the statement in `ext` under a namespaced key. It grants nothing. A relying party verifies it as an attestation, which is not a grant context, and rejects an attestation-shape defect, an `ext` lacking the key it expects, or an issuer key its own records do not show as trusted at `iat`, with `TCT_SIGNATURE_INVALID`; every grant context rejects it. An implementation that verifies attestations MAY claim "AITP v0.2 self-attestation" conformance. Known answers `kat-tct-002` (Ed25519) and `kat-tct-003` (P-256). See [RFC-AITP-0005 §5.3](../rfcs/RFC-AITP-0005-tct.md#53-self-issued-attestation-tcts).
+**Self-attestation TCT.** A TCT an agent issues about itself: `iss == sub == aud`, `grants` exactly `["aitp.attestation"]`, `cnf.jkt` its own key's thumbprint, and the statement in `ext` under a namespaced key. It grants nothing. A relying party verifies it as an attestation, which is not a grant context, and rejects an attestation-shape defect, an `ext` lacking the key it expects, or an issuer key its own records do not show as trusted at `iat`, with `TCT_SIGNATURE_INVALID`; every grant context rejects it. An implementation that verifies attestations MAY claim "AITP v0.3 self-attestation" conformance. Known answers `kat-tct-002` (Ed25519) and `kat-tct-003` (P-256). See [RFC-AITP-0005 §5.3](../rfcs/RFC-AITP-0005-tct.md#53-self-issued-attestation-tcts).
 
-**Session Trust Bundle.** A JCS-signed `session_bundle` a coordinator builds from its N bilateral handshakes, carrying each participant's TCT, so session members get coordinator-attested membership without an O(N²) mesh. Draft, opt-in; not part of v0.2 core conformance. See [RFC-AITP-0010](../rfcs/RFC-AITP-0010-session-trust-bundle.md).
+**Session Trust Bundle.** A JCS-signed `session_bundle` a coordinator builds from its N bilateral handshakes, carrying each participant's TCT, so session members get coordinator-attested membership without an O(N²) mesh. Draft, opt-in; not part of v0.3 core conformance. See [RFC-AITP-0010](../rfcs/RFC-AITP-0010-session-trust-bundle.md).
 
 **`src_jti`.** Grant-voucher claim holding the companion TCT's `jti`. Delegation verification looks it up in the issuer's deny list (after all signature checks) and rejects with `DELEGATION_SOURCE_TCT_REVOKED`. See [RFC-AITP-0005 §8.1](../rfcs/RFC-AITP-0005-tct.md#81-serialization).
 

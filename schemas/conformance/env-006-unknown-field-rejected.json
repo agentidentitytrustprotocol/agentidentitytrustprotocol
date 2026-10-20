@@ -17,7 +17,7 @@
     "self_aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
     "tolerance_seconds": 300,
     "envelope": {
-      "version": "aitp/0.2",
+      "version": "aitp/0.3",
       "message_type": "mutual_hello",
       "message_id": "770e8400-e29b-41d4-a716-446655441006",
       "timestamp": 1711900000,

@@ -14,7 +14,7 @@
   "input": {
     "voucher_token": "__JWS_GRANT_VOUCHER__",
     "voucher_token_claims": {
-      "ver": "aitp/0.2",
+      "ver": "aitp/0.3",
       "iss": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
       "sub": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
       "grants": [

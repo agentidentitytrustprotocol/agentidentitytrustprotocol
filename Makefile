@@ -13,7 +13,7 @@ help:
 	@echo "AITP Development Commands"
 	@echo
 	@echo "Validation:"
-	@echo "  make validate              Run all v0.2 validations (JSON only)"
+	@echo "  make validate              Run all v0.3 validations (JSON only)"
 	@echo "  make json-schema-validate  Validate JSON Schemas (meta-validation)"
 	@echo "  make json-validate         Validate JSON examples and conformance fixtures,"
 	@echo "                             incl. the map-driven fixture-input cross-check"
@@ -22,7 +22,7 @@ help:
 	@echo "  make doc-coherence         Eight-stage doc coherence check: RFC version claims,"
 	@echo "                             intra-repo anchor links, RFC section citations,"
 	@echo "                             fixture error codes, mirrored schema definitions,"
-	@echo "                             the RFC status ladder, stale v0.1 vocabulary,"
+	@echo "                             the RFC status ladder, stale superseded-revision vocabulary,"
 	@echo "                             and sibling-repo link form"
 	@echo "                             (stages documented in scripts/check-doc-coherence.sh)"
 	@echo
@@ -37,7 +37,7 @@ help:
 # ── Validation ────────────────────────────────────────────────────────────────
 
 validate: json-schema-validate json-validate kat-verify doc-coherence
-	@echo "✓ All v0.2 validations passed"
+	@echo "✓ All v0.3 validations passed"
 
 json-schema-validate:
 	@echo "Validating JSON Schemas (meta-validation)..."
@@ -58,7 +58,7 @@ kat-verify:
 # headers -- this is the mechanical check that stops them from drifting the
 # way schemas/fixtures did before PR #22 and PR #30.
 doc-coherence:
-	@echo "Checking RFC version claims, intra-repo anchor links, section citations, fixture error codes, mirrored schema definitions, the RFC status ladder, stale v0.1 vocabulary, and sibling-repo link form..."
+	@echo "Checking RFC version claims, intra-repo anchor links, section citations, fixture error codes, mirrored schema definitions, the RFC status ladder, stale superseded-revision vocabulary, and sibling-repo link form..."
 	@./scripts/check-doc-coherence.sh
 
 # ── Docs ─────────────────────────────────────────────────────────────────────
@@ -72,7 +72,7 @@ docs:
 	@echo "   3. docs/architecture.md"
 	@echo "   4. docs/GLOSSARY.md"
 	@echo
-	@echo "Normative v0.2 core RFCs (Draft):"
+	@echo "Normative v0.3 core RFCs (Draft):"
 	@echo "   5. rfcs/RFC-AITP-0001-core.md"
 	@echo "   6. rfcs/RFC-AITP-0002-identity.md"
 	@echo "   7. rfcs/RFC-AITP-0003-manifest.md"
@@ -92,11 +92,11 @@ docs:
 	@echo "  19. docs/non-goals.md"
 	@echo "  20. docs/ecosystem.md   (sibling repos: SDKs, verifier, playground, MCP)"
 	@echo
-	@echo "Opt-in drafts (Draft normative text; NOT part of v0.2 core conformance):"
+	@echo "Opt-in drafts (Draft normative text; NOT part of v0.3 core conformance):"
 	@echo "   - rfcs/RFC-AITP-0010-session-trust-bundle.md"
 	@echo "   - rfcs/RFC-AITP-0011-multihop-delegation.md"
 	@echo
-	@echo "Reserved (non-normative for aitp/0.2):"
+	@echo "Reserved (non-normative for aitp/0.3):"
 	@echo "   - rfcs/RFC-AITP-0012-extensions.md"
 	@echo
 	@echo "Planned (stub reserving the number):"
@@ -123,7 +123,7 @@ clean:
 # repository (one level up) so it never lands inside the tree.
 
 RELEASE_NAME ?= agentidentitytrustprotocol
-RELEASE_VERSION ?= v0.2.0-draft
+RELEASE_VERSION ?= v0.3.0-draft
 RELEASE_ARCHIVE := ../$(RELEASE_NAME)-$(RELEASE_VERSION).zip
 
 release:

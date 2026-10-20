@@ -17,7 +17,7 @@
   "input": {
     "tct_token": "__JWS_TCT__",
     "tct_token_claims": {
-      "ver": "aitp/0.2",
+      "ver": "aitp/0.3",
       "jti": "550e8400-e29b-41d4-a716-446655440119",
       "iss": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
       "sub": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",

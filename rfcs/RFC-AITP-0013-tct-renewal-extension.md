@@ -2,7 +2,7 @@
 # TCT Renewal Extension
 
 **Document:** RFC-AITP-0013
-**Version:** 0.2.0-planned
+**Version:** 0.3.0-planned
 **Status:** Planned
 **Depends on:** [RFC-AITP-0004 Mutual Handshake](RFC-AITP-0004-mutual-handshake.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md)
 
@@ -17,17 +17,17 @@ The wire format of the shortened renewal exchange is stable across
 implementations, but conformance testing and required behavior are
 reserved for this RFC.
 
-The contents of this RFC are **non-normative** for v0.2. They become
+The contents of this RFC are **non-normative** for v0.3. They become
 normative in a future version.
 
 ## Status
 
-No normative text. Reserved for post-v0.2 standardization. This stub
+No normative text. Reserved for post-v0.3 standardization. This stub
 exists so that RFC-AITP-0004 §8.1, `rfcs/README.md`, and
 `registries/extension-keys.md` have a stable reference to point at
 before the document is written.
 
-v0.2 implementations:
+v0.3 implementations:
 
 - MUST NOT require shortened renewal support (RFC-AITP-0004 §8.1).
 - MAY offer the shortened renewal extension, advertising it via
@@ -36,9 +36,9 @@ v0.2 implementations:
 - MUST fall back to the full Mutual Handshake (RFC-AITP-0004) for
   renewal when the extension is absent.
 
-## Sketch under `aitp/0.2` (non-normative)
+## Sketch under `aitp/0.3` (non-normative)
 
-Under the v0.2 Compact JWS profile (RFC-AITP-0001 §5.4.5), the
+Under the v0.3 Compact JWS profile (RFC-AITP-0001 §5.4.5), the
 shortened renewal exchange carries TCTs as opaque compact JWS strings:
 
 - The renewal **request** carries the holder's current TCT as a compact

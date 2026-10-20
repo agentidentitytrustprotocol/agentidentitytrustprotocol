@@ -33,7 +33,7 @@ peers:
 
 **Trust posture.** An operator-curated allowlist. The `expected_aid` field is a deployment convention, not a protocol field; it is optional but recommended — it lets A reject a Manifest that has been served from the right hostname but with the wrong key (key-substitution under a compromised host).
 
-**AID forms.** The example uses the algorithm-tagged form (`aid:pubkey:ed25519:…` or `aid:pubkey:p256:…`), which new v0.2 AIDs SHOULD use. The legacy untagged form `aid:pubkey:<43 chars>` (the v0.1 grammar) remains valid indefinitely and means Ed25519; it is "canonically equivalent to `aid:pubkey:ed25519:<same-identifier>` for trust decisions" but not byte-equal, so compare `expected_aid` by key and algorithm rather than as a raw string ([RFC-AITP-0001 §5.3](../rfcs/RFC-AITP-0001-core.md#53-agent-id-aid)).
+**AID forms.** The example uses the algorithm-tagged form (`aid:pubkey:ed25519:…` or `aid:pubkey:p256:…`), which new AIDs SHOULD use. The legacy untagged form `aid:pubkey:<43 chars>` (the v0.1 grammar) remains valid indefinitely and means Ed25519; it is "canonically equivalent to `aid:pubkey:ed25519:<same-identifier>` for trust decisions" but not byte-equal, so compare `expected_aid` by key and algorithm rather than as a raw string ([RFC-AITP-0001 §5.3](../rfcs/RFC-AITP-0001-core.md#53-agent-id-aid)).
 
 **When to use.** Small ecosystems, regulated environments, anything where peers are explicitly partnered.
 
@@ -79,7 +79,7 @@ In all three patterns, the moment A has a candidate `manifest_url`, the AITP nor
 
 1. **Fetch** the Manifest over HTTPS, validating the TLS certificate. Plain HTTP MUST be rejected. A non-2xx response, unreachable host, DNS or TLS failure means the Manifest could not be retrieved ⇒ `MANIFEST_NOT_FOUND` (retryable; [RFC-AITP-0003 §4.1](../rfcs/RFC-AITP-0003-manifest.md#41-http-requirements)).
 2. **Unwrap.** The well-known endpoint returns `{"manifest": {…}}`; that wrapper is "the HTTP/transport envelope only". Verify the inner object ([RFC-AITP-0003 §6.1](../rfcs/RFC-AITP-0003-manifest.md#61-what-is-signed)).
-3. **Version check** — `manifest.version` MUST be `"aitp/0.2"` (or a later version this implementation supports) ⇒ else `MANIFEST_VERSION_UNKNOWN`.
+3. **Version check** — `manifest.version` MUST be `"aitp/0.3"` (or a later version this implementation supports) ⇒ else `MANIFEST_VERSION_UNKNOWN`.
 4. **Structural check** — the Manifest MUST validate against [`aitp-manifest.schema.json`](../schemas/json/aitp-manifest.schema.json) ⇒ else `MANIFEST_INVALID`. Then the member-set check: any member outside the §3 fields and outside `extensions` ⇒ `UNKNOWN_FIELD`; unknown keys *inside* `extensions` are ignored. Both run before any cryptography.
 5. **Expiry check** — `manifest.expires_at` MUST be in the future ⇒ else `MANIFEST_EXPIRED`.
 6. **Proof-of-possession** — verify `proof_of_possession.signature` against the public key in `manifest.aid` ⇒ else `MANIFEST_POP_FAILED`. The signing input is `sha256(base64url_decode(challenge))` — the decoded raw bytes, not the ASCII string ([RFC-AITP-0001 §5.4.2](../rfcs/RFC-AITP-0001-core.md#542-pop-signing-input-convention)). Getting this wrong is the "Manifest PoP Bypass" threat of [RFC-AITP-0009 §1.11](../rfcs/RFC-AITP-0009-security.md#111-manifest-pop-bypass).

@@ -5,7 +5,7 @@
   "required_for_v0_1": false,
   "required_for_v0_2": true,
   "feature": null,
-  "description": "Embedded voucher subject mismatch (aitp/0.2). B's delegation JWS is well-formed and correctly signed, and the embedded grant voucher is genuinely A-issued (voucher.iss = A, signature valid under A's own key) — but voucher.sub is agentC, not the outer token's iss (agentB). B is presenting a voucher A issued to a different agent. RFC-AITP-0006 §4 step 4 requires voucher.sub == outer iss: the delegator-of-record must be the peer A actually granted; without this check B could delegate against any voucher it ever observed. Verifier MUST reject with DELEGATION_INVALID_VOUCHER. Manifest source: `input.issuer_manifests` carries B's (kat-keypair-002) signed Manifest, and the outer JWS verifies under the key that Manifest designates (RFC-AITP-0006 §4 step 1, RFC-AITP-0007 §1).",
+  "description": "Embedded voucher subject mismatch (aitp/0.3). B's delegation JWS is well-formed and correctly signed, and the embedded grant voucher is genuinely A-issued (voucher.iss = A, signature valid under A's own key) — but voucher.sub is agentC, not the outer token's iss (agentB). B is presenting a voucher A issued to a different agent. RFC-AITP-0006 §4 step 4 requires voucher.sub == outer iss: the delegator-of-record must be the peer A actually granted; without this check B could delegate against any voucher it ever observed. Verifier MUST reject with DELEGATION_INVALID_VOUCHER. Manifest source: `input.issuer_manifests` carries B's (kat-keypair-002) signed Manifest, and the outer JWS verifies under the key that Manifest designates (RFC-AITP-0006 §4 step 1, RFC-AITP-0007 §1).",
   "tags": [
     "security",
     "delegation",
@@ -17,7 +17,7 @@
     "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
     "delegation_token": "__JWS_DELEGATION__",
     "delegation_token_claims": {
-      "ver": "aitp/0.2",
+      "ver": "aitp/0.3",
       "iss": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
       "sub": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
       "aud": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
@@ -30,7 +30,7 @@
       },
       "voucher": "__JWS_GRANT_VOUCHER__",
       "voucher_claims": {
-        "ver": "aitp/0.2",
+        "ver": "aitp/0.3",
         "iss": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
         "sub": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
         "grants": [
@@ -44,7 +44,7 @@
     },
     "issuer_manifests": [
       {
-        "version": "aitp/0.2",
+        "version": "aitp/0.3",
         "aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
         "display_name": "kat-keypair-002",
         "identity_hint": {

@@ -20,7 +20,7 @@ timestamped name. Never attach its output to a release.
 ## Procedure
 
 1. **Update `CHANGELOG.md`.** Rename the `## Unreleased` heading to the
-   version being released (e.g. `## v0.2.1-draft`) and start a fresh, empty
+   version being released (e.g. `## v0.3.0-draft`) and start a fresh, empty
    `## Unreleased` block above it.
 2. **Update RFC `Version:` headers** if any RFC content changed in this
    cycle, and keep the version prose in [`rfcs/README.md`](rfcs/README.md)
@@ -33,8 +33,8 @@ timestamped name. Never attach its output to a release.
    signature recomputed), and the eight-stage doc-coherence check (stages
    listed in the header of `scripts/check-doc-coherence.sh`).
 4. **Commit, then tag the commit.** Release tags in use are
-   `v<version>` for the specification (e.g. `v0.2.0-draft`) and
-   `schema-v<version>` for the canonical JSON Schemas (e.g. `schema-v0.2.0`);
+   `v<version>` for the specification (e.g. `v0.3.0-draft`) and
+   `schema-v<version>` for the canonical JSON Schemas (e.g. `schema-v0.3.0`);
    see [VERSIONING.md](VERSIONING.md#release-tags).
 5. **Run `make release`** to produce the archive from the tagged commit.
 6. **Push the tag** and attach the archive to a GitHub Release.
@@ -60,11 +60,11 @@ timestamped name. Never attach its output to a release.
 ## Override `RELEASE_VERSION`
 
 `RELEASE_VERSION` only sets the archive's file name. It defaults to the
-current protocol release, `v0.2.0-draft`. To produce an archive with a
+current protocol revision's release label, `v0.3.0-draft` (not yet tagged; the latest tag is `v0.2.0-draft`). To produce an archive with a
 different label:
 
 ```sh
-make release RELEASE_VERSION=v0.2.1-draft
+make release RELEASE_VERSION=v0.3.1-draft
 ```
 
 The output is written to `../agentidentitytrustprotocol-<version>.zip`

@@ -19,7 +19,7 @@
       "aid:pubkey:p256:AweBDql0zqV3PmO4l_N-O-mgnnpf6blxpE0QZawqOpMR"
     ],
     "envelope": {
-      "version": "aitp/0.2",
+      "version": "aitp/0.3",
       "message_type": "mutual_hello",
       "message_id": "770e8400-e29b-41d4-a716-446655440702",
       "timestamp": 1711900000,
@@ -34,7 +34,7 @@
           "proof": "p256.X9FVRk-1kawJ_rKSXlW3ySlC2A0WfSCArxzswSPWtSRQol3VSaNYx9u-Q3kdL0SKbd51HSYlJZ_IzjU0E-wr1Q"
         },
         "manifest": {
-          "version": "aitp/0.2",
+          "version": "aitp/0.3",
           "aid": "aid:pubkey:p256:AweBDql0zqV3PmO4l_N-O-mgnnpf6blxpE0QZawqOpMR",
           "handshake_endpoint": "https://worker-p256.agents.example.com/aitp/handshake",
           "accepted_trust_anchors": [],

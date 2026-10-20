@@ -1,6 +1,6 @@
 # Agent Identity & Trust Protocol (AITP)
 
-**Version:** 0.2.0-draft
+**Version:** 0.3.0-draft
 **Status:** Community Standards Track (Draft)
 **Canonical wire format:** JSON
 **Normative transport:** HTTPS
@@ -63,8 +63,8 @@ agentidentitytrustprotocol/
     RFC-AITP-0007-key-resolution.md
     RFC-AITP-0008-revocation.md
     RFC-AITP-0009-security.md
-    RFC-AITP-0010-session-trust-bundle.md   # Draft, opt-in (not part of v0.2 core conformance)
-    RFC-AITP-0011-multihop-delegation.md    # Draft, opt-in (not part of v0.2 core conformance)
+    RFC-AITP-0010-session-trust-bundle.md   # Draft, opt-in (not part of v0.3 core conformance)
+    RFC-AITP-0011-multihop-delegation.md    # Draft, opt-in (not part of v0.3 core conformance)
     RFC-AITP-0012-extensions.md             # Reserved
     RFC-AITP-0013-tct-renewal-extension.md  # Planned
 
@@ -106,7 +106,7 @@ agentidentitytrustprotocol/
       README.md                             # fixture format, runner rules, counts
       PLACEHOLDERS.md                       # placeholder tokens runners substitute
       env-*.json  man-*.json  id-*.json  mh-*.json
-      tct-*.json  vch-*.json  del-*.json  rev-*.json   # v0.2 core
+      tct-*.json  vch-*.json  del-*.json  rev-*.json   # v0.3 core
       del-mh-*.json  bundle-*.json                     # opt-in drafts (RFC-AITP-0011 / 0010)
       known-answer/                         # pinned canonical bytes, keys, signatures
         signed-examples/
@@ -159,7 +159,7 @@ If you are new to AITP, read in this order:
 
 ## Conformance
 
-v0.2 defines one conformance target: what a conformant implementation MUST do is listed in [RFC-AITP-0001 §10](rfcs/RFC-AITP-0001-core.md#10-conformance) (RFCs 0001–0009, the mandatory known-answer vectors, and the core conformance fixtures). There are no named conformance profiles.
+v0.3 defines one conformance target: what a conformant implementation MUST do is listed in [RFC-AITP-0001 §10](rfcs/RFC-AITP-0001-core.md#10-conformance) (RFCs 0001–0009, the mandatory known-answer vectors, and the core conformance fixtures). There are no named conformance profiles.
 
 The opt-in drafts are selected per fixture, not per profile: every fixture under [`schemas/conformance/`](schemas/conformance/README.md) carries a metadata block (`status`, `required_for_v0_2`, `feature`), and a `draft` fixture runs only when the runner has explicitly opted into its named `feature` flag — `experimental-session-bundle` (RFC-AITP-0010) or `experimental-multihop-delegation` (RFC-AITP-0011). See the [runner enforcement rules](schemas/conformance/README.md#conformance-runner-enforcement-rules) and RFC-AITP-0001 §10 for how a core-only implementation treats those fixtures.
 
@@ -170,7 +170,7 @@ There is no service-consumer conformance target. AITP is peer-to-peer.
 ## Standards posture
 
 - **RFC-AITP-0001 Core** — envelope, replay, signatures, error codes, capability negotiation, registry hooks.
-- **RFC-AITP-0002 Identity** — pluggable identity-binding (OIDC and pinned key in v0.2).
+- **RFC-AITP-0002 Identity** — pluggable identity-binding (OIDC and pinned key in v0.3).
 - **RFC-AITP-0003 Manifest** — signed self-description with `/.well-known/aitp-manifest`.
 - **RFC-AITP-0004 Mutual Handshake** — four-message peer auth + bilateral TCT issuance.
 - **RFC-AITP-0005 TCT** — canonical peer-issued capability grant, plus the grant voucher consumed by delegation; both compact JWS.
@@ -178,8 +178,8 @@ There is no service-consumer conformance target. AITP is peer-to-peer.
 - **RFC-AITP-0007 Key Resolution** — peer key from Manifest; issuer key cache → pinned → well-known.
 - **RFC-AITP-0008 Revocation** — JTI deny lists, key revocation, fail modes.
 - **RFC-AITP-0009 Security** — A2A threat model and required defenses.
-- **RFC-AITP-0010 Session Trust Bundle** *(Draft, opt-in — not part of v0.2 core conformance)* — multi-agent session scaling.
-- **RFC-AITP-0011 Multi-hop Delegation** *(Draft, opt-in — not part of v0.2 core conformance)* — chains beyond a single hop.
+- **RFC-AITP-0010 Session Trust Bundle** *(Draft, opt-in — not part of v0.3 core conformance)* — multi-agent session scaling.
+- **RFC-AITP-0011 Multi-hop Delegation** *(Draft, opt-in — not part of v0.3 core conformance)* — chains beyond a single hop.
 - **RFC-AITP-0012 Extensions** *(reserved)* — `extensions.zk` and `extensions.tee` namespaces.
 - **RFC-AITP-0013 TCT Renewal Extension** *(Planned)* — standardization of the non-normative shortened renewal endpoint described in RFC-AITP-0004 §8.1.
 
@@ -188,7 +188,7 @@ There is no service-consumer conformance target. AITP is peer-to-peer.
 ## Maintenance posture
 
 - **Status:** maintained, single maintainer, best-effort. Until a Core Team is seated, the repository maintainer acts in its place for editorial and registry matters (see [governance/CHARTER.md § Core Team](governance/CHARTER.md#core-team)); substantive RFC changes still go through the [RFC process](governance/RFC-PROCESS.md), not one person's judgment alone.
-- **What's stable vs. not:** the `aitp/0.2` revision is tagged (`v0.2.0-draft`, `schema-v0.2.0`). On the [RFC status ladder](governance/RFC-PROCESS.md#rfc-lifecycle), RFCs 0001–0011 are `Draft` (0010 and 0011 opt-in, outside v0.2 core conformance), RFC-AITP-0012 is `Reserved`, and RFC-AITP-0013 is `Planned` — the [RFC index](rfcs/README.md) is the authoritative per-RFC table. Nothing in the v0.2 line has reached Release Candidate (the earlier v0.1 line did, at `0.1.0-rc.3`).
+- **What's stable vs. not:** `aitp/0.3` is the current revision and is not yet tagged; its tag is cut once both reference implementations pass the conformance suite. The previous revision is frozen: the v0.2 line ends at commit `f9ee7ea` (tags `v0.2.0-draft` and `schema-v0.2.0` point at an earlier v0.2 line commit; a freeze tag for `f9ee7ea` is cut at release). `aitp/0.3` is a strict cutover with one breaking change, the envelope signing input — see [`VERSIONING.md`](VERSIONING.md) for the migration notes. On the [RFC status ladder](governance/RFC-PROCESS.md#rfc-lifecycle), RFCs 0001–0011 are `Draft` (0010 and 0011 opt-in, outside v0.3 core conformance), RFC-AITP-0012 is `Reserved`, and RFC-AITP-0013 is `Planned` — the [RFC index](rfcs/README.md) is the authoritative per-RFC table. Nothing in the v0.2 line or in `aitp/0.3` has reached Release Candidate (the earlier v0.1 line did, at `0.1.0-rc.3`).
 - **Cadence:** best-effort, driven by need. Changes land when a consumer needs them, not on a fixed schedule.
 
 ---
@@ -212,8 +212,8 @@ Reserved namespaces (see [registries/capabilities.md](registries/capabilities.md
 
 ## Compatibility model
 
-- **Protocol version** governs the envelope (`version: aitp/0.2`).
-- **JSON Schema namespace** governs canonical schema compatibility (`https://aitp.dev/schema/v0.2/`).
+- **Protocol version** governs the envelope (`version: aitp/0.3`).
+- **JSON Schema namespace** governs canonical schema compatibility (`https://aitp.dev/schema/v0.3/`).
 - **TCT version** governs the canonical token contract.
 - **Manifest version** governs the agent self-description format.
 
@@ -223,7 +223,7 @@ Major mismatches are not compatible. Minor versions are expected to be backward 
 
 ## Using AITP
 
-The canonical v0.2 surface is JSON. Implementations consume the JSON Schemas directly using whatever tooling fits the target language — this covers the JCS-profile artifacts (envelope, Manifest, revocation snapshot, session bundle, handshake payloads) in full, and the decoded-claims shape of the compact-JWS portable trust artifacts (TCT, grant voucher, delegation token); producing and verifying the JWS itself still needs an RFC 7515 JOSE library, not schema codegen alone:
+The canonical v0.3 surface is JSON. Implementations consume the JSON Schemas directly using whatever tooling fits the target language — this covers the JCS-profile artifacts (envelope, Manifest, revocation snapshot, session bundle, handshake payloads) in full, and the decoded-claims shape of the compact-JWS portable trust artifacts (TCT, grant voucher, delegation token); producing and verifying the JWS itself still needs an RFC 7515 JOSE library, not schema codegen alone:
 
 - `quicktype` — https://quicktype.io
 - `json-schema-to-typescript` (TypeScript)
@@ -257,7 +257,7 @@ See [RELEASING.md](RELEASING.md) for the release workflow.
 
 ```bash
 make install-tools    # ajv-cli, ajv-formats (one-time); also requires python3 and Node.js 20+
-make validate         # v0.2 conformance: JSON Schemas + examples + fixtures
+make validate         # v0.3 conformance: JSON Schemas + examples + fixtures
                        # (incl. fixture-input cross-check) + known-answer
                        # vectors + doc coherence
 make release          # Build the sanctioned release archive

@@ -28,7 +28,7 @@
       }
     ],
     "envelope": {
-      "version": "aitp/0.2",
+      "version": "aitp/0.3",
       "message_type": "identity_presentation",
       "message_id": "770e8400-e29b-41d4-a716-446655440903",
       "timestamp": 1711900000,
