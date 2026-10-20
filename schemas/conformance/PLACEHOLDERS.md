@@ -172,6 +172,15 @@ Pinned signing inputs for all three live in
 [`known-answer/jcs-sha256.json`](known-answer/jcs-sha256.json), each declaring
 `signing_input: "body"`, and are executed by `make kat-verify`.
 
+`rev-010` and `bundle-008` carry no `__VALID_A_SIG__`: their literal `signature`
+is that of the committed signed example
+([`signed-examples/revocation/kat-keypair-001-snapshot.json`](known-answer/signed-examples/revocation/kat-keypair-001-snapshot.json),
+[`signed-examples/session-bundle/kat-keypair-001-bundle.json`](known-answer/signed-examples/session-bundle/kat-keypair-001-bundle.json)),
+over a body whose `version` was changed after signing. A runner MUST NOT
+re-mint either: a fresh signature would cover the changed `version`, and the
+fixture would no longer show that the version check runs before the signature
+check.
+
 **Retired in v0.2** (used only by fixtures frozen in the v0.1 token
 shape, e.g. `del-004`): `__VALID_TCT_SIG__`,
 `__VALID_ISSUING_PEER_SIG__`, `__VALID_GRANT_PROOF_SIG__`. The v0.2

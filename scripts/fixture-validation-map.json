@@ -178,6 +178,22 @@
         }
       ]
     },
+    "bundle-008": {
+      "artifacts": [
+        {
+          "pointer": "/input/session_bundle",
+          "schema": "aitp-session-bundle.schema.json",
+          "expect": "invalid",
+          "reason": "Deliberately schema-invalid: input.session_bundle.session_bundle.version is `aitp/9.9`, which the schema's `version` const rejects. The fixture asserts BUNDLE_VERSION_MISMATCH: RFC-AITP-0010 §5 step 1 is the version check, so the schema rejection here is expected and the error code comes from that step."
+        },
+        {
+          "pointer": "/input/coordinator_manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
     "del-001": {
       "artifacts": [
         {
@@ -1215,6 +1231,16 @@
           "pointer": "/input/snapshot",
           "schema": "aitp-revocation-list.schema.json",
           "expect": "valid"
+        }
+      ]
+    },
+    "rev-010": {
+      "artifacts": [
+        {
+          "pointer": "/input/snapshot",
+          "schema": "aitp-revocation-list.schema.json",
+          "expect": "invalid",
+          "reason": "Deliberately schema-invalid: input.snapshot.revocation_list.version is `aitp/9.9`, which the schema's `version` const rejects. The fixture asserts REVOCATION_SNAPSHOT_INVALID: RFC-AITP-0008 §1.5 runs structural validation before the signature check, and that code is the snapshot's unknown-version code (VERSIONING.md), so schema rejection is the correct expected outcome."
         }
       ]
     },

@@ -26,7 +26,10 @@ for both algorithms: kat-envelope-001-p256 and kat-envelope-002-ed25519 are
 re-signed from their envelopes, each v1 (pipe-input) negative is re-signed over
 the retired input and must not verify over sig_input_v2, and env-007 to env-010
 are checked against kat-envelope-002-ed25519: env-007 verifies, and the
-committed signature fails over each of the three changed envelopes.
+committed signature fails over each of the three changed envelopes. rev-010 and
+bundle-008 carry the committed kat-keypair-001 snapshot and bundle signatures
+over bodies whose `version` was changed after signing: each signature verifies
+over the signed example and fails over the fixture.
 
 Usage:
     python3 scripts/recompute-known-answer-independent.py
@@ -776,6 +779,32 @@ def main() -> int:
               H(env_v2(e11)), e11["signature"])
     check("env-011: the expected result is UNKNOWN_VERSION",
           f11["expected"]["outcome"] == "failure" and f11["expected"]["error_code"] == "UNKNOWN_VERSION")
+
+    print("── rev-010, bundle-008: committed signature over a version-altered body ──")
+    snap = load(SIGNED / "revocation" / "kat-keypair-001-snapshot.json")
+    bun = load(SIGNED / "session-bundle" / "kat-keypair-001-bundle.json")
+    f10 = load(CONF / "rev-010-version-unknown.json")
+    f08 = load(CONF / "bundle-008-version-unknown.json")
+    for fx, ex_body, ex_sig, body, sig, signer, code in [
+        (f10, snap["revocation_list"], snap["signature"],
+         f10["input"]["snapshot"]["revocation_list"], f10["input"]["snapshot"]["signature"],
+         snap["revocation_list"]["issuer"], "REVOCATION_SNAPSHOT_INVALID"),
+        (f08, strip(bun["session_bundle"]), bun["session_bundle"]["signature"],
+         strip(f08["input"]["session_bundle"]["session_bundle"]), f08["input"]["session_bundle"]["session_bundle"]["signature"],
+         bun["session_bundle"]["coordinator"], "BUNDLE_VERSION_MISMATCH"),
+    ]:
+        changed = sorted(k for k in set(body) | set(ex_body) if body.get(k) != ex_body.get(k))
+        A = ed_public(seeds[signer])
+        sg = b64d(sig)
+        check(f"{fx['id']}: only version differs from the signed example (aitp/9.9); same signature; expects {code}",
+              changed == ["version"] and body["version"] == "aitp/9.9" and sig == ex_sig
+              and fx["expected"]["outcome"] == "failure" and fx["expected"]["error_code"] == code)
+        check(f"{fx['id']}: signature verifies over the signed example body",
+              ed_verify_strict(A, H(jcs(ex_body)), sg))
+        check(f"{fx['id']}: signature does NOT verify over the fixture body (strict or lax)",
+              not ed_verify_strict(A, H(jcs(body)), sg) and not ed_verify_lax(A, H(jcs(body)), sg))
+    check("bundle-008: coordinator_manifest is the committed kat-keypair-001 Manifest",
+          f08["input"]["coordinator_manifest"] == load(SIGNED / "manifest" / "kat-keypair-001-manifest.json")["manifest"])
 
     print()
     if failures:
