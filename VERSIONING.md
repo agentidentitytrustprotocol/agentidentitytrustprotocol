@@ -65,7 +65,7 @@ substance: the envelope signature covers the whole envelope (issue #87). See
 ## Forward / backward compatibility
 
 - Unknown JSON fields outside explicit `extensions` namespaces MUST be rejected (RFC-AITP-0001 §7). Forward compatibility is provided through `extensions`, not through silent unknown-field tolerance.
-- Verifiers receiving an unknown `version` MUST reply with `UNKNOWN_VERSION` and MUST NOT attempt to process the message.
+- Verifiers receiving an unknown `version` MUST reject it with the artifact's unknown-version code and MUST NOT attempt to process it further. That code is `UNKNOWN_VERSION` for envelopes and JWS-profile artifacts (`ver`), `MANIFEST_VERSION_UNKNOWN` for Manifests, `REVOCATION_SNAPSHOT_INVALID` for revocation snapshots and `BUNDLE_VERSION_MISMATCH` for session trust bundles (see [`registries/error-codes.md`](registries/error-codes.md)).
 - New identity types are registered in [`registries/identity-types.md`](registries/identity-types.md) and start at status `Proposed`. They graduate to `Stable` once two independent implementations interoperate.
 
 ## Migrating from `aitp/0.2` to `aitp/0.3`
@@ -89,7 +89,9 @@ substance: the envelope signature covers the whole envelope (issue #87). See
    output.
 
 **Strict cutover.** There is no dual-accept window. An `aitp/0.3` implementation does
-not implement `aitp/0.2`: it rejects an `aitp/0.2` artifact with `UNKNOWN_VERSION`,
+not implement `aitp/0.2`: it rejects an `aitp/0.2` artifact with that artifact's unknown-version code
+(`UNKNOWN_VERSION` for an envelope or a JWS-profile artifact; see Forward / backward
+compatibility above for the others),
 before the member set or the signature is examined, even when its signature is valid
 (fixture env-011). Peers upgrade together; an `aitp/0.2` peer and an `aitp/0.3` peer
 do not interoperate.

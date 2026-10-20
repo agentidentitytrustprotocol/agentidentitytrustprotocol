@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### The JCS-profile signature string is not canonical; unknown-version codes are per artifact
+
+**Change class.** Editorial and security considerations; no wire change, no fixture or vector change. Reported by aitp-rs while implementing `aitp/0.3`.
+
+**Changes.**
+- RFC-AITP-0001 §5.4.3 states that a signature field is outside its own signing input, so an Ed25519 signature verifies in both the untagged and the `ed25519.` form, and a relaying party can switch between them. Implementations MUST NOT use raw object bytes (or their hash) as identity for replay detection, deduplication, caching or audit correlation; they key on `message_id` or the JCS form without the signature. RFC-AITP-0009 §2 lists it as a known limitation. Making the tag mandatory is left to a later revision.
+- `VERSIONING.md` no longer says every unknown version is `UNKNOWN_VERSION`. It names each artifact's code: `UNKNOWN_VERSION` (envelope, JWS-profile artifacts), `MANIFEST_VERSION_UNKNOWN`, `REVOCATION_SNAPSHOT_INVALID`, `BUNDLE_VERSION_MISMATCH`. This matches RFC text and the fixtures already.
+
+**Version bumps.** RFC-AITP-0001 0.3.0-draft → 0.3.1-draft; RFC-AITP-0009 0.3.0-draft → 0.3.1-draft.
+
 ### `aitp/0.3` revision bump: literal, schema namespace `v0.3`, RFCs `0.3.0-draft`, re-minted vectors (#87)
 
 **Change class.** Breaking: a new protocol revision. PR 2 of 2 for #87 (proposal #89). PR 1 changed the envelope signing input under the `aitp/0.2` literal; this PR promotes that change to its own revision. The envelope signing input is the only change of substance. Everything else here follows from the new literal. Strict cutover: an `aitp/0.3` implementation rejects `aitp/0.2` with `UNKNOWN_VERSION`, with no dual-accept window. Migration notes: [`VERSIONING.md`](VERSIONING.md#migrating-from-aitp02-to-aitp03).

@@ -2,7 +2,7 @@
 # Agent Identity & Trust Protocol (AITP) — Core
 
 **Document:** RFC-AITP-0001
-**Version:** 0.3.0-draft
+**Version:** 0.3.1-draft
 **Status:** Community Standards Track (Draft)
 **Canonical wire format:** JSON
 **Normative transport:** HTTPS (any HTTP/1.1+ runtime)
@@ -374,6 +374,20 @@ Verifiers MUST:
 The algorithm tag is part of the canonical bytes that get hashed
 for outer signatures: changing the tag changes the bytes and
 therefore the hash. This binds the algorithm to the signed data.
+
+The signature string itself is **not canonical**. A signature field
+is never part of its own signing input (§5.4, §5.4.1), and an
+Ed25519 signature verifies in both the untagged and the `ed25519.`
+form. A party that relays the object can therefore switch between the
+two forms without invalidating the signature, so the same signed
+object can arrive as two different byte strings. Implementations MUST
+NOT use the raw bytes of a signed object, or a hash of them, as its
+identity for replay detection, deduplication, caching or audit
+correlation. Key on the signed content instead: for an envelope,
+`message_id` (RFC-AITP-0009 §1.2); in general, the JCS form of the
+object without its signature field. Outer signatures are unaffected,
+because they cover the tag as written (above). A later revision may
+make the tag mandatory.
 
 Implementations MUST use one of:
 
