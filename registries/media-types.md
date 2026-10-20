@@ -6,7 +6,7 @@ Media types used by AITP v0.3. AITP ships JSON-only (see [RFC-AITP-0001 §5.4.1]
 
 | Media type | Description |
 |---|---|
-| `application/aitp+json; version=0.2` | Canonical JSON envelope. The signing input is the inner payload in RFC 8785 (JCS) canonical JSON form. |
+| `application/aitp+json; version=0.3` | Canonical JSON envelope. The signature covers the whole envelope except `signature`, in RFC 8785 (JCS) canonical form behind the `aitp-envelope-v2` domain tag (RFC-AITP-0001 §5.4). The `version` parameter names the protocol revision; the HTTP binding sends `Content-Type: application/json` (RFC-AITP-0001 §8). |
 | `application/aitp-tct+jwt` | A Trust Context Token as a compact JWS (RFC-AITP-0005). The JWS `typ` header is `aitp-tct+jwt`. Versioned by the `ver` claim, not the media type. |
 | `application/aitp-grant+jwt` | A grant voucher as a compact JWS (RFC-AITP-0005 §8). The JWS `typ` header is `aitp-grant+jwt`. |
 | `application/aitp-delegation+jwt` | A delegation token as a compact JWS (RFC-AITP-0006). The JWS `typ` header is `aitp-delegation+jwt`. |
@@ -15,6 +15,7 @@ Media types used by AITP v0.3. AITP ships JSON-only (see [RFC-AITP-0001 §5.4.1]
 
 | Media type | Status |
 |---|---|
+| `application/aitp+json; version=0.2` | Superseded by `version=0.3` (envelope signing input v2; strict cutover). |
 | `application/aitp+json; version=0.1` | Superseded by `version=0.2`. |
 | `application/aitp-tct+json; version=0.1` | **Superseded** — the v0.1 JCS-signed JSON TCT form is retired; TCTs have been compact JWS since v0.2 (`application/aitp-tct+jwt`). |
 
