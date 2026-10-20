@@ -40,8 +40,10 @@ wire compatibility:
 - **The literal.** Every `version` field and `ver` claim is `aitp/0.3`.
 
 The cutover is strict: an `aitp/0.3` peer rejects a v0.2 line
-artifact with `UNKNOWN_VERSION` (fixture env-011), with no dual-accept
-window. Everything else — the JWS profile, AIDs, Manifests, TCTs,
+artifact with that artifact's unknown-version code — `UNKNOWN_VERSION`
+for an envelope (fixture env-011) or a JWS artifact,
+`MANIFEST_VERSION_UNKNOWN`, `REVOCATION_SNAPSHOT_INVALID` (rev-010) or
+`BUNDLE_VERSION_MISMATCH` (bundle-008) — with no dual-accept window. Everything else — the JWS profile, AIDs, Manifests, TCTs,
 delegation, revocation and error codes — is unchanged. See
 [`VERSIONING.md`](../VERSIONING.md) for the full notes.
 
