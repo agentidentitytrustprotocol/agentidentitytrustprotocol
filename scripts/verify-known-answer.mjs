@@ -1200,7 +1200,55 @@ function checkSignedExamples() {
 
   checkEnvelopeExample();
   checkEnvelopeTamperedFixtures();
+  checkVersionAlteredBodies();
   checkSelfAttestations();
+}
+
+// rev-010 and bundle-008: a committed signed example's body and signature, with
+// only `version` changed after signing. The signature must verify over the
+// committed body and not over the fixture's, so a verifier that checked the
+// signature first would report the signature code instead of the version code.
+const VERSION_ALTERED = [
+  { file: 'rev-010-version-unknown.json', id: 'rev-010', example: 'revocation/kat-keypair-001-snapshot.json',
+    body: (o) => o.revocation_list, sig: (o) => o.signature, signer: (b) => b.issuer,
+    fixtureBody: (f) => f.input.snapshot, op: 'verify_revocation_snapshot', status: 'core', code: 'REVOCATION_SNAPSHOT_INVALID' },
+  { file: 'bundle-008-version-unknown.json', id: 'bundle-008', example: 'session-bundle/kat-keypair-001-bundle.json',
+    body: (o) => stripSignature(o.session_bundle), sig: (o) => o.session_bundle.signature, signer: (b) => b.coordinator,
+    fixtureBody: (f) => f.input.session_bundle, op: 'verify_session_bundle', status: 'draft', code: 'BUNDLE_VERSION_MISMATCH' },
+];
+function checkVersionAlteredBodies() {
+  console.log('── rev-010, bundle-008: committed signatures over a version-altered body ──');
+  const conf = join(ROOT, 'schemas/conformance');
+  for (const t of VERSION_ALTERED) {
+    check(`${t.id}: ${t.example}'s body with only \`version\` changed; signature fails over it; ${t.code}`, () => {
+      const f = readJson(join(conf, t.file));
+      const ex = readJson(join(SIGNED, t.example));
+      eq(f.id, t.id, 'id');
+      eq(f.status, t.status, 'status');
+      eq(f.input.operation, t.op, 'operation');
+      const exBody = t.body(ex);
+      const body = t.body(t.fixtureBody(f));
+      const sig = t.sig(t.fixtureBody(f));
+      eq(sig, t.sig(ex), 'signature (committed, copied from the signed example)');
+      const changed = [...new Set([...Object.keys(body), ...Object.keys(exBody)])]
+        .filter((k) => jcs(body[k] ?? null) !== jcs(exBody[k] ?? null));
+      eq(jcs(changed), jcs(['version']), 'changed members');
+      eq(body.version, 'aitp/9.9', 'version');
+      if (!verifySingleHash(t.signer(exBody), utf8(jcs(exBody)), sig)) {
+        throw new Error('the signature does not verify over the signed example body');
+      }
+      if (verifySingleHash(t.signer(body), utf8(jcs(body)), sig)) {
+        throw new Error('the signature verifies over the version-altered body');
+      }
+      eq(f.expected.outcome, 'failure', 'expected.outcome');
+      eq(f.expected.error_code, t.code, 'expected.error_code');
+    });
+  }
+  check('bundle-008: coordinator_manifest is the committed kat-keypair-001 Manifest', () => {
+    const f = readJson(join(conf, 'bundle-008-version-unknown.json'));
+    const m = readJson(join(SIGNED, 'manifest/kat-keypair-001-manifest.json')).manifest;
+    eq(jcs(f.input.coordinator_manifest), jcs(m), 'coordinator_manifest');
+  });
 }
 
 // Self-attestation TCTs (RFC-AITP-0005 §5.3), kat-tct-002 (EdDSA) and kat-tct-003
@@ -1867,7 +1915,7 @@ checkOidcP256Fixture();
 // emptied vector member; this catches coverage lost any other way — a check
 // commented out, a loop that stops early, a gate that stops matching. Coverage may
 // grow (raise this number in the same commit); it may never silently shrink.
-const EXPECTED_MIN_CHECKS = 162;
+const EXPECTED_MIN_CHECKS = 165;
 if (checks < EXPECTED_MIN_CHECKS) {
   failures.push(
     `coverage regression: ran ${checks} checks, expected at least ${EXPECTED_MIN_CHECKS}. ` +

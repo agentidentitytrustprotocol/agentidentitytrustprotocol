@@ -144,7 +144,7 @@ A delegation or session-bundle fixture states the Manifests the verifier holds f
 - `del-*` and `del-mh-*` fixtures carry `input.issuer_manifests`, an array of Manifest bodies. The verifier resolves each hop issuer's key from the Manifest whose `aid` equals that hop's `iss` (RFC-AITP-0006 §4 step 1, RFC-AITP-0011 §3 step 1). The voucher needs no entry, because the verifier checks it against its own key (RFC-AITP-0006 §4 step 3).
 - `bundle-*` fixtures carry `input.coordinator_manifest`, one Manifest body. The verifier checks the bundle signature against the key that this Manifest designates for the coordinator's AID (RFC-AITP-0010 §5 step 5).
 - These inputs are the verifier's whole Manifest source. The runner MUST supply exactly the Manifests the fixture lists. It MUST NOT derive a key from the AID string in place of a missing Manifest, synthesize a stand-in Manifest, or fetch one over the network. When no supplied Manifest designates the key an issuer or coordinator needs, verification fails with `KEY_RESOLUTION_FAILED` (RFC-AITP-0007 §1). `del-mh-005` and `bundle-007` test exactly this.
-- A fixture that is rejected before any key is resolved (`del-007`, `bundle-004-signature-sibling-rejected`, `bundle-006-unknown-field-rejected`) still carries the field, so every fixture in a family has the same input shape. The verifier never reads it.
+- A fixture that is rejected before any key is resolved (`del-007`, `bundle-004-signature-sibling-rejected`, `bundle-006-unknown-field-rejected`, `bundle-008`) still carries the field, so every fixture in a family has the same input shape. The verifier never reads it.
 - `del-004` is frozen in the v0.1 shape and carries no Manifest input.
 
 ### Dynamic fixtures
@@ -219,6 +219,21 @@ is env-007's envelope with `version` set to the previous revision `aitp/0.2`
 and a fresh `message_id`, and its committed signature is kat-keypair-001's
 valid signature over those exact bytes. Nothing is tampered, so the only
 reason to reject is the revision literal: `UNKNOWN_VERSION`.
+
+`rev-010` and `bundle-008` apply the `env-010` pattern to the other two
+JCS-profile artifacts whose unknown-version code is not `UNKNOWN_VERSION`
+([`VERSIONING.md`](../../VERSIONING.md)). Each carries the committed signed
+example (`kat-keypair-001-snapshot.json`, `kat-keypair-001-bundle.json` under
+[`known-answer/signed-examples/`](known-answer/signed-examples/)) with `version`
+changed to `aitp/9.9` after signing, and the example's literal signature, which
+a runner MUST NOT re-mint. The signature therefore fails too, and the fixture
+proves the version check runs first: RFC-AITP-0008 §1.5 rejects the snapshot
+structurally with `REVOCATION_SNAPSHOT_INVALID` before any signature work, and
+RFC-AITP-0010 §5 step 1 rejects the bundle with `BUNDLE_VERSION_MISMATCH` before
+the step 6 signature check. `bundle-008`'s `coordinator_manifest` is the committed
+`kat-keypair-001-manifest.json`, so the fixture has no placeholder at all.
+`make kat-verify` asserts that each signature verifies over the signed example and
+not over the fixture.
 
 `tct-015`, `tct-016` and `tct-018` are validly signed and schema-valid:
 `verify_tct` is a grant context, and RFC-AITP-0005 §5.3 rejects a self-issued
@@ -356,13 +371,13 @@ The runner interface is implementation-defined.
 
 | Tier | Count | Required for v0.3 |
 |---|---|---|
-| `core` (`required_for_v0_2`) | 78 | ✅ Yes |
+| `core` (`required_for_v0_2`) | 79 | ✅ Yes |
 | `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (v0.1 runners only) |
 | `extension` — pinned-admission profile (RFC-AITP-0002 §3.4, `feature: aitp-pinned-admission`) | 8 | ❌ No (required of an implementation claiming the profile) |
 | `extension` — attestation verification (RFC-AITP-0005 §5.3, `feature: aitp-self-attestation`) | 3 | ❌ No (required of an implementation claiming the role) |
-| `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 7 | ❌ No |
+| `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 8 | ❌ No |
 | `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 5 | ❌ No |
-| **Total** | **102** | |
+| **Total** | **104** | |
 
 Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A conformance runner for the current revision, `aitp/0.3`, MUST execute every `required_for_v0_2` core fixture (the key keeps its v0.2 name so existing runners keep working; for `aitp/0.3` it marks the core tier); `draft` and `extension` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
@@ -489,6 +504,7 @@ The rows marked *Pinned-admission* are `status: extension` under `feature: aitp-
 | `rev-007` | Snapshot's `revocation_list` body missing the REQUIRED `published_at` — structural rejection | failure: REVOCATION_SNAPSHOT_INVALID |
 | `rev-008` | Snapshot signature does not validate under the issuing peer's key — the snapshot failed, not any token it lists | failure: REVOCATION_SNAPSHOT_SIGNATURE_INVALID |
 | `rev-009` | Same stale snapshot as `rev-001`/`rev-002`, but under `fail_open` mode — allows the request, grants un-narrowed | success |
+| `rev-010` | Committed signed snapshot with `version` changed to an unknown value after signing; structural validation runs before the signature check, and this is the snapshot's unknown-version code | failure: REVOCATION_SNAPSHOT_INVALID |
 
 ### Delegation (RFC-AITP-0006)
 
@@ -527,6 +543,7 @@ Bundle fixtures use the same opt-in posture as multi-hop. Core implementations a
 | `bundle-005-extensions-accepted` | Bundle body carries an optional `extensions.tee` member (RFC-AITP-0010 §3 field table, RFC-AITP-0012) alongside a correctly-placed signature | success |
 | `bundle-006-unknown-field-rejected` | Bundle's inner `session_bundle` body carries an unknown member (`coordinator_note`) outside `extensions` | failure: UNKNOWN_FIELD |
 | `bundle-007` | Same bundle as bundle-001, but `coordinator_manifest` is a valid Manifest for a different AID, so no supplied Manifest designates the coordinator's key (RFC-AITP-0010 §5 step 5) | failure: KEY_RESOLUTION_FAILED |
+| `bundle-008` | Committed signed bundle with `version` changed to an unknown value after signing; the step 1 version check runs before the step 6 signature check | failure: BUNDLE_VERSION_MISMATCH |
 
 Additions and edge-case fixtures (replay during MUTUAL_COMMIT, identity-issuer key rotation, partial chain verification, etc.) are welcome via PR.
 

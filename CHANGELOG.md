@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Conformance: unknown-version fixtures for revocation snapshots and session bundles
+
+**Change class.** Fixtures only. No RFC text, schema, registry or vector changes, and no RFC version bump. Until now only the Manifest (`man-002`) and the envelope (`env-010`, `env-011`) had an unknown-version fixture, so the per-artifact codes `VERSIONING.md` names for the other two JCS-profile artifacts were not pinned. aitp-rs#265 reported `UNKNOWN_VERSION` for an unknown-version revocation snapshot.
+
+**Changes.**
+- **New fixture `rev-010-version-unknown`** (`core`). The committed signed snapshot `signed-examples/revocation/kat-keypair-001-snapshot.json` with `version` changed to `aitp/9.9` after signing, and its committed signature. Expected: `REVOCATION_SNAPSHOT_INVALID` (RFC-AITP-0008 §1.5: structural validation, including the schema's `version` const, runs before any signature work).
+- **New fixture `bundle-008-version-unknown`** (`draft`, `feature: experimental-session-bundle`, so an implementation that has not opted into RFC-AITP-0010 reports SKIP). The committed signed bundle `signed-examples/session-bundle/kat-keypair-001-bundle.json` with `version` changed to `aitp/9.9` after signing, and its committed coordinator signature. `coordinator_manifest` is the committed `signed-examples/manifest/kat-keypair-001-manifest.json`. Expected: `BUNDLE_VERSION_MISMATCH` (RFC-AITP-0010 §5 step 1 runs before the step 6 signature check).
+- No signature was minted. Both fixtures follow the `env-010` pattern: the signature verifies over the signed example and not over the fixture, so a verifier that checked the signature first would report the signature code. `make kat-verify` (`scripts/verify-known-answer.mjs`) and `scripts/recompute-known-answer-independent.py` both assert this, and that only `version` differs. `PLACEHOLDERS.md` says a runner MUST NOT re-mint either signature.
+- `scripts/fixture-validation-map.json` maps both fixtures. The snapshot and the bundle are expected to be schema-invalid, because the `version` const rejects `aitp/9.9`; the bundle's Manifest is expected to be valid. `FIXTURE_INPUT_MIN_CHECKS` rises from 224 to 227, and `verify-known-answer.mjs` `EXPECTED_MIN_CHECKS` from 162 to 165.
+- Conformance index: `core` 78 → 79, session-bundle `draft` 7 → 8, total 102 → 104.
+
 ## v0.3.0-draft (2026-10-20)
 
 Protocol revision `aitp/0.3`. Tags: `v0.3.0-draft`, `schema-v0.3.0`. The v0.2 line is frozen at `f9ee7ea` under `v0.2.1-draft` / `schema-v0.2.1`. Reference implementations passing the conformance suite at release: aitp-rs 0.17.0 and aitp-verifier-py `f335f4f`.
