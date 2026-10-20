@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Media-type registry and VERSIONING layers row follow `aitp/0.3`
+
+**Change class.** Editorial; no wire, fixture or vector change. Reported by aitp-docs.
+
+**Changes.**
+- `registries/media-types.md`: the envelope media type is `application/aitp+json; version=0.3`, and `version=0.2` moves to Superseded. The description no longer says the signing input is the inner payload: the signature covers the whole envelope except `signature` (RFC-AITP-0001 §5.4).
+- `VERSIONING.md` layers table: a revision mismatch is rejected with the artifact's unknown-version code, not always `UNKNOWN_VERSION`, matching the Forward / backward compatibility section.
+
+**Version bumps.** None.
+
 ### Conformance: unknown-version fixtures for revocation snapshots and session bundles
 
 **Change class.** Fixtures only. No RFC text, schema, registry or vector changes, and no RFC version bump. Until now only the Manifest (`man-002`) and the envelope (`env-010`, `env-011`) had an unknown-version fixture, so the per-artifact codes `VERSIONING.md` names for the other two JCS-profile artifacts were not pinned. aitp-rs#265 reported `UNKNOWN_VERSION` for an unknown-version revocation snapshot.

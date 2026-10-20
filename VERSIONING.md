@@ -16,7 +16,7 @@ substance: the envelope signature covers the whole envelope (issue #87). See
 
 | Layer | Identifier | Example | Compat rules |
 |---|---|---|---|
-| Protocol version | `version` field on JCS-profile objects (envelope, Manifest, revocation snapshot, session bundle); `ver` claim on JWS-profile artifacts (TCT, grant voucher, delegation token) | `aitp/0.3` | Major mismatch ⇒ `UNKNOWN_VERSION`. Pre-1.0, the minor position is the revision, so **any** revision mismatch ⇒ `UNKNOWN_VERSION`: an `aitp/0.3` verifier rejects `aitp/0.2` and `aitp/0.1`. |
+| Protocol version | `version` field on JCS-profile objects (envelope, Manifest, revocation snapshot, session bundle); `ver` claim on JWS-profile artifacts (TCT, grant voucher, delegation token) | `aitp/0.3` | Major mismatch ⇒ rejected. Pre-1.0, the minor position is the revision, so **any** revision mismatch is rejected with the artifact's unknown-version code (see [Forward / backward compatibility](#forward--backward-compatibility)): an `aitp/0.3` verifier rejects `aitp/0.2` and `aitp/0.1`. |
 | JSON Schema namespace | `$id` URI on each canonical schema | `https://aitp.dev/schema/v0.3/...` | Breaking changes bump the path segment (`v0.1/` → `v0.2/` → `v0.3/`). The repo keeps a single flat `schemas/json/` directory tracking the current namespace; frozen earlier namespaces are available via the `schema-vX.Y.Z` git tags below, not via parallel directories. |
 | TCT version | `ver` claim inside the TCT JWS payload | `aitp/0.3` | Mirrors the protocol version. Consumers MUST reject unknown versions. |
 | Manifest version | `version` inside the Manifest | `aitp/0.3` | Mirrors the protocol version. |
