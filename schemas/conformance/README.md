@@ -137,6 +137,14 @@ A pinned-key fixture states the verifier's `pinned_keys` store (RFC-AITP-0002 §
 - When `trust_store` is absent, the store is empty. The runner MUST NOT invent trust: it MUST NOT pre-load the sender's key, a KAT keypair, or any default, and an implementation's possession-only behavior is not a substitute (RFC-AITP-0002 §3.2 forbids such a mode in every deployment mode).
 - Every pinned-key failure fixture except `id-007` carries a `trust_store` that contains the sender, so steps 1–3 pass and the failure comes only from the defect the fixture names. `id-007` alone omits the sender, because its defect is the untrusted key.
 
+### Revocation inputs (`issuer_revocation_list`, `revocation_snapshots`)
+
+A fixture states the revocation state it tests through `input.issuer_revocation_list` (TCT verification) or `input.revocation_snapshots` (delegation, single-hop and multi-hop):
+
+- A fixture that supplies neither key is **not testing revocation**. Its expected outcome assumes every lookup it would make returns "not revoked", and the runner MUST evaluate it that way: it MUST NOT apply `revocation_policy.mode` to the missing snapshot, and it MUST NOT fail the fixture for an unreachable revocation endpoint. `del-001` and `del-mh-001` are examples.
+- This is a fixture convention, not protocol behaviour. In a deployment an absent or discarded snapshot is handled by `revocation_policy.mode` (RFC-AITP-0008 §1.5, §3.1), and under `fail_closed` the token is rejected.
+- That behaviour is covered by the dedicated revocation fixtures: `rev-*`, `tct-004`, `tct-022`, `tct-023`, `del-002`, `del-008`, `del-mh-004` and `del-mh-006`. Each supplies the revocation input it tests.
+
 ### Manifest inputs (`issuer_manifests`, `coordinator_manifest`)
 
 A delegation or session-bundle fixture states the Manifests the verifier holds for its peers. Each one is a complete, signed Manifest body (RFC-AITP-0003 §2) that the runner mints the same way it mints a `man-*` fixture's `input.manifest`: `__VALID_POP_SIG__` and `__VALID_MANIFEST_SIG__` are produced with the key of the Manifest's own `aid` (see `PLACEHOLDERS.md`).

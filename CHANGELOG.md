@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Conformance: fixtures without a revocation input do not test revocation
+
+- `schemas/conformance/README.md` gains a "Revocation inputs" section. A fixture that supplies neither `issuer_revocation_list` nor `revocation_snapshots` is not testing revocation, and its expected outcome assumes "not revoked". In a deployment, `revocation_policy.mode` still governs an absent or discarded snapshot (RFC-AITP-0008 §1.5, §3.1); the dedicated revocation fixtures cover that.
+- `del-001` and `del-mh-001` say so in their `description`. No expected outcome changes.
+
 ### RFC-AITP-0008: a discarded revocation snapshot MUST fall back to `revocation_policy.mode`
 
 **Change class.** Normative tightening, security. Reported by aitp-rs#271: a verifier that discarded an invalid snapshot and then accepted the token turned `fail_closed` into fail-open for anyone able to corrupt or forge a snapshot in transit.
