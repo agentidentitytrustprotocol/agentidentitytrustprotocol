@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.3.1-draft (2026-10-21)
+
+Protocol revision `aitp/0.3`, unchanged on the wire. Tags: `v0.3.1-draft`, `schema-v0.3.1`. Clarifies revocation handling (RFC-AITP-0006, RFC-AITP-0008 and RFC-AITP-0011 at `0.3.1-draft`) and adds fixtures tct-022, tct-023, del-008 and del-mh-006. Reference implementations passing the conformance suite at release: aitp-rs 0.19.0 and aitp-verifier-py `138b79d`.
+
 ### Conformance: fixtures without a revocation input do not test revocation
 
 - `schemas/conformance/README.md` gains a "Revocation inputs" section. A fixture that supplies neither `issuer_revocation_list` nor `revocation_snapshots` is not testing revocation, and its expected outcome assumes "not revoked". In a deployment, `revocation_policy.mode` still governs an absent or discarded snapshot (RFC-AITP-0008 §1.5, §3.1); the dedicated revocation fixtures cover that.
