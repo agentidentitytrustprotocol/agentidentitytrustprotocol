@@ -142,7 +142,8 @@ A pinned-key fixture states the verifier's `pinned_keys` store (RFC-AITP-0002 §
 A fixture states the revocation state it tests through `input.issuer_revocation_list` (TCT verification) or `input.revocation_snapshots` (delegation, single-hop and multi-hop):
 
 - A fixture that supplies neither key is **not testing revocation**. Its expected outcome assumes every lookup it would make returns "not revoked", and the runner MUST evaluate it that way: it MUST NOT apply `revocation_policy.mode` to the missing snapshot, and it MUST NOT fail the fixture for an unreachable revocation endpoint. `del-001` and `del-mh-001` are examples.
-- This is a fixture convention, not protocol behaviour. In a deployment an absent or discarded snapshot is handled by `revocation_policy.mode` (RFC-AITP-0008 §1.5, §3.1), and under `fail_closed` the token is rejected.
+- The convention is per issuer. When a fixture supplies `revocation_snapshots` for some issuers but not others, every issuer it supplies no entry for is likewise not under test, and its lookups read "not revoked". Only the supplied entries are evaluated, including discarding them under RFC-AITP-0008 §1.5. So `del-mh-004` and `del-mh-006` fail only because of the one hop issuer whose snapshot they supply.
+- This is a fixture convention, not protocol behaviour. In a deployment an absent, unobtainable or discarded snapshot is handled by `revocation_policy.mode` (RFC-AITP-0008 §1.5, §3.1; RFC-AITP-0011 §6), and under `fail_closed` the token is rejected.
 - That behaviour is covered by the dedicated revocation fixtures: `rev-*`, `tct-004`, `tct-022`, `tct-023`, `del-002`, `del-008`, `del-mh-004` and `del-mh-006`. Each supplies the revocation input it tests.
 
 ### Manifest inputs (`issuer_manifests`, `coordinator_manifest`)
