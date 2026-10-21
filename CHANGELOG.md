@@ -6,6 +6,7 @@
 
 - `schemas/conformance/README.md` gains a "Revocation inputs" section. A fixture that supplies neither `issuer_revocation_list` nor `revocation_snapshots` is not testing revocation, and its expected outcome assumes "not revoked". In a deployment, `revocation_policy.mode` still governs an absent or discarded snapshot (RFC-AITP-0008 §1.5, §3.1); the dedicated revocation fixtures cover that.
 - `del-001` and `del-mh-001` say so in their `description`. No expected outcome changes.
+- The convention is per issuer: in a fixture that supplies `revocation_snapshots` for only some issuers, the issuers without an entry are not under test either. RFC-AITP-0011 §6 (0.3.1-draft) now also states the deployment rule: a hop issuer whose snapshot cannot be obtained falls under `revocation_policy.mode`, as RFC-AITP-0008 §3.1 requires.
 
 ### RFC-AITP-0008: a discarded revocation snapshot MUST fall back to `revocation_policy.mode`
 
