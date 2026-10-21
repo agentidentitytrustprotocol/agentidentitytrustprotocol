@@ -2,7 +2,7 @@
 # Multi-hop Delegation
 
 **Document:** RFC-AITP-0011
-**Version:** 0.3.0-draft
+**Version:** 0.3.1-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md), [RFC-AITP-0006 Single-Hop Delegation](RFC-AITP-0006-delegation.md), [RFC-AITP-0008 Revocation](RFC-AITP-0008-revocation.md)
 
@@ -178,7 +178,7 @@ For multi-hop, revocation MUST be checked at **every** hop, after all signature 
 - **Root:** look up `chain[0].voucher.src_jti` in A's **own** deny list — revoking B's source TCT kills the voucher and every chain rooted in it (RFC-AITP-0005 §8, RFC-AITP-0008).
 - **Each delegation hop:** for each hop token `h` in `H` (every chain entry and the outer token), look up `h.jti` against the deny list of `h.iss` (resolved via that peer's `ListRevoked` endpoint, RFC-AITP-0008 §1.4). This preserves the v0.1 per-hop revocation model: each delegator can unilaterally kill the hop it issued — and with it everything downstream — by adding that hop's `jti` to its own deny list.
 
-If any lookup returns "revoked," the entire delegation MUST be rejected with `DELEGATION_SOURCE_TCT_REVOKED`. A revoked hop invalidates every hop downstream of it — there is no partial-validity model.
+A hop issuer's snapshot that is discarded under RFC-AITP-0008 §1.5 (invalid, bad signature, expired, stale, or another issuer's) is absent, and the verifier MUST apply its configured `revocation_policy.mode` (RFC-AITP-0008 §3.1) to that hop's lookup: under `fail_closed` the hop counts as revoked, and under `fail_open` the lookup is treated as not revoked. If any lookup returns "revoked," the entire delegation MUST be rejected with `DELEGATION_SOURCE_TCT_REVOKED`. A revoked hop invalidates every hop downstream of it — there is no partial-validity model.
 
 This is the only stateful verification step in multi-hop. It requires up to `total_hops` network calls in the worst case; implementations SHOULD cache deny lists per RFC-AITP-0008 §3.2.
 

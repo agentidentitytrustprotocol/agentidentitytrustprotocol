@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### RFC-AITP-0008: a discarded revocation snapshot MUST fall back to `revocation_policy.mode`
+
+**Change class.** Normative tightening, security. Reported by aitp-rs#271: a verifier that discarded an invalid snapshot and then accepted the token turned `fail_closed` into fail-open for anyone able to corrupt or forge a snapshot in transit.
+
+**Changes.**
+- RFC-AITP-0008 §1.5: a snapshot is discarded if it fails any structural or signature check (`REVOCATION_SNAPSHOT_INVALID`, `UNKNOWN_FIELD`, `REVOCATION_SNAPSHOT_SIGNATURE_INVALID`), if it has expired, if it is stale beyond `max_staleness_secs`, or if its signed `issuer` is not the issuing peer. A discarded snapshot is treated exactly as an absent one: the peer MUST apply `revocation_policy.mode` (`fail_closed` rejects with `TCT_REVOKED`; `fail_open` allows and logs; `soft_fail` allows with restricted grants and logs), and MUST NOT treat it as meaning no revocation check is needed. §3.1's mode bullets and its `fail_closed` note now say the same. The snapshot codes remain what `verify_revocation_snapshot` reports (`rev-005`, `rev-007`, `rev-008`, `rev-010`); `verify_tct` reports per the mode.
+- RFC-AITP-0006 §4 step 7: A's own deny list is local state, so the discarded-snapshot rule and the mode do not apply to that lookup. If an implementation keeps its own list as a signed snapshot and it fails verification, the delegation token MUST be rejected with the snapshot's own code whatever the mode; it is never treated as absent.
+- RFC-AITP-0011 §6: a hop issuer's discarded snapshot is absent, and the verifier applies its mode to that hop's lookup (`fail_closed`: the hop counts as revoked, so `DELEGATION_SOURCE_TCT_REVOKED`; `fail_open`: not revoked).
+- `registries/error-codes.md`, `docs/operational-guidance.md` and `docs/GLOSSARY.md` say the same.
+- **New fixtures `tct-022-invalid-snapshot-fail-closed`** (`core`, expected `TCT_REVOKED`) **and `tct-023-invalid-snapshot-fail-open`** (`core`, expected success). Both use the committed TCT `signed-examples/tct/kat-keypair-001-issues-002.json` and the committed snapshot `signed-examples/revocation/kat-keypair-001-snapshot.json`, with the least-significant bit of the snapshot signature's last raw byte flipped. The TCT's `jti` is not listed. They differ only in the existing `issuer_revocation_list.fail_mode` key. Nothing is minted; `PLACEHOLDERS.md` says a runner MUST NOT re-mint either value.
+- **New fixture `del-008-own-snapshot-signature-invalid`** (`core`, expected `REVOCATION_SNAPSHOT_SIGNATURE_INVALID`), derived from `del-002`: A's own snapshot carries `__TAMPERED_SIGNATURE__` and no longer lists `src_jti`.
+- **New fixture `del-mh-006-invalid-hop-snapshot-fail-closed`** (`draft`, `feature: experimental-multihop-delegation`, expected `DELEGATION_SOURCE_TCT_REVOKED`), derived from `del-mh-004`: B's snapshot carries `__TAMPERED_SIGNATURE__` and no longer lists `chain[0].jti`. `del` and `del-mh` fixtures have no policy input key, so it relies on the schema default `fail_closed`; no key is introduced.
+- `scripts/verify-known-answer.mjs` and `scripts/recompute-known-answer-independent.py` both check `tct-022` and `tct-023`: the token is the committed one and verifies, the body is the committed one, the signature is the committed one with the bit flipped and does not verify, and the `jti` is not listed. `EXPECTED_MIN_CHECKS` rises from 165 to 167.
+- `scripts/fixture-validation-map.json` maps all four fixtures. `FIXTURE_INPUT_MIN_CHECKS` rises from 227 to 241.
+- Conformance index: `core` 79 → 82, multi-hop `draft` 5 → 6, total 104 → 108.
+
+**Version bumps.** RFC-AITP-0006, RFC-AITP-0008 and RFC-AITP-0011: `0.3.0-draft` → `0.3.1-draft`.
+
 ### Media-type registry and VERSIONING layers row follow `aitp/0.3`
 
 **Change class.** Editorial; no wire, fixture or vector change. Reported by aitp-docs.

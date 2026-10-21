@@ -137,13 +137,17 @@ offline mode is a separate setting, not a fail mode.
 Applies when no fresh revocation snapshot is available — the issuer's
 `ListRevoked` endpoint is unreachable and the cached snapshot is older than
 `max_staleness_secs`
-([RFC-AITP-0008 §3.2](../rfcs/RFC-AITP-0008-revocation.md#32-staleness)).
+([RFC-AITP-0008 §3.2](../rfcs/RFC-AITP-0008-revocation.md#32-staleness)) —
+and when the snapshot obtained was discarded because it failed verification.
+A discarded snapshot counts as absent; it never means that no revocation check
+is needed
+([RFC-AITP-0008 §1.5](../rfcs/RFC-AITP-0008-revocation.md#15-signed-revocation-response)).
 
 | Mode | Behaviour | Pinned by | Source |
 |---|---|---|---|
-| `fail_closed` (default) | An absent or stale snapshot means revocation status is unknown, treated as revoked: reject the TCT with `TCT_REVOKED` (not a snapshot error code). | `rev-001` | [RFC-AITP-0008 §3.1](../rfcs/RFC-AITP-0008-revocation.md#31-modes) |
+| `fail_closed` (default) | An absent, stale or discarded snapshot means revocation status is unknown, treated as revoked: reject the TCT with `TCT_REVOKED` (not a snapshot error code). | `rev-001`, `tct-022` | [RFC-AITP-0008 §3.1](../rfcs/RFC-AITP-0008-revocation.md#31-modes) |
 | `soft_fail` | Allow with grants restricted to read-only or a configured safe subset; the degraded state MUST be logged. | `rev-002` | RFC-AITP-0008 §3.1 |
-| `fail_open` | Allow and log a warning; grants are **not** narrowed. For read-only, non-sensitive operations; MUST NOT be the default for high-value operations. | `rev-009` | RFC-AITP-0008 §3.1, [§5](../rfcs/RFC-AITP-0008-revocation.md#5-security-considerations) |
+| `fail_open` | Allow and log a warning; grants are **not** narrowed. For read-only, non-sensitive operations; MUST NOT be the default for high-value operations. | `rev-009`, `tct-023` | RFC-AITP-0008 §3.1, [§5](../rfcs/RFC-AITP-0008-revocation.md#5-security-considerations) |
 
 Whatever the mode, network revocation lookups (fetching `ListRevoked`, DNS
 resolution of issuer endpoints, writes to a shared revocation cache) MUST
