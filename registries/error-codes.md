@@ -184,7 +184,10 @@ failure of the *snapshot* that lists tokens (issue #39).
 > not a snapshot-verification failure. Under `fail_closed` that decision surfaces as
 > `TCT_REVOKED` — unknown revocation status is treated as revoked, which is what
 > fail-closed means — and conformance fixture `rev-001` pins it. The two codes above
-> are for a snapshot the peer *did* obtain and could not trust.
+> are for a snapshot the peer *did* obtain and could not trust, and they are reported
+> by an operation that verifies the snapshot itself. For the token decision that
+> snapshot is discarded and counts as absent, so the mode decides it the same way
+> (`tct-022`, `tct-023`; [RFC-AITP-0008 §1.5](../rfcs/RFC-AITP-0008-revocation.md#15-signed-revocation-response)).
 
 ## Delegation codes (RFC-AITP-0006)
 

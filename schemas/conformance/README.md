@@ -371,13 +371,13 @@ The runner interface is implementation-defined.
 
 | Tier | Count | Required for v0.3 |
 |---|---|---|
-| `core` (`required_for_v0_2`) | 79 | ✅ Yes |
+| `core` (`required_for_v0_2`) | 82 | ✅ Yes |
 | `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (v0.1 runners only) |
 | `extension` — pinned-admission profile (RFC-AITP-0002 §3.4, `feature: aitp-pinned-admission`) | 8 | ❌ No (required of an implementation claiming the profile) |
 | `extension` — attestation verification (RFC-AITP-0005 §5.3, `feature: aitp-self-attestation`) | 3 | ❌ No (required of an implementation claiming the role) |
 | `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 8 | ❌ No |
-| `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 5 | ❌ No |
-| **Total** | **104** | |
+| `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 6 | ❌ No |
+| **Total** | **108** | |
 
 Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A conformance runner for the current revision, `aitp/0.3`, MUST execute every `required_for_v0_2` core fixture (the key keeps its v0.2 name so existing runners keep working; for `aitp/0.3` it marks the core tier); `draft` and `extension` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
@@ -482,6 +482,8 @@ The rows marked *Pinned-admission* are `status: extension` under `feature: aitp-
 | `tct-019` | Extension (`aitp-self-attestation`): otherwise valid self-attestation whose `ext` lacks the relying party's expected key (`verify_attestation`) | failure: TCT_SIGNATURE_INVALID |
 | `tct-020` | Extension (`aitp-self-attestation`): `kat-tct-002` verified as an attestation by a third-party relying party; not a grant context (`verify_attestation`) | success |
 | `tct-021` | Extension (`aitp-self-attestation`): `kat-tct-002` presented to a relying party whose records do not show the issuer key as trusted at `iat` (`verify_attestation`) | failure: TCT_SIGNATURE_INVALID |
+| `tct-022` | Valid TCT checked against its issuer's snapshot, whose signature does not validate and which does not list the `jti`, under `fail_closed`: the snapshot is discarded and counts as absent (RFC-AITP-0008 §1.5, aitp-rs#271). Committed signed example and snapshot, signature bit flipped; nothing minted | failure: TCT_REVOKED |
+| `tct-023` | Same as `tct-022` under `fail_open`: the discarded snapshot counts as absent, the token is allowed and the condition logged | success |
 | `tct-017` | ES256 TCT whose signature is high-S (`S > n/2`): a stock JOSE verifier accepts it, an AITP verifier rejects it (RFC-AITP-0001 §5.4.7) | failure: TCT_SIGNATURE_INVALID |
 
 ### Grant voucher (RFC-AITP-0005 §8)
@@ -517,6 +519,7 @@ The rows marked *Pinned-admission* are `status: extension` under `feature: aitp-
 | `del-005` | Embedded voucher signed by a third party (`voucher.iss` ≠ verifier's AID) | failure: DELEGATION_INVALID_VOUCHER |
 | `del-006` | Voucher issued to a different subject (`voucher.sub` ≠ outer `iss`) | failure: DELEGATION_INVALID_VOUCHER |
 | `del-007` | v0.2 sibling of del-004: claim-shaped token carrying a `chain` rejected structurally by core implementations | failure: DELEGATION_MULTIHOP_NOT_SUPPORTED |
+| `del-008` | Same token as `del-002`, but A's own deny list, supplied as a signed snapshot, fails signature verification and does not list `src_jti`. A's own list is local state, so the mode does not apply and it is never treated as absent (RFC-AITP-0006 §4 step 7) | failure: REVOCATION_SNAPSHOT_SIGNATURE_INVALID |
 
 ### Multi-hop Delegation (RFC-AITP-0011, opt-in)
 
@@ -529,6 +532,7 @@ These fixtures exercise the multi-hop delegation extension. Core implementations
 | `del-mh-003` | Chain with wrong `chain_hash` claim (signed over, so the outer signature is valid) — recomputation mismatches | failure: DELEGATION_CHAIN_HASH_MISMATCH |
 | `del-mh-004` | A hop's `jti` is in that hop issuer's deny list (RFC-AITP-0011 §6 per-hop revocation) | failure: DELEGATION_SOURCE_TCT_REVOKED |
 | `del-mh-005` | Same chain as del-mh-001, but `issuer_manifests` lists B and D and omits C, the issuer of `chain[1]`, so no supplied Manifest designates that hop's key (RFC-AITP-0011 §3 step 1) | failure: KEY_RESOLUTION_FAILED |
+| `del-mh-006` | Same chain as del-mh-004, but B's snapshot no longer lists `chain[0].jti` and its signature does not validate: the snapshot is discarded and absent, and under the default `fail_closed` the hop counts as revoked (RFC-AITP-0011 §6, RFC-AITP-0008 §1.5) | failure: DELEGATION_SOURCE_TCT_REVOKED |
 
 ### Session Trust Bundle (RFC-AITP-0010, opt-in)
 

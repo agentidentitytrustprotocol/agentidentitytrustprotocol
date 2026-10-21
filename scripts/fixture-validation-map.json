@@ -320,6 +320,31 @@
         }
       ]
     },
+    "del-008": {
+      "artifacts": [
+        {
+          "pointer": "/input/delegation_token_claims",
+          "schema": "aitp-delegation.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/delegation_token_claims/voucher_claims",
+          "schema": "aitp-grant-voucher.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/revocation_snapshots/0/snapshot",
+          "schema": "aitp-revocation-list.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/issuer_manifests/0",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
     "del-mh-001": {
       "artifacts": [
         {
@@ -464,6 +489,42 @@
         {
           "pointer": "/input/delegation_token_claims/chain_claims/0/voucher_claims",
           "schema": "aitp-grant-voucher.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/issuer_manifests/0",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        },
+        {
+          "pointer": "/input/issuer_manifests/1",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "del-mh-006": {
+      "artifacts": [
+        {
+          "pointer": "/input/delegation_token_claims",
+          "schema": "aitp-delegation.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/delegation_token_claims/chain_claims/0",
+          "schema": "aitp-delegation.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/delegation_token_claims/chain_claims/0/voucher_claims",
+          "schema": "aitp-grant-voucher.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/revocation_snapshots/0/snapshot",
+          "schema": "aitp-revocation-list.schema.json",
           "expect": "valid"
         },
         {
@@ -1629,6 +1690,34 @@
         {
           "pointer": "/input/tct_token_claims",
           "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "tct-022": {
+      "artifacts": [
+        {
+          "pointer": "/input/tct_token_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/issuer_revocation_list/snapshot",
+          "schema": "aitp-revocation-list.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "tct-023": {
+      "artifacts": [
+        {
+          "pointer": "/input/tct_token_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/issuer_revocation_list/snapshot",
+          "schema": "aitp-revocation-list.schema.json",
           "expect": "valid"
         }
       ]

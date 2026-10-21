@@ -172,6 +172,11 @@ Pinned signing inputs for all three live in
 [`known-answer/jcs-sha256.json`](known-answer/jcs-sha256.json), each declaring
 `signing_input: "body"`, and are executed by `make kat-verify`.
 
+`tct-022` and `tct-023` carry no placeholder either. Their snapshot is the body of
+[`signed-examples/revocation/kat-keypair-001-snapshot.json`](known-answer/signed-examples/revocation/kat-keypair-001-snapshot.json)
+with that example's committed signature after the `__TAMPERED_SIGNATURE__` bit flip,
+and their `tct_token` is the committed `signed-examples/tct/kat-keypair-001-issues-002.json` token. A runner MUST NOT re-mint either.
+
 `rev-010` and `bundle-008` carry no `__VALID_A_SIG__`: their literal `signature`
 is that of the committed signed example
 ([`signed-examples/revocation/kat-keypair-001-snapshot.json`](known-answer/signed-examples/revocation/kat-keypair-001-snapshot.json),
@@ -251,7 +256,7 @@ property should be broken.
 
 | Token | What's broken | Expected error path |
 |---|---|---|
-| `__TAMPERED_SIGNATURE__` | Sign properly, then flip the **least-significant bit of the last raw signature byte** before base64url-encoding. | `MANIFEST_SIGNATURE_INVALID` (manifest), `INVALID_SIGNATURE` (envelope), `REVOCATION_SNAPSHOT_SIGNATURE_INVALID` (revocation snapshot — `rev-008`). The expected code is per-artifact: the snapshot's own code, not the `TCT_SIGNATURE_INVALID` implementations previously borrowed for it (issue #39). |
+| `__TAMPERED_SIGNATURE__` | Sign properly, then flip the **least-significant bit of the last raw signature byte** before base64url-encoding. | `MANIFEST_SIGNATURE_INVALID` (manifest), `INVALID_SIGNATURE` (envelope), `REVOCATION_SNAPSHOT_SIGNATURE_INVALID` (revocation snapshot — `rev-008`, and `del-008` for A's own deny list). The expected code is per-artifact: the snapshot's own code, not the `TCT_SIGNATURE_INVALID` implementations previously borrowed for it (issue #39). Where the tampered snapshot is a hop issuer's fetched snapshot inside a larger decision (`del-mh-006`), it is discarded and the fixture expects the policy outcome instead (RFC-AITP-0008 §1.5). |
 | `__TAMPERED_SIG__` | Same recipe; shorter alias used by older fixtures. | `TCT_SIGNATURE_INVALID`. |
 
 The tamper recipe is pinned so re-mints reproduce byte-for-byte. Any

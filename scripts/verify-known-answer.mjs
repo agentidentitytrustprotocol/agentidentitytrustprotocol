@@ -1201,6 +1201,7 @@ function checkSignedExamples() {
   checkEnvelopeExample();
   checkEnvelopeTamperedFixtures();
   checkVersionAlteredBodies();
+  checkDiscardedSnapshotFixtures();
   checkSelfAttestations();
 }
 
@@ -1249,6 +1250,55 @@ function checkVersionAlteredBodies() {
     const m = readJson(join(SIGNED, 'manifest/kat-keypair-001-manifest.json')).manifest;
     eq(jcs(f.input.coordinator_manifest), jcs(m), 'coordinator_manifest');
   });
+}
+
+// tct-022 and tct-023 (RFC-AITP-0008 §1.5, aitp-rs#271): the committed
+// kat-keypair-001 TCT checked against the committed kat-keypair-001 snapshot whose
+// committed signature has had the least-significant bit of its last raw byte
+// flipped. The token must verify, the snapshot signature must not, and the TCT's
+// jti must be absent from the entries, so only the discard rule decides.
+function checkDiscardedSnapshotFixtures() {
+  console.log('── tct-022, tct-023: committed TCT, committed snapshot with a flipped signature bit ──');
+  const conf = join(ROOT, 'schemas/conformance');
+  const tct = readJson(join(SIGNED, 'tct/kat-keypair-001-issues-002.json'));
+  const snap = readJson(join(SIGNED, 'revocation/kat-keypair-001-snapshot.json'));
+  const raw = Buffer.from(snap.signature, 'base64url');
+  raw[raw.length - 1] ^= 1;
+  const tampered = raw.toString('base64url');
+  const cases = [
+    { file: 'tct-022-invalid-snapshot-fail-closed.json', id: 'tct-022', mode: 'fail_closed', outcome: 'failure', code: 'TCT_REVOKED' },
+    { file: 'tct-023-invalid-snapshot-fail-open.json', id: 'tct-023', mode: 'fail_open', outcome: 'success', code: undefined },
+  ];
+  for (const c of cases) {
+    check(`${c.id}: committed TCT verifies; committed snapshot body; signature is the committed one with one bit flipped and does not verify; ${c.mode} => ${c.code ?? c.outcome}`, () => {
+      const f = readJson(join(conf, c.file));
+      eq(f.id, c.id, 'id');
+      eq(f.status, 'core', 'status');
+      eq(f.input.operation, 'verify_tct', 'operation');
+      eq(f.input.tct_token, tct.tct_token, 'tct_token (committed signed example)');
+      const claims = verifyCompactJws(f.input.tct_token, 'aitp-tct+jwt');
+      eq(jcs(f.input.tct_token_claims), jcs(claims), 'tct_token_claims');
+      eq(f.input.expected_audience, claims.aud, 'expected_audience');
+      const irl = f.input.issuer_revocation_list;
+      eq(irl.fail_mode, c.mode, 'fail_mode');
+      eq(irl.issuer, claims.iss, 'issuer_revocation_list.issuer');
+      eq(jcs(irl.snapshot.revocation_list), jcs(snap.revocation_list), 'snapshot body (committed signed example)');
+      eq(irl.snapshot.revocation_list.issuer, claims.iss, 'snapshot issuer is the TCT issuer');
+      eq(jcs(Object.keys(irl.snapshot).sort()), jcs(['revocation_list', 'signature']), 'snapshot wrapper members');
+      eq(irl.snapshot.signature, tampered, 'snapshot signature (committed, LSB of last byte flipped)');
+      if (!verifySingleHash(claims.iss, utf8(jcs(snap.revocation_list)), snap.signature)) {
+        throw new Error('the committed snapshot signature does not verify');
+      }
+      if (verifySingleHash(claims.iss, utf8(jcs(irl.snapshot.revocation_list)), irl.snapshot.signature)) {
+        throw new Error('the tampered snapshot signature verifies');
+      }
+      if (irl.snapshot.revocation_list.entries.some((e) => e.jti === claims.jti)) {
+        throw new Error('the TCT jti is listed in the snapshot');
+      }
+      eq(f.expected.outcome, c.outcome, 'expected.outcome');
+      eq(f.expected.error_code, c.code, 'expected.error_code');
+    });
+  }
 }
 
 // Self-attestation TCTs (RFC-AITP-0005 §5.3), kat-tct-002 (EdDSA) and kat-tct-003
@@ -1915,7 +1965,7 @@ checkOidcP256Fixture();
 // emptied vector member; this catches coverage lost any other way — a check
 // commented out, a loop that stops early, a gate that stops matching. Coverage may
 // grow (raise this number in the same commit); it may never silently shrink.
-const EXPECTED_MIN_CHECKS = 165;
+const EXPECTED_MIN_CHECKS = 167;
 if (checks < EXPECTED_MIN_CHECKS) {
   failures.push(
     `coverage regression: ran ${checks} checks, expected at least ${EXPECTED_MIN_CHECKS}. ` +

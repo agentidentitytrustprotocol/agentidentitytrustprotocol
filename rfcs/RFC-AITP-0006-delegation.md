@@ -2,7 +2,7 @@
 # Single-Hop Delegation
 
 **Document:** RFC-AITP-0006
-**Version:** 0.3.0-draft
+**Version:** 0.3.1-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md)
 
@@ -108,7 +108,7 @@ When C presents a delegation token to A, A MUST verify all of the following, in 
    ```
 
    ⇒ else `DELEGATION_SCOPE_EXCEEDED`.
-7. **Source TCT revocation.** Look up `voucher.src_jti` in A's own deny list. If the source TCT has been revoked, the delegation token MUST be rejected ⇒ `DELEGATION_SOURCE_TCT_REVOKED`. This is the only stateful check; it runs only after every signature check has passed (RFC-AITP-0008 §3.3).
+7. **Source TCT revocation.** Look up `voucher.src_jti` in A's own deny list. If the source TCT has been revoked, the delegation token MUST be rejected ⇒ `DELEGATION_SOURCE_TCT_REVOKED`. This is the only stateful check; it runs only after every signature check has passed (RFC-AITP-0008 §3.3). A's own deny list is local state, not a fetched snapshot, so the discarded-snapshot rule of RFC-AITP-0008 §1.5 and `revocation_policy.mode` do not apply to this lookup. If an implementation keeps its own list as a signed snapshot and that snapshot fails verification, the delegation token MUST be rejected with the snapshot's own code (`REVOCATION_SNAPSHOT_INVALID`, `UNKNOWN_FIELD` or `REVOCATION_SNAPSHOT_SIGNATURE_INVALID`) whatever the mode; it is never treated as absent, since `fail_open` would otherwise accept against a corrupted local list.
 8. **No self-delegation.** The outer `iss` MUST NOT equal `sub` ⇒ else `DELEGATION_INVALID_SIGNATURE`.
 9. **Proof of possession.** Verify that the presenting agent holds the private key matching `cnf` by running the downstream PoP exchange of [RFC-AITP-0005 §6.1](RFC-AITP-0005-tct.md#61-downstream-pop-exchange) against C, with the bound key taken from the delegation's `sub` AID and checked against `cnf.jkt` (RFC-AITP-0005 §6.2). The verifier MUST issue a fresh `pop_challenge` with a per-verification 128-bit nonce. PoP failure ⇒ `DELEGATION_POP_FAILED`. Implementations MAY skip the exchange only when an equivalent channel binding to C's key is already in place (e.g. mTLS with a client certificate matching `cnf`); they MUST document that posture.
 

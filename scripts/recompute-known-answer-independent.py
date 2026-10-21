@@ -806,6 +806,49 @@ def main() -> int:
     check("bundle-008: coordinator_manifest is the committed kat-keypair-001 Manifest",
           f08["input"]["coordinator_manifest"] == load(SIGNED / "manifest" / "kat-keypair-001-manifest.json")["manifest"])
 
+    print("── tct-022, tct-023: committed TCT, committed snapshot with a flipped signature bit (RFC-AITP-0008 §1.5) ──")
+    tct_ex = load(SIGNED / "tct" / "kat-keypair-001-issues-002.json")
+    snap = load(SIGNED / "revocation" / "kat-keypair-001-snapshot.json")
+    flipped = bytearray(b64d(snap["signature"]))
+    flipped[-1] ^= 1
+    h64, p64, s64 = tct_ex["tct_token"].split(".")
+    claims = json.loads(b64d(p64))
+    issuer_pub = ed_public(seeds[claims["iss"]])
+    check("kat-keypair-001-issues-002 TCT verifies strictly under its iss",
+          ed_verify_strict(issuer_pub, f"{h64}.{p64}".encode(), b64d(s64)))
+    check("kat-keypair-001 snapshot: committed signature verifies strictly",
+          ed_verify_strict(issuer_pub, H(jcs(snap["revocation_list"])), b64d(snap["signature"])))
+    pair = {}
+    for fid, name, mode, outcome, code in [
+        ("tct-022", "tct-022-invalid-snapshot-fail-closed.json", "fail_closed", "failure", "TCT_REVOKED"),
+        ("tct-023", "tct-023-invalid-snapshot-fail-open.json", "fail_open", "success", None),
+    ]:
+        fx = load(CONF / name)
+        pair[fid] = fx
+        inp = fx["input"]
+        irl = inp["issuer_revocation_list"]
+        body, sig = irl["snapshot"]["revocation_list"], irl["snapshot"]["signature"]
+        check(f"{fid}: token and claims are the committed signed example; audience is its aud",
+              inp["operation"] == "verify_tct" and inp["tct_token"] == tct_ex["tct_token"]
+              and inp["tct_token_claims"] == claims and inp["expected_audience"] == claims["aud"])
+        check(f"{fid}: snapshot body is the committed one, issued by the TCT issuer; jti not listed",
+              body == snap["revocation_list"] and irl["issuer"] == claims["iss"] == body["issuer"]
+              and all(e["jti"] != claims["jti"] for e in body["entries"])
+              and sorted(irl["snapshot"]) == ["revocation_list", "signature"])
+        check(f"{fid}: signature is the committed one with the LSB of the last raw byte flipped",
+              b64d(sig) == bytes(flipped) and b64e(bytes(flipped)) == sig)
+        check(f"{fid}: signature does NOT verify over the body (strict or lax)",
+              not ed_verify_strict(issuer_pub, H(jcs(body)), b64d(sig)) and not ed_verify_lax(issuer_pub, H(jcs(body)), b64d(sig)))
+        check(f"{fid}: fail_mode {mode} expects {code or outcome}",
+              irl["fail_mode"] == mode and fx["expected"]["outcome"] == outcome and fx["expected"].get("error_code") == code)
+
+    def without_mode(fx):
+        d = json.loads(json.dumps(fx["input"]))
+        del d["issuer_revocation_list"]["fail_mode"]
+        return d
+    check("tct-022 and tct-023 inputs differ only in fail_mode",
+          without_mode(pair["tct-022"]) == without_mode(pair["tct-023"]))
+
     print()
     if failures:
         print(f"✗ {failures} of {checks} independent checks FAILED")
