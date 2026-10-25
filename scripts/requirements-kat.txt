@@ -1,0 +1,9 @@
+# Pinned, hash-locked dependencies of scripts/recompute-known-answer-independent.py
+# (`make kat-independent`, part of `make validate`). Install with:
+#   python3 -m pip install --require-hashes -r scripts/requirements-kat.txt
+ecdsa==0.19.2 \
+    --hash=sha256:840f5dc5e375c68f36c1a7a5b9caad28f95daa65185c9253c0c08dd952bb7399 \
+    --hash=sha256:62635b0ac1ca2e027f82122b5b81cb706edc38cd91c63dda28e4f3455a2bf930
+six==1.17.0 \
+    --hash=sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274 \
+    --hash=sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81

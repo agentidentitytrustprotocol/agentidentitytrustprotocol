@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/agentidentitytrustprotocol/.github/blob/main/SECURITY.md
+    about: Report privately (security advisory or security@zer07labs.com). Do not open a public issue.
+  - name: Ask a question or start a discussion
+    url: https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/discussions
+    about: Questions, ideas and implementation help that are not a spec bug or an RFC proposal.

@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### Spec drift and CI hygiene
+
+**Change class.** Editorial + CI. No wire, schema, fixture or vector change.
+
+**Changes.**
+- `README.md` `**Version:**` is `0.3.1-draft`; it still said `0.3.0-draft` after the v0.3.1-draft release. `scripts/check-doc-coherence.sh` stage 1 now fails when that header is not the newest `## v…` release heading in this file.
+- RFC-AITP-0001 §1: backward-incompatible changes remain possible "until the document reaches Accepted", not "until Final status". The RFC lifecycle has no Final stage (governance/RFC-PROCESS.md).
+- `governance/spec-errata-from-independent-verifier-2026-07.md`: the closed record's "Draft→Final" stage word is now "Draft→Accepted", with a dated editorial note. The finding is unchanged.
+- `docs/threat-model.md` "Known limitations" gains the signature-string malleability row that RFC-AITP-0009 §2 already lists (RFC-AITP-0001 §5.4.3; ECDSA high-S closed by §5.4.7). New coherence stage 9 checks that the index cites every RFC-AITP-0009 §1.N threat and has one known-limitation row per RFC-AITP-0009 §2 row.
+- `make validate` now runs `make kat-independent`: `scripts/recompute-known-answer-independent.py --quiet`, the Python recompute that shares no code with `scripts/verify-known-answer.mjs`. It gains a `--quiet` mode and a coverage floor (`EXPECTED_MIN_CHECKS = 238`). Its one dependency, python-ecdsa 0.19.2 (with six 1.17.0), is hash-pinned in the new `scripts/requirements-kat.txt`; CI sets up Python 3.12 with a pip cache and installs it with `--require-hashes`.
+- Every GitHub Action in `.github/workflows/` is pinned to a full commit SHA with a `# vX.Y.Z` comment (checkout v7.0.1, setup-node v7.1.0, setup-python v7.1.0, create-github-app-token v3.3.0, repository-dispatch v4.0.1). Dependabot (actions only) bumps the SHA and the comment together.
+- New `.github/ISSUE_TEMPLATE/config.yml`: blank issues off; contact links for private security reports (org `SECURITY.md`) and Discussions. The bug template no longer offers a "Proto schema" area; AITP ships JSON only.
+- The `spec-bug` and `rfc` labels the issue templates apply now exist in the repository.
+- Docs that counted the doc-coherence stages ("eight-stage") now point at the script header instead, so the count cannot drift again.
+
+**Version bumps.** RFC-AITP-0001 `0.3.1-draft` → `0.3.2-draft`.
+
 ### Conformance: no revocation source, default policy, rejects
 
 **Change class.** Fixture addition (core). No RFC text, schema, registry or vector change, and no RFC version bump. The rule is already normative: an issuer with no snapshot source falls under `revocation_policy.mode` (RFC-AITP-0008 §1.4), and the mode's schema default is `fail_closed` (§3.1). No fixture pinned it, because a fixture without a revocation input does not test revocation. aitp-rs 0.19.0 and aitp-verifier-py `b762f8c` both accept the token in `tct-024`.

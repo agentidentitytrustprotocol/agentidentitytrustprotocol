@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Independently recompute the P-256 and signature-strictness known answers.
 
-Maintainer tool, not part of `make validate`. It needs `python-ecdsa`
-(`pip install ecdsa`), which CI does not install; `scripts/verify-known-answer.mjs`
-is what CI runs, and it depends on nothing beyond Node's standard library.
+Run by `make kat-independent`, which is part of `make validate` and so of CI.
+It needs `python-ecdsa`, pinned with hashes in `scripts/requirements-kat.txt`
+(`python3 -m pip install --require-hashes -r scripts/requirements-kat.txt`).
+`scripts/verify-known-answer.mjs` (`make kat-verify`) is the other checker and
+depends on nothing beyond Node's standard library.
 
 The split is the same one regen-known-answer.py describes, with a third
 implementation added. The P-256 vectors (RFC-AITP-0001 §5.4.6, §5.4.7) are
@@ -32,7 +34,9 @@ over bodies whose `version` was changed after signing: each signature verifies
 over the signed example and fails over the fixture.
 
 Usage:
-    python3 scripts/recompute-known-answer-independent.py
+    python3 scripts/recompute-known-answer-independent.py [--quiet]
+
+With --quiet only failing checks and the summary are printed.
 
 It only reads files in this repository. Exit status is 0 when every check
 passes and 1 otherwise.
@@ -50,7 +54,7 @@ try:
     import ecdsa
     from ecdsa.util import sigdecode_string
 except ImportError:  # pragma: no cover
-    sys.exit("python-ecdsa is required: pip install ecdsa")
+    sys.exit("python-ecdsa is required: python3 -m pip install --require-hashes -r scripts/requirements-kat.txt")
 
 REPO = Path(__file__).resolve().parent.parent
 CONF = REPO / "schemas" / "conformance"
@@ -59,14 +63,28 @@ SIGNED = KAT / "signed-examples"
 # The current revision literal, read from the schema rather than restated here.
 AITP_VERSION = json.loads((REPO / "schemas/json/aitp-envelope.schema.json").read_text(encoding="utf-8"))["properties"]["version"]["const"]
 
+QUIET = "--quiet" in sys.argv[1:]
+
+# Coverage floor, as EXPECTED_MIN_CHECKS in verify-known-answer.mjs: a check that
+# silently stops running (commented out, a loop that ends early, a gate that no
+# longer matches) fails the run. Raise it in the same commit that adds checks;
+# lower it only on purpose, and say why.
+EXPECTED_MIN_CHECKS = 238
+
 failures = 0
 checks = 0
+
+
+def section(title: str) -> None:
+    if not QUIET:
+        print(title)
 
 
 def check(name: str, cond: bool) -> None:
     global failures, checks
     checks += 1
-    print(("  ok   " if cond else "  FAIL ") + name)
+    if not cond or not QUIET:
+        print(("  ok   " if cond else "  FAIL ") + name)
     if not cond:
         failures += 1
 
@@ -299,11 +317,12 @@ def jwk_thumbprint(jwk: dict) -> str:
 
 
 def main() -> int:
+    global failures
     keypairs = {k["id"]: k for k in load(KAT / "keypairs.json")["vectors"]}
     jcsv = {v["id"]: v for v in load(KAT / "jcs-sha256.json")["vectors"]}
     strict = {v["id"]: v for v in load(KAT / "signature-strictness.json")["vectors"]}
 
-    print("── keypairs ──")
+    section("── keypairs ──")
     k5 = keypairs["kat-keypair-005-p256"]
     sk = p256_signing_key(k5["private_scalar_hex"])
     vk = sk.get_verifying_key()
@@ -318,7 +337,7 @@ def main() -> int:
     check("kat-keypair-001-tagged aid / untagged_aid",
           t1["aid"] == "aid:pubkey:ed25519:" + b64e(A1) and t1["untagged_aid"] == "aid:pubkey:" + b64e(A1) == k1["aid"])
 
-    print("── jcs-sha256.json P-256 vectors ──")
+    section("── jcs-sha256.json P-256 vectors ──")
     v = jcsv["kat-p256-jcs-sign-001"]
     pre = jcs(v["preimage_json"])
     check("kat-p256-jcs-sign-001 preimage", pre.hex() == v["preimage_hex"] and len(pre) == v["preimage_len_bytes"])
@@ -337,7 +356,7 @@ def main() -> int:
     check("kat-manifest-pop-002-p256 signer", v["signer_aid"] == aid5 and v["signature"] == "p256." + v["signature_b64url"])
     p256_signature("kat-manifest-pop-002-p256", sk, vk, pre, v["signature"], v["double_hash_signature_MUST_NOT_verify"])
 
-    print("── jcs-sha256.json pinned-key proofs (RFC-AITP-0002 §3.1) ──")
+    section("── jcs-sha256.json pinned-key proofs (RFC-AITP-0002 §3.1) ──")
     v = jcsv["kat-pinned-key-proof-002-p256"]
     pre = proof_input(v["sender_aid"], v["receiver_aid"], v["message_id"], v["timestamp"], v["pop_nonce"])
     check("kat-pinned-key-proof-002-p256 proof_input",
@@ -367,7 +386,7 @@ def main() -> int:
     check("kat-pinned-key-proof-003 differs from -001, whose proof does not verify here",
           pre != pre1 and not ed_verify_strict(A3, H(pre), b64d(v1["signature_b64url"])))
 
-    print("── pinned-key fixtures: each proof against its own tuple ──")
+    section("── pinned-key fixtures: each proof against its own tuple ──")
     for name, kind in [
         ("id-010-pinned-key-p256-success.json", "p256"),
         ("id-011-pinned-key-p256-untagged-proof-rejected.json", "untagged"),
@@ -402,7 +421,7 @@ def main() -> int:
         else:
             check(f"{name}: public_key is the compressed AID key", idn["public_key"] == b64e(vk.to_string("compressed")))
 
-    print("── signature-strictness.json ──")
+    section("── signature-strictness.json ──")
     v = strict["sig-001-ed25519-small-order-key-rejected"]
     A, m, sg = b64d(v["public_key_b64url"]), bytes.fromhex(v["message_hex"]), b64d(v["signature_b64url"])
     check("sig-001 key is small-order", _eq(_mul(8, _dec(A, True)), IDENT))
@@ -426,7 +445,7 @@ def main() -> int:
     check("sig-003 lax accepts", p256_verify_lax(vk, d, untag(v["signature"], "p256")))
     check("sig-003 strict rejects", not p256_verify_strict(vk, d, untag(v["signature"], "p256")))
 
-    print("── envelope signing input v2 (RFC-AITP-0001 §5.4, issue #87) ──")
+    section("── envelope signing input v2 (RFC-AITP-0001 §5.4, issue #87) ──")
     strip = lambda o: {k: x for k, x in o.items() if k != "signature"}
 
     def env_v2(e) -> bytes:
@@ -503,7 +522,7 @@ def main() -> int:
         check(f"{fx['id']}: the v1 signature still verifies over its v1 input (the change is invisible to v1)",
               ed_verify_strict(A1, H(env_v1(e).encode()), v1sig))
 
-    print("── signed examples (P-256) ──")
+    section("── signed examples (P-256) ──")
 
     f = load(SIGNED / "manifest" / "kat-keypair-005-manifest.json")
     body = f["manifest"]
@@ -527,7 +546,7 @@ def main() -> int:
     check("ES256 TCT double-hash token reuses header.payload", dbl[:2] == [h64, p64])
     p256_signature("ES256 TCT", sk, vk, f"{h64}.{p64}".encode(), "p256." + s64, "p256." + dbl[2])
 
-    print("── self-attestation TCTs (RFC-AITP-0005 §5.3), re-minted from their inputs ──")
+    section("── self-attestation TCTs (RFC-AITP-0005 §5.3), re-minted from their inputs ──")
     att_tag = "aitp-kat-attestation-v1"
     for rel, vid, alg in [
         ("kat-keypair-001-self-attestation.json", "kat-tct-002-self-attestation", "EdDSA"),
@@ -560,7 +579,7 @@ def main() -> int:
             check(f"{vid}: double-hash token reuses header.payload", dbl[:2] == [h64, p64])
             p256_signature(vid, sk, vk, si, "p256." + f["tct_token"].split(".")[2], "p256." + dbl[2])
 
-    print("── pinned-admission fixtures (RFC-AITP-0002 §3.4): proofs re-signed ──")
+    section("── pinned-admission fixtures (RFC-AITP-0002 §3.4): proofs re-signed ──")
     def presentation(fx, env, n_len):
         idn = env["payload"]["identity"]
         snd = env["sender"]["agent_id"]
@@ -628,7 +647,7 @@ def main() -> int:
           and all(x["status"] == "extension" and x["feature"] == "aitp-pinned-admission"
                   and x["required_for_v0_1"] is False and x["required_for_v0_2"] is False for x in gated))
 
-    print("── self-attestation fixtures (RFC-AITP-0005 §5.3) ──")
+    section("── self-attestation fixtures (RFC-AITP-0005 §5.3) ──")
     f20t = load(CONF / "tct-020-self-attestation-verifies-as-attestation.json")
     kat2 = load(SIGNED / "tct" / "kat-keypair-001-self-attestation.json")
     h64, p64, s64 = f20t["input"]["tct_token"].split(".")
@@ -666,7 +685,7 @@ def main() -> int:
           and f18t["input"]["operation"] == "verify_tct" and f18t["status"] == "core"
           and f18t["expected"]["error_code"] == "TCT_SIGNATURE_INVALID")
 
-    print("── tct-017 ──")
+    section("── tct-017 ──")
     f = load(CONF / "tct-017-es256-high-s-rejected.json")
     h64, p64, s64 = f["input"]["tct_token"].split(".")
     si = f"{h64}.{p64}".encode()
@@ -679,7 +698,7 @@ def main() -> int:
     check("tct-017 strict rejects", not p256_verify_strict(vk, H(si), raw))
     check("tct-017 low-S twin is the RFC 6979 signature", p256_sign(sk, H(si)) == r.to_bytes(32, "big") + (N - s).to_bytes(32, "big"))
 
-    print("── id-023: OIDC cnf.jkt for a P-256 AID (issue #68) ──")
+    section("── id-023: OIDC cnf.jkt for a P-256 AID (issue #68) ──")
     f23 = load(CONF / "id-023-oidc-p256-cnf-jkt-success.json")
     env23 = f23["input"]["envelope"]
     s23 = env23["sender"]["agent_id"]
@@ -697,7 +716,7 @@ def main() -> int:
     check("id-023: the OKP-shaped JWK of the same identifier gives a different jkt",
           jwk_thumbprint({"crv": "Ed25519", "kty": "OKP", "x": s23.removeprefix("aid:pubkey:p256:")}) != t5["jkt"])
 
-    print("── Ed25519 vectors and signed examples (re-minted for the aitp/0.3 revision) ──")
+    section("── Ed25519 vectors and signed examples (re-minted for the aitp/0.3 revision) ──")
     # Every Ed25519 value scripts/regen-known-answer.py or the aitp/0.3 re-mint
     # produced is re-derived here with the RFC 8032 arithmetic above, so each
     # pinned value is checked by a second stack and not only by its generator.
@@ -770,7 +789,7 @@ def main() -> int:
     check("kat-multihop-truncation-001: chain_hash_full is chain-001's chain_hash; truncated hash recomputes",
           t["chain_hash_full"] == v["chain_hash"] and b64e(H(jcs([]))) == t["chain_hash_truncated"])
 
-    print("── env-011: previous revision rejected (strict cutover) ──")
+    section("── env-011: previous revision rejected (strict cutover) ──")
     f11 = load(CONF / "env-011-previous-revision-rejected.json")
     e11 = f11["input"]["envelope"]
     check("env-011: version is the previous revision aitp/0.2, not the current one",
@@ -780,7 +799,7 @@ def main() -> int:
     check("env-011: the expected result is UNKNOWN_VERSION",
           f11["expected"]["outcome"] == "failure" and f11["expected"]["error_code"] == "UNKNOWN_VERSION")
 
-    print("── rev-010, bundle-008: committed signature over a version-altered body ──")
+    section("── rev-010, bundle-008: committed signature over a version-altered body ──")
     snap = load(SIGNED / "revocation" / "kat-keypair-001-snapshot.json")
     bun = load(SIGNED / "session-bundle" / "kat-keypair-001-bundle.json")
     f10 = load(CONF / "rev-010-version-unknown.json")
@@ -806,7 +825,7 @@ def main() -> int:
     check("bundle-008: coordinator_manifest is the committed kat-keypair-001 Manifest",
           f08["input"]["coordinator_manifest"] == load(SIGNED / "manifest" / "kat-keypair-001-manifest.json")["manifest"])
 
-    print("── tct-022, tct-023: committed TCT, committed snapshot with a flipped signature bit (RFC-AITP-0008 §1.5) ──")
+    section("── tct-022, tct-023: committed TCT, committed snapshot with a flipped signature bit (RFC-AITP-0008 §1.5) ──")
     tct_ex = load(SIGNED / "tct" / "kat-keypair-001-issues-002.json")
     snap = load(SIGNED / "revocation" / "kat-keypair-001-snapshot.json")
     flipped = bytearray(b64d(snap["signature"]))
@@ -849,7 +868,7 @@ def main() -> int:
     check("tct-022 and tct-023 inputs differ only in fail_mode",
           without_mode(pair["tct-022"]) == without_mode(pair["tct-023"]))
 
-    print("── tct-024, tct-025: committed TCT, no revocation source for its issuer (RFC-AITP-0008 §1.4, §3.1) ──")
+    section("── tct-024, tct-025: committed TCT, no revocation source for its issuer (RFC-AITP-0008 §1.4, §3.1) ──")
     for fid, name, mode, outcome, code in [
         ("tct-024", "tct-024-no-revocation-source-default-fail-closed.json", None, "failure", "TCT_REVOKED"),
         ("tct-025", "tct-025-no-revocation-source-explicit-fail-open.json", "fail_open", "success", None),
@@ -870,7 +889,11 @@ def main() -> int:
     check("tct-024 and tct-025 inputs differ only in fail_mode",
           without_mode(pair["tct-025"]) == pair["tct-024"]["input"])
 
-    print()
+    if checks < EXPECTED_MIN_CHECKS:
+        failures += 1
+        print(f"  FAIL coverage: ran {checks} checks, expected at least {EXPECTED_MIN_CHECKS}")
+    if not QUIET:
+        print()
     if failures:
         print(f"✗ {failures} of {checks} independent checks FAILED")
         return 1

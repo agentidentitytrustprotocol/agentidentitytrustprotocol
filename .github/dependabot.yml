@@ -1,6 +1,10 @@
 version: 2
 updates:
   # The spec repo ships no package manifest — only GitHub Actions to keep fresh.
+  # Every `uses:` is pinned to a full commit SHA with a trailing `# vX.Y.Z`
+  # comment. Dependabot bumps the SHA and rewrites that comment in the same PR,
+  # so the pins stay current without falling back to mutable tags.
+  # (scripts/requirements-kat.txt is hash-pinned and bumped by hand.)
   - package-ecosystem: github-actions
     directory: /
     schedule:

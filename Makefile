@@ -1,4 +1,4 @@
-.PHONY: help validate json-validate json-schema-validate kat-verify doc-coherence clean install-tools docs release
+.PHONY: help validate json-validate json-schema-validate kat-verify kat-independent doc-coherence clean install-tools docs release
 
 # AITP ships as JSON only (RFC-AITP-0001 §5.1). There are two signing
 # profiles (RFC-AITP-0001 §5.4): RFC 8785 (JCS) canonical JSON is the
@@ -19,24 +19,26 @@ help:
 	@echo "                             incl. the map-driven fixture-input cross-check"
 	@echo "                             (scripts/fixture-validation-map.json)"
 	@echo "  make kat-verify            Recompute and verify every pinned known-answer value"
-	@echo "  make doc-coherence         Eight-stage doc coherence check: RFC version claims,"
+	@echo "  make kat-independent       Recompute the known answers again with independent Python"
+	@echo "                             code (needs scripts/requirements-kat.txt installed)"
+	@echo "  make doc-coherence         Doc coherence check: RFC and README version claims,"
 	@echo "                             intra-repo anchor links, RFC section citations,"
 	@echo "                             fixture error codes, mirrored schema definitions,"
 	@echo "                             the RFC status ladder, stale superseded-revision vocabulary,"
-	@echo "                             and sibling-repo link form"
+	@echo "                             sibling-repo link form, and the threat-model index"
 	@echo "                             (stages documented in scripts/check-doc-coherence.sh)"
 	@echo
 	@echo "Docs:"
 	@echo "  make docs                  Print the docs reading order"
 	@echo
 	@echo "Utilities:"
-	@echo "  make install-tools         Install required development tools (ajv-cli)"
+	@echo "  make install-tools         Install required development tools (ajv-cli, python-ecdsa)"
 	@echo "  make release               Build the release archive from committed (tracked) files"
 	@echo "  make clean                 No-op (no generated artifacts)"
 
 # ── Validation ────────────────────────────────────────────────────────────────
 
-validate: json-schema-validate json-validate kat-verify doc-coherence
+validate: json-schema-validate json-validate kat-verify kat-independent doc-coherence
 	@echo "✓ All v0.3 validations passed"
 
 json-schema-validate:
@@ -54,11 +56,21 @@ kat-verify:
 	@echo "Verifying pinned known-answer values (canonical bytes + signatures)..."
 	@node scripts/verify-known-answer.mjs --quiet
 
+# A second, independent recompute that shares no code with the Node checker:
+# python-ecdsa for P-256, RFC 8032 reference arithmetic for Ed25519 and its own
+# JCS serializer. Its one dependency is pinned with hashes in
+# scripts/requirements-kat.txt:
+#   python3 -m pip install --require-hashes -r scripts/requirements-kat.txt
+PYTHON ?= python3
+kat-independent:
+	@echo "Recomputing known-answer values independently (python-ecdsa + RFC 8032 reference)..."
+	@$(PYTHON) scripts/recompute-known-answer-independent.py --quiet
+
 # rfcs/README.md and VERSIONING.md are prose, not generated from the RFC
 # headers -- this is the mechanical check that stops them from drifting the
 # way schemas/fixtures did before PR #22 and PR #30.
 doc-coherence:
-	@echo "Checking RFC version claims, intra-repo anchor links, section citations, fixture error codes, mirrored schema definitions, the RFC status ladder, stale superseded-revision vocabulary, and sibling-repo link form..."
+	@echo "Checking RFC and README version claims, intra-repo anchor links, section citations, fixture error codes, mirrored schema definitions, the RFC status ladder, stale superseded-revision vocabulary, sibling-repo link form, and the threat-model index..."
 	@./scripts/check-doc-coherence.sh
 
 # ── Docs ─────────────────────────────────────────────────────────────────────
@@ -145,5 +157,8 @@ install-tools:
 	else \
 		echo "Please install Node.js and npm, then run: npm install -g ajv-cli ajv-formats"; \
 	fi
+	@echo
+	@echo "Installing python-ecdsa (hash-pinned) for make kat-independent..."
+	@$(PYTHON) -m pip install --require-hashes -r scripts/requirements-kat.txt
 	@echo
 	@echo "✓ Tool installation complete"
