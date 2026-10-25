@@ -2,7 +2,7 @@
 # Mutual Handshake
 
 **Document:** RFC-AITP-0004
-**Version:** 0.3.2-draft
+**Version:** 0.3.3-draft
 **Status:** Community Standards Track (Review)
 **Depends on:**
   [RFC-AITP-0001 Core](RFC-AITP-0001-core.md),
@@ -334,6 +334,36 @@ B MUST:
    already authenticated in steps 4–5; this check forecloses substitution
    of an unrelated pinned key into the descriptor). Any mismatch ⇒
    `IDENTITY_FAILED`.
+
+   Within step 6 the checks run in this order:
+
+   1. **Descriptor shape and hint consistency.** The descriptor's
+      required and forbidden members per RFC-AITP-0002 §1 (for example,
+      `public_key` on an `oidc` descriptor), and the `type`, `subject`
+      and `issuer` / `public_key` equalities with
+      `payload.manifest.identity_hint` above. Failure ⇒
+      `IDENTITY_FAILED`.
+   2. **Trust-anchor check before any key fetch (OIDC).** For an `oidc`
+      descriptor, the verifier SHOULD confirm that `payload.identity.issuer`
+      is in its own `trust_anchors` before it resolves or fetches any key
+      material for that issuer (RFC-AITP-0002 §2.3, RFC-AITP-0007), so
+      that it never fetches key material from an issuer it does not
+      trust. An issuer not in `trust_anchors` ⇒
+      `INCOMPATIBLE_TRUST_ANCHORS` at this point. This is the same check
+      as the step 8 trust-anchor overlap, run early; it is the OIDC
+      counterpart of the `pinned_keys` lookup that the `pinned_key` path
+      already runs in this step.
+   3. **Key resolution and proof verification**, per RFC-AITP-0002 §2.3
+      or §3.2. Failure ⇒ `IDENTITY_FAILED`.
+
+   A verifier that runs check 2 here and one that leaves the
+   trust-anchor check to step 8 differ only when the issuer is untrusted
+   **and** a later check also fails: check 3, step 7 or step 8's
+   identity-type check. For that combination either code is conformant:
+   `INCOMPATIBLE_TRUST_ANCHORS`, or the code the strict step order gives.
+   The allowance does not reach check 1 or steps 1–5, which run first
+   under either reading: an untrusted issuer on a descriptor that fails
+   check 1 is `IDENTITY_FAILED`.
 7. **Verify the envelope signature** using the now-trusted public key
    from `manifest.aid`. Failure ⇒ `INVALID_SIGNATURE`. From this point
    forward, the envelope's contents are authenticated.
@@ -346,8 +376,9 @@ B MUST:
      A presents `pinned_key` but B accepts only `oidc`.
    - **Trust-anchor overlap** (OIDC only). When `A.identity.type ==
      "oidc"`, A's identity `issuer` MUST appear in B's
-     `trust_anchors`. Failure ⇒ `INCOMPATIBLE_TRUST_ANCHORS`. For
-     `pinned_key` this check is replaced by the
+     `trust_anchors`. Failure ⇒ `INCOMPATIBLE_TRUST_ANCHORS`. A
+     verifier that already ran this check in step 6 (check 2) need not
+     repeat it. For `pinned_key` this check is replaced by the
      `pinned_keys` lookup already performed in step 6.
 
    After compatibility passes, evaluate A's `requested_grants` against
@@ -371,7 +402,15 @@ A MUST:
 4. Verify B's Manifest `proof_of_possession.signature`.
 5. Verify B's Manifest `signature`.
 6. Verify B's identity binding per RFC-AITP-0002 (including `aud` and
-   `cnf.jkt`).
+   `cnf.jkt`), with the same internal order as §5.1 step 6: descriptor
+   shape and hint consistency first, then, for OIDC, the check that B's
+   issuer is in A's `trust_anchors` before any key fetch (SHOULD;
+   failure ⇒ `INCOMPATIBLE_TRUST_ANCHORS`), then key resolution and proof
+   verification. The §5.1 allowance applies here too: when B's issuer is
+   untrusted and a later check also fails (key resolution or proof
+   verification, step 7, step 8 or step 9), either
+   `INCOMPATIBLE_TRUST_ANCHORS` or the code the strict step order gives
+   is conformant.
 7. Verify the envelope signature.
 8. **Verify `pop_nonce_echo`** equals A's original `pop_nonce` from
    MUTUAL_HELLO. Failure ⇒ `NONCE_MISMATCH`.
@@ -501,7 +540,7 @@ A MUST:
 | B's Manifest signature invalid (step §5.2 #5) | A | `MANIFEST_SIGNATURE_INVALID` |
 | Identity proof failed or `identity.type` ≠ `manifest.identity_hint.type` (step §5.1 #6) | Either | `IDENTITY_FAILED` |
 | Peer's identity `type` not in own `accepted_identity_types` (step §5.1 #8) | Either | `INCOMPATIBLE_IDENTITY_TYPE` |
-| Peer's OIDC `issuer` not in own `trust_anchors` (step §5.1 #8, OIDC only) | Either | `INCOMPATIBLE_TRUST_ANCHORS` |
+| Peer's OIDC `issuer` not in own `trust_anchors` (step §5.1 #8, OIDC only; SHOULD be checked in step 6 before any key fetch) | Either | `INCOMPATIBLE_TRUST_ANCHORS` |
 | Envelope signature invalid after trust bootstrap (step §5.1 #7, §5.3 #1, §5.4 #1) | Either | `INVALID_SIGNATURE` |
 | PoP signature verification failed (step §5.3 #4, §5.4 #4) | Either | `POP_VERIFICATION_FAILED` |
 | `pop_nonce_echo` mismatch (step §5.2 #8, §5.3 #3, §5.4 #3) | Either | `NONCE_MISMATCH` |

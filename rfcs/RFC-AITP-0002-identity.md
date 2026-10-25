@@ -2,7 +2,7 @@
 # Identity Binding
 
 **Document:** RFC-AITP-0002
-**Version:** 0.3.2-draft
+**Version:** 0.3.3-draft
 **Status:** Community Standards Track (Review)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md)
 
@@ -129,6 +129,8 @@ A peer verifying an identity binding MUST:
 9. Confirm `issuer` appears in the local `trust_anchors` configuration (or in the peer's Manifest `accepted_trust_anchors` for the converse direction).
 
 Peers MUST NOT accept JWTs from issuers not present in `trust_anchors`. Peers MUST NOT accept JWTs missing `aud`, `nonce`, or `cnf.jkt`.
+
+The numbering above lists what is checked, not when key material is fetched. A verifier SHOULD perform step 9 before step 1, so that it never resolves or fetches keys for an issuer it does not trust. Inside the handshake, [RFC-AITP-0004 §5.1](RFC-AITP-0004-mutual-handshake.md#51-on-receiving-mutual_hello-b-verifies-a) step 6 fixes this order (descriptor shape first, then the trust-anchor check, then key resolution and proof verification) and states which error code results when an untrusted issuer coincides with another failure.
 
 ### 2.4 Example
 

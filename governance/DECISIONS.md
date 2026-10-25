@@ -601,3 +601,46 @@ patch-level, no new signatures). It deserves its own review rather than riding a
   shape. Decision 4 changes only with the frozen check order, at 1.0 or under a security fix.
 - **Blast radius if wrong:** low to medium. Five core fixtures; an implementation that skips the
   check or reorders it now fails them, which is the intent.
+
+## 2026-10-24 — OIDC trust-anchor check before any key fetch (RFC-AITP-0004 §5.1 step 6)
+
+- **Status:** Decided.
+- **Decided by:** the coordinator.
+- **Context:** RFC-AITP-0004 §5.1 step 6 verifies the OIDC identity proof, which needs the
+  issuer's keys, and the check that the issuer is in the receiver's `trust_anchors` ran only at
+  step 8. Read literally, a verifier would fetch key material from an issuer it does not trust
+  before rejecting it. RFC-AITP-0002 §2.3 lists the same checks with key resolution first and the
+  trust-anchor check last. The `pinned_key` path already looks up `pinned_keys` in step 6. aitp-rs
+  checks the trust anchor inside step 6, before any key fetch, so when the issuer is untrusted and
+  the identity type is not accepted it returns `INCOMPATIBLE_TRUST_ANCHORS`, not
+  `INCOMPATIBLE_IDENTITY_TYPE`.
+- **Chosen:**
+  1. Step 6 runs (1) descriptor shape and hint consistency (`IDENTITY_FAILED`), (2) for OIDC the
+     trust-anchor check before any key fetch, a SHOULD (`INCOMPATIBLE_TRUST_ANCHORS`), then (3) key
+     resolution and proof verification (`IDENTITY_FAILED`). §5.2 step 6 follows the same order, and
+     RFC-AITP-0002 §2.3 says its step 9 SHOULD run before step 1.
+  2. When the issuer is untrusted and check 3, step 7 or step 8 also fails, either
+     `INCOMPATIBLE_TRUST_ANCHORS` or the strict-order code is conformant. The allowance does not
+     cover check 1 or steps 1 to 5, so `id-011b` (untrusted issuer, forbidden `public_key`) is
+     `IDENTITY_FAILED` under every conformant order.
+  3. Fixtures MUST NOT combine an untrusted OIDC issuer with a failure from check 3, step 7 or
+     step 8 (conformance README, "Receiver policy inputs").
+  4. When a fixture states no `self_trust_anchors`, only the runner-minted OIDC test issuer
+     `https://auth.openai.com` is trusted (PLACEHOLDERS.md). That is the only issuer the spec
+     documents for `__VALID_JWT__`. The aitp-rs adapter's `verify_handshake_payload` handler
+     (`crates/aitp-rs-adapter/src/lib.rs`, around line 904) configures more: it also trusts
+     `https://auth.anthropic.com` and `https://idp.example.com`, and does not read
+     `self_trust_anchors`. The spec keeps the one documented issuer. No fixture outcome depends on
+     the difference today: no OIDC proof in the corpus names either extra issuer, and `mh-004`'s
+     untrusted issuer is on neither list.
+- **Reasoning:** a verifier should not fetch key material from issuers it does not trust. The
+  change is an erratum under VERSIONING.md "Allowed / Clarifications": it adds an allowed outcome
+  only for inputs with more than one defect, and every existing fixture keeps its expected
+  outcome. A fixture check over every OIDC fixture found none that pairs an untrusted issuer with a
+  check 3, step 7 or step 8 failure. aitp-rs already conforms.
+- **Rejected:** making the early check a MUST. It would move the error code for verifiers that
+  follow the strict step order, which is a wire change on this line.
+- **Reversal trigger:** at 1.0, the SHOULD may become a MUST and the dual-code allowance be
+  removed.
+- **Blast radius if wrong:** low. No fixture outcome changes, and the allowance covers only inputs
+  with more than one defect.

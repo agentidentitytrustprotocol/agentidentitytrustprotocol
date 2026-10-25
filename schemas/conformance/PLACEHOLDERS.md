@@ -79,6 +79,12 @@ public key is inlined into the fixture's `accepted_trust_anchors` /
 local `trust_anchors` so the verifier accepts (or rejects) the JWT
 based on issuer-list membership alone.
 
+The runner-minted OIDC test issuer is `https://auth.openai.com`, the
+issuer of every `__VALID_JWT__` and OIDC `__JWT_*__` proof in the corpus
+(the SPIFFE `__JWT_SVID_*__` proofs are not OIDC). When
+a fixture states no `self_trust_anchors`, it is the only issuer the
+verifier trusts (conformance README, "Receiver policy inputs").
+
 The SPIFFE test authorities of the `spiffe` fixtures are minted at runtime
 the same way: one P-256 JWT-SVID signing key (`ES256`, `kid`
 `aitp-test-spiffe-jwt-1`) and one P-256 X.509 CA, self-signed, with
