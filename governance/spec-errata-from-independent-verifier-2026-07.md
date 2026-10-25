@@ -17,7 +17,7 @@
 **Errata 1–2** surfaced while building **`aitp-verifier-py`**
 ([repo](https://github.com/agentidentitytrustprotocol/aitp-verifier-py)), the
 independent second implementation of the AITP v0.2 verification core required by
-`VERSIONING.md`'s Draft→Final "two independent implementations interoperate"
+`VERSIONING.md`'s Draft→Accepted "two independent implementations interoperate"
 gate. That implementation was written from the RFC texts and JSON schemas only
 (no code shared with `aitp-rs`), which is exactly why these surfaced: each is a
 place where an implementation coding to the **prose** diverges from the
@@ -26,14 +26,18 @@ independently re-minted at all. Both block the two-implementation gate for the
 affected fixtures.
 
 > **Correction (2026-10, docs refresh).** The paragraph above is left as written, but the
-> gate it cites does not exist in that form. `VERSIONING.md` has no "Draft→Final" RFC
-> gate (and the RFC lifecycle has no "Final" stage — see
+> gate it cites does not exist in that form. `VERSIONING.md` has no Draft→Accepted RFC
+> gate (and the RFC lifecycle has no stage by the name the paragraph first used — see
 > [RFC-PROCESS.md](RFC-PROCESS.md#rfc-lifecycle)). The "two independent implementations
 > interoperate" rule in `VERSIONING.md` applies only to **identity types** graduating
 > from `Proposed` to `Stable` in the identity-type registry. The RFC-promotion gate is
 > RFC-PROCESS.md's Release Candidate → Final Comment Period requirement that *at least
 > one* implementation passes the core conformance tier. `aitp-verifier-py` remains the
 > independent second implementation; errata 1–2 were real either way.
+>
+> **Editorial note (2026-10-24).** This record is closed. The only change since is the
+> stage word in the paragraph above: it named a terminal stage the lifecycle does not
+> have, and now uses the ladder's terminal stage, `Accepted`. The finding is unchanged.
 
 **Errata 3–5** were found later (2026-08) by a direct cross-implementation audit
 of the JCS signing inputs — *not* by a conformance run, because a conformance run

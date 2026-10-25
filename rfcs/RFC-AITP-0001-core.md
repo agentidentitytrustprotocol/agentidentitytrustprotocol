@@ -2,7 +2,7 @@
 # Agent Identity & Trust Protocol (AITP) — Core
 
 **Document:** RFC-AITP-0001
-**Version:** 0.3.1-draft
+**Version:** 0.3.2-draft
 **Status:** Community Standards Track (Draft)
 **Canonical wire format:** JSON
 **Normative transport:** HTTPS (any HTTP/1.1+ runtime)
@@ -29,7 +29,7 @@ AITP Core does not define decision theory, reputation models, identity issuance,
 
 ## 1. Status of This Memo
 
-This document is Draft Standards Track. Implementations MAY adopt it experimentally. Backward-incompatible changes remain possible until Final status.
+This document is Draft Standards Track. Implementations MAY adopt it experimentally. Backward-incompatible changes remain possible until the document reaches Accepted (governance/RFC-PROCESS.md).
 
 The numbering scheme treats `aitp/0.1` as the inaugural A2A protocol. This revision specifies **`aitp/0.3`**. Relative to `aitp/0.1`, the `aitp/0.2` line introduced two delta sets, which `aitp/0.3` carries unchanged:
 

@@ -1,6 +1,6 @@
 # Agent Identity & Trust Protocol (AITP)
 
-**Version:** 0.3.0-draft
+**Version:** 0.3.1-draft
 **Status:** Community Standards Track (Draft)
 **Canonical wire format:** JSON
 **Normative transport:** HTTPS
@@ -248,8 +248,9 @@ See [RELEASING.md](RELEASING.md) for the release workflow.
 - **Examples** under `examples/` are validated against the canonical schemas.
 - **GitHub Actions CI** validates JSON Schemas, examples, conformance
   fixtures (including their embedded artifacts), pinned known-answer
-  vectors, and the eight-stage doc-coherence check (the stages are listed in
-  the header of `scripts/check-doc-coherence.sh`) on every PR.
+  vectors (recomputed twice, by the Node checker and by an independent Python
+  one), and the doc-coherence check (the stages are listed in the header of
+  `scripts/check-doc-coherence.sh`) on every PR.
 
 ---
 

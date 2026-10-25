@@ -39,6 +39,7 @@ The authoritative list is [RFC-AITP-0009 §2](../rfcs/RFC-AITP-0009-security.md#
 | Multi-hop delegation is not core | Specified in [RFC-AITP-0011](../rfcs/RFC-AITP-0011-multihop-delegation.md) (Draft, opt-in). |
 | Multi-agent session scaling is not core | Specified in [RFC-AITP-0010](../rfcs/RFC-AITP-0010-session-trust-bundle.md) (Draft, opt-in). |
 | No cross-domain trust federation | Future specification. |
+| Signature-string malleability (an Ed25519 JCS-profile signature verifies both untagged and with the `ed25519.` tag) | Documented, not prevented: the signature field is outside its own signing input. Replay and dedup MUST key on signed content (`message_id`, or the JCS form without the signature), never on raw object bytes ([RFC-AITP-0001 §5.4.3](../rfcs/RFC-AITP-0001-core.md#543-algorithm-tagged-signature-wire-format-jcs-profile-only)). ECDSA high-S malleability is closed separately by low-S verification ([RFC-AITP-0001 §5.4.7](../rfcs/RFC-AITP-0001-core.md#547-verification-strictness)). |
 
 ## Attack walkthroughs
 

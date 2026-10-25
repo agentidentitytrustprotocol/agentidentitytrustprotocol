@@ -1,5 +1,5 @@
 name: Spec / Implementation Bug
-description: Report an ambiguity, contradiction, or error in the AITP spec, schemas, or proto.
+description: Report an ambiguity, contradiction, or error in the AITP spec, schemas, or conformance fixtures.
 title: "[bug] "
 labels: ["spec-bug"]
 body:
@@ -18,7 +18,6 @@ body:
       description: Which part of AITP is affected?
       options:
         - RFC (normative spec text)
-        - Proto schema
         - JSON Schema
         - Conformance fixture
         - Documentation

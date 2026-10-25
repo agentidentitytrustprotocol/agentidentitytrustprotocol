@@ -42,6 +42,12 @@
 #      a heading there. That existence/anchor sub-check is local-only and
 #      offline: CI checks out this repository alone, so it prints a
 #      "skipped (sibling checkout absent)" note and passes.
+#   9. Threat-model index coverage — docs/threat-model.md cites every
+#      RFC-AITP-0009 §1.N threat heading, and its "Known limitations" table
+#      has one row per row of RFC-AITP-0009 §2.
+#
+#   Stage 1 also checks that README.md's `**Version:**` header names the
+#   newest release heading in CHANGELOG.md.
 #
 # File set. Every stage reads one shared list of files: `git ls-files` when
 # ROOT is the top of a git work tree (so untracked local notes -- plans/,
@@ -51,7 +57,7 @@
 # release archive. A brand-new file is therefore checked once it is
 # `git add`ed, not before.
 #
-# All eight checks exist because the class of bug they catch — one fact
+# All of these checks exist because the class of bug they catch — one fact
 # asserted in two places with nothing checking that they agree — is exactly
 # the shape of the bugs PR #22 and PR #30 fixed, one level up in the docs.
 # See RFC-AITP-0001 §5.4.1 and the docs/tests follow-through plan for PR #22 / PR #30
@@ -258,6 +264,34 @@ if mismatches:
     sys.exit(1)
 
 print(f"    ✓ {checked} version assertion(s) in rfcs/README.md match their RFC headers")
+PYEOF
+then
+    FAIL=1
+fi
+
+# README.md's `**Version:**` header is the spec release a first reader sees.
+# It must name the newest release heading in CHANGELOG.md (`## vX.Y.Z-...`,
+# skipping `## Unreleased`), so a release cannot ship with the README still
+# quoting the previous one.
+if ! python3 - "$ROOT" <<'PYEOF'
+import os, re, sys
+
+root = sys.argv[1]
+with open(os.path.join(root, "README.md"), encoding="utf-8") as fh:
+    readme = fh.read()
+with open(os.path.join(root, "CHANGELOG.md"), encoding="utf-8") as fh:
+    changelog = fh.read()
+
+vm = re.search(r'^\*\*Version:\*\*\s*(\S+)', readme, re.MULTILINE)
+if not vm:
+    sys.exit("    ✗ README.md: no **Version:** header found")
+rm = re.search(r'^## v(\d+\.\d+\.\d+-[A-Za-z0-9.]+)\b', changelog, re.MULTILINE)
+if not rm:
+    sys.exit("    ✗ CHANGELOG.md: no `## vX.Y.Z-<label>` release heading found")
+if vm.group(1) != rm.group(1):
+    sys.exit(f"    ✗ README.md: Version `{vm.group(1)}` is not the newest CHANGELOG.md "
+             f"release `v{rm.group(1)}`")
+print(f"    ✓ README.md Version `{vm.group(1)}` matches the newest CHANGELOG.md release")
 PYEOF
 then
     FAIL=1
@@ -1053,9 +1087,79 @@ then
     FAIL=1
 fi
 
+# ── 9. Threat-model index coverage (docs/threat-model.md vs RFC-AITP-0009) ─
+echo "── Threat-model index coverage (docs/threat-model.md vs RFC-AITP-0009 §1, §2) ──"
+
+# docs/threat-model.md is a non-normative index into RFC-AITP-0009. Its
+# "Threats addressed" table must cite every RFC-AITP-0009 §1.N threat heading,
+# and its "Known limitations" table must have exactly one row per row of the
+# RFC-AITP-0009 §2 table. A threat or limitation added to the RFC without an
+# index row (the signature-string malleability row was missing until S1.4) is
+# the drift this catches. Rows citing other RFCs (RFC-AITP-0001 §7,
+# RFC-AITP-0008 §3.3) are allowed; they index defenses stated elsewhere.
+if ! python3 - "$ROOT" <<'PYEOF'
+import os, re, sys
+
+root = sys.argv[1]
+with open(os.path.join(root, "rfcs/RFC-AITP-0009-security.md"), encoding="utf-8") as fh:
+    rfc = fh.read().split("\n")
+with open(os.path.join(root, "docs/threat-model.md"), encoding="utf-8") as fh:
+    idx = fh.read().split("\n")
+
+def section(lines, start_re):
+    """Lines from the heading matching start_re up to the next heading of the
+    same or a higher level."""
+    out, level = None, None
+    for line in lines:
+        m = re.match(r'^(#+)\s', line)
+        if out is None:
+            if m and re.match(start_re, line):
+                out, level = [], len(m.group(1))
+            continue
+        if m and len(m.group(1)) <= level:
+            break
+        out.append(line)
+    return out
+
+def table_rows(lines):
+    rows = [l for l in lines if l.startswith("|")]
+    return rows[2:]  # drop the header row and the |---| separator
+
+problems = []
+threats = [m.group(1) for l in rfc for m in [re.match(r'^### (1\.\d+) ', l)] if m]
+if not threats:
+    sys.exit("    ✗ RFC-AITP-0009: no §1.N threat headings found")
+addressed = section(idx, r'^## Threats addressed')
+if addressed is None:
+    sys.exit("    ✗ docs/threat-model.md: no `## Threats addressed` section")
+cited = set(re.findall(r'RFC-AITP-0009 §(1\.\d+)\]', "\n".join(table_rows(addressed))))
+for t in threats:
+    if t not in cited:
+        problems.append(f"    ✗ docs/threat-model.md: no Threats-addressed row cites RFC-AITP-0009 §{t}")
+
+lim_rfc = section(rfc, r'^## 2\. Known Limitations')
+lim_idx = section(idx, r'^## Known limitations')
+if lim_rfc is None or lim_idx is None:
+    sys.exit("    ✗ known-limitations section missing in RFC-AITP-0009 §2 or docs/threat-model.md")
+n_rfc, n_idx = len(table_rows(lim_rfc)), len(table_rows(lim_idx))
+if n_rfc != n_idx:
+    problems.append(f"    ✗ docs/threat-model.md: Known limitations has {n_idx} row(s); "
+                    f"RFC-AITP-0009 §2 has {n_rfc}")
+
+if problems:
+    print("\n".join(problems))
+    sys.exit(1)
+print(f"    ✓ all {len(threats)} RFC-AITP-0009 §1 threats indexed; "
+      f"{n_idx} known-limitation row(s) match RFC-AITP-0009 §2")
+PYEOF
+then
+    FAIL=1
+fi
+echo
+
 echo "─────────────────────────────────────"
 if [ "$FAIL" -ne 0 ]; then
     echo "✗ Documentation coherence checks failed"
     exit 1
 fi
-echo "✓ Documentation is coherent (versions, anchors, section citations, fixture error codes, mirrored schema definitions, the RFC status ladder, stale vocabulary, and sibling-link form)"
+echo "✓ Documentation is coherent (versions, anchors, section citations, fixture error codes, mirrored schema definitions, the RFC status ladder, stale vocabulary, sibling-link form, and the threat-model index)"

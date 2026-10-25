@@ -120,14 +120,19 @@ before an artifact is checked against its schema.
   relevant JSON Schema (`make json-validate`; see "Conformance fixtures"
   above for the fixture-input map requirement).
 - Documentation MUST stay coherent with itself (`make doc-coherence`). The
-  check has eight stages — RFC version claims, intra-repo anchor links, RFC
-  section citations, fixture error codes, mirrored schema definitions, the
-  RFC status ladder, stale v0.1 vocabulary in `docs/` and the README, and
-  sibling-repo link form (`blob/main` URLs; with sibling checkouts next to
-  this one, linked paths and anchors are verified too); the header of `scripts/check-doc-coherence.sh` is
-  the authoritative description of what each one enforces.
+  check covers RFC version claims (and the README version against the newest
+  CHANGELOG release), intra-repo anchor links, RFC section citations, fixture
+  error codes, mirrored schema definitions, the RFC status ladder, stale
+  superseded-revision vocabulary in `docs/` and the README, sibling-repo link
+  form (`blob/main` URLs; with sibling checkouts next to this one, linked
+  paths and anchors are verified too) and the threat-model index; the header
+  of `scripts/check-doc-coherence.sh` is the authoritative description of
+  what each stage enforces.
 - Run `make validate` before opening a PR; it runs every check above plus
-  `make kat-verify` (pinned known-answer values), exactly as CI does.
+  `make kat-verify` and `make kat-independent` (pinned known-answer values,
+  recomputed by two implementations that share no code), exactly as CI does.
+  `make kat-independent` needs python-ecdsa:
+  `python3 -m pip install --require-hashes -r scripts/requirements-kat.txt`.
 - Backward compatibility MUST be addressed explicitly in the PR description.
 
 ## Style
