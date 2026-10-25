@@ -127,8 +127,8 @@ Currently defined side-effect keys:
 |---|---|
 | `revocation_lookup_called` | Whether the implementation called the network revocation source. Used by `rev-004` to pin RFC-AITP-0008 §3.3 (signature-before-revocation ordering). |
 | `network_fetch_called` | Whether the implementation made any outbound network fetch. Broader than `revocation_lookup_called`; used for DoS-amplification assertions. |
-| `pop_challenge_issued` | Whether the verifier issued a `pop_challenge` during fixture evaluation. Used by `tct-007` for PoP-enforcement conformance. |
-| `capability_authorized` | Whether the verifier authorized a capability invocation. Used by `tct-007` to assert PoP-required grants are rejected without a valid `pop_response`. |
+| `pop_challenge_issued` | Whether the verifier issued a `pop_challenge` during fixture evaluation. Used by `tct-007` for PoP-enforcement conformance and by `tct-026` for the issuer-side check. |
+| `capability_authorized` | Whether the verifier authorized a capability invocation. Used by `tct-007` to assert PoP-required grants are rejected without a valid `pop_response`, and by `tct-026` to `tct-029` for the issuer-side check (RFC-AITP-0005 §10.5). |
 
 A runner that cannot instrument a listed side effect MUST report SKIP for that assertion (NOT silent pass). The schema (`schemas/json/aitp-conformance-fixture.schema.json`) lists the keys above; additional keys are permitted (`additionalProperties: true`) so new fixtures can add side-effect surfaces without a schema bump, but the registered keys are the only ones a runner is required to recognize.
 
@@ -403,7 +403,7 @@ valid and invalid, are in [`reports/`](reports/).
 
 | Tier | Count | Required for v0.3 |
 |---|---|---|
-| `core` (`required_for_core`) | 85 | ✅ Yes |
+| `core` (`required_for_core`) | 89 | ✅ Yes |
 | `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (v0.1 runners only) |
 | `extension` — pinned-admission profile (RFC-AITP-0002 §3.4, `feature: aitp-pinned-admission`) | 8 | ❌ No (required of an implementation claiming the profile) |
 | `extension` — attestation verification (RFC-AITP-0005 §5.3, `feature: aitp-self-attestation`) | 3 | ❌ No (required of an implementation claiming the role) |
@@ -411,7 +411,7 @@ valid and invalid, are in [`reports/`](reports/).
 | `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 6 | ❌ No |
 | `draft` — A2A Agent Card binding (RFC-AITP-0014, `feature: aitp-a2a-agent-card`) | 6 | ❌ No |
 | `draft` — `spiffe` identity type (RFC-AITP-0002 §6, `feature: experimental-spiffe-identity`) | 7 | ❌ No |
-| **Total** | **124** | |
+| **Total** | **128** | |
 
 Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A conformance runner for the current revision, `aitp/0.3`, MUST execute every `required_for_core` core fixture (the key keeps its v0.2 name so existing runners keep working; for `aitp/0.3` it marks the core tier); `draft` and `extension` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
@@ -527,6 +527,10 @@ The rows marked *Pinned-admission* are `status: extension` under `feature: aitp-
 | `tct-023` | Same as `tct-022` under `fail_open`: the discarded snapshot counts as absent, the token is allowed and the condition logged | success |
 | `tct-024` | Valid TCT whose issuer has no revocation source (`issuer_revocation_list.available: false`), with no `fail_mode`, so the schema default `fail_closed` applies (RFC-AITP-0008 §1.4, §3.1). Committed signed example; nothing minted | failure: TCT_REVOKED |
 | `tct-025` | Same as `tct-024` with an explicit `fail_open`: the token is allowed and the condition logged | success |
+| `tct-026` | Committed TCT presented back to its issuer (`self_aid` = `iss`) with no `pop_response`, under an enforce-for-all PoP posture: a challenge is issued and the invocation is not authorized (RFC-AITP-0005 §10.5) | failure: POP_RESPONSE_INVALID |
+| `tct-027` | Issuer-side check: the subject's valid `pop_response` answers a challenge that has expired (`verify_tct_as_issuer`) | failure: POP_CHALLENGE_INVALID |
+| `tct-028` | Issuer-side check: a valid `pop_signature` by a key that is not the key in `sub` (`verify_tct_as_issuer`) | failure: POP_RESPONSE_INVALID |
+| `tct-029` | Issuer-side success: `iss` is the verifier and `aud` = `sub` = the PoP-proven presenter AID; no expected audience is taken from the token (`verify_tct_as_issuer`) | success |
 | `tct-017` | ES256 TCT whose signature is high-S (`S > n/2`): a stock JOSE verifier accepts it, an AITP verifier rejects it (RFC-AITP-0001 §5.4.7) | failure: TCT_SIGNATURE_INVALID |
 
 ### Grant voucher (RFC-AITP-0005 §8)

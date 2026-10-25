@@ -87,9 +87,9 @@ One MCP-specific point. That exchange starts with a `401` response. An MCP clien
 
 ### What the server checks
 
-The server receives back a TCT it issued. So the check is made from the issuer's side: `iss` is the server's own AID, `aud` (equal to `sub`) names the client presenting the token, and the client proves it holds the `sub` key by PoP or channel binding. [RFC-AITP-0014 §5.2](../rfcs/RFC-AITP-0014-a2a-agent-card.md#52-server-verification) states this check for A2A.
+The server receives back a TCT it issued. So the check is made from the issuer's side: `iss` is the server's own AID, `aud` (equal to `sub`) names the client presenting the token, and the client proves it holds the `sub` key by PoP or channel binding. The server takes the expected audience from that proof, never from the token. [RFC-AITP-0005 §10.5](../rfcs/RFC-AITP-0005-tct.md#105-issuer-as-resource-server) defines this check for every transport, so an MCP server follows it directly. [RFC-AITP-0014 §5.2](../rfcs/RFC-AITP-0014-a2a-agent-card.md#52-server-verification) cites it for A2A.
 
-This issuer-side reading is **not yet RFC-AITP-0005 text**. Read literally, the audience rule of [RFC-AITP-0005 §5.2](../rfcs/RFC-AITP-0005-tct.md#52-audience-validation) asks a consumer to match `aud` against its own AID, which the issuing server cannot do. Lifting the issuer-side check into RFC-AITP-0005, so that it covers every transport, is an open review item: [spec issue #120](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/issues/120). Until #120 is settled, an MCP deployment that follows RFC-AITP-0014 §5.2 is following a reading under review.
+The audience rule of [RFC-AITP-0005 §5.2](../rfcs/RFC-AITP-0005-tct.md#52-audience-validation), "`aud` matches its own AID", is the holder-side mode. It does not apply to a server verifying a TCT it issued.
 
 After the TCT checks, the server authorizes the call against the TCT's `grants` ([RFC-AITP-0005 §4](../rfcs/RFC-AITP-0005-tct.md#4-grants)). Which grant a tool, resource or prompt needs is the server's own mapping. AITP does not standardize it.
 
@@ -110,7 +110,7 @@ The two audiences name different things.
 | Who issues it | The authorization server | The MCP server itself, in the Mutual Handshake |
 | Audience | The MCP server, named by its canonical URI through the `resource` parameter ([RFC 8707 §2](https://www.rfc-editor.org/rfc/rfc8707.html#section-2)) | The client: `aud` equals `sub`, the holder's AID ([RFC-AITP-0005 §5.1](../rfcs/RFC-AITP-0005-tct.md#51-format)) |
 | Form of the audience | An absolute URI | An AID, `aid:<method>:<identifier>`; never a URL, never an array |
-| How it is tied to the server | The server checks it is the token's audience | The server checks it is the token's issuer (`iss`), then checks PoP for `sub` ([RFC-AITP-0014 §5.2](../rfcs/RFC-AITP-0014-a2a-agent-card.md#52-server-verification), issue #120) |
+| How it is tied to the server | The server checks it is the token's audience | The server checks it is the token's issuer (`iss`), then checks PoP for `sub` ([RFC-AITP-0005 §10.5](../rfcs/RFC-AITP-0005-tct.md#105-issuer-as-resource-server)) |
 
 So `aud` and `resource` do not map onto each other, and neither is derived from the other:
 
@@ -183,6 +183,6 @@ AITP also does not:
 ## Status and open items
 
 - There is no MCP binding RFC. This page describes a pattern built from existing parts: the RFC-AITP-0014 header carriage, the RFC-AITP-0005 §6.3 PoP headers, and the RFC-AITP-0003 Manifest.
-- The server-side check of a returned TCT follows RFC-AITP-0014 §5.2 and is under review in [issue #120](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/issues/120).
+- The server-side check of a returned TCT is RFC-AITP-0005 §10.5. RFC-AITP-0005 is in Review, so that text can still change before Release Candidate.
 - No Manifest extension key binds MCP endpoint URLs to the Manifest, and no RFC 9728 metadata parameter for the Manifest URL is registered.
 - MCP revisions change. This page names the revision it was checked against. A later revision that changes authorization, transports or headers needs this page to be checked again.

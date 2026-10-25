@@ -451,9 +451,10 @@ patch-level, no new signatures). It deserves its own review rather than riding a
      issuer-side reading: `iss` is the server's own AID, `aud` = `sub` names the presenter, and
      possession of the `sub` key is proven by downstream PoP or channel binding. This is an
      interpretation, not a wire change, and matches what the playground already does
-     (`verify_capability_tct`). It goes to the public review as a comment against RFC-AITP-0005
-     §5.2 and §10.1. *Reversal trigger:* the review settles a different reading of those
-     sections; RFC-AITP-0014 §5.2 then follows it.
+     (`verify_capability_tct`). **Resolved by issue #120 (2026-10-24):** the rule moved into
+     RFC-AITP-0005 as §10.5, "Issuer as resource server", which covers every transport, and
+     RFC-AITP-0014 §5.2 now cites it instead of restating it. See the entry "RFC-AITP-0005 §10.5:
+     the issuer-side TCT check" below.
   7. **An A2A Card signature is neither necessary nor sufficient.** A2A does not say whose key
      signs a Card; the Manifest's key is the AID. *Reversal trigger:* A2A binds the card-signing
      key to an agent identity the client can check against the AID.
@@ -517,3 +518,46 @@ patch-level, no new signatures). It deserves its own review rather than riding a
   first candidate is the JWT-SVID `nonce`/`cnf`, where the alternative is the audience-encoded
   binding above. Any reversal ships with new fixtures before the type leaves Proposed.
 - **Blast radius if wrong:** low. Draft fixtures only, no claim depends on them.
+
+## 2026-10-24 — RFC-AITP-0005 §10.5: the issuer-side TCT check (issue #120)
+
+- **Status:** UNCONFIRMED (owner to confirm). RFC-AITP-0005 is in Review, so public review can
+  still change the text.
+- **Decided by:** Opus, resolving issue #120.
+- **Context:** A TCT is usually consumed by the peer that issued it: the subject presents it back
+  to the issuer to invoke a capability. RFC-AITP-0005 §5.2 and §7.2 step 5 said only "`aud` == own
+  AID", which the issuer cannot meet, because `aud` names the subject. RFC-AITP-0014 §5.2 stated an
+  issuer-side reading for A2A only (S5.1 decision 6), and `docs/mcp-mapping.md` pointed MCP at it
+  as text under review.
+- **Options:**
+  1. Leave the rule in each transport binding (RFC-AITP-0014 §5.2, and later MCP).
+  2. Define one transport-neutral check in RFC-AITP-0005 and have bindings cite it.
+  3. Change the wire: give the TCT a separate audience for the issuer.
+- **Chosen:** option 2, as RFC-AITP-0005 §10.5. The verifier requires `iss` == its own AID, runs
+  §7.2 with step 5's audience check read from the issuer's side, establishes the presenter's AID
+  from downstream PoP (§6.1/§6.2) or a channel binding to the `sub` key, requires presenter AID ==
+  `sub` == `aud`, and MUST NOT take the expected audience from the token's own claims. An issuer
+  with neither PoP nor a channel binding MUST NOT accept the TCT: for this case §10.5 makes the
+  §6 SHOULD (PoP for all grants unless the channel binds the key) a MUST. §5.2 now
+  names the two modes, and §13 states that a TCT presented without PoP or channel binding is a
+  bearer token. No wire change and no new code: `TCT_SIGNATURE_INVALID`, `POP_RESPONSE_INVALID`
+  and `POP_CHALLENGE_INVALID` cover every failure. RFC-AITP-0005 goes to `0.3.2-draft`, and
+  RFC-AITP-0014 goes to `0.3.1-draft`.
+- **Fixtures:** `tct-026` to `tct-029`, core (`required_for_core: true`, `feature: null`).
+  Presenting a TCT back to its issuer is the normal way a TCT is consumed, and the PoP mechanics
+  it relies on are already MUSTs under §6.2, so a core implementation that cannot pass these does
+  not implement the TCT. `tct-027` to `tct-029` use a new single-step operation,
+  `verify_tct_as_issuer`, with the new input keys `outstanding_pop_challenges` and
+  `issuer_policy.pop_posture`. Consumers need an adapter update to run them; there are no users,
+  so no transition is provided.
+- **Reasoning:**
+  - One rule in the core RFC is checked by every binding the same way. A per-transport copy can
+    drift, and a new transport could omit it.
+  - Option 3 breaks the `aitp/0.3` freeze for no gain: PoP or a channel binding already proves
+    who presents the token.
+  - Taking the audience from the token itself makes the check pass for anyone holding a copy,
+    which is why §10.5 forbids it.
+- **Reversal trigger:** public review settles a different reading of §5.2 and §10. RFC-AITP-0014
+  §5.2 and the MCP mapping cite §10.5, so they follow it without their own change.
+- **Blast radius if wrong:** medium. The rule and the four fixtures are core, so a reversal
+  changes core conformance for every consumer.

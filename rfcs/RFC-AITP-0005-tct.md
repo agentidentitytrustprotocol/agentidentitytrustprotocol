@@ -2,7 +2,7 @@
 # Trust Context Token (TCT)
 
 **Document:** RFC-AITP-0005
-**Version:** 0.3.1-draft
+**Version:** 0.3.2-draft
 **Status:** Community Standards Track (Review)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0004 Mutual Handshake](RFC-AITP-0004-mutual-handshake.md)
 
@@ -174,7 +174,10 @@ Wildcard audiences (`"*"`) are NOT permitted. Every TCT is bound to exactly one 
 
 ### 5.2 Audience validation
 
-A peer consuming a TCT MUST verify that `aud` matches its own AID. TCTs with a mismatched audience MUST be rejected with `AUDIENCE_MISMATCH`.
+A TCT is verified in one of two modes, and the audience rule depends on the mode:
+
+- **Holder side.** A peer that verifies a TCT naming it as the audience, such as the TCT it receives in the Mutual Handshake, MUST verify that `aud` matches its own AID. TCTs with a mismatched audience MUST be rejected with `AUDIENCE_MISMATCH`.
+- **Issuer side.** A peer that verifies a TCT it issued, presented back to it to invoke a capability, follows [§10.5](#105-issuer-as-resource-server). There `aud` names the presenter, not the verifier, and is checked against the AID that downstream PoP or a channel binding establishes. The verifier MUST NOT reject such a TCT with `AUDIENCE_MISMATCH` because `aud` is not its own AID.
 
 ### 5.3 Self-issued attestation TCTs
 
@@ -318,7 +321,7 @@ ordered explicitly, since they previously read as a single unordered clause:
 2. **Enforce `typ`** — header `typ` MUST be exactly `aitp-tct+jwt`; otherwise reject with `TOKEN_TYP_MISMATCH`. This runs before step 1's claims-membership clause (see the note there): a `typ` mismatch is rejected as type confusion regardless of what the decoded claims contain, so that a grant voucher or delegation token — signed by the same issuer key as its companion TCT, and structurally a valid JWS carrying its own, different, registered claim set — is never evaluated as a TCT at all. `tct-010` pins exactly this ordering: a schema-valid, validly-signed grant voucher presented as a TCT MUST be rejected with `TOKEN_TYP_MISMATCH`, even though its claims (e.g. `src_jti`) are not TCT claims and would otherwise trigger `UNKNOWN_FIELD`.
 3. **Pin `alg`** — derive the sole acceptable `alg` from the issuer's AID (`iss` claim) and reject any other header value, including `none`, with `TOKEN_ALG_MISMATCH`.
 4. **Verify the signature** against the issuer's public key.
-5. **Check claims** — `ver` known; `aud` == own AID; `exp` in the future; `cnf.jkt` matches `sub` (§3); grants non-empty. In a grant context, also `iss` ≠ `sub` and no `aitp.attestation` in `grants` (§5.3); either defect ⇒ `TCT_SIGNATURE_INVALID` (`tct-015`, `tct-016`, `tct-018`).
+5. **Check claims** — `ver` known; `aud` == own AID (holder side, §5.2; a TCT presented back to its issuer takes the issuer-side reading of §10.5 instead); `exp` in the future; `cnf.jkt` matches `sub` (§3); grants non-empty. In a grant context, also `iss` ≠ `sub` and no `aitp.attestation` in `grants` (§5.3); either defect ⇒ `TCT_SIGNATURE_INVALID` (`tct-015`, `tct-016`, `tct-018`).
 6. **Check revocation** — look up `jti` against the issuer's deny list (RFC-AITP-0008), only after all signature checks (RFC-AITP-0008 §3.3).
 
 ### 7.3 Issuer key resolution
@@ -435,7 +438,7 @@ A self-attestation (§5.3) is not peer-issued, and these TTLs do not apply to it
 ### 10.1 MUST
 
 1. Run the full verification order of §7.2 (strict parse, `typ`, AID-pinned `alg`, signature against the issuing peer's Manifest-resolved key).
-2. Confirm `aud` matches own AID.
+2. Confirm `aud` matches own AID (holder side; a TCT presented back to its issuer follows §10.5).
 3. Confirm `exp` is in the future.
 4. Enforce `grants` — deny any operation not in the grant list.
 
@@ -445,7 +448,7 @@ A self-attestation (§5.3) is not peer-issued, and these TTLs do not apply to it
 - Accept TCTs with an unknown `ver`.
 - Accept the `alg` or any key material from the token itself — the AID and Manifest decide (RFC-AITP-0001 §5.4.5, RFC-AITP-0007).
 - Modify or re-sign TCTs.
-- Accept TCTs whose `aud` is not own AID.
+- Accept TCTs whose `aud` is not own AID, except a TCT presented back to its issuer and verified under §10.5.
 
 ### 10.3 SHOULD
 
@@ -465,6 +468,27 @@ A TCT that violates this bound MUST be rejected with `TCT_EXPIRES_AFTER_MANIFEST
 This check MAY be skipped when the issuer Manifest is unavailable — verifiers are NOT required to fetch the Manifest solely to perform it. The §10.1 expiry check (`exp` in the future) still applies unconditionally.
 
 A self-attestation (§5.3) whose issuer publishes no Manifest has no bound to check. Skipping it there is not the passive skip above: the relying party MUST decide explicitly to waive the cap and MUST establish that the issuer key was trusted at `iat`, rejecting the attestation with `TCT_SIGNATURE_INVALID` when it cannot (§5.3). A far-future `exp` is not evidence of validity.
+
+### 10.5 Issuer as resource server
+
+The usual way a TCT is consumed is by the peer that issued it. Peer B issues a TCT to peer A in the Mutual Handshake (`iss` = B, `sub` = `aud` = A). A later presents it back to B to invoke a capability B offers. B is then the verifier, and `aud` names A, the presenter, not B. This subsection defines that check for every transport. A transport binding cites it rather than restating it ([RFC-AITP-0014 §5.2](RFC-AITP-0014-a2a-agent-card.md#52-server-verification) is one).
+
+A verifier that receives back a TCT it issued MUST:
+
+1. **Require itself as issuer.** `iss` MUST equal the verifier's own AID. In this mode a TCT issued by any other peer ⇒ `TCT_SIGNATURE_INVALID`. The issuer key is the verifier's own (§7.3).
+2. **Run §7.2 in order**, with that section's codes. Step 5's audience check is read from the issuer's side: in place of "`aud` == own AID", `aud` MUST equal `sub` (§2), and both MUST equal the presenter AID established in item 3. Every other step 5 check applies unchanged, including the grant-context checks of §5.3. A TCT whose `aud` differs from `sub` ⇒ `TCT_SIGNATURE_INVALID`.
+3. **Establish the presenter's AID from an authenticated source**, by one of:
+   - **Downstream PoP** (§6.1, §6.2), over a challenge the verifier issued for this TCT's `jti`. `pop_signature` MUST verify against the key encoded in `sub`, and `cnf.jkt` MUST equal that key's thumbprint (§3). The presenter AID is then `sub`. The codes are those of §6.2: a missing response, or one that fails any §6.2 check, including a signature by any key other than the one in `sub`, ⇒ `POP_RESPONSE_INVALID`; a stale, expired or malformed challenge ⇒ `POP_CHALLENGE_INVALID`.
+   - **A channel binding** that proves possession of the key encoded in `sub`, as §6 permits (for example mTLS with a client certificate bound to that key). The presenter AID is the AID of the key the channel proves. A channel key that is not the key in `sub` ⇒ `POP_RESPONSE_INVALID`.
+
+   There is no third source. An issuer with neither MUST NOT accept the TCT, whatever its PoP policy for the grant, and rejects it with `POP_RESPONSE_INVALID`. For a TCT presented back to its issuer this makes the SHOULD of §6 (verify PoP for all grants unless the channel binds the key) a MUST.
+4. **Require presenter AID == `sub` == `aud`.** A mismatch with the AID from item 3 ⇒ `POP_RESPONSE_INVALID`.
+5. **Take the expected audience only from item 3.** The verifier MUST NOT take the expected audience from the presented token's own claims, for example by comparing `aud` with `sub` alone or with a value read out of the token. The issuer signed `aud` = `sub`, so a comparison within the token always passes and binds the token to no one.
+6. **Check revocation** of `jti` against its own deny list (RFC-AITP-0008), after every check above (§7.2 step 6, RFC-AITP-0008 §3.3), then enforce `grants` (§10.1 item 4).
+
+These rules change no TCT byte and add no error code. The holder-side rules of §5.2 and §10.1 are unchanged for a verifier that is the token's audience.
+
+> **Conformance fixtures.** `tct-026` presents a genuine TCT to its issuer with no `pop_response` under an enforce-for-all posture, and expects a `pop_challenge` and then `POP_RESPONSE_INVALID`. `tct-027` answers a challenge that has expired (`POP_CHALLENGE_INVALID`). `tct-028` carries a valid PoP signature by a key that is not the key in `sub` (`POP_RESPONSE_INVALID`). `tct-029` is the issuer-side success: `iss` is the verifier, and `aud` = `sub` = the PoP-proven AID.
 
 ---
 
@@ -504,6 +528,7 @@ Alternatives rejected:
 ## 13. Security Considerations
 
 - A TCT is portable — anyone holding it can present it. PoP via `cnf` is the primary defense against TCT theft.
+- A TCT presented to its issuer without downstream PoP or a channel binding to the `sub` key is a bearer token. The issuer cannot tell the subject from anyone else holding a copy, and its audience check binds nothing. §10.5 therefore requires one of the two and forbids taking the expected audience from the token.
 - Consuming peers MUST treat the TCT signature as the sole authority. The TCT is self-contained; there is no out-of-band lookup that "augments" trust.
 - The `alg` header is attacker-controlled input until pinned: deriving the sole acceptable algorithm from the AID **before** verification (§7.2 step 3) is what forecloses `none` and cross-algorithm confusion. See RFC-AITP-0009 §1.
 - `typ` enforcement (§7.2 step 2) prevents a grant voucher or delegation token — signed by the same keys — from being replayed as a TCT. See RFC-AITP-0009 §1.

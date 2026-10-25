@@ -1252,6 +1252,7 @@ function checkSignedExamples() {
   checkVersionAlteredBodies();
   checkDiscardedSnapshotFixtures();
   checkNoRevocationSourceFixtures();
+  checkIssuerSideFixtures();
   checkThirdPartySnapshotFixture();
   checkSelfAttestations();
 }
@@ -1395,6 +1396,103 @@ function checkNoRevocationSourceFixtures() {
     };
     if (!inputs['tct-024'] || !inputs['tct-025']) throw new Error('a fixture failed to load');
     eq(strip(inputs['tct-024']), strip(inputs['tct-025']), 'inputs without fail_mode');
+  });
+}
+
+// tct-026..029 (RFC-AITP-0005 §10.5): the committed kat-keypair-001 TCT presented
+// back to its issuer. The verifier is `iss` and the input names no expected
+// audience. tct-027..029 carry a committed pop_signature over sha256(nonce) that
+// must verify under `sub` (tct-027, tct-029) or under another key and not `sub`
+// (tct-028); the three inputs differ only where each case says.
+function checkIssuerSideFixtures() {
+  console.log('── tct-026..029: TCT presented back to its issuer (RFC-AITP-0005 §10.5) ──');
+  const conf = join(ROOT, 'schemas/conformance');
+  const tct = readJson(join(SIGNED, 'tct/kat-keypair-001-issues-002.json'));
+  const AGENT_C = 'aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU';
+  const common = (f, id) => {
+    eq(f.id, id, 'id');
+    eq(f.rfc, 'RFC-AITP-0005', 'rfc');
+    eq(f.status, 'core', 'status');
+    eq(f.required_for_core, true, 'required_for_core');
+    eq(f.feature, null, 'feature');
+    eq(f.input.tct_token, tct.tct_token, 'tct_token (committed signed example)');
+    const claims = verifyCompactJws(f.input.tct_token, 'aitp-tct+jwt');
+    eq(jcs(f.input.tct_token_claims), jcs(claims), 'tct_token_claims');
+    eq(f.input.self_aid, claims.iss, 'self_aid is iss');
+    eq(claims.aud, claims.sub, 'aud == sub');
+    if (f.input.self_aid === claims.aud) throw new Error('self_aid must not be the audience');
+    if ('expected_audience' in f.input) throw new Error('input must not carry expected_audience');
+    eq(f.input.issuer_policy.pop_posture, 'enforce-for-all', 'issuer_policy.pop_posture');
+    eq(jcs(f.input.issuer_policy.pop_required_grants), jcs(claims.grants), 'pop_required_grants lists every grant');
+    return claims;
+  };
+  check('tct-026: committed TCT to its issuer, no pop_response => challenge issued, then POP_RESPONSE_INVALID', () => {
+    const f = readJson(join(conf, 'tct-026-issuer-side-no-pop-response-rejected.json'));
+    const claims = common(f, 'tct-026');
+    const ops = f.input.sequence.map((s) => s.operation);
+    eq(jcs(ops), jcs(['authorize_capability_invocation', 'expect_pop_challenge_issued', 'withhold_pop_response']), 'sequence');
+    const env = f.input.sequence[0].envelope;
+    eq(env.sender.agent_id, claims.sub, 'invocation sender is sub');
+    eq(env.payload.tct_jti, claims.jti, 'invocation tct_jti');
+    eq(f.input.sequence[1].expected.side_effects.pop_challenge_issued, true, 'pop_challenge_issued');
+    const last = f.input.sequence[2].expected;
+    eq(last.outcome, 'failure', 'step 3 outcome');
+    eq(last.error_code, 'POP_RESPONSE_INVALID', 'step 3 error_code');
+    eq(last.side_effects.capability_authorized, false, 'capability_authorized');
+  });
+  const cases = [
+    { file: 'tct-027-issuer-side-expired-pop-challenge-rejected.json', id: 'tct-027', signer: 'sub', expired: true, outcome: 'failure', code: 'POP_CHALLENGE_INVALID' },
+    { file: 'tct-028-issuer-side-pop-key-not-sub-rejected.json', id: 'tct-028', signer: AGENT_C, expired: false, outcome: 'failure', code: 'POP_RESPONSE_INVALID' },
+    { file: 'tct-029-issuer-side-pop-success.json', id: 'tct-029', signer: 'sub', expired: false, outcome: 'success', code: undefined },
+  ];
+  const inputs = {};
+  for (const c of cases) {
+    check(`${c.id}: verify_tct_as_issuer; pop_signature verifies under ${c.signer === 'sub' ? 'sub' : 'kat-keypair-003, not sub'}; challenge ${c.expired ? 'expired' : 'live'} => ${c.code ?? c.outcome}`, () => {
+      const f = readJson(join(conf, c.file));
+      const claims = common(f, c.id);
+      eq(f.input.operation, 'verify_tct_as_issuer', 'operation');
+      eq(f.input.outstanding_pop_challenges.length, 1, 'one outstanding challenge');
+      const ch = f.input.outstanding_pop_challenges[0];
+      eq(ch.tct_jti, claims.jti, 'challenge tct_jti');
+      const nonce = b64uDecode(ch.nonce, 16, 'challenge nonce');
+      const env = f.input.envelope;
+      eq(env.message_type, 'pop_response', 'message_type');
+      eq(env.timestamp, 1711900000, 'timestamp (reference clock)');
+      eq(env.payload.tct_jti, claims.jti, 'pop_response tct_jti');
+      eq(env.payload.nonce_echo, ch.nonce, 'nonce_echo');
+      const signer = c.signer === 'sub' ? claims.sub : c.signer;
+      eq(env.sender.agent_id, signer, 'sender');
+      if (!verifySingleHash(signer, nonce, env.payload.pop_signature, 'pop_signature')) {
+        throw new Error(`pop_signature does not verify under ${signer}`);
+      }
+      if (signer !== claims.sub && verifySingleHash(claims.sub, nonce, env.payload.pop_signature, 'pop_signature')) {
+        throw new Error('pop_signature verifies under sub — not a wrong-key case');
+      }
+      if (c.expired !== (ch.expires_at < env.timestamp)) throw new Error(`challenge expires_at ${ch.expires_at}`);
+      eq(f.expected.outcome, c.outcome, 'expected.outcome');
+      eq(f.expected.error_code, c.code, 'expected.error_code');
+      eq(f.expected.side_effects.capability_authorized, c.outcome === 'success', 'capability_authorized');
+      if (c.outcome === 'success') {
+        eq(f.expected.presenter_aid, claims.sub, 'presenter_aid');
+        eq(jcs(f.expected.grants), jcs(claims.grants), 'grants');
+      }
+      inputs[c.id] = f.input;
+    });
+  }
+  check('tct-027, tct-028 and tct-029 inputs differ only in expires_at, sender/pop_signature and message_id', () => {
+    for (const id of ['tct-027', 'tct-028', 'tct-029']) if (!inputs[id]) throw new Error(`${id} failed to load`);
+    const strip = (input) => {
+      const d = JSON.parse(JSON.stringify(input));
+      delete d.outstanding_pop_challenges[0].expires_at;
+      delete d.envelope.sender;
+      delete d.envelope.payload.pop_signature;
+      delete d.envelope.message_id;
+      return jcs(d);
+    };
+    eq(strip(inputs['tct-027']), strip(inputs['tct-029']), 'tct-027 vs tct-029');
+    eq(strip(inputs['tct-028']), strip(inputs['tct-029']), 'tct-028 vs tct-029');
+    eq(inputs['tct-027'].envelope.payload.pop_signature, inputs['tct-029'].envelope.payload.pop_signature, 'tct-027 and tct-029 pop_signature');
+    eq(inputs['tct-028'].outstanding_pop_challenges[0].expires_at, inputs['tct-029'].outstanding_pop_challenges[0].expires_at, 'tct-028 and tct-029 expires_at');
   });
 }
 
@@ -2101,7 +2199,7 @@ checkOidcP256Fixture();
 // emptied vector member; this catches coverage lost any other way — a check
 // commented out, a loop that stops early, a gate that stops matching. Coverage may
 // grow (raise this number in the same commit); it may never silently shrink.
-const EXPECTED_MIN_CHECKS = 175;
+const EXPECTED_MIN_CHECKS = 180;
 if (checks < EXPECTED_MIN_CHECKS) {
   failures.push(
     `coverage regression: ran ${checks} checks, expected at least ${EXPECTED_MIN_CHECKS}. ` +

@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Issuer-side TCT check (RFC-AITP-0005 §10.5, issue #120)
+
+**Change class.** Normative clarification under the `aitp/0.3` freeze. No TCT byte, signing input, schema or error code changes, and no existing fixture outcome or known-answer vector changes. RFC-AITP-0005 (`0.3.1-draft` → `0.3.2-draft`) stays in Review; RFC-AITP-0014 (`0.3.0-draft` → `0.3.1-draft`) stays Draft.
+
+**Changes.**
+- RFC-AITP-0005 §10.5 (new), "Issuer as resource server", defines how a peer verifies a TCT it issued when the subject presents it back, for every transport. The verifier requires `iss` == its own AID, runs §7.2 with step 5's audience check read from the issuer's side, establishes the presenter's AID by downstream PoP (§6.1/§6.2) or a channel binding to the `sub` key, requires presenter AID == `sub` == `aud`, and MUST NOT take the expected audience from the token's own claims. An issuer with neither PoP nor a channel binding MUST NOT accept the TCT, which makes the §6 SHOULD a MUST for this case. Failures use `TCT_SIGNATURE_INVALID`, `POP_RESPONSE_INVALID` and `POP_CHALLENGE_INVALID`.
+- RFC-AITP-0005 §5.2 names the holder-side and issuer-side modes; §7.2 step 5, §10.1 and §10.2 point the issuer to §10.5; §13 adds that a TCT presented without PoP or a channel binding is a bearer token.
+- RFC-AITP-0014 §5.2 cites RFC-AITP-0005 §10.5 instead of restating the rule. `docs/mcp-mapping.md` cites §10.5 in place of the open issue.
+- Conformance: core fixtures `tct-026` to `tct-029` (`required_for_core: true`). `tct-026` presents the committed TCT to its issuer with no `pop_response` (challenge issued, then `POP_RESPONSE_INVALID`); `tct-027` answers an expired challenge (`POP_CHALLENGE_INVALID`); `tct-028` carries a valid PoP signature by a key that is not `sub` (`POP_RESPONSE_INVALID`); `tct-029` is the issuer-side success. `tct-027` to `tct-029` use the new operation `verify_tct_as_issuer` with the input keys `outstanding_pop_challenges` and `issuer_policy.pop_posture` (`PLACEHOLDERS.md`). The `pop_signature` values are committed and re-verified by both known-answer scripts.
+- `governance/DECISIONS.md` marks S5.1 decision 6 resolved and records the change (UNCONFIRMED).
+
 ### `spiffe` identity type (RFC-AITP-0002 §6, S5.2)
 
 **Change class.** Additive identity type under the `aitp/0.3` freeze. No existing signing input, error code, fixture outcome or known-answer vector changes. RFC-AITP-0002 (`0.3.1-draft` → `0.3.2-draft`) and RFC-AITP-0003 (`0.3.2-draft` → `0.3.3-draft`) take a patch bump and stay in Review.

@@ -69,7 +69,7 @@ QUIET = "--quiet" in sys.argv[1:]
 # silently stops running (commented out, a loop that ends early, a gate that no
 # longer matches) fails the run. Raise it in the same commit that adds checks;
 # lower it only on purpose, and say why.
-EXPECTED_MIN_CHECKS = 251
+EXPECTED_MIN_CHECKS = 265
 
 failures = 0
 checks = 0
@@ -937,6 +937,73 @@ def main() -> int:
     check("rev-011: fail_closed expects TCT_REVOKED",
           sorted(irl) == ["fail_mode", "issuer", "snapshot"] and irl["fail_mode"] == "fail_closed"
           and fx["expected"]["outcome"] == "failure" and fx["expected"].get("error_code") == "TCT_REVOKED")
+
+    section("── tct-026..029: committed TCT presented back to its issuer (RFC-AITP-0005 §10.5) ──")
+    aid_c = "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU"
+    def issuer_side_common(fx, fid):
+        inp = fx["input"]
+        pol = inp["issuer_policy"]
+        return (fx["id"] == fid and fx["rfc"] == "RFC-AITP-0005" and fx["status"] == "core"
+                and fx["required_for_core"] is True and fx["feature"] is None
+                and inp["tct_token"] == tct_ex["tct_token"] and inp["tct_token_claims"] == claims
+                and inp["self_aid"] == claims["iss"] and claims["aud"] == claims["sub"] != inp["self_aid"]
+                and "expected_audience" not in inp
+                and pol["pop_posture"] == "enforce-for-all" and pol["pop_required_grants"] == claims["grants"])
+    fx = load(CONF / "tct-026-issuer-side-no-pop-response-rejected.json")
+    seq = fx["input"]["sequence"]
+    check("tct-026: core; committed token; verifier is iss; no expected_audience; enforce-for-all",
+          issuer_side_common(fx, "tct-026"))
+    check("tct-026: invocation by sub, challenge issued, then POP_RESPONSE_INVALID and not authorized",
+          [st["operation"] for st in seq] == ["authorize_capability_invocation", "expect_pop_challenge_issued", "withhold_pop_response"]
+          and seq[0]["envelope"]["sender"]["agent_id"] == claims["sub"]
+          and seq[0]["envelope"]["payload"]["tct_jti"] == claims["jti"]
+          and seq[1]["expected"]["side_effects"] == {"pop_challenge_issued": True}
+          and seq[2]["expected"]["outcome"] == "failure" and seq[2]["expected"]["error_code"] == "POP_RESPONSE_INVALID"
+          and seq[2]["expected"]["side_effects"] == {"capability_authorized": False})
+    sub_pub = b64d(claims["sub"].split(":")[-1])
+    c_pub = ed_public(seeds[aid_c])
+    trio = {}
+    for fid, name, signer, expired, outcome, code in [
+        ("tct-027", "tct-027-issuer-side-expired-pop-challenge-rejected.json", claims["sub"], True, "failure", "POP_CHALLENGE_INVALID"),
+        ("tct-028", "tct-028-issuer-side-pop-key-not-sub-rejected.json", aid_c, False, "failure", "POP_RESPONSE_INVALID"),
+        ("tct-029", "tct-029-issuer-side-pop-success.json", claims["sub"], False, "success", None),
+    ]:
+        fx = load(CONF / name)
+        trio[fid] = fx
+        inp = fx["input"]
+        env = inp["envelope"]
+        (ch,) = inp["outstanding_pop_challenges"]
+        nonce = b64d(ch["nonce"])
+        sig = b64d(env["payload"]["pop_signature"])
+        signer_pub = sub_pub if signer == claims["sub"] else c_pub
+        check(f"{fid}: core; committed token; verifier is iss; no expected_audience; verify_tct_as_issuer",
+              issuer_side_common(fx, fid) and inp["operation"] == "verify_tct_as_issuer")
+        check(f"{fid}: pop_response for the token jti echoes the 16-byte challenge nonce, sent by {'sub' if signer == claims['sub'] else 'kat-keypair-003'}",
+              len(nonce) == 16 and ch["tct_jti"] == claims["jti"] and env["message_type"] == "pop_response"
+              and env["payload"]["tct_jti"] == claims["jti"] and env["payload"]["nonce_echo"] == ch["nonce"]
+              and env["sender"]["agent_id"] == signer and env["timestamp"] == 1711900000)
+        check(f"{fid}: pop_signature over sha256(nonce) verifies strictly under the sender"
+              + ("" if signer == claims["sub"] else " and not under sub"),
+              ed_verify_strict(signer_pub, H(nonce), sig)
+              and (signer == claims["sub"] or not ed_verify_strict(sub_pub, H(nonce), sig)))
+        check(f"{fid}: challenge {'expired' if expired else 'live'}; expects {code or outcome}",
+              (ch["expires_at"] < env["timestamp"]) == expired
+              and fx["expected"]["outcome"] == outcome and fx["expected"].get("error_code") == code
+              and fx["expected"]["side_effects"] == {"capability_authorized": outcome == "success"}
+              and (outcome != "success" or (fx["expected"]["presenter_aid"] == claims["sub"]
+                                            and fx["expected"]["grants"] == claims["grants"])))
+    def issuer_side_strip(fx):
+        d = json.loads(json.dumps(fx["input"]))
+        del d["outstanding_pop_challenges"][0]["expires_at"]
+        del d["envelope"]["sender"], d["envelope"]["payload"]["pop_signature"], d["envelope"]["message_id"]
+        return d
+    check("tct-027, tct-028 and tct-029 inputs differ only in expires_at, sender/pop_signature and message_id",
+          issuer_side_strip(trio["tct-027"]) == issuer_side_strip(trio["tct-029"])
+          == issuer_side_strip(trio["tct-028"])
+          and trio["tct-027"]["input"]["envelope"]["payload"]["pop_signature"]
+          == trio["tct-029"]["input"]["envelope"]["payload"]["pop_signature"]
+          and trio["tct-028"]["input"]["outstanding_pop_challenges"][0]["expires_at"]
+          == trio["tct-029"]["input"]["outstanding_pop_challenges"][0]["expires_at"])
 
     if checks < EXPECTED_MIN_CHECKS:
         failures += 1
