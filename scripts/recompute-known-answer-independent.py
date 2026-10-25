@@ -849,6 +849,27 @@ def main() -> int:
     check("tct-022 and tct-023 inputs differ only in fail_mode",
           without_mode(pair["tct-022"]) == without_mode(pair["tct-023"]))
 
+    print("── tct-024, tct-025: committed TCT, no revocation source for its issuer (RFC-AITP-0008 §1.4, §3.1) ──")
+    for fid, name, mode, outcome, code in [
+        ("tct-024", "tct-024-no-revocation-source-default-fail-closed.json", None, "failure", "TCT_REVOKED"),
+        ("tct-025", "tct-025-no-revocation-source-explicit-fail-open.json", "fail_open", "success", None),
+    ]:
+        fx = load(CONF / name)
+        pair[fid] = fx
+        inp = fx["input"]
+        irl = inp["issuer_revocation_list"]
+        check(f"{fid}: core fixture; token and claims are the committed signed example; audience is its aud",
+              fx["status"] == "core" and fx["required_for_v0_2"] is True
+              and inp["operation"] == "verify_tct" and inp["tct_token"] == tct_ex["tct_token"]
+              and inp["tct_token_claims"] == claims and inp["expected_audience"] == claims["aud"])
+        check(f"{fid}: issuer_revocation_list names the TCT issuer, is unavailable and carries no snapshot",
+              irl["issuer"] == claims["iss"] and irl["available"] is False
+              and sorted(irl) == sorted(["issuer", "available"] + (["fail_mode"] if mode else [])))
+        check(f"{fid}: fail_mode {mode or '(absent: schema default fail_closed)'} expects {code or outcome}",
+              irl.get("fail_mode") == mode and fx["expected"]["outcome"] == outcome and fx["expected"].get("error_code") == code)
+    check("tct-024 and tct-025 inputs differ only in fail_mode",
+          without_mode(pair["tct-025"]) == pair["tct-024"]["input"])
+
     print()
     if failures:
         print(f"✗ {failures} of {checks} independent checks FAILED")

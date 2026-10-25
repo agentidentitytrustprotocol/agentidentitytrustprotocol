@@ -1202,6 +1202,7 @@ function checkSignedExamples() {
   checkEnvelopeTamperedFixtures();
   checkVersionAlteredBodies();
   checkDiscardedSnapshotFixtures();
+  checkNoRevocationSourceFixtures();
   checkSelfAttestations();
 }
 
@@ -1299,6 +1300,52 @@ function checkDiscardedSnapshotFixtures() {
       eq(f.expected.error_code, c.code, 'expected.error_code');
     });
   }
+}
+
+// tct-024 and tct-025 (RFC-AITP-0008 §1.4, §3.1): the committed kat-keypair-001
+// TCT, and no revocation source for its issuer (`available: false`, no snapshot).
+// tct-024 names no fail_mode, so it tests the schema default fail_closed;
+// tct-025 opts into fail_open. Their inputs differ only in fail_mode.
+function checkNoRevocationSourceFixtures() {
+  console.log('── tct-024, tct-025: committed TCT, no revocation source for its issuer ──');
+  const conf = join(ROOT, 'schemas/conformance');
+  const tct = readJson(join(SIGNED, 'tct/kat-keypair-001-issues-002.json'));
+  const cases = [
+    { file: 'tct-024-no-revocation-source-default-fail-closed.json', id: 'tct-024', mode: undefined, outcome: 'failure', code: 'TCT_REVOKED' },
+    { file: 'tct-025-no-revocation-source-explicit-fail-open.json', id: 'tct-025', mode: 'fail_open', outcome: 'success', code: undefined },
+  ];
+  const inputs = {};
+  for (const c of cases) {
+    check(`${c.id}: committed TCT verifies; issuer_revocation_list is {issuer, available: false${c.mode ? `, fail_mode: ${c.mode}` : ''}} with no snapshot; ${c.mode ?? 'default mode'} => ${c.code ?? c.outcome}`, () => {
+      const f = readJson(join(conf, c.file));
+      eq(f.id, c.id, 'id');
+      eq(f.status, 'core', 'status');
+      eq(f.required_for_v0_2, true, 'required_for_v0_2');
+      eq(f.input.operation, 'verify_tct', 'operation');
+      eq(f.input.tct_token, tct.tct_token, 'tct_token (committed signed example)');
+      const claims = verifyCompactJws(f.input.tct_token, 'aitp-tct+jwt');
+      eq(jcs(f.input.tct_token_claims), jcs(claims), 'tct_token_claims');
+      eq(f.input.expected_audience, claims.aud, 'expected_audience');
+      const irl = f.input.issuer_revocation_list;
+      const members = c.mode ? ['available', 'fail_mode', 'issuer'] : ['available', 'issuer'];
+      eq(jcs(Object.keys(irl).sort()), jcs(members), 'issuer_revocation_list members (no snapshot)');
+      eq(irl.issuer, claims.iss, 'issuer_revocation_list.issuer');
+      eq(irl.available, false, 'issuer_revocation_list.available');
+      eq(irl.fail_mode, c.mode, 'fail_mode');
+      eq(f.expected.outcome, c.outcome, 'expected.outcome');
+      eq(f.expected.error_code, c.code, 'expected.error_code');
+      inputs[c.id] = f.input;
+    });
+  }
+  check('tct-024 and tct-025 inputs differ only in fail_mode', () => {
+    const strip = (input) => {
+      const d = JSON.parse(JSON.stringify(input));
+      delete d.issuer_revocation_list.fail_mode;
+      return jcs(d);
+    };
+    if (!inputs['tct-024'] || !inputs['tct-025']) throw new Error('a fixture failed to load');
+    eq(strip(inputs['tct-024']), strip(inputs['tct-025']), 'inputs without fail_mode');
+  });
 }
 
 // Self-attestation TCTs (RFC-AITP-0005 §5.3), kat-tct-002 (EdDSA) and kat-tct-003
@@ -1965,7 +2012,7 @@ checkOidcP256Fixture();
 // emptied vector member; this catches coverage lost any other way — a check
 // commented out, a loop that stops early, a gate that stops matching. Coverage may
 // grow (raise this number in the same commit); it may never silently shrink.
-const EXPECTED_MIN_CHECKS = 167;
+const EXPECTED_MIN_CHECKS = 170;
 if (checks < EXPECTED_MIN_CHECKS) {
   failures.push(
     `coverage regression: ran ${checks} checks, expected at least ${EXPECTED_MIN_CHECKS}. ` +

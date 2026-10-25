@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Conformance: no revocation source, default policy, rejects
+
+**Change class.** Fixture addition (core). No RFC text, schema, registry or vector change, and no RFC version bump. The rule is already normative: an issuer with no snapshot source falls under `revocation_policy.mode` (RFC-AITP-0008 §1.4), and the mode's schema default is `fail_closed` (§3.1). No fixture pinned it, because a fixture without a revocation input does not test revocation. aitp-rs 0.19.0 and aitp-verifier-py `b762f8c` both accept the token in `tct-024`.
+
+**Changes.**
+- `schemas/conformance/README.md` "Revocation inputs" defines the members of `issuer_revocation_list` in one table. The new member `available: false` states that the verifier has no revocation source for the issuer, which is not an empty list, and such an entry carries no `snapshot`. When `fail_mode` is absent, the runner MUST run the verifier with its default revocation policy, and the expected outcome assumes `fail_closed`. A missing `issuer_revocation_list` still means "not tested".
+- **New fixture `tct-024-no-revocation-source-default-fail-closed`** (`core`, expected `TCT_REVOKED`): `issuer_revocation_list` is `{issuer, available: false}` with no `fail_mode`.
+- **New fixture `tct-025-no-revocation-source-explicit-fail-open`** (`core`, expected success): the same input with `fail_mode: "fail_open"`. An implementation that reads an unavailable source as "nothing is revoked" passes `tct-025` and fails `tct-024`.
+- Both use the committed TCT `signed-examples/tct/kat-keypair-001-issues-002.json`, as `tct-022` does. Nothing is minted.
+- `scripts/verify-known-answer.mjs` and `scripts/recompute-known-answer-independent.py` both check that the token is the committed one and verifies, that `issuer_revocation_list` names its `iss`, is unavailable and has no snapshot, and that the two inputs differ only in `fail_mode`. `EXPECTED_MIN_CHECKS` rises from 167 to 170.
+- `scripts/fixture-validation-map.json` maps both fixtures. `FIXTURE_INPUT_MIN_CHECKS` rises from 241 to 243.
+- `docs/operational-guidance.md` cites the new fixtures in the revocation-mode table.
+- Conformance index: `core` 82 → 84, total 108 → 110.
+
 ## v0.3.1-draft (2026-10-21)
 
 Protocol revision `aitp/0.3`, unchanged on the wire. Tags: `v0.3.1-draft`, `schema-v0.3.1`. Clarifies revocation handling (RFC-AITP-0006, RFC-AITP-0008 and RFC-AITP-0011 at `0.3.1-draft`) and adds fixtures tct-022, tct-023, del-008 and del-mh-006. Reference implementations passing the conformance suite at release: aitp-rs 0.19.0 and aitp-verifier-py `138b79d`.
