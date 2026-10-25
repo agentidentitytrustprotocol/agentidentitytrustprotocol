@@ -2,7 +2,7 @@
 # A2A Agent Card Security Scheme
 
 **Document:** RFC-AITP-0014
-**Version:** 0.3.0-draft
+**Version:** 0.3.1-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0003 Agent Manifest](RFC-AITP-0003-manifest.md), [RFC-AITP-0004 Mutual Handshake](RFC-AITP-0004-mutual-handshake.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md), [RFC-AITP-0009 Security](RFC-AITP-0009-security.md)
 
@@ -266,15 +266,9 @@ x-aitp-tct: eyJhbGciOiJFZERTQSIsInR5cCI6ImFpdHAtdGN0K2p3dCJ9.eyJ2ZXIiOiJhaXRwLzA
 
 ### 5.2 Server verification
 
-The server receives back a TCT it issued. It MUST:
+The server receives back a TCT it issued. It MUST verify the TCT as its issuer, under [RFC-AITP-0005 §10.5](RFC-AITP-0005-tct.md#105-issuer-as-resource-server), which defines that check for every transport. On A2A the presenter's AID is established by downstream PoP carried in headers ([§5.3](#53-downstream-pop-on-a2a)), or by a channel binding that proves possession of the key in `sub`, as RFC-AITP-0005 §6 permits. The issuer key is the server's own, resolved from its own Manifest, and revocation of `jti` is checked against its own deny list, after every other check (RFC-AITP-0008 §3.3).
 
-1. Verify the TCT in the order of RFC-AITP-0005 §7.2, with that section's codes, resolving the issuer key from its own Manifest (the issuer is itself).
-2. Require `iss` to be its own AID. A TCT issued by any other peer ⇒ `TCT_SIGNATURE_INVALID`.
-3. Apply the step 5 audience rule of RFC-AITP-0005 §7.2 from the issuer's side: `aud` and `sub` are equal (RFC-AITP-0005 §2), and they name the peer that presents the token. The server MUST NOT reject a TCT it issued because `aud` is not its own AID; `aud` names the holder, and the issuer verifies who holds it by step 4 below. This is the issuer-side reading of RFC-AITP-0005 §5.2 and §10.1 for a TCT returned to its issuer. It changes no TCT byte and no code.
-4. Establish that the presenter holds the key in `sub`: by downstream PoP ([§5.3](#53-downstream-pop-on-a2a)), or by a channel binding that proves possession of that key as RFC-AITP-0005 §6 permits.
-5. Check revocation of `jti` against its own deny list (RFC-AITP-0008), after every check above (RFC-AITP-0008 §3.3).
-
-A request that lacks `x-aitp-tct`, or whose TCT fails any step, MUST be rejected as an A2A authentication error ([§6](#6-error-mapping)). A server MUST authenticate every request this way (A2A section 7.4); an earlier request's success is not a session.
+A request that lacks `x-aitp-tct`, or whose TCT fails any part of that check, MUST be rejected as an A2A authentication error ([§6](#6-error-mapping)). A server MUST authenticate every request this way (A2A section 7.4); an earlier request's success is not a session.
 
 ### 5.3 Downstream PoP on A2A
 
@@ -361,7 +355,7 @@ The fixtures are the `a2a-*` set in [`schemas/conformance/`](../schemas/conforma
 | `a2a-005` | Interface URL not listed in the Manifest (card shadowing) ⇒ `IDENTITY_FAILED` ([§4.2](#42-client-verification-order) step 5). |
 | `a2a-006` | Card names the tagged form of the Manifest's legacy AID; the forms are equal for step 4 (RFC-AITP-0001 §5.3). |
 
-Server-side TCT verification on A2A requests reuses the core `tct-*` fixtures; the A2A carriage adds no new verification outcome.
+Server-side TCT verification on A2A requests reuses the core `tct-*` fixtures, including the issuer-side set `tct-026` to `tct-029` of RFC-AITP-0005 §10.5; the A2A carriage adds no new verification outcome.
 
 ---
 
