@@ -79,6 +79,7 @@ agentidentitytrustprotocol/
     how-to-add-a-fixture.md                 # Checklist for a new conformance fixture
     implementer-quickstart.md
     integration-guide.md
+    mcp-mapping.md                          # TCT carriage next to MCP's OAuth 2.1 (non-normative)
     non-goals.md
     operational-guidance.md
     security-review-scope.md                # Surfaces for an external security review
@@ -164,6 +165,7 @@ If you are new to AITP, read in this order:
 17. **[docs/threat-model.md](docs/threat-model.md)** and **[docs/non-goals.md](docs/non-goals.md)** — what AITP defends against, and what it deliberately does not do.
 18. **[docs/ecosystem.md](docs/ecosystem.md)** — where the implementations, tools and services live (see [Ecosystem](#ecosystem) below).
 19. **[docs/conformance-badge.md](docs/conformance-badge.md)** — the conformance report a runner emits and the per-claim badge rules.
+20. **[docs/mcp-mapping.md](docs/mcp-mapping.md)** — presenting a TCT to an MCP server next to OAuth 2.1 (non-normative).
 
 ---
 

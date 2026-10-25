@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### MCP mapping guide (non-normative)
+
+**Change class.** Docs only. No RFC, wire, schema, fixture or registry change.
+
+**Changes.**
+- New `docs/mcp-mapping.md`, checked against the MCP specification revision 2026-07-28. It describes how an MCP client presents a TCT to an MCP server in `x-aitp-tct` next to the OAuth `Authorization` header, reusing the RFC-AITP-0014 §5.1 carriage and the RFC-AITP-0005 §6.3 PoP headers; how TCT `aud` differs from the RFC 8707 `resource` parameter; how RFC 9728 protected-resource metadata could point at the Manifest (an illustrative, unregistered parameter); and that OAuth 2.1 stays MCP's authorization mechanism. The server-side check of a returned TCT points to RFC-AITP-0014 §5.2 and issue #120.
+- `docs/ecosystem.md`, the `README.md` docs index and layout, and the `Makefile` reading list link the page.
+
 ### RFC-AITP-0014: AITP as an A2A Agent Card security scheme (Draft, opt-in)
 
 **Change class.** Addition (opt-in Draft RFC), fixtures, docs. No change to the RFC-AITP-0001 to RFC-AITP-0009 wire, schemas or known answers; no new error code.
