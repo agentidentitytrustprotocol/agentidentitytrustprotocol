@@ -43,7 +43,7 @@ A badge shows one of the claim strings of [RFC-AITP-0001 §10](../rfcs/RFC-AITP-
 | `AITP v0.3 pinned-admission` | Every fixture with `feature: aitp-pinned-admission` ([RFC-AITP-0002 §3.4](../rfcs/RFC-AITP-0002-identity.md#34-one-way-pinned-key-admission-optional-profile-pinned-admission)) | `feature-all-pass`: the feature is in `features_enabled` and each has outcome `pass`. |
 | `AITP v0.3 self-attestation` | Every fixture with `feature: aitp-self-attestation` ([RFC-AITP-0005 §5.3](../rfcs/RFC-AITP-0005-tct.md#53-self-issued-attestation-tcts)) | `feature-all-pass`: the feature is in `features_enabled` and each has outcome `pass`. |
 
-Each claim is decided on its own fixture set. The core rule uses `required_for_v0_2`, the core-tier key of `aitp/0.3` (it keeps its old name, see [VERSIONING.md](../VERSIONING.md)), so `del-004`, a core fixture frozen in the v0.1 shape, is reported but gates nothing. Draft fixtures (`del-mh-*`, `bundle-*`) gate no claim.
+Each claim is decided on its own fixture set. The core rule uses `required_for_v0_2`, the core-tier key of `aitp/0.3` (it keeps its old name, see [VERSIONING.md](../VERSIONING.md)), so `del-004`, a core fixture in the v0.1-frozen token shape, is reported but gates nothing. Draft fixtures (`del-mh-*`, `bundle-*`) gate no claim.
 
 Rules a runner and a badge generator both follow:
 
