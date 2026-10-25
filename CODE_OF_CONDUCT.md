@@ -25,7 +25,7 @@ Project maintainers are responsible for clarifying the standards of acceptable b
 
 ## Reporting
 
-This repository does not yet publish a dedicated conduct-reporting address. Until one is listed here, open a GitHub issue in this repository titled **"Code of Conduct contact request"** and include **no details** of the incident; a maintainer will reply with a private channel, and the report itself is handled there. Reports are handled privately, and the reporter's identity is not disclosed without their consent.
+Report conduct concerns privately to the maintainer at **ajitkoti@zer07labs.com**. Do not open a public issue. Reports are handled privately, and the reporter's identity is not disclosed without their consent. Security vulnerabilities are not conduct reports; they go through [SECURITY.md](SECURITY.md).
 
 ## Attribution
 
