@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### JWT-SVID key and `alg` must match (RFC-AITP-0002 §6.3)
+
+**Change class.** Clarification under the `aitp/0.3` freeze. No wire byte, schema, error code, fixture or known-answer vector changes. RFC-AITP-0002 goes from `0.3.3-draft` to `0.3.4-draft` and stays in Review.
+
+**Changes.**
+- The §6.3 table gets a "Key match" row. The JWK that `kid` selects MUST fit the header `alg` per RFC 7518 §3: RSA for `RS*`/`PS*`, and each `ES*` only with its own curve. When the JWK carries an `alg` member, the header `alg` MUST equal it.
+- Before this, §6.3 listed the nine algorithms but said nothing about which key may verify which. Two implementations diverged: aitp-rs honoured a JWK `alg` member, and aitp-verifier-py ignored it.
+
 ### Pinned OIDC test issuer keys (`known-answer/oidc-test-issuers.json`)
 
 **Change class.** New known-answer vectors under the `aitp/0.3` freeze. No RFC text, wire byte, schema, error code or fixture outcome changes.
