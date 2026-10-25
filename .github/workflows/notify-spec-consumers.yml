@@ -4,9 +4,10 @@ name: Notify spec consumers
 # to every repo that pins the spec by git SHA (CONTRIBUTING.md "Consuming the
 # spec"; the consumer table is in docs/ecosystem.md):
 #   - aitp-rs pins it in tests/schemas/SPEC_VERSION.
-#   - aitp-verifier-py pins it in SPEC_VERSION once VP1.1 lands its
+#   - aitp-verifier-py pins it in SPEC_VERSION.
+#   - aitp-verifier-ts pins it in SPEC_VERSION once TS4.3 lands its
 #     bump-spec.yml. Until then the dispatch reaches a repo with no listener
-#     and is a no-op; its floating-`main` cron stays as a non-blocking canary.
+#     and is a no-op.
 #
 # The consumer's bump-spec.yml calls aitp-ci/bump-spec-ref, which opens a HELD
 # PR (never auto-merged): adopting a new spec is a deliberate review decision,
@@ -39,7 +40,7 @@ jobs:
           client-id: ${{ vars.AITP_BOT_CLIENT_ID }}
           private-key: ${{ secrets.AITP_BOT_PRIVATE_KEY }}
           owner: agentidentitytrustprotocol
-          repositories: aitp-rs,aitp-verifier-py
+          repositories: aitp-rs,aitp-verifier-py,aitp-verifier-ts
 
       - name: Dispatch spec-released to aitp-rs
         uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
@@ -54,5 +55,13 @@ jobs:
         with:
           token: ${{ steps.app.outputs.token }}
           repository: agentidentitytrustprotocol/aitp-verifier-py
+          event-type: spec-released
+          client-payload: '{"sha": "${{ github.sha }}"}'
+
+      - name: Dispatch spec-released to aitp-verifier-ts
+        uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
+        with:
+          token: ${{ steps.app.outputs.token }}
+          repository: agentidentitytrustprotocol/aitp-verifier-ts
           event-type: spec-released
           client-payload: '{"sha": "${{ github.sha }}"}'

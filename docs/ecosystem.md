@@ -19,6 +19,7 @@ All repositories live in the [`agentidentitytrustprotocol`](https://github.com/a
 |---|---|---|
 | `aitp-rs` | Reference implementation (Rust) with Python and Node bindings and a CLI | [README](https://github.com/agentidentitytrustprotocol/aitp-rs/blob/main/README.md) · [docs index](https://github.com/agentidentitytrustprotocol/aitp-rs/blob/main/docs/README.md) |
 | `aitp-verifier-py` | Independent Python implementation of the verification core, written from the RFCs and schemas only | [README](https://github.com/agentidentitytrustprotocol/aitp-verifier-py/blob/main/README.md) |
+| `aitp-verifier-ts` | Independent TypeScript verifier (in development): zero dependencies, WebCrypto only, written from the RFCs and schemas only | [repository](https://github.com/agentidentitytrustprotocol/aitp-verifier-ts) |
 | `aitp-control-plane` | API-only registry, audit log, revocation list and webhook backend; not in the trust path | [README](https://github.com/agentidentitytrustprotocol/aitp-control-plane/blob/main/README.md) · [docs](https://github.com/agentidentitytrustprotocol/aitp-control-plane/blob/main/docs/README.md) |
 | `aitp-playground` | Scenario harness that runs AITP end to end with real LLM agents (a demo, not production) | [README](https://github.com/agentidentitytrustprotocol/aitp-playground/blob/main/README.md) · [getting started](https://github.com/agentidentitytrustprotocol/aitp-playground/blob/main/docs/getting-started.md) |
 | `aitp-ui-console` | Monitoring and control console over the playground and control plane | [README](https://github.com/agentidentitytrustprotocol/aitp-ui-console/blob/main/README.md) · [features](https://github.com/agentidentitytrustprotocol/aitp-ui-console/blob/main/docs/FEATURES.md) |
@@ -52,9 +53,9 @@ Every repository that tests against the spec pins it by commit SHA and adopts a 
 | Consumer | SHA-pin file | Bumped by | Dispatched |
 |---|---|---|---|
 | `aitp-rs` | `tests/schemas/SPEC_VERSION` | `bump-spec.yml` → `aitp-ci` `bump-spec-ref` (file mode) | yes |
-| `aitp-verifier-py` | `SPEC_VERSION` (planned, VP1.1; until then CI tracks floating `main`) | `bump-spec.yml` → `bump-spec-ref` (planned, VP1.1) | yes |
+| `aitp-verifier-py` | `SPEC_VERSION` | `bump-spec.yml` → `bump-spec-ref` | yes |
 | `aitp-docs` | `sources.lock.json` (`sources.spec.sha`) | planned, DOC1.1 | not yet |
-| TypeScript verifier (repository not yet created) | `SPEC_VERSION` (planned) | `bump-spec-ref` (planned) | not yet |
+| `aitp-verifier-ts` | `SPEC_VERSION` (planned, TS4.1) | `bump-spec.yml` → `bump-spec-ref` (planned, TS4.3) | yes |
 
 A floating-`main` job, such as `aitp-verifier-py`'s daily scheduled run, is a non-blocking canary only. `aitp-website` is not a pinning consumer: it republishes on the `docs-updated` dispatch.
 
