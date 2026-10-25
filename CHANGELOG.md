@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Security policy and review scope
+
+**Change class.** Project process, docs. No RFC, schema, fixture or vector change, and no RFC version bump.
+
+**Changes.**
+- New `SECURITY.md`. It separates spec defects from implementation bugs, takes reports only through GitHub private vulnerability reporting, acknowledges within 3 business days, and sets a 90-day embargo, a CVE path through the advisory, and a strict cutover for security fixes that change the wire.
+- New `docs/security-review-scope.md`: the surfaces of an external review with RFC section cites, the known open items, and the runtime fuzz gaps.
+- `CODE_OF_CONDUCT.md` gives a private conduct contact.
+- The issue template's security link opens a private advisory on this repository.
+
 ### Contributor funnel and org settings
 
 **Change class.** Project process, docs + CI. No RFC, schema, fixture or vector change, and no RFC version bump.

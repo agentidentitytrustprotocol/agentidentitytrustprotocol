@@ -78,6 +78,7 @@ agentidentitytrustprotocol/
     integration-guide.md
     non-goals.md
     operational-guidance.md
+    security-review-scope.md                # Surfaces for an external security review
     threat-model.md
 
   registries/
@@ -130,6 +131,7 @@ agentidentitytrustprotocol/
   scripts/         # Validation scripts (make validate)
     handoff/       # org-settings.sh: org repository settings (dry-run, apply, rollback)
   .github/         # CI, issue templates, PR template, CODEOWNERS
+  SECURITY.md      # vulnerability reporting and disclosure
 ```
 
 ---
@@ -284,7 +286,7 @@ The published documentation site is [agentidentitytrustprotocol.io](https://agen
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md), the [RFC process](governance/RFC-PROCESS.md), and [RELEASING.md](RELEASING.md). Questions go to [Discussions](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/discussions); issues labelled [`good first issue`](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/labels/good%20first%20issue) are scoped for a first PR, and [docs/how-to-add-a-fixture.md](docs/how-to-add-a-fixture.md) walks through the most common one. The changelog is [CHANGELOG.md](CHANGELOG.md); the versioning policy is [VERSIONING.md](VERSIONING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md), the [RFC process](governance/RFC-PROCESS.md), and [RELEASING.md](RELEASING.md). Questions go to [Discussions](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/discussions); issues labelled [`good first issue`](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/labels/good%20first%20issue) are scoped for a first PR, and [docs/how-to-add-a-fixture.md](docs/how-to-add-a-fixture.md) walks through the most common one. Report security issues privately as described in [SECURITY.md](SECURITY.md); the external review scope is [docs/security-review-scope.md](docs/security-review-scope.md). The changelog is [CHANGELOG.md](CHANGELOG.md); the versioning policy is [VERSIONING.md](VERSIONING.md).
 
 ---
 
