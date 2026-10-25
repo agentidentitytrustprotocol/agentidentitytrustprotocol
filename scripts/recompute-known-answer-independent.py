@@ -337,6 +337,12 @@ def main() -> int:
     check("kat-keypair-001-tagged aid / untagged_aid",
           t1["aid"] == "aid:pubkey:ed25519:" + b64e(A1) and t1["untagged_aid"] == "aid:pubkey:" + b64e(A1) == k1["aid"])
 
+    section("── oidc-test-issuers.json ──")
+    for v in load(KAT / "oidc-test-issuers.json")["vectors"]:
+        A = ed_public(bytes.fromhex(v["seed_hex"]))
+        check(f"{v['id']} pubkey and JWK", b64e(A) == v["pubkey_b64url"]
+              and v["jwk"] == {"crv": "Ed25519", "kty": "OKP", "x": b64e(A)})
+
     section("── jcs-sha256.json P-256 vectors ──")
     v = jcsv["kat-p256-jcs-sign-001"]
     pre = jcs(v["preimage_json"])

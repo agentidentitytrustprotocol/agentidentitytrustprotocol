@@ -74,10 +74,16 @@ RFC-AITP-0001 §5.3, implying Ed25519/`EdDSA`); P-256 fixtures use the
 
 Identity-issuer keys (the OIDC issuers used by `__VALID_JWT__` and
 `__VALID_JWT_FROM_UNKNOWN_ISSUER__`) are NOT drawn from
-`keypairs.json` — they are minted at runtime by the tool and the
-public key is inlined into the fixture's `accepted_trust_anchors` /
-local `trust_anchors` so the verifier accepts (or rejects) the JWT
-based on issuer-list membership alone.
+`keypairs.json`, because they are issuer signing keys, not AIDs. They
+are pinned in
+[`known-answer/oidc-test-issuers.json`](known-answer/oidc-test-issuers.json).
+The runner signs each OIDC JWT with the pinned seed and sends no issuer
+key in the request. A fixture's `accepted_trust_anchors` / local
+`trust_anchors` name issuers by URL only. An adapter's identity-issuer
+resolver therefore maps `https://auth.openai.com` to
+`kat-oidc-issuer-001`, reading the key from that file, and resolves no
+other issuer. It MUST NOT copy the key from another implementation's
+source.
 
 The runner-minted OIDC test issuer is `https://auth.openai.com`, the
 issuer of every `__VALID_JWT__` and OIDC `__JWT_*__` proof in the corpus
@@ -95,8 +101,10 @@ carrying the CA certificate as its one `x5c` entry (SPIFFE Trust Domain
 and Bundle §4, X509-SVID §6.1, JWT-SVID §6.1).
 
 The exception is `__VALID_JWT_FROM_UNKNOWN_ISSUER__`. Its issuer key is
-pinned so that minting is byte-stable across runners: the Ed25519 key
-from seed `0x55` × 32. That seed is used by no entry in `keypairs.json`.
+pinned so that minting is byte-stable across runners:
+`kat-oidc-issuer-002-unknown` in
+[`known-answer/oidc-test-issuers.json`](known-answer/oidc-test-issuers.json)
+(seed `0x55` × 32, used by no entry in `keypairs.json`).
 The key MUST NOT appear in any fixture's `accepted_trust_anchors` or
 `trust_anchors`.
 
