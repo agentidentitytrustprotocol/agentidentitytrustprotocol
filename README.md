@@ -2,6 +2,7 @@
 
 **Version:** 0.3.2-draft
 **Status:** Community Standards Track (Draft)
+**Wire freeze:** the `aitp/0.3` wire is frozen until 1.0, except for security fixes ([what is frozen](VERSIONING.md#what-is-frozen-aitp03-line))
 **Canonical wire format:** JSON
 **Normative transport:** HTTPS
 **Canonical signing input:** RFC 8785 (JCS) canonical JSON (protocol-internal artifacts); RFC 7515 compact JWS (portable trust artifacts, §5.4.5)
