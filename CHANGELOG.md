@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Handshake fixtures state the receiver's `self_aid`
+
+**Change class.** Fixture input only. No wire byte, RFC text, schema, error code, outcome or known-answer vector changes.
+
+**Changes.** `mh-002`, `mh-003`, `mh-004`, `mh-005`, `mh-007` and `mh-008` now carry `input.self_aid`, the receiving agent's AID: the peer the fixture's TCT or identity proof is addressed to. Before this, a runner had to guess it to mint `aud`, and a verifier had to skip its `aud == self` check. aitp-rs and aitp-verifier-py pass all core fixtures unchanged.
+
 ### JWT-SVID key and `alg` must match (RFC-AITP-0002 §6.3)
 
 **Change class.** Clarification under the `aitp/0.3` freeze. No wire byte, schema, error code, fixture or known-answer vector changes. RFC-AITP-0002 goes from `0.3.3-draft` to `0.3.4-draft` and stays in Review.

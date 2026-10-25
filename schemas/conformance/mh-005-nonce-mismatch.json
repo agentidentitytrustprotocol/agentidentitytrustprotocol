@@ -12,6 +12,7 @@
     "nonce-binding"
   ],
   "input": {
+    "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
     "step": "initiator received MUTUAL_HELLO_ACK",
     "sent_pop_nonce": "fRVe56NIsF6e0msvD0ORaQ",
     "envelope": {

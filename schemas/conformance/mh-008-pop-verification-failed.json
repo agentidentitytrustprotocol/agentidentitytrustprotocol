@@ -13,6 +13,7 @@
     "pop"
   ],
   "input": {
+    "self_aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
     "step": "target received MUTUAL_COMMIT",
     "self_pop_nonce_sent_in_hello_ack": "awVp2Fly6Is8p899W-ALmw",
     "envelope": {
