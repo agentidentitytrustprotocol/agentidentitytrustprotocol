@@ -140,6 +140,18 @@ A pinned-key fixture states the verifier's `pinned_keys` store (RFC-AITP-0002 §
 - When `trust_store` is absent, the store is empty. The runner MUST NOT invent trust: it MUST NOT pre-load the sender's key, a KAT keypair, or any default, and an implementation's possession-only behavior is not a substitute (RFC-AITP-0002 §3.2 forbids such a mode in every deployment mode).
 - Every pinned-key failure fixture except `id-007` carries a `trust_store` that contains the sender, so steps 1–3 pass and the failure comes only from the defect the fixture names. `id-007` alone omits the sender, because its defect is the untrusted key.
 
+### Receiver policy inputs (`self_accepted_identity_types`, `self_trust_anchors`)
+
+An `mh-*` fixture that receives a MUTUAL_HELLO runs RFC-AITP-0004 §5.1 through step 8, the policy step. It states the receiver's own policy in two keys:
+
+- `input.self_accepted_identity_types` is the receiver's own `accepted_identity_types` (RFC-AITP-0003 §3.2). Step 8 checks the payload `identity.type` against it, and a type not in it fails with `INCOMPATIBLE_IDENTITY_TYPE`.
+- `input.self_trust_anchors` is the receiver's OIDC `trust_anchors`. For an `oidc` peer, step 8 requires the identity `issuer` to be in it, else `INCOMPATIBLE_TRUST_ANCHORS` (`mh-004`).
+- When `self_accepted_identity_types` is absent, the receiver runs with the default `["oidc"]`. The runner MUST NOT configure accepted types of its own, and MUST NOT add the type the payload presents (`mh-011` tests exactly this).
+- The sender's Manifest may carry its own `accepted_identity_types`. That is the sender's policy for its peers, and step 8 does not read it.
+- `mh-010` to `mh-014` use these keys. The earlier `mh-*` fixtures that reach step 8 present `oidc`, which the default accepts, and `mh-009` presents `pinned_key` but fails at step 6. So the default changes none of their outcomes.
+
+An `id-*` fixture with `verify_handshake_payload` checks the identity binding, which is §5.1 step 6, and does not run step 8 (PLACEHOLDERS.md, "Operation key"). The pinned-key successes `id-010` and `id-017` and the `spiffe` successes state no receiver types for that reason. A runner whose implementation always runs step 8 configures the receiver to accept the fixture's identity type for an `id-*` fixture, as the `spiffe` rule already says.
+
 ### Revocation inputs (`issuer_revocation_list`, `revocation_snapshots`)
 
 A fixture states the revocation state it tests through `input.issuer_revocation_list` (TCT verification) or `input.revocation_snapshots` (delegation, single-hop and multi-hop):
@@ -403,7 +415,7 @@ valid and invalid, are in [`reports/`](reports/).
 
 | Tier | Count | Required for v0.3 |
 |---|---|---|
-| `core` (`required_for_core`) | 89 | ✅ Yes |
+| `core` (`required_for_core`) | 94 | ✅ Yes |
 | `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (v0.1 runners only) |
 | `extension` — pinned-admission profile (RFC-AITP-0002 §3.4, `feature: aitp-pinned-admission`) | 8 | ❌ No (required of an implementation claiming the profile) |
 | `extension` — attestation verification (RFC-AITP-0005 §5.3, `feature: aitp-self-attestation`) | 3 | ❌ No (required of an implementation claiming the role) |
@@ -411,7 +423,7 @@ valid and invalid, are in [`reports/`](reports/).
 | `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 6 | ❌ No |
 | `draft` — A2A Agent Card binding (RFC-AITP-0014, `feature: aitp-a2a-agent-card`) | 6 | ❌ No |
 | `draft` — `spiffe` identity type (RFC-AITP-0002 §6, `feature: experimental-spiffe-identity`) | 7 | ❌ No |
-| **Total** | **128** | |
+| **Total** | **133** | |
 
 Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A conformance runner for the current revision, `aitp/0.3`, MUST execute every `required_for_core` core fixture (the key keeps its v0.2 name so existing runners keep working; for `aitp/0.3` it marks the core tier); `draft` and `extension` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
@@ -461,6 +473,11 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | `mh-007` | Peer-issued TCT grants exceed offered_capabilities | failure: GRANT_OVERFLOW |
 | `mh-008` | Peer PoP signature invalid | failure: POP_VERIFICATION_FAILED |
 | `mh-009` | Peer's `manifest.identity_hint.type` ≠ payload `identity.type` (type-confusion within the peer's own message; RFC-AITP-0004 §5.1 step 6) | failure: IDENTITY_FAILED |
+| `mh-010` | Receiver accepts `["oidc"]`; valid `pinned_key` identity (id-017's envelope, sender trusted) (§5.1 step 8) | failure: INCOMPATIBLE_IDENTITY_TYPE |
+| `mh-011` | Receiver states no `accepted_identity_types`, so the default `["oidc"]` applies; same valid `pinned_key` identity | failure: INCOMPATIBLE_IDENTITY_TYPE |
+| `mh-012` | Receiver accepts `["pinned_key"]`; valid `oidc` identity from an issuer in its trust anchors | failure: INCOMPATIBLE_IDENTITY_TYPE |
+| `mh-013` | Receiver accepts `["oidc", "pinned_key"]`; same valid `pinned_key` identity: the positive control for `mh-010` and `mh-011` | success |
+| `mh-014` | Receiver accepts `["oidc"]`; `pinned_key` proof over the wrong `pop_nonce` (id-006's envelope). Step 6 runs before step 8 | failure: IDENTITY_FAILED |
 
 ### Identity Binding (RFC-AITP-0002)
 

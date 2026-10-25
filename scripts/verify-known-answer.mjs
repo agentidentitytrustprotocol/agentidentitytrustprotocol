@@ -1859,6 +1859,10 @@ const PINNED_FIXTURES = [
   ['id-012-pinned-key-p256-uncompressed-key-rejected.json', 'uncompressed'],
   ['id-017-pinned-key-ed25519-success.json', 'success'],
   ['id-018-pinned-key-issuer-present-rejected.json', 'issuer'],
+  // RFC-AITP-0004 §5.1 step 8: a valid proof the receiver's accepted_identity_types refuses.
+  ['mh-010-pinned-key-to-oidc-only-receiver-rejected.json', 'incompatible-type'],
+  ['mh-011-pinned-key-default-identity-types-rejected.json', 'incompatible-type'],
+  ['mh-013-identity-type-accepted-success.json', 'success'],
 ];
 function checkPinnedFixtures() {
   console.log('── pinned-key conformance fixtures: proofs re-verified against their tuples ──');
@@ -1873,9 +1877,19 @@ function checkPinnedFixtures() {
       const input = pinnedProofInput(tuple);
       const key = aidKey(sender);
       if (!Array.isArray(f.input.trust_store) || !f.input.trust_store.includes(sender)) throw new Error('trust_store does not contain the sender');
-      const wantFail = kind !== 'success';
-      eq(f.expected.outcome, wantFail ? 'failure' : 'success', 'expected.outcome');
+      // An 'incompatible-type' fixture fails only at step 8, so its proof is valid and
+      // checked exactly like a success fixture's.
+      const typeOnly = kind === 'incompatible-type';
+      const wantFail = kind !== 'success' && !typeOnly;
+      eq(f.expected.outcome, kind === 'success' ? 'success' : 'failure', 'expected.outcome');
       if (wantFail) eq(f.expected.error_code, 'IDENTITY_FAILED', 'expected.error_code');
+      if (typeOnly) {
+        eq(f.expected.error_code, 'INCOMPATIBLE_IDENTITY_TYPE', 'expected.error_code');
+        const accepted = f.input.self_accepted_identity_types ?? ['oidc'];
+        if (accepted.includes(idn.type)) throw new Error(`receiver accepts ${idn.type}`);
+      } else if (kind === 'success' && 'self_accepted_identity_types' in f.input) {
+        if (!f.input.self_accepted_identity_types.includes(idn.type)) throw new Error(`receiver does not accept ${idn.type}`);
+      }
       if (kind === 'untagged') {
         if (idn.proof.includes('.')) throw new Error('proof is tagged');
         eq(key.alg, 'p256', 'sender algorithm');

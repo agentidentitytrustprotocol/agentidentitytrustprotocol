@@ -420,6 +420,9 @@ def main() -> int:
         ("id-017-pinned-key-ed25519-success.json", "ed25519"),
         ("id-018-pinned-key-issuer-present-rejected.json", "ed25519"),
         ("mh-009-identity-type-mismatch-rejected.json", "ed25519"),
+        ("mh-010-pinned-key-to-oidc-only-receiver-rejected.json", "ed25519"),
+        ("mh-011-pinned-key-default-identity-types-rejected.json", "ed25519"),
+        ("mh-013-identity-type-accepted-success.json", "ed25519"),
     ]:
         fx = load(CONF / name)
         env = fx["input"]["envelope"]

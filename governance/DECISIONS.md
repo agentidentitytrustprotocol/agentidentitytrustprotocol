@@ -561,3 +561,36 @@ patch-level, no new signatures). It deserves its own review rather than riding a
   §5.2 and the MCP mapping cite §10.5, so they follow it without their own change.
 - **Blast radius if wrong:** medium. The rule and the four fixtures are core, so a reversal
   changes core conformance for every consumer.
+
+## 2026-10-24 — Conformance fixtures for `INCOMPATIBLE_IDENTITY_TYPE` (RFC-AITP-0004 §5.1 step 8)
+
+- **Status:** UNCONFIRMED (owner to confirm).
+- **Decided by:** Opus, while adding the first fixtures for the step 8 identity-type check.
+- **Context:** RFC-AITP-0004 §5.1 step 8 requires the receiver to reject a peer whose
+  `identity.type` is not in its own `accepted_identity_types` (default `["oidc"]`). No fixture
+  exercised the code, and no fixture input stated the receiver's own list: the only
+  `accepted_identity_types` values in `mh-*` and `id-*` fixtures sit in the sender's Manifest.
+- **Chosen:**
+  1. **New input key `self_accepted_identity_types`**, named after the existing
+     `self_trust_anchors`. When it is absent, the receiver runs with the default `["oidc"]` and the
+     runner adds no types. Without that rule `mh-011` (the default case) could not be written.
+  2. **Scope of the default.** An `mh-*` MUTUAL_HELLO fixture runs through step 8. An `id-*`
+     fixture stops at step 6, as `PLACEHOLDERS.md` already said ("the result of step 6"). So the
+     pinned-key successes `id-010` and `id-017` keep their outcome with no receiver types stated.
+     Under the default they would fail step 8, so the scoping is what keeps them unchanged; it is
+     written down now rather than left implied. Every earlier `mh-*` fixture that reaches step 8
+     presents `oidc`, and `mh-009` (`pinned_key`) fails at step 6.
+  3. **Tier: core.** The fixtures pin a MUST in a core RFC using the core identity types `oidc` and
+     `pinned_key`, so a core implementation that fails them does not implement §5.1. VERSIONING.md
+     allows new fixtures that pin required behaviour; new fixtures may join the core tier.
+  4. **Check order (`mh-014`).** §5.1 says its numbered steps "make the order explicit", and it
+     verifies the identity proof at step 6, before policy at step 8. So when both fail, the code is
+     `IDENTITY_FAILED`, not `INCOMPATIBLE_IDENTITY_TYPE`. The check order is frozen (VERSIONING.md,
+     "Error codes and their meanings"), so `mh-014` pins it. A receiver that screens the type
+     before verifying the proof fails `mh-014`.
+- **Rejected:** putting the receiver's list in a `self_manifest` object. It would carry many fields
+  no step reads, and every existing fixture states receiver policy as flat `self_*` keys.
+- **Reversal trigger:** public review moves the identity-type check before step 6. That changes a
+  frozen check order, so it waits for 1.0 or a security fix, and `mh-014` changes with it.
+- **Blast radius if wrong:** low to medium. Five core fixtures; an implementation that skips the
+  check or reorders it now fails them, which is the intent.
