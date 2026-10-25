@@ -50,54 +50,12 @@ Status columns differ by registry:
 
 ## Conformance fixtures
 
-Every fixture under `schemas/conformance/*.json` MUST have a matching entry
-in `scripts/fixture-validation-map.json`, keyed by the fixture's `id` field
-(not its filename). `make json-validate` (`scripts/validate-json.sh`) treats
-an unmapped fixture as a build failure, never a silent skip — a validator
-that quietly skips what it does not recognize is worse than no validator at
-all.
-
-When you add a fixture:
-
-1. Add the fixture JSON under `schemas/conformance/`.
-2. Add a matching entry to `scripts/fixture-validation-map.json`. For each
-   artifact embedded in the fixture's `input` (a session bundle, TCT claims,
-   a manifest, …), name:
-   - `pointer` — the RFC 6901 JSON pointer to the artifact inside the fixture.
-   - `schema` — the schema filename under `schemas/json/` it must satisfy.
-   - `expect` — `valid`, `invalid`, or `invalid_known_defect`.
-   - `reason` — required whenever `expect` is not `valid`; explains why the
-     artifact is expected to fail validation.
-   - `wrap` — optional; re-wraps the artifact as `{KEY: artifact}` for a
-     schema that describes the wrapped transport form rather than the body.
-
-   A fixture with no embedded artifacts to validate MUST say so explicitly
-   with a `no_artifacts` entry naming a reason, instead of being omitted.
-
-`expect` is checked in **both directions**: an artifact declared `invalid`
-that starts validating fails the build exactly as loudly as one declared
-`valid` that stops validating. If you fix a fixture's underlying defect,
-update its map entry in the same commit — otherwise the build fails there
-instead.
-
-Example entry:
-
-```json
-"bundle-002": {
-  "artifacts": [
-    {
-      "pointer": "/input/session_bundle",
-      "schema": "aitp-session-bundle.schema.json",
-      "expect": "valid"
-    }
-  ]
-}
-```
-
-See [`schemas/conformance/README.md`](schemas/conformance/README.md) for the
-fixture format itself, and `scripts/normalize-fixture-input.py` for how
-placeholder tokens (`__VALID_A_SIG__`, `__NOW_PLUS_3600__`, …) are substituted
-before an artifact is checked against its schema.
+Adding a fixture is a checklist: pick the id, write the fixture, map its
+embedded artifacts in `scripts/fixture-validation-map.json` (an unmapped
+fixture fails the build), update the index and counts, and record it in the
+CHANGELOG. The steps are in
+[`docs/how-to-add-a-fixture.md`](docs/how-to-add-a-fixture.md); the fixture
+format itself is in [`schemas/conformance/README.md`](schemas/conformance/README.md).
 
 ## Prerequisites
 
@@ -195,5 +153,15 @@ Releases are cut by maintainers; see [RELEASING.md](RELEASING.md). Every PR
 adds an entry under `## Unreleased` in [CHANGELOG.md](CHANGELOG.md).
 
 ## Community
+
+- Questions, ideas and implementation help go to
+  [Discussions](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/discussions).
+- Issues labelled `good first issue` are scoped for a first PR; `help wanted`
+  marks work the maintainer would welcome help with.
+- Review routing is in [`.github/CODEOWNERS`](.github/CODEOWNERS).
+- Repository settings across the organization (descriptions, topics,
+  Discussions, private vulnerability reporting, labels) are managed by
+  `scripts/handoff/org-settings.sh`, not by hand: it is a dry-run by default,
+  snapshots before `--apply`, and restores with `--rollback`.
 
 All contributors must follow the [Code of Conduct](CODE_OF_CONDUCT.md).

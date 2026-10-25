@@ -73,6 +73,7 @@ agentidentitytrustprotocol/
     discovery.md
     ecosystem.md                            # Which sibling repo owns what; canonical links
     GLOSSARY.md
+    how-to-add-a-fixture.md                 # Checklist for a new conformance fixture
     implementer-quickstart.md
     integration-guide.md
     non-goals.md
@@ -127,7 +128,8 @@ agentidentitytrustprotocol/
     spec-errata-from-independent-verifier-2026-07.md
 
   scripts/         # Validation scripts (make validate)
-  .github/         # CI, issue templates, PR template
+    handoff/       # org-settings.sh: org repository settings (dry-run, apply, rollback)
+  .github/         # CI, issue templates, PR template, CODEOWNERS
 ```
 
 ---
@@ -282,7 +284,7 @@ The published documentation site is [agentidentitytrustprotocol.io](https://agen
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md), the [RFC process](governance/RFC-PROCESS.md), and [RELEASING.md](RELEASING.md). The changelog is [CHANGELOG.md](CHANGELOG.md); the versioning policy is [VERSIONING.md](VERSIONING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md), the [RFC process](governance/RFC-PROCESS.md), and [RELEASING.md](RELEASING.md). Questions go to [Discussions](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/discussions); issues labelled [`good first issue`](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/labels/good%20first%20issue) are scoped for a first PR, and [docs/how-to-add-a-fixture.md](docs/how-to-add-a-fixture.md) walks through the most common one. The changelog is [CHANGELOG.md](CHANGELOG.md); the versioning policy is [VERSIONING.md](VERSIONING.md).
 
 ---
 

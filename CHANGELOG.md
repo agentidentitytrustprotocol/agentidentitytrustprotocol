@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Contributor funnel and org settings
+
+**Change class.** Project process, docs + CI. No RFC, schema, fixture or vector change, and no RFC version bump.
+
+**Changes.**
+- New `scripts/handoff/org-settings.sh` manages the organization's public repository settings: description, homepage and topics; Discussions on the spec repo, aitp-rs and aitp-verifier-py; private vulnerability reporting everywhere; the `good first issue` and `help wanted` labels (plus `spec-bug` and `rfc` here); the org variable `AITP_BOT_CLIENT_ID`; and a pull request correcting the org `.github/SECURITY.md` claim that every repository SHA-pins its Actions. It is a dry-run by default, writes a snapshot before `--apply`, and `--rollback <snapshot>` restores it. CI runs shellcheck, `bash -n` and a read-only dry-run on it.
+- New `.github/CODEOWNERS`.
+- New `docs/how-to-add-a-fixture.md`, the fixture checklist. The fixture-map rules move there from `CONTRIBUTING.md`, which now points to it, to Discussions and to the `good first issue` label.
+- `notify-website.yml` and `notify-spec-consumers.yml` mint the App token with `client-id` (org variable `AITP_BOT_CLIENT_ID`) instead of the deprecated `app-id`.
+
 ### One spec-pin policy across consumers
 
 **Change class.** Project process + CI. No RFC, schema, fixture or vector change, and no RFC version bump.

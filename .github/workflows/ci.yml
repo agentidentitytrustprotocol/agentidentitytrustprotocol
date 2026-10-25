@@ -81,3 +81,26 @@ jobs:
           echo "  - Doc coherence (stages in scripts/check-doc-coherence.sh; the sibling-repo existence/anchor sub-check is local-only, skipped in CI)"
           echo "  - No release junk in tree"
           echo "  - Release archive (git archive, tracked files only) dry-run clean"
+
+  handoff-scripts:
+    name: Handoff scripts (shellcheck, syntax, read-only dry-run)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: shellcheck
+        run: shellcheck scripts/handoff/*.sh
+
+      - name: bash -n
+        run: for f in scripts/handoff/*.sh; do bash -n "$f"; done
+
+      # The job token is read-only and cannot see admin-only settings (private
+      # vulnerability reporting, org variables); the dry-run marks those `?`.
+      - name: org-settings.sh --dry-run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/handoff/org-settings.sh --dry-run
