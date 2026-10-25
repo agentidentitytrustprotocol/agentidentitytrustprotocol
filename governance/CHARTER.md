@@ -10,6 +10,14 @@ AITP defines an open, peer-to-peer trust protocol for autonomous agents. The sta
 
 ---
 
+## Neutral home
+
+The project lead holds the AITP name, the `agentidentitytrustprotocol.io` domain and the `agentidentitytrustprotocol` GitHub organization. The domain is registered to zer07labs through Squarespace Domains and paid until 2028-06-19; the project lead renews it until it is transferred.
+
+The project intends to transfer the name, the domains and the GitHub organization to a neutral foundation. It will apply to the Linux Foundation's Agentic AI Foundation (AAIF) once AITP has at least one external contributor (a person other than the project lead with a merged pull request in an AITP repository) and at least one implementation the project lead does not maintain. The decision and its reversal trigger are in [DECISIONS.md](DECISIONS.md).
+
+---
+
 ## Core Team
 
 The Core Team is responsible for:
@@ -23,6 +31,8 @@ The Core Team is responsible for:
 The Core Team operates by **rough consensus**. When consensus cannot be reached, the Core Team votes; ties default to the status quo.
 
 Until a Core Team is seated, the repository maintainer (the AITP project lead) acts in its place for editorial and registry matters; substantive (normative) RFCs SHOULD wait for a seated Core Team or a public review period of at least 30 days. Once seated, the Core Team roster will be tracked in a separate file under `governance/` so membership changes do not require a charter amendment.
+
+The substitute in force until seating (the maintainer shepherds every RFC, and each stage gate waits for a public review of at least 30 days) is recorded in [DECISIONS.md](DECISIONS.md) and summarised in [RFC-PROCESS.md § Stages](RFC-PROCESS.md#stages).
 
 ---
 

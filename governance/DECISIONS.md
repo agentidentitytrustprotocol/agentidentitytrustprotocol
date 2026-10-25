@@ -253,3 +253,76 @@ patch-level, no new signatures). It deserves its own review rather than riding a
 - **Blast radius if wrong:** low before the freeze, because nobody uses the protocol yet. After
   the freeze the per-issuer rule is part of the frozen surface, and only an additive opt-in
   extension can relax it.
+
+---
+
+## 2026-10-24 — No Core Team yet: the maintainer shepherds, and every stage gate waits 30 days in public (S2.2, OQ-8)
+
+- **Decided by:** the owner (OQ-8, 2026-10-24), taking the plan's recommended default.
+- **Context:** RFC-PROCESS.md assigns a Core Team shepherd at Review and a Core Team vote at
+  FCP. No Core Team is seated. `CHARTER.md` § Core Team lets the maintainer act in its place for
+  editorial and registry matters, and says substantive RFCs SHOULD wait for a seated Core Team
+  or a public review of at least 30 days. RFC-AITP-0001 to RFC-AITP-0009 are about to enter
+  Review (adoption plan S2.3).
+- **Options:**
+  1. Seat a Core Team now and track it in `governance/CORE-TEAM.md`. Nobody other than the owner
+     has consented, and a roster of the owner alone meets the letter of the charter, not its point.
+  2. Invoke the charter's substitute: a public review of at least 30 days at every stage gate.
+  3. Wait to start review until a Core Team exists.
+- **Chosen:** option 2.
+  - The maintainer is the shepherd for every RFC.
+  - An RFC leaves Review, Release Candidate or FCP only after a public review of at least 30
+    days at that stage. This replaces the 14-day Review minimum and FCP's 7-day window.
+  - Each window is announced in a pinned Discussions thread on this repository with its open and
+    close dates. Comments go there or on the RFC's pull request.
+  - The first window, the Review of RFC-AITP-0001 to RFC-AITP-0009, closes no earlier than
+    2027-01-10, because 30 days from its opening would fall in the December holidays.
+  - Goal: two consenting Core Team members other than the owner, seated by 2027-03-31 and before
+    any of RFC-AITP-0001 to RFC-AITP-0009 enters FCP. Seats follow `CHARTER.md` § Joining the
+    Core Team. Agents, bots and people who have not consented are never listed.
+  - A Core Team seated during a window takes over the decision at that gate, but the roster PR
+    does not restart the window.
+  - No `governance/CORE-TEAM.md` exists until there is someone to list.
+- **Reasoning:** an honest substitute beats a roster of one. The charter already names the 30-day
+  review as the alternative, so this uses it rather than inventing a rule. Option 3 stalls the
+  whole plan on recruiting, which the review itself is meant to help.
+- **Consequences:** every promotion takes at least 30 days, so the `aitp/0.3` core cannot reach
+  Accepted before roughly three windows have closed. Reviewers have one place to comment.
+  `RFC-PROCESS.md` (Review stage) and `CONTRIBUTING.md` (Review windows) state the rule.
+- **Reversal trigger:** two consenting non-owner members are seated. `CORE-TEAM.md` is then
+  created and the Core Team shepherds and votes as the process says. If 2027-03-31 passes without
+  them, the owner records a new decision here before any core RFC enters FCP.
+- **Blast radius if wrong:** low. The rule only slows promotions down, and it changes no RFC text.
+
+---
+
+## 2026-10-24 — State the intent to move AITP to a neutral foundation; apply to LF AAIF later (OQ-1)
+
+- **Decided by:** the owner (OQ-1, 2026-10-24), taking the plan's recommended default.
+- **Context:** the project lead holds the AITP name, the `agentidentitytrustprotocol.io` domain
+  (registered to zer07labs, paid until 2028-06-19) and the GitHub organization. Implementers
+  weigh whether a single company can take the protocol back. The charter said nothing about it.
+- **Options:**
+  1. State the intent to transfer to a neutral foundation now, and apply when there is evidence
+     of a community.
+  2. Apply to the Linux Foundation's Agentic AI Foundation (AAIF) now. A one-person project is
+     likely to be turned down.
+  3. Stay owner-held with no stated intent. This caps adoption.
+- **Chosen:** option 1. `CHARTER.md` gains "Neutral home": who holds what, and the intent to
+  transfer the name, domains and GitHub organization to a neutral foundation. The project
+  applies to LF AAIF once it has at least one external contributor (a person other than the
+  project lead with a merged pull request in an AITP repository) and at least one implementation
+  the project lead does not maintain. The section is a charter amendment. With no Core Team
+  seated, the maintainer makes it under the interim authority of `CHARTER.md` § Core Team, and
+  it is announced in the CHANGELOG as § Amendments requires.
+- **Reasoning:** a public statement costs nothing and answers the implementer's question now. An
+  application without contributors or a second implementation would be judged on evidence that
+  does not exist yet.
+- **Consequences:** the domain renewal stays the project lead's job until transfer. Both
+  conditions are visible facts (merged PRs, the conformance matrix), so anyone can check when the
+  application is due.
+- **Reversal trigger:** LF AAIF declines the application, or stops taking protocol projects. The
+  project then names another neutral foundation in `CHARTER.md`. The intent to transfer is not
+  withdrawn.
+- **Blast radius if wrong:** low. It is a statement of intent; nothing moves until the
+  conditions are met.

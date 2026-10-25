@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Governance gate before a Core Team is seated
+
+**Change class.** Governance, docs. No RFC, schema, fixture or vector change, and no RFC version bump.
+
+**Changes.**
+- `governance/DECISIONS.md` invokes the `CHARTER.md` § Core Team substitute: the maintainer shepherds every RFC, and an RFC leaves Review, Release Candidate or FCP only after a public review of at least 30 days. The first window closes no earlier than 2027-01-10. The goal is two consenting non-owner Core Team members by 2027-03-31 and before any core RFC enters FCP. No roster file is created.
+- `governance/RFC-PROCESS.md` (Review stage) says how the shepherd role is filled before seating. `CONTRIBUTING.md` gains "Review windows": the rule, where to comment, and the first window's earliest close.
+- `governance/CHARTER.md` gains "Neutral home" (charter amendment, made under the maintainer's interim authority): who holds the name, domain and GitHub organization, the intent to transfer them to a neutral foundation, and when the project applies to LF AAIF. Recorded in `DECISIONS.md` with a reversal trigger.
+
 ### Security policy and review scope
 
 **Change class.** Project process, docs. No RFC, schema, fixture or vector change, and no RFC version bump.

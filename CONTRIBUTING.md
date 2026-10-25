@@ -37,6 +37,19 @@ Breaking changes require:
 - Migration notes in the PR description.
 - An explicit compatibility statement.
 
+### Review windows
+
+Until a Core Team is seated, the maintainer acts in its place
+([`governance/CHARTER.md` § Core Team](governance/CHARTER.md#core-team)) and
+shepherds every RFC. A normative RFC leaves Review, Release Candidate or Final
+Comment Period only after a public review of at least 30 days at that stage
+([RFC-PROCESS.md § Stages](governance/RFC-PROCESS.md#stages)). Each window is
+announced in a pinned
+[Discussions](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/discussions)
+thread with its open and close dates; comment there or on the RFC's pull
+request. The first window, the review of the `aitp/0.3` core RFCs
+(RFC-AITP-0001 to RFC-AITP-0009), closes no earlier than 2027-01-10.
+
 ## Registry additions
 
 There are seven registries, indexed in [`registries/README.md`](registries/README.md): [`identity-types.md`](registries/identity-types.md), [`capabilities.md`](registries/capabilities.md), [`error-codes.md`](registries/error-codes.md), [`extension-keys.md`](registries/extension-keys.md), [`jti-domain-tags.md`](registries/jti-domain-tags.md), [`media-types.md`](registries/media-types.md) and [`message-types.md`](registries/message-types.md). To add an entry, submit a PR adding a row to the relevant table, following any "Adding …" section in that file. New identifiers MUST NOT conflict with existing entries.
