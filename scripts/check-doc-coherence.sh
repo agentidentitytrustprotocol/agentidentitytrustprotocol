@@ -767,9 +767,9 @@ status_re = re.compile(r'^\*\*Status:\*\*\s*(.+?)\s*$', re.MULTILINE)
 # is merely "a recognized word" but the wrong one for that document still
 # fails (e.g. RFC-AITP-0012 claiming Draft instead of Reserved).
 EXPECTED = {
-    "0001": "Draft", "0002": "Draft", "0003": "Draft", "0004": "Draft",
-    "0005": "Draft", "0006": "Draft", "0007": "Draft", "0008": "Draft",
-    "0009": "Draft", "0010": "Draft", "0011": "Draft",
+    "0001": "Review", "0002": "Review", "0003": "Review", "0004": "Review",
+    "0005": "Review", "0006": "Review", "0007": "Review", "0008": "Review",
+    "0009": "Review", "0010": "Draft", "0011": "Draft",
     "0012": "Reserved", "0013": "Planned",
 }
 
@@ -819,7 +819,7 @@ missing = sorted(set(EXPECTED) - seen)
 if missing:
     failures.append(f"    ✗ expected RFC-AITP-{{{','.join(missing)}}} not found under {rfc_dir}")
 
-# The repo README.md's own Status line uses the same vocabulary (bare Draft
+# The repo README.md's own Status line uses the same vocabulary (track
 # stages only -- the root README describes the whole repo, never Reserved
 # or Planned).
 readme_path = os.path.join(root, "README.md")

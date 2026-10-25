@@ -48,7 +48,9 @@ announced in a pinned
 [Discussions](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/discussions)
 thread with its open and close dates; comment there or on the RFC's pull
 request. The first window, the review of the `aitp/0.3` core RFCs
-(RFC-AITP-0001 to RFC-AITP-0009), closes no earlier than 2027-01-10.
+(RFC-AITP-0001 to RFC-AITP-0009), opened on 2026-10-24 and closes no earlier
+than 2027-01-10. Its thread is
+[Public review: aitp/0.3](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/discussions/117).
 
 ## Registry additions
 
@@ -137,7 +139,7 @@ not part of the protocol.
 - Use present tense ("Verifiers MUST verify…", not "Verifiers should verify…").
 - JSON examples MUST be valid against the corresponding schema.
 
-## Normative RFCs (v0.3 core, Draft)
+## Normative RFCs (v0.3 core, Review)
 
 - **[RFC-AITP-0001 Core](rfcs/RFC-AITP-0001-core.md)**
 - **[RFC-AITP-0002 Identity](rfcs/RFC-AITP-0002-identity.md)**
