@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Conformance report schema and badge criteria
+
+**Change class.** New non-wire schema, docs and CI. No wire byte, RFC, fixture or vector changes, and no RFC version bump. Runners that emit their own JSON need to switch to the report format (no users, so no transition period).
+
+**Changes.**
+- New `schemas/json/aitp-conformance-report.schema.json` (`$id` `https://agentidentitytrustprotocol.io/schema/v0.3/conformance-report.json`). A report gives the implementation, the spec commit and version, a digest of the fixture files, the enabled features, and one result per fixture: `status`, `feature` and `required_for_v0_2` copied from the fixture, and an outcome of `pass`, `fail`, `skip` or `excluded_by_role`. It also gives totals by tier, one gate per RFC-AITP-0001 §10 claim, the generation time and an optional CI run URL. Reports are unsigned; they are trusted because they can be reproduced. The schema rejects a gate that passed over a blocking result.
+- New `docs/conformance-badge.md` sets the badge rule for each claim. "AITP v0.3" needs every `required_for_v0_2` core fixture to pass, so a skip or a role exclusion blocks it. "AITP v0.3 pinned-admission" and "AITP v0.3 self-attestation" need every fixture carrying their feature to pass. A role-excluded core fixture never blocks an extension claim. Every badge shows the spec commit, the version and the date. The page also defines the fixture digest.
+- New `scripts/check-conformance-report.py` recomputes the totals and gates from the results. With `--fixtures-dir` it also checks the digest and fixture coverage, and `--digest` prints a directory's digest.
+- New sample reports in `schemas/conformance/reports/`: a full implementation, an extensions-only gateway with role exclusions, and three invalid reports. `scripts/validate-json.sh` checks them against the new `scripts/report-validation-map.json`, which is fail-closed and checked in both directions.
+- `schemas/conformance/README.md`: a runner emits a conformance report. The runner interface stays implementation-defined. README, `docs/implementer-quickstart.md` and `make docs` link the badge page.
+- `governance/DECISIONS.md` records the format choices the plan left open, each with a reversal trigger.
+
 ### Governance gate before a Core Team is seated
 
 **Change class.** Governance, docs. No RFC, schema, fixture or vector change, and no RFC version bump.

@@ -186,6 +186,9 @@ implementations themselves: see
 [aitp-rs conformance](https://github.com/agentidentitytrustprotocol/aitp-rs/blob/main/docs/conformance.md)
 and the
 [aitp-verifier-py conformance coverage](https://github.com/agentidentitytrustprotocol/aitp-verifier-py/blob/main/README.md#conformance-coverage).
+Whatever the runner, its output is a conformance report in one format, and
+badges are computed from it per claim: see
+[Conformance reports and badges](conformance-badge.md).
 
 `make validate` checks this repository itself (schemas, fixtures,
 known-answer values and documentation coherence); it runs locally and in

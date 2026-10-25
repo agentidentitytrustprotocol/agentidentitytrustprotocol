@@ -342,6 +342,95 @@ MAPEOF
     echo
 fi
 
+# ── Conformance reports: schema + semantic check, map-driven ────────────────
+# schemas/conformance/reports/ holds sample conformance reports (not fixtures:
+# the fixture loops above glob only the top level of schemas/conformance/).
+# Same fail-closed contract as the fixture-input stage: every file under the
+# directory needs an entry in scripts/report-validation-map.json, every entry
+# needs a file, and `expect` is checked in both directions.
+#   valid          passes the schema AND scripts/check-conformance-report.py
+#   invalid_schema fails the schema
+#   invalid_check  passes the schema, fails the checker (a defect only the
+#                  recompute can see, e.g. totals that disagree with results)
+REPORT_SCHEMA="${PROJECT_ROOT}/schemas/json/aitp-conformance-report.schema.json"
+REPORTS_DIR="${CONFORMANCE_DIR}/reports"
+REPORT_MAP="${SCRIPT_DIR}/report-validation-map.json"
+REPORT_CHECKER="${SCRIPT_DIR}/check-conformance-report.py"
+
+if [ -d "$REPORTS_DIR" ]; then
+    echo "── Conformance reports (${REPORTS_DIR}) ──"
+    if ! ajv compile -s "$REPORT_SCHEMA" --spec=draft2020 --strict=false -c ajv-formats >/dev/null 2>&1; then
+        echo "    ✗ aitp-conformance-report.schema.json does not compile — every negative expectation would pass vacuously"
+        exit 1
+    fi
+    REPORT_WORKLIST="$(python3 - "$REPORT_MAP" "$REPORTS_DIR" <<'RMAPEOF'
+import json, os, sys
+map_path, reports_dir = sys.argv[1:3]
+try:
+    with open(map_path, encoding="utf-8") as handle:
+        entries = json.load(handle)["reports"]
+except (OSError, KeyError, json.JSONDecodeError) as exc:
+    sys.exit(f"    ✗ cannot read report validation map: {exc}")
+files = set()
+for dirpath, _, names in os.walk(reports_dir):
+    for name in names:
+        files.add(os.path.relpath(os.path.join(dirpath, name), reports_dir).replace(os.sep, "/"))
+unmapped = sorted(files - set(entries))
+if unmapped:
+    sys.exit("    ✗ report file(s) with no entry in report-validation-map.json: " + ", ".join(unmapped))
+stale = sorted(set(entries) - files)
+if stale:
+    sys.exit("    ✗ map entr(ies) naming a report that does not exist: " + ", ".join(stale))
+for rel, entry in sorted(entries.items()):
+    expect = entry.get("expect")
+    if expect not in ("valid", "invalid_schema", "invalid_check"):
+        sys.exit(f"    ✗ {rel}: expect must be valid|invalid_schema|invalid_check; got {expect!r}")
+    if expect != "valid" and not entry.get("reason"):
+        sys.exit(f"    ✗ {rel}: expect={expect} requires a \"reason\"")
+    print(f"{rel}\t{expect}")
+RMAPEOF
+)" || exit 1
+    REPORT_CHECKS=0
+    while IFS=$'\t' read -r rel expect; do
+        [ -n "$rel" ] || continue
+        f="${REPORTS_DIR}/${rel}"
+        TOTAL=$((TOTAL + 1))
+        echo "  ${rel} (expect ${expect})"
+        set +e
+        ajv validate -s "$REPORT_SCHEMA" -d "$f" --spec=draft2020 --strict=false -c ajv-formats >/dev/null 2>&1
+        schema_status=$?
+        set -e
+        if [ "$schema_status" -gt 1 ]; then
+            echo "    ✗ ajv failed to run (exit ${schema_status})"
+            exit 1
+        fi
+        check_status=1
+        if [ "$schema_status" -eq 0 ]; then
+            set +e
+            python3 "$REPORT_CHECKER" "$f" 2>/dev/null
+            check_status=$?
+            set -e
+        fi
+        case "${expect}:${schema_status}:${check_status}" in
+            valid:0:0|invalid_schema:1:*|invalid_check:0:1) ;;
+            *)
+                echo "    ✗ expected ${expect}; schema exit ${schema_status}, checker exit ${check_status}"
+                ajv validate -s "$REPORT_SCHEMA" -d "$f" --spec=draft2020 --strict=false -c ajv-formats || true
+                [ "$schema_status" -eq 0 ] && { python3 "$REPORT_CHECKER" "$f" || true; }
+                exit 1
+                ;;
+        esac
+        VALIDATED=$((VALIDATED + 1))
+        REPORT_CHECKS=$((REPORT_CHECKS + 1))
+        echo "    ✓ ${expect} as declared"
+    done <<< "$REPORT_WORKLIST"
+    if [ "$REPORT_CHECKS" -eq 0 ]; then
+        echo "    ✗ no conformance reports checked"
+        exit 1
+    fi
+    echo
+fi
+
 # ── Examples: validate by directory against the matching schema ──────────────
 # v0.2: example files MAY carry top-level documentation companions whose keys
 # start with "_" (e.g. `_decoded_claims`, `_wire_note`); these are stripped

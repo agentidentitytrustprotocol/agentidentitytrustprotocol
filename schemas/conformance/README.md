@@ -24,7 +24,9 @@ conformance/
 ├── rev-*.json      Revocation checks (RFC-AITP-0008)
 ├── del-*.json      Single-hop delegation (RFC-AITP-0006)
 ├── del-mh-*.json   Multi-hop delegation, opt-in (RFC-AITP-0011)
-└── bundle-*.json   Session Trust Bundle, opt-in (RFC-AITP-0010)
+├── bundle-*.json   Session Trust Bundle, opt-in (RFC-AITP-0010)
+├── known-answer/   Pinned canonical bytes, keys and signatures (not fixtures)
+└── reports/        Sample conformance reports (not fixtures; docs/conformance-badge.md)
 ```
 
 ---
@@ -381,9 +383,17 @@ Implementations MUST provide a conformance runner that:
 
 1. Accepts a fixture directory path.
 2. Executes each fixture against the implementation.
-3. Reports pass/fail per fixture ID.
+3. Emits a conformance report: one JSON document, valid against
+   [`aitp-conformance-report.schema.json`](../json/aitp-conformance-report.schema.json),
+   with one result per non-`reserved` fixture ID (`pass`, `fail`, `skip` or
+   `excluded_by_role`) and the gate for each RFC-AITP-0001 §10 claim it
+   evaluated.
 
-The runner interface is implementation-defined.
+The runner interface (how it is invoked, its flags, its human-readable
+output) is implementation-defined. The report format is not. The fields, the
+fixture digest and the per-claim badge rules are in
+[`docs/conformance-badge.md`](../../docs/conformance-badge.md); sample reports,
+valid and invalid, are in [`reports/`](reports/).
 
 ---
 

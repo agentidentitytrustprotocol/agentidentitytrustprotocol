@@ -73,6 +73,7 @@ agentidentitytrustprotocol/
     discovery.md
     ecosystem.md                            # Which sibling repo owns what; canonical links
     GLOSSARY.md
+    conformance-badge.md                    # Conformance report format and per-claim badge rules
     how-to-add-a-fixture.md                 # Checklist for a new conformance fixture
     implementer-quickstart.md
     integration-guide.md
@@ -104,6 +105,7 @@ agentidentitytrustprotocol/
       aitp-session-bundle.schema.json
       aitp-trust-anchors.schema.json
       aitp-conformance-fixture.schema.json  # metadata block every fixture carries
+      aitp-conformance-report.schema.json   # what a conformance runner emits
     conformance/
       README.md                             # fixture format, runner rules, counts
       PLACEHOLDERS.md                       # placeholder tokens runners substitute
@@ -112,6 +114,7 @@ agentidentitytrustprotocol/
       del-mh-*.json  bundle-*.json                     # opt-in drafts (RFC-AITP-0011 / 0010)
       known-answer/                         # pinned canonical bytes, keys, signatures
         signed-examples/
+      reports/                              # sample conformance reports (valid and invalid/)
 
   examples/
     manifest/        agent-b-manifest.json
@@ -158,6 +161,7 @@ If you are new to AITP, read in this order:
 16. **[docs/operational-guidance.md](docs/operational-guidance.md)** — renewal patterns, Manifest rotation, cache TTL tuning, failure modes (non-normative).
 17. **[docs/threat-model.md](docs/threat-model.md)** and **[docs/non-goals.md](docs/non-goals.md)** — what AITP defends against, and what it deliberately does not do.
 18. **[docs/ecosystem.md](docs/ecosystem.md)** — where the implementations, tools and services live (see [Ecosystem](#ecosystem) below).
+19. **[docs/conformance-badge.md](docs/conformance-badge.md)** — the conformance report a runner emits and the per-claim badge rules.
 
 ---
 
@@ -166,6 +170,8 @@ If you are new to AITP, read in this order:
 v0.3 defines one conformance target: what a conformant implementation MUST do is listed in [RFC-AITP-0001 §10](rfcs/RFC-AITP-0001-core.md#10-conformance) (RFCs 0001–0009, the mandatory known-answer vectors, and the core conformance fixtures). There are no named conformance profiles.
 
 The opt-in drafts are selected per fixture, not per profile: every fixture under [`schemas/conformance/`](schemas/conformance/README.md) carries a metadata block (`status`, `required_for_v0_2`, `feature`), and a `draft` fixture runs only when the runner has explicitly opted into its named `feature` flag — `experimental-session-bundle` (RFC-AITP-0010) or `experimental-multihop-delegation` (RFC-AITP-0011). See the [runner enforcement rules](schemas/conformance/README.md#conformance-runner-enforcement-rules) and RFC-AITP-0001 §10 for how a core-only implementation treats those fixtures.
+
+A conformance runner emits a [conformance report](docs/conformance-badge.md) ([`aitp-conformance-report.schema.json`](schemas/json/aitp-conformance-report.schema.json)). A badge shows one RFC-AITP-0001 §10 claim string ("AITP v0.3", "AITP v0.3 pinned-admission" or "AITP v0.3 self-attestation"), each decided on its own fixture set, with the spec commit and date.
 
 There is no service-consumer conformance target. AITP is peer-to-peer.
 
