@@ -503,6 +503,33 @@ function checkKeypairs() {
   return byId;
 }
 
+function checkOidcTestIssuers() {
+  console.log('── oidc-test-issuers.json: seed → Ed25519 public key → JWK ──');
+  const { vectors } = readJson(join(KAT, 'oidc-test-issuers.json'));
+  const byId = new Map(vectors.map((v) => [v.id, v]));
+  assertContents('oidc-test-issuers.json', byId, OIDC_ISSUERS_EXPECTED);
+  for (const v of vectors) {
+    check(`${v.id} seed → Ed25519 public key → JWK`, () => {
+      const seed = Buffer.from(v.seed_hex, 'hex');
+      if (seed.length !== 32) throw new Error(`seed is ${seed.length} bytes, expected 32`);
+      const jwk = ed25519PublicFromSeed(seed).export({ format: 'jwk' });
+      eq(jwk.x, v.pubkey_b64url, 'pubkey_b64url');
+      eq(jcs(v.jwk), jcs({ crv: 'Ed25519', kty: 'OKP', x: v.pubkey_b64url }), 'jwk');
+    });
+  }
+  check('OIDC test issuer keys are not AIDs in keypairs.json', () => {
+    const aidKeys = new Set(readJson(join(KAT, 'keypairs.json')).vectors.map((k) => k.pubkey_b64url));
+    for (const v of vectors) if (aidKeys.has(v.pubkey_b64url)) throw new Error(`${v.id} reuses a keypairs.json key`);
+  });
+  check('kat-oidc-issuer-001 is https://auth.openai.com and trusted; the unknown issuer names no issuer', () => {
+    const t = byId.get('kat-oidc-issuer-001'), u = byId.get('kat-oidc-issuer-002-unknown');
+    eq(t.issuer, 'https://auth.openai.com', 'issuer');
+    eq(t.role, 'trusted', 'role');
+    eq(u.role, 'untrusted', 'role');
+    if (u.issuer !== undefined) throw new Error('the unknown issuer must not be bound to an issuer URL');
+  });
+}
+
 function checkThumbprints(keypairs) {
   console.log('── jwk-thumbprints.json: RFC 7638 ──');
   const { vectors } = readJson(join(KAT, 'jwk-thumbprints.json'));
@@ -564,6 +591,11 @@ const KEYPAIRS_EXPECTED = new Map([
   ['kat-keypair-001-tagged', ['seed_hex', 'pubkey_b64url', 'aid', 'untagged_aid']],
 ]);
 
+const OIDC_ISSUERS_EXPECTED = new Map([
+  ['kat-oidc-issuer-001', ['issuer', 'role', 'seed_hex', 'pubkey_b64url', 'jwk']],
+  ['kat-oidc-issuer-002-unknown', ['role', 'seed_hex', 'pubkey_b64url', 'jwk']],
+]);
+
 const STRICTNESS_EXPECTED = new Map([
   ['sig-001-ed25519-small-order-key-rejected', ['public_key_b64url', 'message_hex', 'signature_b64url', 'expected']],
   ['sig-002-ed25519-noncanonical-s-rejected', ['signer_aid', 'message_hex', 'valid_signature_b64url', 'signature_b64url', 'expected']],
@@ -586,6 +618,7 @@ const THUMBPRINTS_EXPECTED = new Map([
 const nonEmptyString = (x) => typeof x === 'string' && x.trim().length > 0;
 const MEMBER_TYPES = new Map([
   ['object', { ok: (x) => x !== null && typeof x === 'object' && !Array.isArray(x), want: 'a JSON object' }],
+  ['jwk', { ok: (x) => x !== null && typeof x === 'object' && !Array.isArray(x), want: 'a JSON object' }],
   ['preimage_json', { ok: (x) => x !== null && typeof x === 'object' && !Array.isArray(x), want: 'a JSON object' }],
   ['jcs_canonical_len_bytes', { ok: (x) => Number.isInteger(x) && x > 0, want: 'a positive integer' }],
   ['preimage_len_bytes', { ok: (x) => Number.isInteger(x) && x > 0, want: 'a positive integer' }],
@@ -2201,6 +2234,7 @@ function checkOidcP256Fixture() {
 
 const keypairs = checkKeypairs();
 checkThumbprints(keypairs);
+checkOidcTestIssuers();
 checkJcsVectors(keypairs);
 checkSignedExamples();
 checkSignatureStrictness();
@@ -2213,7 +2247,7 @@ checkOidcP256Fixture();
 // emptied vector member; this catches coverage lost any other way — a check
 // commented out, a loop that stops early, a gate that stops matching. Coverage may
 // grow (raise this number in the same commit); it may never silently shrink.
-const EXPECTED_MIN_CHECKS = 180;
+const EXPECTED_MIN_CHECKS = 190;
 if (checks < EXPECTED_MIN_CHECKS) {
   failures.push(
     `coverage regression: ran ${checks} checks, expected at least ${EXPECTED_MIN_CHECKS}. ` +

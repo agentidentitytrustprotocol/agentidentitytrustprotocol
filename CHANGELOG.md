@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Pinned OIDC test issuer keys (`known-answer/oidc-test-issuers.json`)
+
+**Change class.** New known-answer vectors under the `aitp/0.3` freeze. No RFC text, wire byte, schema, error code or fixture outcome changes.
+
+**Changes.**
+- New `schemas/conformance/known-answer/oidc-test-issuers.json` pins the two Ed25519 keys that sign the corpus's OIDC identity JWTs. `kat-oidc-issuer-001` (`https://auth.openai.com`, seed `0x4F` × 32) is trusted; `kat-oidc-issuer-002-unknown` (seed `0x55` × 32) signs `__VALID_JWT_FROM_UNKNOWN_ISSUER__` and is never trusted.
+- Before this, the trusted issuer's key existed only as a private constant inside aitp-rs, so no other implementation could resolve it. That blocked `id-001`..`003`, `id-009`, `id-023`, `mh-005` and `mh-012` for any adapter but aitp-rs.
+- `PLACEHOLDERS.md` "Identity-issuer keys" now says the runner sends no issuer key and fixtures name issuers by URL only, so an adapter resolves `https://auth.openai.com` from the new file. The old text said the key was inlined into the fixture's trust anchors, which no fixture did.
+- `scripts/verify-known-answer.mjs` and `scripts/recompute-known-answer-independent.py` both re-derive each key from its seed.
+
 ### Non-normative note on populating `pinned_keys` (RFC-AITP-0002 §3.2)
 
 **Change class.** Editorial, under the `aitp/0.3` freeze. No normative text, wire byte, schema, error code, fixture or known-answer vector changes, and the version stays `0.3.3-draft`.
