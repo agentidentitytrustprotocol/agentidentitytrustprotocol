@@ -7,16 +7,15 @@
 **Change class.** New fixtures under the `aitp/0.3` freeze ("New fixtures and known-answer vectors" in VERSIONING.md). They pin behaviour RFC-AITP-0004 §5.1 step 8 already requires. No RFC text, schema, error code, existing fixture outcome or known-answer vector changes.
 
 **Changes.**
-- Conformance: core fixtures `mh-010` to `mh-014` (`required_for_core: true`, `feature: null`). No fixture exercised `INCOMPATIBLE_IDENTITY_TYPE` before, so a receiver could skip the step 8 identity-type check and fail nothing.
+- Conformance: core fixtures `mh-010` to `mh-013` (`required_for_core: true`, `feature: null`). No fixture exercised `INCOMPATIBLE_IDENTITY_TYPE` before, so a receiver could skip the step 8 identity-type check and fail nothing.
   - `mh-010`: the receiver accepts `["oidc"]`, and the initiator presents a valid `pinned_key` identity. Expected `INCOMPATIBLE_IDENTITY_TYPE`.
   - `mh-011`: the receiver states no list, so the default `["oidc"]` applies. Same identity, same code.
   - `mh-012`: the receiver accepts `["pinned_key"]`, and the initiator presents a valid `oidc` identity from a trusted issuer. Same code.
   - `mh-013`: the receiver accepts `["oidc", "pinned_key"]`. Success, the positive control.
-  - `mh-014`: the receiver accepts `["oidc"]`, and the `pinned_key` proof is over the wrong `pop_nonce`. Step 6 runs before step 8, so the code is `IDENTITY_FAILED`.
-  - `mh-010`, `mh-011` and `mh-013` reuse id-017's envelope and committed proof (`kat-pinned-key-proof-001`). `mh-014` reuses id-006's envelope.
+  - `mh-010`, `mh-011` and `mh-013` reuse id-017's envelope and committed proof (`kat-pinned-key-proof-001`).
 - New fixture input key `self_accepted_identity_types`, the receiver's own `accepted_identity_types`. When it is absent the receiver runs with the default `["oidc"]`, and the runner adds no types of its own. The conformance README ("Receiver policy inputs") and the `mh-*` row of the `PLACEHOLDERS.md` operation registry document it. They also say that an `mh-*` MUTUAL_HELLO fixture runs through step 8 and an `id-*` fixture stops at step 6, so `id-010` and `id-017` are unaffected.
-- `scripts/verify-known-answer.mjs` and `scripts/recompute-known-answer-independent.py` re-verify the reused proof in `mh-010`, `mh-011` and `mh-013`. The Node checker also asserts the receiver list rejects (`mh-010`, `mh-011`) or accepts (`mh-013`) the presented type. `scripts/fixture-validation-map.json` maps the five fixtures.
-- `governance/DECISIONS.md` records the input key, the tier and the check-order fixture (UNCONFIRMED).
+- `scripts/verify-known-answer.mjs` and `scripts/recompute-known-answer-independent.py` re-verify the reused proof in `mh-010`, `mh-011` and `mh-013`. The Node checker also asserts the receiver list rejects (`mh-010`, `mh-011`) or accepts (`mh-013`) the presented type. `scripts/fixture-validation-map.json` maps the four fixtures.
+- `governance/DECISIONS.md` records the input key, the scope of the default, the tier, and why no check-order fixture is added (UNCONFIRMED).
 
 ### Issuer-side TCT check (RFC-AITP-0005 §10.5, issue #120)
 
