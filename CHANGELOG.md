@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Non-normative note on populating `pinned_keys` (RFC-AITP-0002 §3.2)
+
+**Change class.** Editorial, under the `aitp/0.3` freeze. No normative text, wire byte, schema, error code, fixture or known-answer vector changes, and the version stays `0.3.3-draft`.
+
+**Changes.** RFC-AITP-0002 §3.2 "Trust-store requirement" gets a non-normative paragraph. How entries reach `pinned_keys` is operator policy, which can include an enrolment flow that proves possession before the operator adds a key. Such a flow is a registration step, not a pinned-key verification mode, and it is not the §3.4 pinned-admission procedure. The reference interop peer's `/enroll` endpoint (aitp-rs RS4.2) works this way.
+
 ### OIDC trust-anchor check before any key fetch (RFC-AITP-0004 §5.1 step 6)
 
 **Change class.** Clarification (erratum) under the `aitp/0.3` freeze. It adds one allowed outcome for inputs that fail more than one check and changes no wire byte, schema, error code, existing fixture outcome or known-answer vector. RFC-AITP-0002 and RFC-AITP-0004 go from `0.3.2-draft` to `0.3.3-draft` and stay in Review.

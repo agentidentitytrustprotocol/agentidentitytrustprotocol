@@ -238,6 +238,17 @@ reject any pinned-key identity whose `(algorithm, public_key)` is not
 present in that store, regardless of how cryptographically sound the
 proof signature is. An empty store trusts no pinned key.
 
+*Populating the store (non-normative).* How entries reach `pinned_keys`
+is operator policy and outside this specification: static
+configuration, an admin API, or an enrolment flow in which a caller
+first proves possession of a key and the operator's policy then decides
+whether to add it. Such an enrolment flow is a registration step, not a
+pinned-key verification mode. It writes to the store; it does not
+verify identity. Every later verification still runs steps 1 to 3
+against the store, and the requirement above is unchanged. An
+enrolment flow is not the §3.4 pinned-admission procedure and SHOULD
+NOT be presented as one.
+
 ### 3.3 Example
 
 The `public_key` MUST be the unpadded-base64url AID-identifier form of RFC-AITP-0001 §5.3 for the sender AID's algorithm: 43 chars (32 raw bytes) for `ed25519`, or 44 chars (33-byte SEC1 compressed point) for `p256`. SPKI-DER, PEM, JWK and uncompressed-point forms are not permitted. A `p256` `public_key` MUST decode to a valid point on the curve. A verifier MUST reject the descriptor with `IDENTITY_FAILED` when the point is invalid or is the identity.
