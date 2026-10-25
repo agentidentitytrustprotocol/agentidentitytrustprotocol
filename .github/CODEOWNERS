@@ -1,0 +1,9 @@
+# Review routing. The last matching pattern wins. One maintainer today; the
+# governance paths name the same owner explicitly so a future Core Team roster
+# can take them over without touching the rest (governance/CHARTER.md).
+*                       @ajit-zer07
+/governance/            @ajit-zer07
+/rfcs/                  @ajit-zer07
+/registries/            @ajit-zer07
+/.github/               @ajit-zer07
+/scripts/handoff/       @ajit-zer07
