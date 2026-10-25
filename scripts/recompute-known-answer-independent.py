@@ -69,7 +69,7 @@ QUIET = "--quiet" in sys.argv[1:]
 # silently stops running (commented out, a loop that ends early, a gate that no
 # longer matches) fails the run. Raise it in the same commit that adds checks;
 # lower it only on purpose, and say why.
-EXPECTED_MIN_CHECKS = 244
+EXPECTED_MIN_CHECKS = 251
 
 failures = 0
 checks = 0
@@ -385,6 +385,31 @@ def main() -> int:
     check("kat-pinned-key-proof-003 verifies strictly", ed_verify_strict(A3, H(pre), sig3))
     check("kat-pinned-key-proof-003 differs from -001, whose proof does not verify here",
           pre != pre1 and not ed_verify_strict(A3, H(pre), b64d(v1["signature_b64url"])))
+
+    section("── jcs-sha256.json SPIFFE X509-SVID proof (RFC-AITP-0002 §6.4.1) ──")
+    v = jcsv["kat-spiffe-x509-proof-001"]
+    pinned = proof_input(v["sender_aid"], v["receiver_aid"], v["message_id"], v["timestamp"], v["pop_nonce"])
+    pre = b"aitp-spiffe-x509-v1" + pinned[len(b"aitp-pinned-key-v1"):]
+    check("kat-spiffe-x509-proof-001 proof_input",
+          pre.hex() == v["proof_input_hex"] and len(pre) == v["proof_input_len_bytes"] == 194)
+    check("kat-spiffe-x509-proof-001 sha256", H(pre).hex() == v["sha256_hex"] and b64e(H(pre)) == v["sha256_b64url"])
+    check("kat-spiffe-x509-proof-001 signer is kat-keypair-003, not the sender",
+          v["signer_aid"] == "aid:pubkey:" + b64e(A3) and v["sender_aid"] != v["signer_aid"]
+          and v["sender_aid"] == keypairs["kat-keypair-002"]["aid"])
+    sigx = b64d(v["signature_b64url"])
+    check("kat-spiffe-x509-proof-001 re-signs byte for byte", ed_sign(seed3, H(pre)) == sigx)
+    check("kat-spiffe-x509-proof-001 verifies strictly", ed_verify_strict(A3, H(pre), sigx))
+    check("kat-spiffe-x509-proof-001 does not verify over the pinned-key input (domain separation)",
+          len(pinned) == 193 and not ed_verify_strict(A3, H(pinned), sigx))
+    f25 = load(CONF / "id-025-spiffe-x509-svid-success.json")
+    e25 = f25["input"]["envelope"]
+    check("id-025: tuple and literal proof are kat-spiffe-x509-proof-001",
+          e25["sender"]["agent_id"] == v["sender_aid"] and f25["input"]["self_aid"] == v["receiver_aid"]
+          and e25["message_id"] == v["message_id"] and e25["timestamp"] == v["timestamp"]
+          and e25["payload"]["pop_nonce"] == v["pop_nonce"]
+          and e25["payload"]["identity"]["proof"] == v["signature_b64url"]
+          and e25["payload"]["identity"]["svid_type"] == "x509-svid"
+          and f25["expected"]["outcome"] == "success")
 
     section("── pinned-key fixtures: each proof against its own tuple ──")
     for name, kind in [

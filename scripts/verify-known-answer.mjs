@@ -546,6 +546,7 @@ const JCS_EXPECTED = new Map([
   ['kat-pinned-key-proof-001', ['sender_aid', 'receiver_aid', 'message_id', 'timestamp', 'pop_nonce', 'proof_input_hex', 'proof_input_len_bytes', 'sha256_hex', 'sha256_b64url', 'signing_keypair_id', 'signer_aid', 'signature_b64url']],
   ['kat-pinned-key-proof-002-p256', ['sender_aid', 'receiver_aid', 'message_id', 'timestamp', 'pop_nonce', 'proof_input_hex', 'proof_input_len_bytes', 'sha256_hex', 'sha256_b64url', 'signing_keypair_id', 'signer_aid', 'signature_b64url', 'signature', 'double_hash_signature_MUST_NOT_verify']],
   ['kat-pinned-key-proof-003-tagged-ed25519', ['sender_aid', 'receiver_aid', 'message_id', 'timestamp', 'pop_nonce', 'proof_input_hex', 'proof_input_len_bytes', 'sha256_hex', 'sha256_b64url', 'signing_keypair_id', 'signer_aid', 'signature_b64url']],
+  ['kat-spiffe-x509-proof-001', ['sender_aid', 'receiver_aid', 'message_id', 'timestamp', 'pop_nonce', 'proof_input_hex', 'proof_input_len_bytes', 'sha256_hex', 'sha256_b64url', 'signing_keypair_id', 'signer_aid', 'signature_b64url']],
   ['kat-p256-jcs-sign-001', ['preimage_json', 'preimage_hex', 'preimage_len_bytes', 'sha256_hex', 'sha256_b64url', 'signing_keypair_id', 'signer_aid', 'signature_b64url', 'signature', 'double_hash_signature_MUST_NOT_verify', 'high_s_sibling_MUST_NOT_verify']],
   ['kat-manifest-pop-002-p256', ['challenge', 'decoded_hex', 'sha256_hex', 'sha256_b64url', 'signing_keypair_id', 'signer_aid', 'signature_b64url', 'signature', 'double_hash_signature_MUST_NOT_verify']],
   ['kat-multihop-chain-001', ['voucher_jws', 'chain', 'chain_entry_sha256_b64url', 'digest_array_jcs', 'chain_hash', 'outer_delegation_jws']],
@@ -804,6 +805,54 @@ function checkJcsVectors(keypairs) {
           if (verifySingleHash(v.sender_aid, input, one.signature_b64url)) throw new Error("-001's proof verifies over -003's proof_input");
         });
       }
+    }
+
+    if (v.id === 'kat-spiffe-x509-proof-001') {
+      // RFC-AITP-0002 §6.4.1: the X509-SVID proof input. The §3.1 field
+      // encoding under the `aitp-spiffe-x509-v1` prefix, signed by the SVID
+      // leaf key (kat-keypair-003), which is not the sender AID's key.
+      const spiffeInput = (prefix) => Buffer.concat([
+        utf8(prefix + '\0'),
+        utf8(v.sender_aid), utf8('\0'),
+        utf8(v.receiver_aid), utf8('\0'),
+        utf8(v.message_id), utf8('\0'),
+        utf8(String(v.timestamp)), utf8('\0'),
+        b64uDecode(v.pop_nonce, 16, 'pop_nonce'),
+      ]);
+      check(`${v.id} proof_input + digest + leaf-key signature`, () => {
+        const input = spiffeInput('aitp-spiffe-x509-v1');
+        eq(input.toString('hex'), v.proof_input_hex, 'proof_input_hex');
+        eq(input.length, v.proof_input_len_bytes, 'proof_input_len_bytes');
+        const digest = sha256(input);
+        eq(digest.toString('hex'), v.sha256_hex, 'sha256_hex');
+        eq(b64uEncode(digest), v.sha256_b64url, 'sha256_b64url');
+        const kp = keypairs.get(v.signing_keypair_id);
+        if (!kp) throw new Error(`signing_keypair_id ${v.signing_keypair_id} is not in keypairs.json`);
+        eq(v.signer_aid, kp.aid, `signer_aid does not match ${v.signing_keypair_id}`);
+        if (v.signer_aid === v.sender_aid) throw new Error('the leaf key must not be the sender AID key in this vector');
+        if (!verifySingleHash(v.signer_aid, input, v.signature_b64url)) throw new Error('proof does not verify over proof_input');
+      });
+      check(`${v.id} proof does NOT verify under the sender AID key`, () => {
+        const input = spiffeInput('aitp-spiffe-x509-v1');
+        if (verifySingleHash(v.sender_aid, input, v.signature_b64url)) throw new Error('proof verifies under the sender AID key');
+      });
+      check(`${v.id} proof does NOT verify over the pinned-key input of the same tuple`, () => {
+        const pinned = spiffeInput('aitp-pinned-key-v1');
+        eq(pinned.length, v.proof_input_len_bytes - 1, 'pinned-key input length');
+        if (verifySingleHash(v.signer_aid, pinned, v.signature_b64url)) throw new Error('proof verifies over the pinned-key input — no domain separation');
+      });
+      check(`${v.id} is the literal proof of id-025 over id-025's own tuple`, () => {
+        const f = readJson(join(ROOT, 'schemas/conformance/id-025-spiffe-x509-svid-success.json'));
+        const env = f.input.envelope;
+        eq(env.sender.agent_id, v.sender_aid, 'id-025 sender');
+        eq(f.input.self_aid, v.receiver_aid, 'id-025 self_aid');
+        eq(env.message_id, v.message_id, 'id-025 message_id');
+        eq(env.timestamp, v.timestamp, 'id-025 timestamp');
+        eq(env.payload.pop_nonce, v.pop_nonce, 'id-025 pop_nonce');
+        eq(env.payload.identity.svid_type, 'x509-svid', 'id-025 svid_type');
+        eq(env.payload.identity.proof, v.signature_b64url, 'id-025 proof');
+        eq(f.expected.outcome, 'success', 'id-025 expected.outcome');
+      });
     }
 
     if (v.id === 'kat-p256-jcs-sign-001' || v.id === 'kat-manifest-pop-002-p256') {
@@ -2052,7 +2101,7 @@ checkOidcP256Fixture();
 // emptied vector member; this catches coverage lost any other way — a check
 // commented out, a loop that stops early, a gate that stops matching. Coverage may
 // grow (raise this number in the same commit); it may never silently shrink.
-const EXPECTED_MIN_CHECKS = 171;
+const EXPECTED_MIN_CHECKS = 175;
 if (checks < EXPECTED_MIN_CHECKS) {
   failures.push(
     `coverage regression: ran ${checks} checks, expected at least ${EXPECTED_MIN_CHECKS}. ` +

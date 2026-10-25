@@ -410,7 +410,8 @@ valid and invalid, are in [`reports/`](reports/).
 | `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 8 | ❌ No |
 | `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 6 | ❌ No |
 | `draft` — A2A Agent Card binding (RFC-AITP-0014, `feature: aitp-a2a-agent-card`) | 6 | ❌ No |
-| **Total** | **117** | |
+| `draft` — `spiffe` identity type (RFC-AITP-0002 §6, `feature: experimental-spiffe-identity`) | 7 | ❌ No |
+| **Total** | **124** | |
 
 Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A conformance runner for the current revision, `aitp/0.3`, MUST execute every `required_for_core` core fixture (the key keeps its v0.2 name so existing runners keep working; for `aitp/0.3` it marks the core tier); `draft` and `extension` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
@@ -481,6 +482,13 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | `id-017` | Ed25519 pinned-key identity, sender trusted: the positive counterpart of `id-007` | success |
 | `id-018` | `pinned_key` descriptor carrying `issuer`, which RFC-AITP-0002 §1 forbids (schema-invalid) | failure: IDENTITY_FAILED |
 | `id-023` | OIDC identity from a P-256 sender: `cnf.jkt` is the RFC 7638 thumbprint of the EC JWK (`kat-jwk-thumb-005-p256`), per RFC-AITP-0002 §2.2.1 | success |
+| `id-024` | *SPIFFE*: valid JWT-SVID from trust domain `prod.example.com` (RFC-AITP-0002 §6.3) | success |
+| `id-025` | *SPIFFE*: valid X509-SVID; the leaf key (kat-keypair-003) is not the sender's AID key, and `proof` is `kat-spiffe-x509-proof-001` (§6.4) | success |
+| `id-026` | *SPIFFE*: subject in `staging.example.com`, no bundle for it; the JWT-SVID is signed by the prod key (§6.2, §6.5 step 3) | failure: IDENTITY_FAILED |
+| `id-027` | *SPIFFE*: JWT-SVID `nonce` is not the payload `pop_nonce` | failure: IDENTITY_FAILED |
+| `id-028` | *SPIFFE*: JWT-SVID expired | failure: IDENTITY_FAILED |
+| `id-029` | *SPIFFE*: JWT-SVID `aud` is another peer's AID (`agentD`) | failure: IDENTITY_FAILED |
+| `id-030` | *SPIFFE*: X509-SVID leaf with two URI SANs, one matching (§6.4 step 2) | failure: IDENTITY_FAILED |
 | `id-019` | Pinned-admission (RFC-AITP-0002 §3.4): `identity_presentation` answering an outstanding challenge, real proof, sender trusted | success |
 | `id-013` | Pinned-admission: a consumed `pop_nonce` presented again under a fresh `message_id`, all signatures valid (sequence) | failure: IDENTITY_FAILED |
 | `id-014` | Pinned-admission: a 15-byte `pop_nonce` with a proof valid over it, rejected before signature verification | failure: IDENTITY_FAILED |
@@ -490,7 +498,7 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | `id-021` | Pinned-admission: the nonce is outstanding but its challenge named another `verifier_aid`; real proof bound to `self_aid` | failure: IDENTITY_FAILED |
 | `id-022` | Pinned-admission: a replay from a source that has used its rate-limit slot gets the deny-list outcome first; then HTTP 429, then the consumed nonce from a new source (sequence) | failure: REPLAY_DETECTED (step 2) |
 
-The rows marked *Pinned-admission* are `status: extension` under `feature: aitp-pinned-admission`; a default runner SKIPs them.
+The rows marked *Pinned-admission* are `status: extension` under `feature: aitp-pinned-admission`; a default runner SKIPs them. The rows marked *SPIFFE* are `status: draft` under `feature: experimental-spiffe-identity` (the `spiffe` type is at registry status Proposed); a default runner SKIPs them too.
 
 ### Trust Context Token (RFC-AITP-0005, RFC-AITP-0008)
 
