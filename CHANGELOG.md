@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Check-order fixture `mh-014` (RFC-AITP-0004 §5.1 step 6 before step 8)
+
+**Change class.** New fixture under the `aitp/0.3` freeze. It pins the check order RFC-AITP-0004 §5.1 already makes explicit. No RFC text, schema, error code, existing fixture outcome or known-answer vector changes.
+
+**Changes.**
+- Conformance: core fixture `mh-014` (`required_for_core: true`, `feature: null`). The receiver accepts `["oidc"]`, and the initiator presents a well-formed `pinned_key` identity whose proof is over the wrong `pop_nonce` (id-006's envelope, sender trusted). The proof fails at step 6, before the step 8 identity-type check, so the code is `IDENTITY_FAILED`, not `INCOMPATIBLE_IDENTITY_TYPE`.
+- `governance/DECISIONS.md`: the `INCOMPATIBLE_IDENTITY_TYPE` fixtures entry is now decided. The RFC order is kept and aitp-rs conforms, because the order is frozen and a type check before the proof would change the error code, which is a wire change.
+
 ### `INCOMPATIBLE_IDENTITY_TYPE` conformance fixtures (RFC-AITP-0004 §5.1 step 8)
 
 **Change class.** New fixtures under the `aitp/0.3` freeze ("New fixtures and known-answer vectors" in VERSIONING.md). They pin behaviour RFC-AITP-0004 §5.1 step 8 already requires. No RFC text, schema, error code, existing fixture outcome or known-answer vector changes.

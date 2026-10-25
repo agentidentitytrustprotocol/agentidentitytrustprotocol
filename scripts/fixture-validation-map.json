@@ -1314,6 +1314,26 @@
         }
       ]
     },
+    "mh-014": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
     "mh-success-001": {
       "artifacts": [
         {
