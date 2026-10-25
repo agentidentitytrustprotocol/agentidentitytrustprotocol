@@ -43,7 +43,9 @@ A one-line "what is X / where is it defined" lookup for the core AITP concepts. 
 
 ## A
 
-**A2A (Agent-to-Agent).** The trust model AITP defines: two autonomous agents establish bilateral trust without a central verifier. There is no service-consumer profile in v0.3. See [RFC-AITP-0001 §3](../rfcs/RFC-AITP-0001-core.md#3-scope-and-design-goals).
+**A2A (Agent2Agent protocol).** The Linux Foundation's agent messaging protocol (<https://a2a-protocol.org/>). AITP does not use "A2A" for its own trust model (see **Agent-to-agent trust**). An A2A agent can advertise AITP in its Agent Card through the opt-in binding of [RFC-AITP-0014](../rfcs/RFC-AITP-0014-a2a-agent-card.md).
+
+**Agent-to-agent trust.** The trust model AITP defines: two autonomous agents establish bilateral trust without a central verifier. There is no service-consumer profile in v0.3. See [RFC-AITP-0001 §3](../rfcs/RFC-AITP-0001-core.md#3-scope-and-design-goals).
 
 **`accepted_identity_types`.** Optional Manifest field listing the identity binding types the agent accepts from peers (`"oidc"`, `"pinned_key"`). Absent means `["oidc"]`; an explicit `[]` accepts none and yields `INCOMPATIBLE_IDENTITY_TYPE` for every peer. The absent-vs-empty distinction is preserved in the signed bytes. See [RFC-AITP-0003 §3.2](../rfcs/RFC-AITP-0003-manifest.md#32-optional-fields).
 
@@ -167,7 +169,7 @@ New AIDs SHOULD use the tagged form. The legacy form is canonically equivalent t
 
 ## P
 
-**Peer.** Either party in an A2A interaction. AITP has no asymmetric roles — every peer is both an issuer and an audience.
+**Peer.** Either party in an agent-to-agent interaction. AITP has no asymmetric roles — every peer is both an issuer and an audience.
 
 **Pinned-admission profile.** The OPTIONAL one-way admission profile `pinned-admission`: a verifier admits a client whose pinned key it already trusts from one `identity_presentation` envelope, without a Mutual Handshake. The client's proof is the §3.1 pinned-key proof over a nonce the verifier issued, bound to the verifier's own AID, single-use and unexpired. The verifier runs a fixed check order (deny list, then rate limit, then timestamp, structure, nonce, proof, atomic consume) answers a rate-limited request with exactly HTTP 429, and refuses a challenge with `CHALLENGE_REFUSED` when its outstanding-nonce bound is reached. The refusal is not an error envelope; it travels in the challenge's own transport (informatively HTTP 503 with `Retry-After`), distinguishable from the 429. A party implementing only this profile MAY claim "AITP v0.3 pinned-admission" but not RFC-AITP-0001 §10 conformance; its fixtures are `status: extension`, `feature: aitp-pinned-admission`. See [RFC-AITP-0002 §3.4](../rfcs/RFC-AITP-0002-identity.md#34-one-way-pinned-key-admission-optional-profile-pinned-admission).
 
@@ -201,7 +203,7 @@ New AIDs SHOULD use the tagged form. The legacy form is canonically equivalent t
 
 **`src_jti`.** Grant-voucher claim holding the companion TCT's `jti`. Delegation verification looks it up in the issuer's deny list (after all signature checks) and rejects with `DELEGATION_SOURCE_TCT_REVOKED`. See [RFC-AITP-0005 §8.1](../rfcs/RFC-AITP-0005-tct.md#81-serialization).
 
-**Status ladder.** The single RFC lifecycle: `Reserved → Planned → Idea → Draft → Review → Release Candidate → Final Comment Period → Accepted | Rejected`. RFCs 0001–0009 are in Review, 0010 and 0011 are Draft (opt-in), 0012 is Reserved, 0013 is Planned; see [`rfcs/README.md`](../rfcs/README.md) for the live table and [governance/RFC-PROCESS.md](../governance/RFC-PROCESS.md#rfc-lifecycle) for the stage definitions.
+**Status ladder.** The single RFC lifecycle: `Reserved → Planned → Idea → Draft → Review → Release Candidate → Final Comment Period → Accepted | Rejected`. RFCs 0001–0009 are in Review, 0010, 0011 and 0014 are Draft (opt-in), 0012 is Reserved, 0013 is Planned; see [`rfcs/README.md`](../rfcs/README.md) for the live table and [governance/RFC-PROCESS.md](../governance/RFC-PROCESS.md#rfc-lifecycle) for the stage definitions.
 
 **Structural rejection.** Rejecting an artifact that does not match its schema (missing REQUIRED member, wrong type, value outside its grammar) before any cryptography. The registry's table fixes the code per artifact — e.g. `INVALID_ENVELOPE`, `MANIFEST_INVALID`, `IDENTITY_FAILED`, `REVOCATION_SNAPSHOT_INVALID`; the compact-JWS artifacts collapse onto their signature-family code (`TCT_SIGNATURE_INVALID`, `DELEGATION_INVALID_VOUCHER`, `DELEGATION_INVALID_SIGNATURE`). `UNKNOWN_FIELD` wins when an unknown member is the only defect. See the [structural-rejection table](../registries/error-codes.md#structural-rejection).
 

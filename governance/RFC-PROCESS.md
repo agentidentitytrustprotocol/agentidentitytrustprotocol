@@ -19,7 +19,7 @@ stages below — or, for the two placeholder states that precede a numbered
 RFC having any content at all, the bare word `Reserved` or `Planned` (no
 track prefix, since a reserved or merely-planned number has not entered
 the track yet). `scripts/check-doc-coherence.sh`'s status-ladder stage
-enforces this across all 13 RFC files.
+enforces this across all 14 RFC files.
 
 ```
 Reserved → Planned → Idea → Draft → Review → Release Candidate → Final Comment Period → Accepted | Rejected

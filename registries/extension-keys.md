@@ -14,6 +14,7 @@ discover each other's optional features without ad-hoc string matching.
 | `rfc-aitp-0008.revocation_list_uri` | Manifest `extensions` | HTTPS URL of the issuer's `ListRevoked` endpoint. REQUIRED in the Manifest of every peer that issues TCTs; a verifier MUST NOT reject a Manifest solely for its absence | [RFC-AITP-0008 §1.4](../rfcs/RFC-AITP-0008-revocation.md#14-distribution), [RFC-AITP-0005 §11](../rfcs/RFC-AITP-0005-tct.md#11-peer-issued-tct-verification-api) | Provisional |
 | `rfc-aitp-0010.bundle_uri` | Manifest `extensions` | HTTPS URL | [RFC-AITP-0010 §4.3](../rfcs/RFC-AITP-0010-session-trust-bundle.md) (Draft; opt-in) | Provisional |
 | `rfc-aitp-0006.sd_voucher` | Grant voucher `ext` claim | JSON object | [RFC-AITP-0006 §5.4](../rfcs/RFC-AITP-0006-delegation.md#54-privacy-the-voucher-discloses-bs-full-grant-profile) — reserved for a future selective-disclosure (SD-JWT-style) voucher profile; carries no semantics yet | Proposed |
+| `rfc-aitp-0014.a2a_interfaces` | Manifest `extensions` | array of HTTPS URLs: the exact A2A `AgentInterface.url` values at which the agent accepts AITP-authenticated A2A requests | [RFC-AITP-0014 §4.1](../rfcs/RFC-AITP-0014-a2a-agent-card.md#41-the-a2a-interfaces-manifest-key) (Draft; opt-in) | Proposed |
 
 ## Rules
 

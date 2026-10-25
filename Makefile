@@ -107,6 +107,7 @@ docs:
 	@echo "Opt-in drafts (Draft normative text; NOT part of v0.3 core conformance):"
 	@echo "   - rfcs/RFC-AITP-0010-session-trust-bundle.md"
 	@echo "   - rfcs/RFC-AITP-0011-multihop-delegation.md"
+	@echo "   - rfcs/RFC-AITP-0014-a2a-agent-card.md"
 	@echo
 	@echo "Reserved (non-normative for aitp/0.3):"
 	@echo "   - rfcs/RFC-AITP-0012-extensions.md"

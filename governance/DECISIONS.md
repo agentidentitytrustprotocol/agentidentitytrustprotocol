@@ -406,3 +406,61 @@ patch-level, no new signatures). It deserves its own review rather than riding a
   with `status: core`, which `del-004` carries while being outside the tier.
 - **Reversal trigger:** none on this line; key names are frozen.
 
+
+## 2026-10-24 — RFC-AITP-0014: AITP as an A2A Agent Card security scheme (S5.1)
+
+- **Decided by:** Opus, implementing S5.1 under the owner's OQ-2 decision (an A2A Agent Card
+  security scheme plus a Manifest binding, riding on A2A rather than a standalone protocol).
+- **Context:** A2A 1.0.0 (release tag `v1.0.1`, protobuf package `lf.a2a.v1`) has a closed
+  `SecurityScheme` oneof (API key, HTTP auth, OAuth 2.0, OpenID Connect, mTLS) and no custom
+  scheme type. Its extension mechanism (`capabilities.extensions[]`, activated by the
+  `A2A-Extensions` header) carries parameters but cannot add fields to core A2A objects. The
+  `aitp/0.3` wire is frozen (S2.1), so the binding has to be opt-in and change nothing in
+  RFC-AITP-0001 to RFC-AITP-0009. RFC-AITP-0014 enters at Draft.
+- **Chosen:**
+  1. **Extension URI `https://agentidentitytrustprotocol.io/ext/a2a/v1`.** A breaking change
+     takes a new URI (A2A section 4.6.3), even while the RFC is Draft. One-way door once a
+     third party publishes Cards with it. *Reversal trigger:* the project domain changes, or A2A
+     defines a registry of extension URIs that requires another form; either means `…/v2` or a
+     new URI, with no alias.
+  2. **The TCT rides in an `apiKeySecurityScheme` with `location: "header"` and
+     `name: "x-aitp-tct"`, not an HTTP `Bearer` scheme.** `Bearer` would take the
+     `Authorization` header that A2A deployments use for the user's OAuth token, so AITP could
+     not be required together with OAuth, and it would label a key-bound token as a bearer
+     token. This makes the `x-aitp-tct` convention normative for the A2A binding only.
+     *Reversal trigger:* A2A adds a custom or extensible scheme type; AITP then moves to it under
+     a new extension URI.
+  3. **Extension `params` use A2A's camelCase (`aid`, `manifestUrl`, `securityScheme`,
+     `acceptedIdentityTypes`).** They are A2A extension parameters, not AITP wire members, so
+     the AITP snake_case rule does not apply. *Reversal trigger:* none expected; renaming takes a
+     new URI.
+  4. **The Manifest extension key `rfc-aitp-0014.a2a_interfaces` (registered Proposed): an
+     array of the exact A2A interface URLs, inside the signed Manifest.** It is the
+     card-shadowing defense, and it uses `extensions`, so the frozen Manifest field set is
+     untouched. *Reversal trigger:* review shows exact-URL matching is unworkable for real
+     deployments (for example many tenants on one host); a prefix or origin rule would then be a
+     new key, not a change to this one.
+  5. **No new AITP error code.** A Card/Manifest mismatch or a malformed binding is
+     `IDENTITY_FAILED`; an unreachable Manifest is `MANIFEST_NOT_FOUND`; server-side failures
+     reuse the RFC-AITP-0005 codes inside A2A's 401/403 error classes. The error-code registry is
+     frozen. *Reversal trigger:* implementers report that `IDENTITY_FAILED` cannot be told apart
+     from handshake identity failures in practice; a new code would then wait for 1.0.
+  6. **The A2A server verifies the TCT it receives as its issuer.** The TCT the client holds has
+     `iss` = the server and `aud` = `sub` = the client, so RFC-AITP-0005 §5.2's "`aud` matches
+     its own AID" cannot be read literally by the server. RFC-AITP-0014 §5.2 states the
+     issuer-side reading: `iss` is the server's own AID, `aud` = `sub` names the presenter, and
+     possession of the `sub` key is proven by downstream PoP or channel binding. This is an
+     interpretation, not a wire change, and matches what the playground already does
+     (`verify_capability_tct`). It goes to the public review as a comment against RFC-AITP-0005
+     §5.2 and §10.1. *Reversal trigger:* the review settles a different reading of those
+     sections; RFC-AITP-0014 §5.2 then follows it.
+  7. **An A2A Card signature is neither necessary nor sufficient.** A2A does not say whose key
+     signs a Card; the Manifest's key is the AID. *Reversal trigger:* A2A binds the card-signing
+     key to an agent identity the client can check against the AID.
+- **Rejected:** a standalone AITP discovery protocol for A2A (a third trust root), a
+  documentation-only mapping (leaves shadowing and tampering open), `mtlsSecurityScheme` as the
+  carriage (AITP identity is the AID key, not a certificate chain), and a JSON Schema for the
+  Agent Card (A2A owns that object).
+- **Blast radius if wrong:** low. The RFC is an opt-in Draft and no core fixture or wire
+  artifact depends on it. The costly items are 1 and 4 once external Cards and Manifests use
+  them; both are reversed by a new URI or key, not by editing the old ones.

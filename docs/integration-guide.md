@@ -41,7 +41,7 @@ the non-normative carriage convention in
 x-aitp-tct: <compact JWS>
 ```
 
-No extra encoding layer is applied.
+No extra encoding layer is applied. For an A2A (Agent2Agent protocol) agent that advertises AITP in its Agent Card, the header is normative and the Card binding is verified first; see the opt-in [RFC-AITP-0014](../rfcs/RFC-AITP-0014-a2a-agent-card.md).
 
 ---
 

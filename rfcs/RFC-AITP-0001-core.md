@@ -2,7 +2,7 @@
 # Agent Identity & Trust Protocol (AITP) — Core
 
 **Document:** RFC-AITP-0001
-**Version:** 0.3.4-draft
+**Version:** 0.3.5-draft
 **Status:** Community Standards Track (Review)
 **Canonical wire format:** JSON
 **Normative transport:** HTTPS (any HTTP/1.1+ runtime)
@@ -15,7 +15,7 @@
 
 ## Abstract
 
-The Agent Identity & Trust Protocol (AITP) is an **agent-to-agent (A2A)** trust protocol. Its purpose is to let two autonomous agents — running in different organizations, behind different identity providers, with no pre-configured shared verifier — establish bidirectional trust before they exchange any binding work.
+The Agent Identity & Trust Protocol (AITP) is an **agent-to-agent** trust protocol. Its purpose is to let two autonomous agents — running in different organizations, behind different identity providers, with no pre-configured shared verifier — establish bidirectional trust before they exchange any binding work.
 
 AITP introduces one strict invariant:
 
@@ -31,7 +31,7 @@ AITP Core does not define decision theory, reputation models, identity issuance,
 
 This document is in Review on the Community Standards Track. Implementations MAY adopt it experimentally. The `aitp/0.3` wire is frozen until 1.0 except for security fixes ([VERSIONING.md § What is frozen](../VERSIONING.md#what-is-frozen-aitp03-line)), so until then a backward-incompatible change can only be a security fix. Its lifecycle stage is defined in governance/RFC-PROCESS.md.
 
-The numbering scheme treats `aitp/0.1` as the inaugural A2A protocol. This revision specifies **`aitp/0.3`**. Relative to `aitp/0.1`, the `aitp/0.2` line introduced two delta sets, which `aitp/0.3` carries unchanged:
+The numbering scheme treats `aitp/0.1` as the inaugural agent-to-agent protocol. This revision specifies **`aitp/0.3`**. Relative to `aitp/0.1`, the `aitp/0.2` line introduced two delta sets, which `aitp/0.3` carries unchanged:
 
 1. **Cryptographic agility** — algorithm-tagged AIDs (§5.3), algorithm-tagged JCS signatures (§5.4.3), the JWK-thumbprint `cnf` form (§5.4.4), and mandatory dual-algorithm verification (Ed25519 + P-256).
 2. **Portable trust artifacts as compact JWS** — the TCT, the grant voucher, and the delegation token are re-serialized as compact JWS with explicit typing (§5.4.5; RFC-AITP-0005, RFC-AITP-0006).
@@ -65,7 +65,7 @@ The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **
 
 ## 3. Scope and Design Goals
 
-AITP exists to make A2A trust establishment **explicit, auditable, and stateless on the consumer side**. It provides:
+AITP exists to make agent-to-agent trust establishment **explicit, auditable, and stateless on the consumer side**. It provides:
 
 1. an explicit, signed message envelope with replay protection;
 2. a pluggable identity-binding model (RFC-AITP-0002);

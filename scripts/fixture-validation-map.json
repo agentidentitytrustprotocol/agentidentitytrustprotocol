@@ -1,6 +1,62 @@
 {
   "$comment": "Fixture-input validation map for scripts/validate-json.sh. Keyed by conformance fixture `id` (NOT the filename stem — ids are short, e.g. `bundle-001` for bundle-001-success.json). Every fixture in schemas/conformance/*.json MUST appear here: an unmapped fixture is a build error, never a skip. Each artifact names a JSON pointer into the fixture, the schema under schemas/json/ it must satisfy, and the expected outcome. `expect` is checked BIDIRECTIONALLY — an `invalid` artifact that starts validating fails the build just as an `expect: valid` one that stops does. `wrap` re-wraps the artifact as {KEY: artifact} for schemas that describe the wrapped transport form. `invalid_known_defect` records a real, tracked defect in a fixture or schema rather than papering over it; when the defect is fixed the build fails here until this entry is updated.",
   "fixtures": {
+    "a2a-001": {
+      "artifacts": [
+        {
+          "pointer": "/input/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "a2a-002": {
+      "artifacts": [
+        {
+          "pointer": "/input/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "a2a-003": {
+      "artifacts": [
+        {
+          "pointer": "/input/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "a2a-004": {
+      "artifacts": [],
+      "no_artifacts": {
+        "reason": "The Manifest fetch fails (`input.manifest_fetch`), so the fixture carries no AITP wire artifact. The Agent Card is an A2A object with no AITP schema (RFC-AITP-0014 defines none)."
+      }
+    },
+    "a2a-005": {
+      "artifacts": [
+        {
+          "pointer": "/input/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "a2a-006": {
+      "artifacts": [
+        {
+          "pointer": "/input/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
     "bundle-001": {
       "artifacts": [
         {

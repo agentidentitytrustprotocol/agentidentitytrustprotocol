@@ -25,6 +25,7 @@ conformance/
 ├── del-*.json      Single-hop delegation (RFC-AITP-0006)
 ├── del-mh-*.json   Multi-hop delegation, opt-in (RFC-AITP-0011)
 ├── bundle-*.json   Session Trust Bundle, opt-in (RFC-AITP-0010)
+├── a2a-*.json      A2A Agent Card binding, opt-in (RFC-AITP-0014)
 ├── known-answer/   Pinned canonical bytes, keys and signatures (not fixtures)
 └── reports/        Sample conformance reports (not fixtures; docs/conformance-badge.md)
 ```
@@ -168,6 +169,7 @@ A delegation or session-bundle fixture states the Manifests the verifier holds f
 - These inputs are the verifier's whole Manifest source. The runner MUST supply exactly the Manifests the fixture lists. It MUST NOT derive a key from the AID string in place of a missing Manifest, synthesize a stand-in Manifest, or fetch one over the network. When no supplied Manifest designates the key an issuer or coordinator needs, verification fails with `KEY_RESOLUTION_FAILED` (RFC-AITP-0007 §1). `del-mh-005` and `bundle-007` test exactly this.
 - A fixture that is rejected before any key is resolved (`del-007`, `bundle-004-signature-sibling-rejected`, `bundle-006-unknown-field-rejected`, `bundle-008`) still carries the field, so every fixture in a family has the same input shape. The verifier never reads it.
 - `del-004` is frozen in the v0.1 shape and carries no Manifest input.
+- `a2a-*` fixtures carry `input.manifest`, the Manifest fetched from the Agent Card's `params.manifestUrl`, or `input.manifest_fetch`, the outcome of a failed fetch (`a2a-004`, which maps to `MANIFEST_NOT_FOUND`). The runner MUST NOT fetch the Manifest or the Card (RFC-AITP-0014 §4.2).
 
 ### Dynamic fixtures
 
@@ -407,7 +409,8 @@ valid and invalid, are in [`reports/`](reports/).
 | `extension` — attestation verification (RFC-AITP-0005 §5.3, `feature: aitp-self-attestation`) | 3 | ❌ No (required of an implementation claiming the role) |
 | `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 8 | ❌ No |
 | `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 6 | ❌ No |
-| **Total** | **111** | |
+| `draft` — A2A Agent Card binding (RFC-AITP-0014, `feature: aitp-a2a-agent-card`) | 6 | ❌ No |
+| **Total** | **117** | |
 
 Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A conformance runner for the current revision, `aitp/0.3`, MUST execute every `required_for_core` core fixture (the key keeps its v0.2 name so existing runners keep working; for `aitp/0.3` it marks the core tier); `draft` and `extension` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
@@ -581,6 +584,19 @@ Bundle fixtures use the same opt-in posture as multi-hop. Core implementations a
 | `bundle-006-unknown-field-rejected` | Bundle's inner `session_bundle` body carries an unknown member (`coordinator_note`) outside `extensions` | failure: UNKNOWN_FIELD |
 | `bundle-007` | Same bundle as bundle-001, but `coordinator_manifest` is a valid Manifest for a different AID, so no supplied Manifest designates the coordinator's key (RFC-AITP-0010 §5 step 5) | failure: KEY_RESOLUTION_FAILED |
 | `bundle-008` | Committed signed bundle with `version` changed to an unknown value after signing; the step 1 version check runs before the step 6 signature check | failure: BUNDLE_VERSION_MISMATCH |
+
+### A2A Agent Card binding (RFC-AITP-0014, opt-in)
+
+These fixtures run the client-side binding of an A2A Agent Card to the agent's Manifest (`verify_a2a_agent_card_binding`, [`PLACEHOLDERS.md`](PLACEHOLDERS.md#operation-key)). Core implementations are not required to support it.
+
+| ID | Description | Outcome |
+|---|---|---|
+| `a2a-001` | Unsigned Card naming B's AID and Manifest; the Manifest verifies and lists the selected interface | success |
+| `a2a-002` | Card `params.aid` names C; the Manifest is B's (RFC-AITP-0014 §4.2 step 4) | failure: IDENTITY_FAILED |
+| `a2a-003` | Card identity types, skills and description disagree with the Manifest; the Manifest's values are the effective ones (§4.3) | success |
+| `a2a-004` | Card signature stipulated valid, Manifest unreachable; a Card signature does not replace the Manifest (§4.4) | failure: MANIFEST_NOT_FOUND |
+| `a2a-005` | Card shadowing: the selected interface URL is not in the Manifest's `rfc-aitp-0014.a2a_interfaces` (§4.2 step 5) | failure: IDENTITY_FAILED |
+| `a2a-006` | Card names the `ed25519:`-tagged form of the Manifest's legacy AID; the forms are equal (RFC-AITP-0001 §5.3) | success |
 
 Additions and edge-case fixtures (replay during MUTUAL_COMMIT, identity-issuer key rotation, partial chain verification, etc.) are welcome via PR.
 
