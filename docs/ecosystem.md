@@ -43,6 +43,7 @@ All repositories live in the [`agentidentitytrustprotocol`](https://github.com/a
 | Run a registry / audit / revocation service | [control-plane API](https://github.com/agentidentitytrustprotocol/aitp-control-plane/blob/main/docs/api.md) · [events](https://github.com/agentidentitytrustprotocol/aitp-control-plane/blob/main/docs/events.md) |
 | Try the protocol end to end | [playground getting started](https://github.com/agentidentitytrustprotocol/aitp-playground/blob/main/docs/getting-started.md) · [scenarios](https://github.com/agentidentitytrustprotocol/aitp-playground/blob/main/docs/scenarios.md) |
 | Give an AI agent access to the spec | [aitp-docs client setup](https://github.com/agentidentitytrustprotocol/aitp-docs/blob/main/docs/clients.md) |
+| Use AITP alongside MCP's OAuth authorization | [mcp-mapping.md](mcp-mapping.md) (non-normative). Not to be confused with the `aitp-docs` MCP server above, which serves the spec to agents. |
 
 ## Spec consumers and their pins
 
