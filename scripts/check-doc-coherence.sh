@@ -479,6 +479,11 @@ SEC = r'§(\d+(?:\.\d+)*)'
 # spaces below -- the wrap lands mid-hyphen, not on a normal word boundary.
 prefixed_re = re.compile(r'RFC-\s*AITP-(\d{4})\s+' + SEC + r'(?:\s*[/,]\s*' + SEC + r')*')
 external_re = re.compile(r'(?:RFC|SEC)\s+\d+\s+' + SEC)
+# SPIFFE standards (RFC-AITP-0002 §6) are cited by document name, as
+# `JWT-SVID §3.2`, `[X509-SVID](url) §2`, or `SPIFFE-ID §2.1, §2.3`; they are
+# external too, so they and their comma-joined continuations are never resolved
+# against local headings.
+spiffe_re = re.compile(r'(?:SPIFFE-ID|X509-SVID|JWT-SVID|Trust Domain and Bundle)(?:\]\([^)\s]*\))?\s+' + SEC + r'(?:\s*,\s*' + SEC + r')*')
 bare_re = re.compile(SEC)
 
 def top_section_bounds(text):
@@ -527,6 +532,8 @@ for src in scan_files:
     for m in prefixed_matches:
         spans_covered.append((m.start(), m.end()))
     for m in external_re.finditer(flat):
+        spans_covered.append((m.start(), m.end()))
+    for m in spiffe_re.finditer(flat):
         spans_covered.append((m.start(), m.end()))
 
     for m in prefixed_matches:

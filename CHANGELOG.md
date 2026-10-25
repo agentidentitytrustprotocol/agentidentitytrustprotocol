@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+### `spiffe` identity type (RFC-AITP-0002 §6, S5.2)
+
+**Change class.** Additive identity type under the `aitp/0.3` freeze. No existing signing input, error code, fixture outcome or known-answer vector changes. RFC-AITP-0002 (`0.3.1-draft` → `0.3.2-draft`) and RFC-AITP-0003 (`0.3.2-draft` → `0.3.3-draft`) take a patch bump and stay in Review.
+
+**Changes.**
+- RFC-AITP-0002 §6 (new) defines `spiffe`. A SPIFFE ID in `subject` is proven by a JWT-SVID or by an X509-SVID, checked against a local per-trust-domain bundle store (`spiffe_bundles`).
+  - The JWT-SVID rules require `kid`, a single `aud` equal to the verifier AID, `iat`, `nonce` = `pop_nonce` and `cnf.jkt`.
+  - The X509-SVID rules are RFC 5280 path validation against the subject trust domain's bundle only, exactly one URI SAN, leaf constraints, and an Ed25519 or P-256 leaf key. A signature by the leaf key over a new domain-separated input (`aitp-spiffe-x509-v1`) covers sender, receiver, `message_id`, `timestamp` and `pop_nonce`.
+  - Bundle lookup and key selection happen before any signature check. Every failure is `IDENTITY_FAILED`; a type that is not accepted is `INCOMPATIBLE_IDENTITY_TYPE`. There are no new error codes.
+  - Old §6 Security Considerations becomes §7 and gains SPIFFE items; old §7 References becomes §8.
+- `registries/identity-types.md` adds `spiffe` at **Proposed**. `x509` stays reserved for Web PKI.
+- Schemas:
+  - `aitp-identity.schema.json` adds `spiffe`, `svid_type` and `x5c`. Its conditional rules are restructured into one `if` block per type; every pre-existing fixture and example validates exactly as before (proof in the PR).
+  - `aitp-manifest.schema.json` adds `spiffe` to `accepted_identity_types` and to the identity hint.
+  - `aitp-trust-anchors.schema.json` adds `spiffe_bundles`.
+  - `aitp-mutual-handshake.schema.json` re-mirrors the descriptor.
+- RFC-AITP-0003 §3.1 and §3.2 list `spiffe` and its hint rule.
+- Conformance: draft fixtures `id-024` to `id-030` (`feature: experimental-spiffe-identity`, `required_for_core: false`) and the known-answer vector `kat-spiffe-x509-proof-001`, recomputed by both known-answer scripts.
+- `governance/DECISIONS.md` records OQ-7 (a new `spiffe` row, UNCONFIRMED) and the tightenings.
+- `scripts/check-doc-coherence.sh` treats citations of the SPIFFE standards (`JWT-SVID §3.2`, `SPIFFE-ID §2.1, §2.3`) as external, like `RFC 8785 §3.2.3`.
+
 ### MCP mapping guide (non-normative)
 
 **Change class.** Docs only. No RFC, wire, schema, fixture or registry change.

@@ -1809,6 +1809,181 @@
           "expect": "valid"
         }
       ]
+    },
+    "id-024": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        },
+        {
+          "pointer": "/input/trust_anchors_config",
+          "schema": "aitp-trust-anchors.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "id-025": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        },
+        {
+          "pointer": "/input/trust_anchors_config",
+          "schema": "aitp-trust-anchors.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "id-026": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        },
+        {
+          "pointer": "/input/trust_anchors_config",
+          "schema": "aitp-trust-anchors.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "id-027": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        },
+        {
+          "pointer": "/input/trust_anchors_config",
+          "schema": "aitp-trust-anchors.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "id-028": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        },
+        {
+          "pointer": "/input/trust_anchors_config",
+          "schema": "aitp-trust-anchors.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "id-029": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        },
+        {
+          "pointer": "/input/trust_anchors_config",
+          "schema": "aitp-trust-anchors.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "id-030": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        },
+        {
+          "pointer": "/input/trust_anchors_config",
+          "schema": "aitp-trust-anchors.schema.json",
+          "expect": "valid"
+        }
+      ]
     }
   }
 }

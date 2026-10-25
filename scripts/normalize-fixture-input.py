@@ -80,6 +80,7 @@ PLACEHOLDER_FAMILIES: dict[str, object] = {
     "__LEGACY_PINNED_PROOF__": DUMMY_SIGNATURE,
     "__CAPTURED_PROOF_FROM_ORIGINAL_HANDSHAKE__": DUMMY_SIGNATURE,
     "__VALID_PINNED_PROOF__": DUMMY_SIGNATURE,
+    "__VALID_X509_SVID_PROOF__": DUMMY_SIGNATURE,
     # ── Compact-JWS family ──────────────────────────────────────────────────
     # The alg-none / wrong-alg / tampered variants normalize to the same shape:
     # their defect lives in the JWS header or signature segment, which schema
@@ -96,6 +97,23 @@ PLACEHOLDER_FAMILIES: dict[str, object] = {
     "__JWT_MISSING_AUD_CLAIM__": DUMMY_JWS,
     "__JWT_MISSING_CNF_JKT_CLAIM__": DUMMY_JWS,
     "__JWT_AUD_TARGETS_DIFFERENT_PEER__": DUMMY_JWS,
+    "__VALID_JWT_SVID__": DUMMY_JWS,
+    "__JWT_SVID_WRONG_NONCE__": DUMMY_JWS,
+    "__JWT_SVID_EXPIRED__": DUMMY_JWS,
+    "__JWT_SVID_AUD_DIFFERENT_PEER__": DUMMY_JWS,
+    "__JWT_SVID_STAGING_SUBJECT_PROD_KEY__": DUMMY_JWS,
+    # ── SPIFFE certificate and bundle-key family (RFC-AITP-0002 §6) ───────
+    # A DER certificate in x5c is standard base64; the dummy is the shortest
+    # string the x5c item pattern accepts. Bundle keys are whole JWK objects
+    # with the members the trust-anchors schema and SPIFFE bundle rules name.
+    "__X509_SVID_LEAF__": "AAAA",
+    "__X509_SVID_LEAF_TWO_URI_SANS__": "AAAA",
+    "__TEST_SPIFFE_JWT_AUTHORITY_JWK__": {
+        "kty": "EC", "use": "jwt-svid", "kid": "aitp-test-spiffe-jwt-1",
+        "crv": "P-256", "x": "A" * 43, "y": "A" * 43},
+    "__TEST_SPIFFE_X509_CA_JWK__": {
+        "kty": "EC", "use": "x509-svid",
+        "crv": "P-256", "x": "A" * 43, "y": "A" * 43, "x5c": ["AAAA"]},
     # ── Digest family ───────────────────────────────────────────────────────
     "__COMPUTED_CHAIN_HASH__": DUMMY_HASH,
     "__ANY_CHAIN_HASH__": DUMMY_HASH,

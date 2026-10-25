@@ -464,3 +464,56 @@ patch-level, no new signatures). It deserves its own review rather than riding a
 - **Blast radius if wrong:** low. The RFC is an opt-in Draft and no core fixture or wire
   artifact depends on it. The costly items are 1 and 4 once external Cards and Manifests use
   them; both are reversed by a new URI or key, not by editing the old ones.
+
+## 2026-10-24 — `spiffe` is a new identity type at Proposed; `x509` stays Web PKI (S5.2, OQ-7)
+
+- **Status:** UNCONFIRMED (owner to confirm). Taken as the plan's default for OQ-7.
+- **Decided by:** Opus, implementing adoption-plan S5.2.
+- **Context:** SPIFFE workload identities (SVIDs) are the identity layer of most service-mesh and
+  SPIRE deployments. RFC-AITP-0002 §5 reserved `x509` for an X.509 chain without saying which PKI.
+- **Options:**
+  1. A new `spiffe` row with `svid_type` `jwt-svid` | `x509-svid`; `x509` stays reserved for Web PKI.
+  2. Define `x509` now and treat an X509-SVID as one profile of it.
+  3. Two rows, `jwt-svid` and `x509-svid`.
+- **Chosen:** option 1, at registry status **Proposed**, with draft fixtures under
+  `feature: experimental-spiffe-identity` and `required_for_core: false`.
+- **Reasoning:**
+  - SPIFFE trust is per trust domain and comes from a bundle, not from a Web PKI root store. Folding
+    it into `x509` would mix two trust models under one name.
+  - One row keeps the trust-domain and bundle rules in one place for both SVID forms.
+  - Proposed keeps the type out of every RFC-AITP-0001 §10 claim until an implementation exists.
+- **Reversal trigger:** the owner prefers option 2 or 3, or a second implementer finds that the
+  `svid_type` split does not fit. Since there are no users, the reversal renames the row and the
+  fixtures with no alias.
+- **Blast radius if wrong:** low. The type is opt-in, draft and not in any claim.
+
+## 2026-10-24 — SPIFFE binding rules: the tightenings over the SPIFFE standards (S5.2)
+
+- **Status:** UNCONFIRMED (owner to confirm), together with OQ-7 above.
+- **Decided by:** Opus, implementing S5.2. The sources are the `spiffe/spiffe` standards at commit
+  `49a9cbbc018c39ec6643ad3301632f9f4549258b`, re-read for this change.
+- **Chosen**, each marked **Tightening** in RFC-AITP-0002 §6:
+  - **JWT-SVID `nonce` and `cnf.jkt` are required**, as for OIDC. A bare JWT-SVID is a bearer token
+    (JWT-SVID §7.1). The cost: the Workload API's `JWTSVIDRequest` carries only `audience` and
+    `spiffe_id`, so stock SPIRE cannot mint these claims, and `jwt-svid` needs a custom issuer or
+    plugin. Rejected alternative: encode the binding in the audience value (for example
+    `aud = <verifier AID>#<nonce>`). That works with stock SPIRE but overloads `aud` and does not
+    bind the AID key.
+  - **JWT-SVID `aud` holds exactly one value**, the verifier AID (JWT-SVID §3.2 allows several and
+    §7.2 warns against it).
+  - **JWT-SVID `kid` is required** (JWT-SVID §2.2 makes it optional; §6.1 requires it on every
+    bundle JWK), so key selection is exact and no verifier tries keys in turn.
+  - **The X509-SVID leaf key MAY differ from the AID key.** Stock SPIRE generates the SVID key, so
+    requiring them to be equal would rule out stock SVIDs. The binding is the leaf-key proof over a
+    domain-separated input that covers the sender AID, together with the AID-key envelope
+    signature that covers `x5c` and `proof`.
+  - **The X509-SVID leaf key is Ed25519 or P-256 only**, the RFC-AITP-0001 §5.4.6 primitive. RSA
+    and P-384 leaves are rejected.
+  - **`subject` must be in canonical form** (lowercase scheme and trust domain) and is compared
+    byte for byte.
+  - **No revocation**, as in SPIFFE: SVIDs are short-lived.
+  - **No new error codes:** `IDENTITY_FAILED` and `INCOMPATIBLE_IDENTITY_TYPE` cover every failure.
+- **Reversal trigger:** an implementer shows that a tightening blocks a real SPIRE deployment. The
+  first candidate is the JWT-SVID `nonce`/`cnf`, where the alternative is the audience-encoded
+  binding above. Any reversal ships with new fixtures before the type leaves Proposed.
+- **Blast radius if wrong:** low. Draft fixtures only, no claim depends on them.

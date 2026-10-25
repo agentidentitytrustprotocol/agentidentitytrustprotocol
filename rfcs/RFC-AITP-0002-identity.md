@@ -2,7 +2,7 @@
 # Identity Binding
 
 **Document:** RFC-AITP-0002
-**Version:** 0.3.1-draft
+**Version:** 0.3.2-draft
 **Status:** Community Standards Track (Review)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md)
 
@@ -12,9 +12,9 @@
 
 This RFC defines how an agent's AID is bound to a verifiable claim from a trusted issuer. AITP does not define an identity system; this RFC defines how identity is *presented* and *verified* between peers. The verifying party is always another peer agent (not a third-party verifier or service): see [RFC-AITP-0001 §4 Architecture](RFC-AITP-0001-core.md#4-architecture).
 
-**Where identity proof appears.** Identity proof — the verifiable JWT (for OIDC) or signature (for pinned_key) — is exchanged inline during the Mutual Handshake (RFC-AITP-0004 §3). The Agent Manifest (RFC-AITP-0003 §3.1) carries only an **identity hint** (`identity_hint`): static `type`/`issuer`/`subject` metadata, with no `proof` field. The hint lets peers discover *which* identity provider an agent uses; the verifiable proof is presented fresh each handshake so it can be bound to a per-handshake nonce and to the verifying peer's AID. The `aud`, `cnf.jkt`, and `nonce` requirements in §2 apply to the handshake-level identity proof only, never to the Manifest hint.
+**Where identity proof appears.** Identity proof — the verifiable JWT (for OIDC), signature (for pinned_key), or SVID-backed proof (for spiffe) — is exchanged inline during the Mutual Handshake (RFC-AITP-0004 §3). The Agent Manifest (RFC-AITP-0003 §3.1) carries only an **identity hint** (`identity_hint`): static `type`/`issuer`/`subject` metadata, with no `proof` field. The hint lets peers discover *which* identity provider an agent uses; the verifiable proof is presented fresh each handshake so it can be bound to a per-handshake nonce and to the verifying peer's AID. The `aud`, `cnf.jkt`, and `nonce` requirements in §2 apply to the handshake-level identity proof only, never to the Manifest hint.
 
-v0.3 supports two identity types: `oidc` and `pinned_key`. Future identity types extend this RFC without modifying the core envelope.
+v0.3 supports three identity types: `oidc` (§2), `pinned_key` (§3) and `spiffe` (§6). `spiffe` is at registry status Proposed ([`registries/identity-types.md`](../registries/identity-types.md)) and its conformance fixtures are `draft`. Future identity types extend this RFC without modifying the core envelope.
 
 ---
 
@@ -23,22 +23,26 @@ v0.3 supports two identity types: `oidc` and `pinned_key`. Future identity types
 ```json
 {
   "identity": {
-    "type": "oidc | pinned_key",
-    "issuer": "<issuer URI>",
+    "type": "oidc | pinned_key | spiffe",
+    "issuer": "<issuer URI — oidc only>",
     "subject": "<subject identifier>",
     "proof": "<jwt or signature>",
-    "public_key": "<base64url — optional for oidc, required for pinned_key>"
+    "public_key": "<base64url — pinned_key only>",
+    "svid_type": "<jwt-svid | x509-svid — spiffe only>",
+    "x5c": ["<standard-base64 DER certificate — spiffe x509-svid only>"]
   }
 }
 ```
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `type` | string | REQUIRED | Identity mechanism: `oidc` or `pinned_key`. |
-| `issuer` | string | REQUIRED for `oidc`; MUST be absent for `pinned_key` | Issuer URI (MUST match JWT `iss` claim). A `pinned_key` descriptor has no issuer: its trust anchor is the local `pinned_keys` store (§3.2), so an `issuer` member on it is rejected with `IDENTITY_FAILED`. The identity-descriptor schema enforces this in its non-`oidc` branch. |
-| `subject` | string | REQUIRED | Agent subject identifier. |
-| `proof` | string | REQUIRED | JWT for OIDC; for pinned_key, a JCS-profile signature in the [RFC-AITP-0001 §5.4.3](RFC-AITP-0001-core.md#543-algorithm-tagged-signature-wire-format-jcs-profile-only) wire format, Ed25519 or P-256 (§3.1). |
-| `public_key` | string | REQUIRED for `pinned_key`; MUST be absent for `oidc` | base64url-encoded public key. For `pinned_key`, this is the key the verifier looks up in its `pinned_keys` configuration (§3.2). For `oidc`, the agent's public key is already encoded in the verifying-peer envelope's `sender.agent_id` (the AID-identifier component) — there is no second copy in the descriptor, and including one would create an ambiguity over which key the JWT's `cnf.jkt` is meant to bind. The identity-descriptor schema (`schemas/json/aitp-identity.schema.json`) enforces this: its `oidc` branch forbids `public_key`, mirroring the `IdentityHint` rule that the Manifest schema applies to `identity_hint`. v0.3 verifiers MUST reject an OIDC `identity` descriptor that carries `public_key`. |
+| `type` | string | REQUIRED | Identity mechanism: `oidc`, `pinned_key` or `spiffe`. |
+| `issuer` | string | REQUIRED for `oidc`; MUST be absent for `pinned_key` and `spiffe` | Issuer URI (MUST match JWT `iss` claim). A `pinned_key` descriptor has no issuer: its trust anchor is the local `pinned_keys` store (§3.2), so an `issuer` member on it is rejected with `IDENTITY_FAILED`. The identity-descriptor schema enforces this in its `pinned_key` branch, and the same rule for `spiffe` in its `spiffe` branch (§6.1). |
+| `subject` | string | REQUIRED | Agent subject identifier. For `spiffe`, the SPIFFE ID (§6.1). |
+| `proof` | string | REQUIRED | JWT for OIDC; for pinned_key, a JCS-profile signature in the [RFC-AITP-0001 §5.4.3](RFC-AITP-0001-core.md#543-algorithm-tagged-signature-wire-format-jcs-profile-only) wire format, Ed25519 or P-256 (§3.1). For `spiffe`, a JWT-SVID (§6.3) or a signature by the X509-SVID key (§6.4). |
+| `public_key` | string | REQUIRED for `pinned_key`; MUST be absent for `oidc` and `spiffe` | base64url-encoded public key. For `pinned_key`, this is the key the verifier looks up in its `pinned_keys` configuration (§3.2). For `oidc`, the agent's public key is already encoded in the verifying-peer envelope's `sender.agent_id` (the AID-identifier component) — there is no second copy in the descriptor, and including one would create an ambiguity over which key the JWT's `cnf.jkt` is meant to bind. The identity-descriptor schema (`schemas/json/aitp-identity.schema.json`) enforces this: its `oidc` branch forbids `public_key`, mirroring the `IdentityHint` rule that the Manifest schema applies to `identity_hint`. v0.3 verifiers MUST reject an OIDC `identity` descriptor that carries `public_key`. |
+| `svid_type` | string | REQUIRED for `spiffe`; MUST be absent otherwise | `jwt-svid` or `x509-svid`: which SVID form backs `proof` (§6.1). |
+| `x5c` | array of strings | REQUIRED for `spiffe` with `svid_type` `x509-svid`; MUST be absent otherwise | The X509-SVID and its intermediates, leaf first (§6.4). |
 | `extensions` | object | OPTIONAL | Extension namespace per [RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model) and [RFC-AITP-0012](RFC-AITP-0012-extensions.md). Unknown keys *inside* `extensions` MUST be ignored; unknown members *outside* it are rejected with `UNKNOWN_FIELD`. The identity descriptor is **not** an exception to §7's "every signed object reserves an `extensions` slot" — it reserves one like every other signed object, in both the standalone and the handshake-embedded form. |
 
 The canonical JSON Schema is [`schemas/json/aitp-identity.schema.json`](../schemas/json/aitp-identity.schema.json).
@@ -344,6 +348,13 @@ pinned_keys:
     public_key: "base64url_pubkey"
     allowed_capabilities:
       - "macp.mode.task.v1"
+
+spiffe_bundles:                   # spiffe identity type only (§6.2)
+  - trust_domain: "prod.example.com"
+    bundle:                       # SPIFFE bundle: an RFC 7517 JWK Set
+      keys:
+        - { kty: "EC", use: "jwt-svid", kid: "...", crv: "P-256", x: "...", y: "..." }
+        - { kty: "EC", use: "x509-svid", crv: "P-256", x: "...", y: "...", x5c: ["..."] }
 ```
 
 `pinned_keys` entries are keyed by `(algorithm, public_key)` (§3.2 step 3). `algorithm` is OPTIONAL: when absent it is inferred from the key length (43 chars is `ed25519`, 44 chars is `p256`), and when present it MUST agree with that length.
@@ -372,11 +383,167 @@ The following identity types are reserved:
 | `x509` | X.509 certificate chain (Web PKI). |
 | `wallet` | Blockchain-wallet signature. |
 
+`x509` stays reserved for Web PKI certificates. A SPIFFE X509-SVID is not an `x509` identity: it is the `x509-svid` form of the `spiffe` type (§6).
+
 Peers receiving an unknown `type` MUST respond with `IDENTITY_FAILED`. New types are registered via the RFC process and recorded in [`registries/identity-types.md`](../registries/identity-types.md).
 
 ---
 
-## 6. Security Considerations
+## 6. SPIFFE Identity Type
+
+The `spiffe` type binds an AID to a [SPIFFE](https://spiffe.io/) workload identity. The identity is a SPIFFE ID, proven by an SVID (SPIFFE Verifiable Identity Document) that chains to the SPIFFE trust bundle of the ID's trust domain. Two SVID forms are defined:
+
+- A JWT-SVID ([JWT-SVID](https://github.com/spiffe/spiffe/blob/49a9cbbc018c39ec6643ad3301632f9f4549258b/standards/JWT-SVID.md)) is checked much like the OIDC JWT of §2.
+- An X509-SVID ([X509-SVID](https://github.com/spiffe/spiffe/blob/49a9cbbc018c39ec6643ad3301632f9f4549258b/standards/X509-SVID.md)) is checked in two parts: path validation of its certificate chain, and a signature by its key over the handshake context.
+
+This section cites the SPIFFE standards at commit `49a9cbbc018c39ec6643ad3301632f9f4549258b` of [`spiffe/spiffe`](https://github.com/spiffe/spiffe). Where this section says less than those standards, the standards apply. Where it says more, the extra rule is an AITP rule and is marked **Tightening**.
+
+`spiffe` is at registry status **Proposed** ([`registries/identity-types.md`](../registries/identity-types.md)):
+
+- Its conformance fixtures, `id-024` to `id-030`, are `status: draft` under `feature: experimental-spiffe-identity`.
+- `kat-spiffe-x509-proof-001` pins the §6.4.1 proof input.
+- No RFC-AITP-0001 §10 claim requires a verifier to support `spiffe`. A verifier that does not support it treats it like any other type it does not accept (§6.6).
+
+### 6.1 Descriptor
+
+```json
+{
+  "identity": {
+    "type": "spiffe",
+    "subject": "spiffe://prod.example.com/ns/payments/sa/agent",
+    "svid_type": "jwt-svid | x509-svid",
+    "proof": "<JWT-SVID (§6.3) or X509-SVID key signature (§6.4.1)>",
+    "x5c": ["<leaf>", "<intermediate>", "..."]
+  }
+}
+```
+
+- `subject` MUST be a SPIFFE ID ([SPIFFE-ID](https://github.com/spiffe/spiffe/blob/49a9cbbc018c39ec6643ad3301632f9f4549258b/standards/SPIFFE-ID.md) §2): the scheme `spiffe`, a trust domain, and a path, with no query, fragment, port or userinfo.
+  - The trust domain MUST use only lowercase letters, digits, `.`, `-` and `_`, and be at most 255 bytes (SPIFFE-ID §2.1, §2.3).
+  - The path MUST be non-empty and MUST NOT end in `/`. Each segment uses only letters, digits, `.`, `-` and `_`, and MUST NOT be empty, `.` or `..` (SPIFFE-ID §2.2).
+  - The whole ID is at most 2048 bytes (SPIFFE-ID §2.3).
+  - A SPIFFE ID with no path names a trust domain, not a workload, so it is not a valid `subject`. This matches X509-SVID §3.1, which requires a non-root path on a leaf SVID.
+  - SPIFFE compares the scheme and trust domain case-insensitively and the path case-sensitively (SPIFFE-ID §2.4). **Tightening:** `subject` MUST be in canonical form, with the scheme and trust domain in lowercase, and every comparison in this section is byte-for-byte. A verifier MUST reject a `subject` with an uppercase scheme or trust domain with `IDENTITY_FAILED`. It MUST NOT fold case to make a comparison match.
+- `svid_type` is REQUIRED:
+  - `jwt-svid`: `proof` is a JWT-SVID (§6.3).
+  - `x509-svid`: `proof` is a signature by the X509-SVID's key, and `x5c` carries the certificates (§6.4).
+- `x5c` is REQUIRED when `svid_type` is `x509-svid`, and MUST be absent otherwise.
+  - Each entry is a DER certificate in standard base64 with padding ([RFC 4648 §4](https://datatracker.ietf.org/doc/html/rfc4648#section-4)), as in the JWK `x5c` member ([RFC 7517 §4.7](https://datatracker.ietf.org/doc/html/rfc7517#section-4.7)).
+  - The first entry is the X509-SVID (the leaf). Any further entries are intermediate CA certificates, each certifying the one before it.
+- `issuer` and `public_key` MUST be absent. A `spiffe` descriptor's trust anchor is the local SPIFFE bundle of its trust domain (§6.2), not an issuer URI. Its key binding comes from the SVID, not from a copied key.
+- `extensions` is as in §1.
+
+The identity-descriptor schema enforces these rules in its `spiffe` branch. It cannot express the byte-exact canonical form or any certificate rule; those are verifier checks.
+
+### 6.2 Trust bundles
+
+The verifier holds a local `spiffe_bundles` store: a list of `{trust_domain, bundle}` entries in its trust-anchors configuration (§4, [`schemas/json/aitp-trust-anchors.schema.json`](../schemas/json/aitp-trust-anchors.schema.json)).
+
+- `bundle` is a SPIFFE bundle: an [RFC 7517](https://datatracker.ietf.org/doc/html/rfc7517) JWK Set ([SPIFFE Trust Domain and Bundle](https://github.com/spiffe/spiffe/blob/49a9cbbc018c39ec6643ad3301632f9f4549258b/standards/SPIFFE_Trust_Domain_and_Bundle.md) §4). It MAY carry `spiffe_sequence` and `spiffe_refresh_hint` members (Trust Domain and Bundle §4.1.1, §4.1.2).
+- Trust domain names MUST be unique in the store. A verifier MUST reject a configuration that lists one trust domain twice, as SPIFFE requires of a bundle map (Trust Domain and Bundle §5.1.1).
+- The verifier selects the bundle by the trust domain of `subject`, and uses only that bundle (Trust Domain and Bundle §3). A key from another trust domain's bundle MUST NOT validate the SVID, even when its signature would verify.
+- Bundle keys are selected by `use`:
+  - A JWK with `use` `jwt-svid` is a JWT-SVID signing key and carries a `kid` (JWT-SVID §6.1).
+  - A JWK with `use` `x509-svid` is an X.509 CA and carries exactly one CA certificate in `x5c` (X509-SVID §6.1).
+  - A JWK whose `use` is missing or unknown is ignored (Trust Domain and Bundle §4.2.2).
+- If the bundle has no keys of the `use` an SVID needs, every SVID of that form from the trust domain is invalid (Trust Domain and Bundle §4.1.3, JWT-SVID §6.2).
+- The bundle MUST come from the verifier's own configuration, or from a source the verifier trusts on its own account, such as its SPIFFE Workload API or a configured SPIFFE federation endpoint. A verifier MUST NOT take a bundle or any other trust material from the peer's handshake message or Manifest.
+
+### 6.3 JWT-SVID
+
+`proof` is a JWT-SVID: a compact JWS ([JWT-SVID](https://github.com/spiffe/spiffe/blob/49a9cbbc018c39ec6643ad3301632f9f4549258b/standards/JWT-SVID.md) §2, §5.1) signed by a `jwt-svid` key of the subject trust domain's bundle. The checks follow the OIDC checks of §2, with the bundle in place of the issuer's keys.
+
+| Item | Rule |
+|---|---|
+| Serialization | Compact JWS. The protected header MUST contain only `alg`, `kid` and `typ` (JWT-SVID §2). |
+| `alg` | One of `RS256`, `RS384`, `RS512`, `ES256`, `ES384`, `ES512`, `PS256`, `PS384`, `PS512` (JWT-SVID §2.1). Any other value MUST be rejected, `none`, `HS*` and `EdDSA` included. |
+| `kid` | **Tightening:** REQUIRED (JWT-SVID §2.2 makes it optional). It selects the verification key: the `jwt-svid` JWK with this `kid` in the bundle, which JWT-SVID §6.1 requires to carry a `kid`. If no JWK matches, verification fails. The verifier MUST NOT try other keys. |
+| `typ` | OPTIONAL. When present it MUST be `JWT` or `JOSE` (JWT-SVID §2.3). |
+| `sub` | MUST equal `identity.subject` byte-for-byte (JWT-SVID §3.1). |
+| `aud` | REQUIRED (JWT-SVID §3.2). **Tightening:** it MUST hold exactly one value, as a string or a one-element array, and that value MUST equal the verifying peer's AID byte-for-byte, as in §2.2. JWT-SVID §3.2 allows several values and only strongly recommends one. A multi-audience SVID can be replayed by every audience it names (JWT-SVID §7.2), so AITP rejects it. |
+| `exp` | REQUIRED, and MUST be in the future (JWT-SVID §3.3). |
+| `iat` | **Tightening:** REQUIRED, and MUST be within ±300 s of current time, as in §2.2. |
+| `nonce` | **Tightening:** REQUIRED, and MUST equal the `pop_nonce` of the same handshake message byte-for-byte, as in §2.2. |
+| `cnf.jkt` | **Tightening:** REQUIRED, and MUST equal the RFC 7638 thumbprint of the sender AID's key, computed per §2.2.1. |
+
+Other claims MAY be present and are ignored (JWT-SVID §3).
+
+A bare JWT-SVID is a bearer token (JWT-SVID §7.1): anyone who captures one can present it in a new handshake until it expires. The `nonce` and `cnf.jkt` rules prevent this. They bind the SVID to one handshake and to one key pair, as they do for OIDC (§7).
+
+> **Issuer support (informative).** The SPIFFE Workload API's `JWTSVIDRequest` carries only `audience` and `spiffe_id`, so a stock SPIRE deployment cannot put `nonce` or `cnf` claims into a JWT-SVID. A `jwt-svid` identity therefore needs a SPIFFE issuer that can mint those two claims on request, such as a SPIRE plugin or a custom issuer. A deployment without one can use `x509-svid` (§6.4), which works with stock SVIDs. This trade-off is recorded in `governance/DECISIONS.md`.
+
+### 6.4 X509-SVID
+
+`x5c[0]` is the X509-SVID. `proof` is a signature by the X509-SVID's private key over the handshake context (§6.4.1).
+
+The verifier MUST check the chain and the leaf:
+
+1. **Path validation.** Validate `x5c` as an [RFC 5280 §6](https://datatracker.ietf.org/doc/html/rfc5280#section-6) certification path at the current time (X509-SVID §5.1).
+   - The trust anchors are the certificates of the `x509-svid` JWKs in the subject trust domain's bundle, and only those.
+   - Intermediates come only from `x5c[1..]`. The verifier MUST NOT fetch certificates through AIA, and MUST NOT use a system trust store or any other bundle.
+2. **SPIFFE ID.** The leaf MUST carry exactly one URI SAN, and it MUST equal `identity.subject` byte-for-byte (X509-SVID §2). A leaf with more than one URI SAN MUST be rejected, even if one of them matches.
+3. **Leaf constraints.** The leaf's basic constraints `cA` MUST be false (X509-SVID §4.1). Its key usage MUST include `digitalSignature` and MUST NOT include `keyCertSign` or `cRLSign` (X509-SVID §4.3).
+4. **Leaf key.** **Tightening:** the leaf's public key MUST be an Ed25519 key or a P-256 key, the two algorithms of the RFC-AITP-0001 §5.4.6 signing primitive. Any other key type is rejected, RSA and P-384 included.
+
+SPIFFE defines no revocation for SVIDs, which are short-lived instead. AITP adds none: the verifier checks the validity period (step 1) and nothing more.
+
+The leaf key MAY differ from the AID key. In a stock SPIRE deployment it always does, because the Workload API generates the SVID key pair and hands it to the workload. Two signatures bind the two keys together:
+
+- the §6.4.1 proof, made with the SVID key, covers the sender AID; and
+- the envelope signature, made with the AID key ([RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature)), covers the whole payload, including `subject`, `x5c` and `proof`.
+
+The holder of the SVID key therefore vouches for this AID in this handshake, and the holder of the AID key vouches for this SVID.
+
+#### 6.4.1 Proof input
+
+```
+proof_input =
+    "aitp-spiffe-x509-v1\0"
+    || sender_aid_bytes        || "\0"
+    || receiver_aid_bytes      || "\0"
+    || message_id_bytes        || "\0"
+    || timestamp_ascii_decimal || "\0"
+    || pop_nonce_decoded_bytes
+proof = sign(svid_private_key, sha256(proof_input))
+```
+
+The fields are encoded as in §3.1. Only the domain prefix differs, so a pinned-key proof can never be read as an X509-SVID proof, or the reverse.
+
+`sign` is the primitive of [RFC-AITP-0001 §5.4.6](RFC-AITP-0001-core.md#546-signing-primitive-per-algorithm-jcs-profile-and-proofs). `sha256(proof_input)` is hashed exactly once; a P-256 key MUST NOT hash it again.
+
+`proof` uses the [RFC-AITP-0001 §5.4.3](RFC-AITP-0001-core.md#543-algorithm-tagged-signature-wire-format-jcs-profile-only) wire format:
+
+- Its tag MUST match the algorithm of the **leaf key**, not of the AID.
+- A P-256 leaf MUST use the `p256.` tag.
+- An untagged proof is read as `ed25519`. An untagged proof under a P-256 leaf is therefore an algorithm mismatch and is rejected.
+
+> **Known-answer test.** `kat-spiffe-x509-proof-001` in [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json) pins a concrete tuple and its 194-byte `proof_input`. The sender AID is `kat-keypair-002`, and the proof is an Ed25519 signature by `kat-keypair-003` acting as the leaf key, so the leaf key differs from the AID key, as in a stock deployment. The vector also pins that the proof does not verify over the pinned-key input (§3.1) of the same tuple.
+
+### 6.5 Verification steps
+
+A peer verifying a `spiffe` identity binding MUST:
+
+1. Confirm that `identity.type` is `spiffe`, that `svid_type` is `jwt-svid` or `x509-svid`, and that the descriptor satisfies §6.1, including the canonical form of `subject`.
+2. Take the trust domain from `subject`: the authority between `spiffe://` and the next `/`.
+3. Look up that trust domain in the local `spiffe_bundles` store (§6.2). If there is no entry, verification fails.
+4. From that bundle, take the keys whose `use` matches `svid_type`: `jwt-svid` JWKs for a JWT-SVID, `x509-svid` CAs for an X509-SVID. If there are none, verification fails.
+5. Verify the SVID:
+   - For `jwt-svid`, run every §6.3 check.
+   - For `x509-svid`, run every §6.4 check, then verify `proof` under the leaf key over the §6.4.1 input. Rebuild that input from the inbound envelope (`sender.agent_id`, the verifying peer's own AID as `receiver`, `message_id`, `timestamp`) and the handshake message's `pop_nonce`.
+
+Steps 1–4 MUST complete before any signature verification.
+
+A failure at any step is `IDENTITY_FAILED`. This section defines no new error code.
+
+### 6.6 Manifest hint and compatibility
+
+A Manifest `identity_hint` of type `spiffe` carries only `type` and `subject`, the SPIFFE ID. It MUST NOT carry `issuer` or `public_key` ([RFC-AITP-0003 §3.1](RFC-AITP-0003-manifest.md)). The hint is never trust material: the verifier checks the handshake descriptor against its own bundle store, whatever the hint says.
+
+A verifier that does not list `spiffe` in its `accepted_identity_types` rejects a `spiffe` peer with `INCOMPATIBLE_IDENTITY_TYPE` (RFC-AITP-0003 §5 step 6, RFC-AITP-0004 §5.1 step 8), as it would any other non-OIDC type it does not accept. `accepted_trust_anchors` lists OIDC issuers only, and is not consulted for a `spiffe` peer.
+
+---
+
+## 7. Security Considerations
 
 - The `iss` check for OIDC defends against issuer-confusion attacks.
 - The `aud` claim binds the JWT to a specific verifying peer; without it, a JWT issued for one peer can be replayed against any other peer that trusts the same issuer.
@@ -385,16 +552,30 @@ Peers receiving an unknown `type` MUST respond with `IDENTITY_FAILED`. New types
 - Together, `aud`, `nonce`, and `cnf.jkt` make the OIDC identity binding **non-transferable across peers, handshakes, and key pairs** in the same way TCTs are non-transferable.
 - The pinned-key proof input (§3.1) MUST bind sender AID, receiver AID, `message_id`, `timestamp`, AND the handshake `pop_nonce`. Earlier drafts that signed only `message_id|timestamp` did not bind sender or receiver and admitted cross-peer replay; the v0.1 proof input (unchanged in v0.2) is the minimum that prevents it. Implementations MUST NOT accept the legacy two-field input.
 - A peer MUST NOT relax issuer-list checks based on `reason` strings or any client-supplied hint.
+- A JWT-SVID is a bearer token (JWT-SVID §7.1). The `nonce` and `cnf.jkt` claims (§6.3) bind it to one handshake and to the AID key. Without them, a captured SVID could be replayed until it expired.
+- If a JWT-SVID names several audiences, each audience can replay it to the others (JWT-SVID §7.2). §6.3 therefore allows exactly one `aud` value, the verifying peer's AID.
+- The X509-SVID key and the AID key are usually different keys (§6.4). Neither signature alone binds the SVID to the AID; the §6.4.1 proof and the envelope signature do so together. A verifier MUST check both.
+- An SVID MUST be checked only against the bundle of its own trust domain (§6.2). A key trusted for one trust domain proves nothing about an ID in another.
+- Trust domain names are not globally unique: two independent deployments can choose the same name (SPIFFE-ID §2.1.1). A `spiffe_bundles` entry trusts whoever controls the bundle configured for that name. Operators MUST source each bundle from the deployment they intend to trust.
 - In the `pinned-admission` profile (§3.4), the verifier holds challenge state before it knows who is asking, so challenge issuance is an amplification and exhaustion surface. Three rules defend it, and each is load-bearing. The outstanding-nonce bound stops memory exhaustion. Refusing rather than evicting stops one source from cancelling challenges already issued to others. Consuming the nonce only after every signature check stops a forged presentation from burning a legitimate presenter's nonce.
 
 ---
 
-## 7. References
+## 8. References
 
 - [RFC 7519 — JSON Web Token](https://datatracker.ietf.org/doc/html/rfc7519)
 - [RFC 7638 — JSON Web Key Thumbprint](https://datatracker.ietf.org/doc/html/rfc7638)
 - [RFC 7800 — Proof-of-Possession Key Semantics for JWTs (`cnf`)](https://datatracker.ietf.org/doc/html/rfc7800)
 - [RFC 9449 — OAuth 2.0 Demonstrating Proof of Possession (DPoP)](https://datatracker.ietf.org/doc/html/rfc9449)
+- [RFC 4648 — The Base16, Base32, and Base64 Data Encodings](https://datatracker.ietf.org/doc/html/rfc4648)
+- [RFC 5280 — Internet X.509 PKI Certificate and CRL Profile](https://datatracker.ietf.org/doc/html/rfc5280)
+- [RFC 7517 — JSON Web Key (JWK)](https://datatracker.ietf.org/doc/html/rfc7517)
+- [RFC 7518 — JSON Web Algorithms (JWA)](https://datatracker.ietf.org/doc/html/rfc7518)
+- [SPIFFE-ID — The SPIFFE Identity and Verifiable Identity Document](https://github.com/spiffe/spiffe/blob/49a9cbbc018c39ec6643ad3301632f9f4549258b/standards/SPIFFE-ID.md)
+- [X509-SVID — The X.509 SPIFFE Verifiable Identity Document](https://github.com/spiffe/spiffe/blob/49a9cbbc018c39ec6643ad3301632f9f4549258b/standards/X509-SVID.md)
+- [JWT-SVID — The JWT SPIFFE Verifiable Identity Document](https://github.com/spiffe/spiffe/blob/49a9cbbc018c39ec6643ad3301632f9f4549258b/standards/JWT-SVID.md)
+- [The SPIFFE Trust Domain and Bundle](https://github.com/spiffe/spiffe/blob/49a9cbbc018c39ec6643ad3301632f9f4549258b/standards/SPIFFE_Trust_Domain_and_Bundle.md)
+- [SPIFFE Workload API (`workloadapi.proto`)](https://github.com/spiffe/spiffe/blob/49a9cbbc018c39ec6643ad3301632f9f4549258b/standards/workloadapi.proto)
 - [RFC-AITP-0001 Core](RFC-AITP-0001-core.md)
 - [RFC-AITP-0003 Agent Manifest](RFC-AITP-0003-manifest.md)
 - [RFC-AITP-0004 Mutual Handshake](RFC-AITP-0004-mutual-handshake.md)
