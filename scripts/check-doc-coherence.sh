@@ -770,7 +770,7 @@ EXPECTED = {
     "0001": "Review", "0002": "Review", "0003": "Review", "0004": "Review",
     "0005": "Review", "0006": "Review", "0007": "Review", "0008": "Review",
     "0009": "Review", "0010": "Draft", "0011": "Draft",
-    "0012": "Reserved", "0013": "Planned",
+    "0012": "Reserved", "0013": "Planned", "0014": "Draft",
 }
 
 def extract_stage(raw, label, failures):

@@ -31,4 +31,6 @@ x-aitp-tct: <compact JWS string>
 
 (The v0.1 convention of base64url-encoding a TCT JSON object into this header is retired with the JSON form itself.)
 
+For the opt-in A2A Agent Card binding, this header is normative: an A2A client MUST send the TCT in `x-aitp-tct`, and the Agent Card declares it as an `apiKeySecurityScheme` with `location: "header"` ([RFC-AITP-0014 §3.3](../rfcs/RFC-AITP-0014-a2a-agent-card.md#33-the-security-scheme-entry), [§5.1](../rfcs/RFC-AITP-0014-a2a-agent-card.md#51-request-headers)).
+
 When negotiating content types over HTTP, clients SHOULD send `Accept: application/aitp+json` and servers SHOULD honor the preference where supported.

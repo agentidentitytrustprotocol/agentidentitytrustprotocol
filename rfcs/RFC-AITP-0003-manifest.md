@@ -2,7 +2,7 @@
 # Agent Manifest
 
 **Document:** RFC-AITP-0003
-**Version:** 0.3.1-draft
+**Version:** 0.3.2-draft
 **Status:** Community Standards Track (Review)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0002 Identity](RFC-AITP-0002-identity.md)
 
@@ -12,7 +12,7 @@
 
 This RFC defines the **Agent Manifest** — a signed, self-describing document that every AITP agent publishes so that peer agents can discover it, verify its identity, and determine trust-anchor compatibility before initiating a Mutual Handshake.
 
-The Manifest solves the discovery problem in agent-to-agent ecosystems: there is no central directory and no shared verifier. A peer learns where to authenticate, which identity issuers the target accepts, and what capabilities the target offers — all from the Manifest, before the first handshake message is exchanged. The Manifest is the A2A equivalent of an OIDC discovery document (`/.well-known/openid-configuration`), and it is a prerequisite for [RFC-AITP-0004 Mutual Handshake](RFC-AITP-0004-mutual-handshake.md).
+The Manifest solves the discovery problem in agent-to-agent ecosystems: there is no central directory and no shared verifier. A peer learns where to authenticate, which identity issuers the target accepts, and what capabilities the target offers — all from the Manifest, before the first handshake message is exchanged. The Manifest is the agent-to-agent equivalent of an OIDC discovery document (`/.well-known/openid-configuration`), and it is a prerequisite for [RFC-AITP-0004 Mutual Handshake](RFC-AITP-0004-mutual-handshake.md).
 
 ---
 
@@ -21,7 +21,7 @@ The Manifest solves the discovery problem in agent-to-agent ecosystems: there is
 1. **Self-describing.** A peer learns everything needed to initiate a handshake from the Manifest alone. No out-of-band configuration required.
 2. **Verifiable.** The Manifest is signed by the agent's private key. Tampering is detectable before any protocol exchange.
 3. **Cacheable.** Manifests carry expiry timestamps. Peers MAY cache them up to `expires_at`.
-4. **Mandatory.** Every AITP agent MUST publish a Manifest. There is no service-only profile in v0.3; every agent participates in A2A.
+4. **Mandatory.** Every AITP agent MUST publish a Manifest. There is no service-only profile in v0.3; every agent participates in agent-to-agent trust.
 5. **Transport-agnostic.** The canonical delivery mechanism is HTTPS at a well-known URL. Manifests MAY also be exchanged inline during the Mutual Handshake.
 
 ---

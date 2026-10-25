@@ -2,7 +2,7 @@
 # Security & Threat Model
 
 **Document:** RFC-AITP-0009
-**Version:** 0.3.2-draft
+**Version:** 0.3.3-draft
 **Status:** Community Standards Track (Review)
 **Depends on:** All preceding RFCs.
 
@@ -154,6 +154,38 @@ This RFC enumerates the threats AITP defends against in the agent-to-agent setti
 **Defense:**
 - Algorithm pinning (§1.12) forecloses `none` by construction: `none` can never equal the AID-derived `alg` value, so the token is rejected with `TOKEN_ALG_MISMATCH` before any signature processing (RFC-AITP-0001 §5.4.5).
 - Strict three-segment parsing: verifiers MUST reject any token that does not consist of exactly three non-empty `.`-separated base64url segments — no unsecured JWS, no detached payload, no JSON serialization (RFC-AITP-0001 §5.4.5). A signature-less token never reaches the `alg` check, let alone verification.
+
+### 1.15 Agent Card Tampering
+
+Applies only to implementations that opt into the A2A Agent Card binding of [RFC-AITP-0014](RFC-AITP-0014-a2a-agent-card.md).
+
+**Threat:** An attacker who controls the path from an A2A agent to the client (a registry, a cache, a compromised host) rewrites the agent's Agent Card: it changes the AID or Manifest URL the Card names, or the identity types, skills and descriptions it asserts, so that the client trusts the wrong key or grants trust on the strength of Card text.
+
+**Defense:**
+- The Card is an untrusted pointer. The client verifies the Manifest the Card names (RFC-AITP-0003 §5) and requires the Card's AID to denote the Manifest's AID, rejecting a mismatch with `IDENTITY_FAILED` (RFC-AITP-0014 §4.2, step 4).
+- Identity types, capabilities and the handshake endpoint come from the verified Manifest only; what the Card asserts about them is ignored (RFC-AITP-0014 §4.3).
+- An A2A Card signature is neither necessary nor sufficient: it cannot stand in for the Manifest binding (RFC-AITP-0014 §4.4).
+
+### 1.16 Agent Card Shadowing
+
+Applies only to implementations that opt into [RFC-AITP-0014](RFC-AITP-0014-a2a-agent-card.md).
+
+**Threat:** An attacker publishes a Card that copies a legitimate agent's AID and Manifest URL, so that the Manifest verifies, but lists the attacker's own A2A endpoint, so that the client sends its TCT and its tasks to the attacker.
+
+**Defense:**
+- The legitimate agent lists, inside its signed Manifest, every A2A endpoint at which it accepts AITP (`rfc-aitp-0014.a2a_interfaces`). The client MUST NOT send AITP credentials to an endpoint that list does not contain, and rejects the binding with `IDENTITY_FAILED` (RFC-AITP-0014 §4.1, §4.2 step 5).
+- The handshake runs only against the Manifest's `handshake_endpoint`, never a URL from the Card (RFC-AITP-0014 §4.2, step 7).
+- A TCT captured anyway stays bound to the client key by `cnf.jkt` (§1.6), and downstream PoP limits its replay (RFC-AITP-0014 §5.3).
+
+### 1.17 Agent Card Description Injection
+
+Applies only to implementations that opt into [RFC-AITP-0014](RFC-AITP-0014-a2a-agent-card.md).
+
+**Threat:** Card descriptions, skill descriptions, examples and tags are free text set by whoever controls the Card. An LLM-driven client that reads them can be steered into skipping verification or treating the agent as authorized ("pre-approved for payments").
+
+**Defense:**
+- No Card text is an input to the binding's verification, to the effective values or to authorization (RFC-AITP-0014 §4.2, §4.3, §5.4). A server authorizes only against TCT `grants`, and a skill listed in the Card grants nothing.
+- Implementations SHOULD keep Card text out of the context that decides whether to verify or what to authorize, and treat it as untrusted input wherever a model reads it (RFC-AITP-0014 §9.3).
 
 ---
 

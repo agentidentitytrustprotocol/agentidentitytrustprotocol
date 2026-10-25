@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### RFC-AITP-0014: AITP as an A2A Agent Card security scheme (Draft, opt-in)
+
+**Change class.** Addition (opt-in Draft RFC), fixtures, docs. No change to the RFC-AITP-0001 to RFC-AITP-0009 wire, schemas or known answers; no new error code.
+
+**Changes.**
+- New `rfcs/RFC-AITP-0014-a2a-agent-card.md` at `0.3.0-draft`, Status Draft. It binds AITP to the Linux Foundation's Agent2Agent (A2A) protocol, written against A2A 1.0.0 (release tag `v1.0.1`). An A2A Agent Card advertises AITP through one `capabilities.extensions[]` entry (URI `https://agentidentitytrustprotocol.io/ext/a2a/v1`, params `aid`, `manifestUrl`, `securityScheme`) and an `apiKeySecurityScheme` naming the `x-aitp-tct` header. The client trusts the Manifest, never the Card: the Card's AID must denote the Manifest's AID, the called interface URL must appear in the signed Manifest, and identity types, capabilities and the handshake endpoint come from the Manifest. Failures reuse `IDENTITY_FAILED` and `MANIFEST_NOT_FOUND`; server-side TCT failures map to A2A's 401/403 classes.
+- `registries/extension-keys.md` adds `rfc-aitp-0014.a2a_interfaces` (Proposed). `registries/media-types.md` notes that `x-aitp-tct` is normative for the A2A binding.
+- RFC-AITP-0009 adds §1.15 Agent Card Tampering, §1.16 Agent Card Shadowing and §1.17 Agent Card Description Injection, for the opt-in binding (`0.3.3-draft`); `docs/threat-model.md` adds the rows.
+- Six `draft` fixtures `a2a-001` to `a2a-006` (`feature: aitp-a2a-agent-card`, operation `verify_a2a_agent_card_binding`), including the Card/Manifest AID mismatch and card shadowing. Five carry a Manifest checked against the Manifest schema; `FIXTURE_INPUT_MIN_CHECKS` goes from 245 to 250. The fixture total goes from 111 to 117.
+- "A2A" now means only the LF protocol. RFC-AITP-0001 (`0.3.5-draft`), RFC-AITP-0003 and RFC-AITP-0004 (`0.3.2-draft`), `rfcs/README.md`, `README.md`, `docs/architecture.md` and `docs/GLOSSARY.md` say "agent-to-agent" for AITP's own trust model; the glossary's A2A entry is rewritten. Wording only.
+- `scripts/check-doc-coherence.sh` `EXPECTED` adds `"0014": "Draft"`. The RFC index, `README.md`, `CONTRIBUTING.md`, the `Makefile` reading list, `docs/architecture.md`, `docs/implementer-quickstart.md` and `governance/RFC-PROCESS.md` list the new RFC. Decisions are in `governance/DECISIONS.md` (S5.1).
+
 ### RFC-AITP-0001 to RFC-AITP-0009 enter Review; public review opens
 
 **Change class.** Lifecycle, docs. No wire, schema, fixture or vector change.

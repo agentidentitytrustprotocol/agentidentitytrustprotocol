@@ -25,7 +25,7 @@ needs to answer four questions:
 Existing tools answer some of these but none gives a single signed artifact
 that answers all four for an agent-to-agent interaction:
 
-| Tool | Identity | Capability | Portable | A2A native |
+| Tool | Identity | Capability | Portable | Agent-to-agent native |
 |---|---|---|---|---|
 | Bearer tokens / API keys | No | Binary (valid/invalid) | No | No |
 | mTLS | Connection-level only | No | No | No |
@@ -260,13 +260,14 @@ is [`rfcs/README.md`](../rfcs/README.md).
 | **0006 Delegation** | Single-hop delegation: a delegation JWS embedding the issuer's grant voucher. |
 | **0007 Key Resolution** | Manifest-first peer keys; cache → pinned → well-known for identity issuers; `key_resolution.fail_mode`. |
 | **0008 Revocation** | Per-issuer JTI deny list, signed revocation snapshots, `revocation_policy`, lookup ordering. |
-| **0009 Security** | A2A threat model (including algorithm and token-type confusion) and required defenses. |
+| **0009 Security** | Agent-to-agent threat model (including algorithm and token-type confusion) and required defenses. |
 
 **Opt-in (Draft; normative text published, NOT part of v0.3 core conformance):**
 
 - **0010 Session Trust Bundle** — coordinator-mediated trust for N-agent sessions. Core runners SKIP the `bundle-*` fixtures.
 - **0011 Multi-hop Delegation** — chains beyond a single hop. Core implementations reject `del-mh-*` tokens with `DELEGATION_MULTIHOP_NOT_SUPPORTED`
   ([RFC-AITP-0001 §10](../rfcs/RFC-AITP-0001-core.md#10-conformance)).
+- **0014 A2A Agent Card Security Scheme** — an A2A (Agent2Agent protocol) Agent Card advertises AITP; the client trusts the bound Manifest, never the Card. Core runners SKIP the `a2a-*` fixtures.
 
 **Reserved** (a real document whose contents are non-normative for `aitp/0.3`):
 

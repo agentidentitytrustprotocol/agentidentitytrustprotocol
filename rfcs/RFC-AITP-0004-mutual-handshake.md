@@ -2,7 +2,7 @@
 # Mutual Handshake
 
 **Document:** RFC-AITP-0004
-**Version:** 0.3.1-draft
+**Version:** 0.3.2-draft
 **Status:** Community Standards Track (Review)
 **Depends on:**
   [RFC-AITP-0001 Core](RFC-AITP-0001-core.md),
@@ -599,7 +599,7 @@ renewal. The eventual standardization of this extension is reserved as
 
 ## 9. Integration with Multi-Agent Sessions
 
-AITP v0.3 defines bilateral A2A trust only. Multi-agent systems MAY use the bilateral handshake between a coordinator and each participant, but v0.3 does NOT define participant-to-participant trust propagation, session-wide bundles, membership changes, or session-wide revocation. Session Trust Bundle is reserved for [RFC-AITP-0010](RFC-AITP-0010-session-trust-bundle.md).
+AITP v0.3 defines bilateral agent-to-agent trust only. Multi-agent systems MAY use the bilateral handshake between a coordinator and each participant, but v0.3 does NOT define participant-to-participant trust propagation, session-wide bundles, membership changes, or session-wide revocation. Session Trust Bundle is reserved for [RFC-AITP-0010](RFC-AITP-0010-session-trust-bundle.md).
 
 ---
 

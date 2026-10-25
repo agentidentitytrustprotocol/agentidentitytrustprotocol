@@ -7,7 +7,7 @@
 **Normative transport:** HTTPS
 **Canonical signing input:** RFC 8785 (JCS) canonical JSON (protocol-internal artifacts); RFC 7515 compact JWS (portable trust artifacts, §5.4.5)
 
-AITP is an **agent-to-agent (A2A) trust protocol**. It lets two autonomous agents — running in different organizations, behind different identity providers, with no shared verifier — establish bidirectional trust before they exchange any binding work.
+AITP is an **agent-to-agent trust protocol**. It lets two autonomous agents — running in different organizations, behind different identity providers, with no shared verifier — establish bidirectional trust before they exchange any binding work.
 
 AITP introduces one strict invariant:
 
@@ -15,7 +15,7 @@ AITP introduces one strict invariant:
 
 There is no central verifier. Each agent is its own verifier for the peer it is authenticating. The output of the handshake is a TCT each peer holds about the other. A TCT is verified locally — its signature is checked against the issuing peer's public key, resolved from the peer's signed Agent Manifest.
 
-AITP has been **A2A-native since its first published version** (`aitp/0.1`, the v0.1 line); there is no earlier service-consumer version to migrate from. The service-consumer trust pattern (agent → verifier → service) is intentionally out of scope.
+AITP has been **agent-to-agent native since its first published version** (`aitp/0.1`, the v0.1 line); there is no earlier service-consumer version to migrate from. The service-consumer trust pattern (agent → verifier → service) is intentionally out of scope.
 
 ---
 
@@ -68,6 +68,7 @@ agentidentitytrustprotocol/
     RFC-AITP-0011-multihop-delegation.md    # Draft, opt-in (not part of v0.3 core conformance)
     RFC-AITP-0012-extensions.md             # Reserved
     RFC-AITP-0013-tct-renewal-extension.md  # Planned
+    RFC-AITP-0014-a2a-agent-card.md         # Draft, opt-in (not part of v0.3 core conformance)
 
   docs/                                     # Non-normative guides
     architecture.md
@@ -150,7 +151,7 @@ If you are new to AITP, read in this order:
 4. **[RFC-AITP-0001 Core](rfcs/RFC-AITP-0001-core.md)** — the envelope, signatures, replay protection, error codes.
 5. **[RFC-AITP-0002 Identity](rfcs/RFC-AITP-0002-identity.md)** — identity binding model.
 6. **[RFC-AITP-0003 Manifest](rfcs/RFC-AITP-0003-manifest.md)** — signed agent self-description.
-7. **[RFC-AITP-0004 Mutual Handshake](rfcs/RFC-AITP-0004-mutual-handshake.md)** — the A2A handshake.
+7. **[RFC-AITP-0004 Mutual Handshake](rfcs/RFC-AITP-0004-mutual-handshake.md)** — the agent-to-agent handshake.
 8. **[RFC-AITP-0005 TCT](rfcs/RFC-AITP-0005-tct.md)** — the canonical Trust Context Token.
 9. **[RFC-AITP-0006 Delegation](rfcs/RFC-AITP-0006-delegation.md)** — single-hop delegation.
 10. **[RFC-AITP-0007 Key Resolution](rfcs/RFC-AITP-0007-key-resolution.md)** — Manifest-first peer keys + issuer keys.
@@ -170,7 +171,7 @@ If you are new to AITP, read in this order:
 
 v0.3 defines one conformance target: what a conformant implementation MUST do is listed in [RFC-AITP-0001 §10](rfcs/RFC-AITP-0001-core.md#10-conformance) (RFCs 0001–0009, the mandatory known-answer vectors, and the core conformance fixtures). There are no named conformance profiles.
 
-The opt-in drafts are selected per fixture, not per profile: every fixture under [`schemas/conformance/`](schemas/conformance/README.md) carries a metadata block (`status`, `required_for_core`, `feature`), and a `draft` fixture runs only when the runner has explicitly opted into its named `feature` flag — `experimental-session-bundle` (RFC-AITP-0010) or `experimental-multihop-delegation` (RFC-AITP-0011). See the [runner enforcement rules](schemas/conformance/README.md#conformance-runner-enforcement-rules) and RFC-AITP-0001 §10 for how a core-only implementation treats those fixtures.
+The opt-in drafts are selected per fixture, not per profile: every fixture under [`schemas/conformance/`](schemas/conformance/README.md) carries a metadata block (`status`, `required_for_core`, `feature`), and a `draft` fixture runs only when the runner has explicitly opted into its named `feature` flag — `experimental-session-bundle` (RFC-AITP-0010), `experimental-multihop-delegation` (RFC-AITP-0011) or `aitp-a2a-agent-card` (RFC-AITP-0014). See the [runner enforcement rules](schemas/conformance/README.md#conformance-runner-enforcement-rules) and RFC-AITP-0001 §10 for how a core-only implementation treats those fixtures.
 
 A conformance runner emits a [conformance report](docs/conformance-badge.md) ([`aitp-conformance-report.schema.json`](schemas/json/aitp-conformance-report.schema.json)). A badge shows one RFC-AITP-0001 §10 claim string ("AITP v0.3", "AITP v0.3 pinned-admission" or "AITP v0.3 self-attestation"), each decided on its own fixture set, with the spec commit and date.
 
@@ -188,18 +189,19 @@ There is no service-consumer conformance target. AITP is peer-to-peer.
 - **RFC-AITP-0006 Delegation** — stateless single-hop delegation as a compact JWS embedding the issuing peer's grant voucher.
 - **RFC-AITP-0007 Key Resolution** — peer key from Manifest; issuer key cache → pinned → well-known.
 - **RFC-AITP-0008 Revocation** — JTI deny lists, key revocation, fail modes.
-- **RFC-AITP-0009 Security** — A2A threat model and required defenses.
+- **RFC-AITP-0009 Security** — agent-to-agent threat model and required defenses.
 - **RFC-AITP-0010 Session Trust Bundle** *(Draft, opt-in — not part of v0.3 core conformance)* — multi-agent session scaling.
 - **RFC-AITP-0011 Multi-hop Delegation** *(Draft, opt-in — not part of v0.3 core conformance)* — chains beyond a single hop.
 - **RFC-AITP-0012 Extensions** *(reserved)* — `extensions.zk` and `extensions.tee` namespaces.
 - **RFC-AITP-0013 TCT Renewal Extension** *(Planned)* — standardization of the non-normative shortened renewal endpoint described in RFC-AITP-0004 §8.1.
+- **RFC-AITP-0014 A2A Agent Card Security Scheme** *(Draft, opt-in — not part of v0.3 core conformance)* — advertises AITP in an A2A (Agent2Agent protocol) Agent Card, bound to the agent's signed Manifest.
 
 ---
 
 ## Maintenance posture
 
 - **Status:** maintained, single maintainer, best-effort. Until a Core Team is seated, the repository maintainer acts in its place for editorial and registry matters (see [governance/CHARTER.md § Core Team](governance/CHARTER.md#core-team)); substantive RFC changes still go through the [RFC process](governance/RFC-PROCESS.md), not one person's judgment alone, and each stage gate waits for a public review of at least 30 days ([CONTRIBUTING.md § Review windows](CONTRIBUTING.md#review-windows)). The project intends to move to a neutral foundation ([CHARTER.md § Neutral home](governance/CHARTER.md#neutral-home)).
-- **What's stable vs. not:** `aitp/0.3` is the current revision; its latest tags are `v0.3.2-draft` / `schema-v0.3.2` (first tagged `v0.3.0-draft` / `schema-v0.3.0`). aitp-rs 0.19.0 and aitp-verifier-py fail only fixture tct-024 of its conformance suite (added in `v0.3.2-draft`; both still accept its token). The previous revision is frozen: the v0.2 line ends at commit `f9ee7ea`, tagged `v0.2.1-draft` / `schema-v0.2.1` (`v0.2.0-draft` and `schema-v0.2.0` point at an earlier v0.2 line commit). `aitp/0.3` is a strict cutover with one breaking change, the envelope signing input — see [`VERSIONING.md`](VERSIONING.md) for the migration notes. On the [RFC status ladder](governance/RFC-PROCESS.md#rfc-lifecycle), RFCs 0001–0009 are in `Review` (public review until at least 2027-01-10, [review thread](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/discussions/117)), RFCs 0010 and 0011 are `Draft` (opt-in, outside v0.3 core conformance), RFC-AITP-0012 is `Reserved`, and RFC-AITP-0013 is `Planned` — the [RFC index](rfcs/README.md) is the authoritative per-RFC table. Nothing in the v0.2 line or in `aitp/0.3` has reached Release Candidate (the earlier v0.1 line did, at `0.1.0-rc.3`).
+- **What's stable vs. not:** `aitp/0.3` is the current revision; its latest tags are `v0.3.2-draft` / `schema-v0.3.2` (first tagged `v0.3.0-draft` / `schema-v0.3.0`). aitp-rs 0.19.0 and aitp-verifier-py fail only fixture tct-024 of its conformance suite (added in `v0.3.2-draft`; both still accept its token). The previous revision is frozen: the v0.2 line ends at commit `f9ee7ea`, tagged `v0.2.1-draft` / `schema-v0.2.1` (`v0.2.0-draft` and `schema-v0.2.0` point at an earlier v0.2 line commit). `aitp/0.3` is a strict cutover with one breaking change, the envelope signing input — see [`VERSIONING.md`](VERSIONING.md) for the migration notes. On the [RFC status ladder](governance/RFC-PROCESS.md#rfc-lifecycle), RFCs 0001–0009 are in `Review` (public review until at least 2027-01-10, [review thread](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/discussions/117)), RFCs 0010, 0011 and 0014 are `Draft` (opt-in, outside v0.3 core conformance), RFC-AITP-0012 is `Reserved`, and RFC-AITP-0013 is `Planned` — the [RFC index](rfcs/README.md) is the authoritative per-RFC table. Nothing in the v0.2 line or in `aitp/0.3` has reached Release Candidate (the earlier v0.1 line did, at `0.1.0-rc.3`).
 - **Cadence:** best-effort, driven by need. Changes land when a consumer needs them, not on a fixed schedule.
 
 ---
