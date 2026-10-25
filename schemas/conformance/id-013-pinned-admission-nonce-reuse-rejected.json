@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0002",
   "status": "extension",
   "required_for_v0_1": false,
-  "required_for_v0_2": false,
+  "required_for_core": false,
   "feature": "aitp-pinned-admission",
   "$comment": "Static fixture. Both proofs are real Ed25519 signatures by workerA over the §3.1 tuple: step 1 over message_id …901 (id-019's proof), step 2 over message_id …902. Both KAT scripts re-verify them. Only the envelope signatures are placeholders. Verifier state carries from step 1 to step 2. Extension-gated: the pinned-admission profile of RFC-AITP-0002 §3.4 is OPTIONAL, so this fixture is `status: extension` under `feature: aitp-pinned-admission`. The default runner MUST SKIP it. A runner testing an implementation that claims \"AITP v0.2 pinned-admission\" conformance executes it, and that implementation MUST pass it (RFC-AITP-0001 §10 item 9).",
   "description": "A consumed `pop_nonce` MUST NOT be accepted again, even under a fresh `message_id` (RFC-AITP-0002 §3.4 nonce rules). Step 1 is id-019's presentation, which succeeds and consumes the nonce. Step 2 presents the same nonce under a new `message_id` with its own valid proof and valid envelope signature. It passes the `message_id` deny list and every signature check, and MUST fail the atomic nonce lookup-and-consume (check-order step 9) with IDENTITY_FAILED. A verifier that relies on the `message_id` deny list alone admits step 2.",

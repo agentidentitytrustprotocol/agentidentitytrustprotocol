@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0003",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "$comment": "Pins `MANIFEST_INVALID` (issue #39). The Manifest previously had no code meaning \"this object's shape is wrong\": the envelope has `INVALID_ENVELOPE` and the session bundle has `SESSION_BUNDLE_INVALID`, but the closest Manifest code was `MANIFEST_SIGNATURE_INVALID` — which reports a signature failure for an object whose signature was never reached. Distinct from man-004: that fixture's defect is an *extra* member (`UNKNOWN_FIELD`, the more specific code), this one's is a *missing* REQUIRED member. Otherwise identical to man-004's body, so the absent `handshake_endpoint` is the only defect under test.",
   "description": "A Manifest missing the REQUIRED `handshake_endpoint` member. RFC-AITP-0003 §5 step 2 runs structural validation before the cryptographic steps: a Manifest that does not match `aitp-manifest.schema.json` is rejected before any proof-of-possession or signature work is spent on it. Receivers MUST reject with MANIFEST_INVALID and MUST NOT report this as MANIFEST_SIGNATURE_INVALID — an operator debugging a misleading signature code goes looking at keys and signing while the real defect is the object's shape.",

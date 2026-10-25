@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0004",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "$comment": "The payload `tct` is a __JWS_TCT__ compact-JWS placeholder with a `tct_claims` sibling (minting input; stripped by the minter). The TCT and envelope are valid — the defect is isolated to the pop_signature, minted per the __INVALID_POP_SIG_OVER_WRONG_NONCE__ recipe (signed over a different pop_nonce than the receiver expects).",
   "description": "MUTUAL_COMMIT carries a pop_signature that does not validate against the sender's AID public key when verified over sha256(receiver_pop_nonce). The receiver MUST reject with POP_VERIFICATION_FAILED — without a valid PoP the sender has not proven possession of the live private key.",

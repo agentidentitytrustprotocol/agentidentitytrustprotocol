@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0002",
   "status": "extension",
   "required_for_v0_1": false,
-  "required_for_v0_2": false,
+  "required_for_core": false,
   "feature": "aitp-pinned-admission",
   "$comment": "Static fixture. `pop_nonce` `AQIDBAUGBwgJCgsMDQ4P` is the 15-byte truncation of the outstanding challenge nonce. The proof is minted over the 192-byte proof_input with that nonce; both KAT scripts re-verify it. The sender is in `trust_store` so the only defect is the nonce length. Extension-gated: the pinned-admission profile of RFC-AITP-0002 §3.4 is OPTIONAL, so this fixture is `status: extension` under `feature: aitp-pinned-admission`. The default runner MUST SKIP it. A runner testing an implementation that claims \"AITP v0.2 pinned-admission\" conformance executes it, and that implementation MUST pass it (RFC-AITP-0001 §10 item 9).",
   "description": "A presented `pop_nonce` that does not decode to exactly 16 bytes MUST be rejected with IDENTITY_FAILED before any signature verification (RFC-AITP-0002 §3.4, nonce rules and check-order step 5). The verifier issued a 16-byte nonce; the presenter returns its first 15 bytes. The proof is a real Ed25519 signature over the 192-byte tuple built with that 15-byte nonce, so a verifier that skips the length check and verifies the proof against the presented nonce finds the signature valid.",

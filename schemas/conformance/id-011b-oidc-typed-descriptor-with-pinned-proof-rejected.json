@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0002",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "description": "A descriptor of `type: oidc` that carries `public_key` and a cryptographically valid pinned-key `proof` (the id-007 / kat-pinned-key-proof-001 tuple, signed by workerA, whose AID is in `trust_store`). RFC-AITP-0002 §3.2 step 1: a verifier MUST NOT run pinned-key verification on a descriptor of any other `type`, even one carrying `public_key` and a well-formed proof; §1 already forbids `public_key` on `oidc`. The descriptor is schema-invalid for that reason. Receiver MUST reject with IDENTITY_FAILED (proposal #72 Item 6c).",
   "tags": [

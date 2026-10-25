@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0006",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "$comment": "Derived from del-002: the same token, Manifests and clock, with A's own revocation snapshot changed in two ways. Its `signature` is `__TAMPERED_SIGNATURE__`: minted by A (kat-keypair-001) over the JCS-canonical INNER `revocation_list` body, then the least-significant bit of the last raw signature byte is flipped (PLACEHOLDERS.md, as in rev-008). Its `entries` no longer list `voucher.src_jti`, only an unrelated jti. The conformance inputs carry A's deny list as a signed snapshot; RFC-AITP-0006 §4 step 7 treats that list as A's local state, so a snapshot of it that fails verification is reported with its own code whatever `revocation_policy.mode` is, never treated as absent. del fixtures carry no policy key, and none is introduced: under the schema default `fail_closed`, a verifier that wrongly treated the snapshot as absent would report DELEGATION_SOURCE_TCT_REVOKED instead, so the fixture still separates the two.",
   "description": "Single-hop delegation where A's own deny list, supplied as a signed snapshot, fails signature verification (RFC-AITP-0006 §4 step 7). A's deny list is local state, not a fetched snapshot, so RFC-AITP-0008 §1.5's discarded-snapshot rule does not apply: the delegation token MUST be rejected with the snapshot's own code, REVOCATION_SNAPSHOT_SIGNATURE_INVALID, whatever the mode. Treating a corrupted local list as absent would let fail_open accept against it.",

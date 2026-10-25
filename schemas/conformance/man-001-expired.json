@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0003",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "description": "Manifest `expires_at` is in the past at fetch time. Receivers MUST reject with MANIFEST_EXPIRED (RFC-AITP-0003 §5) and MUST NOT initiate a Mutual Handshake against the stale Manifest.",
   "tags": [

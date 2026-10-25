@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0002",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "description": "A `mutual_hello` payload whose `identity` descriptor carries an unrecognized key INSIDE `extensions`. RFC-AITP-0001 §7: unknown keys inside the extension namespace MUST be ignored, never rejected — forward compatibility rides exclusively on the namespace. The identity descriptor reserves an `extensions` slot like every other signed object; it is not an exception to that rule. Receivers MUST verify the identity normally and succeed. Counterpart: id-008, which carries a forbidden member OUTSIDE the namespace and MUST fail.",
   "tags": [

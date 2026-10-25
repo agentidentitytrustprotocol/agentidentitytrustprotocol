@@ -44,7 +44,7 @@ protocol version, an opt-in draft feature, or out of scope entirely.
   "rfc": "RFC-AITP-NNNN",
   "status": "core | draft | extension | reserved",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "description": "Human-readable description of the scenario",
   "tags": ["happy-path | failure | security | edge-case"],
@@ -65,13 +65,13 @@ protocol version, an opt-in draft feature, or out of scope entirely.
 | `rfc` | string | Most-specific RFC the fixture exercises (e.g. `RFC-AITP-0006`). |
 | `status` | enum | One of `core`, `draft`, `extension`, `reserved`. See enforcement rules below. |
 | `required_for_v0_1` | bool | Whether a v0.1 implementation MUST pass this fixture. `false` for fixtures minted in the v0.2 JWS token shape (a v0.1 implementation cannot parse them); `true` only for fixtures frozen in the v0.1 shape (currently only `del-004`). Always `false` for `draft` / `extension` fixtures. |
-| `required_for_v0_2` | bool | Whether a v0.2 implementation MUST pass this fixture. `false` for v0.1-frozen fixtures and all `draft` / `extension` fixtures. |
+| `required_for_core` | bool | Whether a v0.2 implementation MUST pass this fixture. `false` for v0.1-frozen fixtures and all `draft` / `extension` fixtures. |
 | `feature` | string \| null | When `status != "core"`, the named opt-in feature flag a runner uses to enable this fixture (e.g. `experimental-session-bundle`). `null` for core fixtures. |
 
 ### Conformance runner enforcement rules
 
 A conformance runner selects fixtures by the implementation's protocol
-version (`required_for_v0_2` for a v0.2 runner, `required_for_v0_1` for
+version (`required_for_core` for a v0.2 runner, `required_for_v0_1` for
 a v0.1 runner) and MUST apply the following rules to the metadata block
 before executing a fixture:
 
@@ -270,7 +270,7 @@ The pinned-admission fixtures (`id-013` to `id-016`, `id-019` to `id-022`)
 exercise the OPTIONAL profile of RFC-AITP-0002 §3.4 through the
 `verify_identity_presentation` and `issue_presentation_challenge` operations
 ([`PLACEHOLDERS.md`](PLACEHOLDERS.md#operation-key)). Because the profile is
-OPTIONAL, they are extension-gated: `status: extension`, `required_for_v0_2:
+OPTIONAL, they are extension-gated: `status: extension`, `required_for_core:
 false`, `feature: aitp-pinned-admission`. The default runner MUST SKIP them, so
 an implementation that does not claim the profile is not failed. A runner
 testing an implementation that claims "AITP v0.3 pinned-admission" conformance
@@ -401,7 +401,7 @@ valid and invalid, are in [`reports/`](reports/).
 
 | Tier | Count | Required for v0.3 |
 |---|---|---|
-| `core` (`required_for_v0_2`) | 85 | ✅ Yes |
+| `core` (`required_for_core`) | 85 | ✅ Yes |
 | `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (v0.1 runners only) |
 | `extension` — pinned-admission profile (RFC-AITP-0002 §3.4, `feature: aitp-pinned-admission`) | 8 | ❌ No (required of an implementation claiming the profile) |
 | `extension` — attestation verification (RFC-AITP-0005 §5.3, `feature: aitp-self-attestation`) | 3 | ❌ No (required of an implementation claiming the role) |
@@ -409,7 +409,7 @@ valid and invalid, are in [`reports/`](reports/).
 | `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 6 | ❌ No |
 | **Total** | **111** | |
 
-Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A conformance runner for the current revision, `aitp/0.3`, MUST execute every `required_for_v0_2` core fixture (the key keeps its v0.2 name so existing runners keep working; for `aitp/0.3` it marks the core tier); `draft` and `extension` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
+Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A conformance runner for the current revision, `aitp/0.3`, MUST execute every `required_for_core` core fixture (the key keeps its v0.2 name so existing runners keep working; for `aitp/0.3` it marks the core tier); `draft` and `extension` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
 ---
 

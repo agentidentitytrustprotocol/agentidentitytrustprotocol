@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0001",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "$comment": "Strict cutover between revisions (VERSIONING.md, aitp/0.2 -> aitp/0.3). The envelope is env-007's with `version` set to the previous revision `aitp/0.2` and a fresh message_id, signed by kat-keypair-001 over sig_input_v2 = \"aitp-envelope-v2\" || 0x00 || JCS(envelope without `signature`). The signature is committed and valid for these exact bytes (re-signed by scripts/recompute-known-answer-independent.py, verified by scripts/verify-known-answer.mjs), so the only reason to reject is the revision literal. Unlike env-010, whose signature does not cover its altered `version`, nothing here is tampered: an aitp/0.3 receiver has no dual-accept window and rejects a well-signed aitp/0.2 envelope with UNKNOWN_VERSION.",
   "description": "A correctly signed envelope from the previous revision (`version` = `aitp/0.2`). aitp/0.3 is a strict cutover: a receiver implementing aitp/0.3 does not implement aitp/0.2, and RFC-AITP-0001 §5.4 checks `version` first. Expected: UNKNOWN_VERSION, not success and not INVALID_SIGNATURE.",

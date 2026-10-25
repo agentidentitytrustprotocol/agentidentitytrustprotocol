@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0002",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "description": "An OIDC identity presented by a P-256 sender (`aid:pubkey:p256:`, kat-keypair-005-p256) MUST verify. The JWT's `cnf.jkt` is the RFC 7638 thumbprint of the EC JWK `{\"crv\":\"P-256\",\"kty\":\"EC\",\"x\":…,\"y\":…}` whose `x`/`y` are the coordinates of the decompressed SEC1 point in the AID (RFC-AITP-0002 §2.2.1, RFC-AITP-0001 §5.4.4): `kat-jwk-thumb-005-p256`, `6uuEaX_87uMh4VKEtSDkENgjC0g7Evt6vliSnD7XSDE`. A verifier that builds the OKP Ed25519 JWK for every AID, or puts the 44-char compressed identifier in `x`, computes a different thumbprint and fails this fixture.",
   "tags": [

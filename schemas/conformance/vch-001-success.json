@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0005",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "description": "Grant-voucher happy path (RFC-AITP-0005 §8). The issuing peer (agentA, kat-keypair-001) minted a voucher alongside the companion TCT for subject agentB (kat-keypair-002). The verifier — the issuer itself, since only the issuer ever verifies a voucher (RFC-AITP-0006 §4 step 3) — parses the compact JWS strictly, enforces header typ `aitp-grant+jwt` exactly, pins `alg` to the sole value derived from the `iss` AID (EdDSA for Ed25519), verifies the signature under its own key over the exact transmitted bytes, and checks the claims: `ver` known, `grants` non-empty, `exp` in the future, `src_jti` linking to the companion TCT's jti. All checks pass.",
   "tags": [

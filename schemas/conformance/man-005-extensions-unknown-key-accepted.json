@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0003",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "$comment": "Positive half of the man-004/man-005 pair. `extensions.com.example.debug_trace` is a vendor-namespaced key (registries/extension-keys.md naming rules; RFC-AITP-0012 §1 'SHOULD use reverse-domain notation') that is NOT in the extension-key registry — deliberately unrecognized, as distinct from bundle-005's use of the RFC-AITP-0012 §3-reserved `extensions.tee` container. `extensions` itself is an ordinary member of the signed body (RFC-AITP-0001 §5.4.1): it is covered by the JCS-canonical signing input like any other member, so it is schema-permitted rather than exempt from signing.",
   "description": "Manifest body carries an unrecognized, vendor-namespaced key (`extensions.com.example.debug_trace`) INSIDE the OPTIONAL `extensions` member. RFC-AITP-0001 §7 and RFC-AITP-0012 §1/§5: unknown keys inside `extensions` MUST be ignored and MUST NOT drive a trust decision, but `extensions` itself remains a schema-permitted, ordinary part of the signed body. The receiver accepts: `extensions` is present and well-formed, and the unrecognized nested key does not affect Manifest verification (version, expiry, PoP, signature all otherwise pass, mirroring man-003's non-expired shape). Counterpart: man-004, where the same kind of unrecognized field placed OUTSIDE `extensions` is rejected with UNKNOWN_FIELD.",

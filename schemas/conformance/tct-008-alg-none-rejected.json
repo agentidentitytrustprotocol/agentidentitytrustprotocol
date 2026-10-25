@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0005",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "description": "TCT compact JWS whose protected header carries `alg: none` (with a syntactically well-formed 86-char third segment, so the failure is the alg pin and not segment syntax) MUST be rejected with TOKEN_ALG_MISMATCH (RFC-AITP-0005 §7.2 step 3; RFC-AITP-0001 §5.4.5). The sole acceptable `alg` is derived from the issuer's AID — `EdDSA` for the Ed25519 `iss` here — and any other header value, including `none` in any capitalization, MUST be rejected before signature verification.",
   "tags": [

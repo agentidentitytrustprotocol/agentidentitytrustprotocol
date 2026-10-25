@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0002",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "description": "A `mutual_hello` payload whose `identity` descriptor has `type: \"oidc\"` and also carries `public_key`. RFC-AITP-0002 §1 REQUIRES rejection: for an OIDC identity the agent's public key is already encoded in the envelope's `sender.agent_id` (the AID-identifier component), so a second copy in the descriptor creates an ambiguity over which key the JWT's `cnf.jkt` is meant to bind — a verifier that binds the descriptor's copy and one that binds the AID's would disagree about which key proved possession. Receivers MUST reject with IDENTITY_FAILED.",
   "tags": [

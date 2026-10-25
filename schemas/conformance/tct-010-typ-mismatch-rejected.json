@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0005",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "$comment": "The claims sibling here is voucher-shaped (aitp-grant-voucher.schema.json: ver/iss/sub/grants/iat/exp/src_jti) because the minted token IS a grant voucher — a fully valid one, signed by the issuer's key with typ 'aitp-grant+jwt'. Only its presentation as a TCT is wrong.",
   "description": "Token-type confusion rejection. A cryptographically valid grant voucher (compact JWS, header typ `aitp-grant+jwt`, RFC-AITP-0005 §8.1) is presented where a TCT is expected. The verifier MUST enforce header `typ` == `aitp-tct+jwt` exactly and reject with TOKEN_TYP_MISMATCH (RFC-AITP-0005 §7.2 step 2) before the alg pin, signature, or claims checks. Without the typ check, a voucher — signed by the same issuer key as its companion TCT — could be replayed as a trust context.",

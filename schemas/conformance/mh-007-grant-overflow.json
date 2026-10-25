@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0004",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "$comment": "The payload `tct` is a __JWS_TCT__ compact-JWS placeholder with a `tct_claims` sibling (minting input; stripped by the minter). The TCT is validly signed by its iss key — the defect is purely the grants claim exceeding the issuer's offered_capabilities.",
   "description": "Peer-issued TCT carries a grants claim that exceeds the issuing peer's offered_capabilities (declared in its Manifest). The receiving peer MUST reject with GRANT_OVERFLOW — a peer cannot grant capabilities it did not publicly offer.",

@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0005",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "description": "Expired peer-issued TCT (compact JWS, `exp` in the past) MUST be rejected with TCT_EXPIRED regardless of signature validity (RFC-AITP-0005 §7.2 step 5).",
   "tags": [

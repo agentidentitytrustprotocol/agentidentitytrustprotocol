@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0004",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "description": "Peer's inline Manifest carries an invalid signature. The receiving peer MUST reject the handshake before any further processing.",
   "tags": [

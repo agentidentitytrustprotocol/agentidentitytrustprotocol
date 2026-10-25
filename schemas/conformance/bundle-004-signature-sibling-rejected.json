@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0010",
   "status": "draft",
   "required_for_v0_1": false,
-  "required_for_v0_2": false,
+  "required_for_core": false,
   "feature": "experimental-session-bundle",
   "$comment": "Deliberately schema-invalid: this fixture carries the pre-PR-#30 shape, where `signature` sat as a sibling of the `{\"session_bundle\": …}` transport wrapper instead of as a member of the inner body. RFC-AITP-0010 §3 (and the corresponding erratum) and `aitp-session-bundle.schema.json` both now require `signature` INSIDE the body; the wrapper permits no sibling members (`additionalProperties: false`). Body content otherwise mirrors bundle-001 (same coordinator, participants, TCT claims-sibling convention) so the ONLY defect under test is the placement of `signature`.",
   "description": "Session Trust Bundle in the old, now-invalid shape: `signature` is a sibling of the `session_bundle` wrapper key rather than a member of the inner body (`{\"session_bundle\": {…no signature…}, \"signature\": \"…\"}`). RFC-AITP-0010 §3 states the signature is a member of the signed body, never a sibling of the wrapper, precisely because the bundle is redistributable and must carry its own proof across any hop that strips the wrapper. A schema (or implementation) that still accepts the sibling shape has regressed to the erratum'd pre-PR-#30 behavior. The verifier MUST reject: the top-level wrapper object permits no member besides `session_bundle`, and the inner body is missing its required `signature` member. `input.coordinator_manifest` (the coordinator's signed Manifest) is carried so every bundle fixture has the same input shape; it is never consulted, because the structural rejection precedes coordinator key resolution (RFC-AITP-0010 §5).",

@@ -14,7 +14,7 @@ A runner run against [`schemas/conformance/`](../schemas/conformance/README.md) 
 | `spec` | `commit` (full SHA of this repository), `version` (the newest release tag at or before that commit, for example `v0.3.2-draft`) and `protocol` (`aitp/0.3`). |
 | `fixtures_dir_digest` | Ties the report to the exact fixture files run. See [Fixture digest](#fixture-digest). |
 | `features_enabled` | The fixture `feature` flags the run opted into. |
-| `results` | One entry per non-`reserved` fixture: `id`, plus `status`, `feature` and `required_for_v0_2` copied from the fixture, the `outcome`, and optionally `error_code` (the code the implementation returned), `reason` and `duration_ms`. `reason` is required for any outcome but `pass`. |
+| `results` | One entry per non-`reserved` fixture: `id`, plus `status`, `feature` and `required_for_core` copied from the fixture, the `outcome`, and optionally `error_code` (the code the implementation returned), `reason` and `duration_ms`. `reason` is required for any outcome but `pass`. |
 | `totals` | Counts of each outcome for each tier (`core`, `extension`, `draft`). |
 | `gates` | One entry per claim evaluated: `name` (the claim string), `passed`, `criteria` and, when it failed, the `blocking` fixture ids. |
 | `generated_at` | RFC 3339 UTC time the run finished. |
@@ -39,11 +39,11 @@ A badge shows one of the claim strings of [RFC-AITP-0001 §10](../rfcs/RFC-AITP-
 
 | Claim | Gated on | Rule (`criteria`) |
 |---|---|---|
-| `AITP v0.3` | Every `status: core` fixture with `required_for_v0_2: true` | `core-required-all-pass`: each has outcome `pass`. |
+| `AITP v0.3` | Every `status: core` fixture with `required_for_core: true` | `core-required-all-pass`: each has outcome `pass`. |
 | `AITP v0.3 pinned-admission` | Every fixture with `feature: aitp-pinned-admission` ([RFC-AITP-0002 §3.4](../rfcs/RFC-AITP-0002-identity.md#34-one-way-pinned-key-admission-optional-profile-pinned-admission)) | `feature-all-pass`: the feature is in `features_enabled` and each has outcome `pass`. |
 | `AITP v0.3 self-attestation` | Every fixture with `feature: aitp-self-attestation` ([RFC-AITP-0005 §5.3](../rfcs/RFC-AITP-0005-tct.md#53-self-issued-attestation-tcts)) | `feature-all-pass`: the feature is in `features_enabled` and each has outcome `pass`. |
 
-Each claim is decided on its own fixture set. The core rule uses `required_for_v0_2`, the core-tier key of `aitp/0.3` (it keeps its old name, see [VERSIONING.md](../VERSIONING.md)), so `del-004`, a core fixture in the v0.1-frozen token shape, is reported but gates nothing. Draft fixtures (`del-mh-*`, `bundle-*`) gate no claim.
+Each claim is decided on its own fixture set. The core rule uses `required_for_core`, the core-tier key of `aitp/0.3` (it keeps its old name, see [VERSIONING.md](../VERSIONING.md)), so `del-004`, a core fixture in the v0.1-frozen token shape, is reported but gates nothing. Draft fixtures (`del-mh-*`, `bundle-*`) gate no claim.
 
 Rules a runner and a badge generator both follow:
 

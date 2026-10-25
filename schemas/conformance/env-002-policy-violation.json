@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0004",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "description": "Caller invokes a capability not present in the active TCT's `grants` claim. Receivers MUST reject with POLICY_VIOLATION (RFC-AITP-0004 §4). The check is local — no remote lookup is required. The active TCT is a valid v0.2 compact JWS (signature, expiry, audience all pass); only the grant intersection fails.",
   "tags": [

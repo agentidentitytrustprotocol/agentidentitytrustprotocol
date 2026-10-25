@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0002",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "description": "The id-010 descriptor with `public_key` replaced by the 65-byte SEC1 uncompressed encoding (`0x04 || X || Y`, 87 chars) of the same P-256 point. RFC-AITP-0002 §3.3 permits only the 44-char compressed form for `p256`, so the descriptor is schema-invalid and is not byte-equal to the key in `sender.agent_id` (§3.2 step 2). The proof is the valid id-010 proof and the AID is in `trust_store`, so the key encoding is the only reason to fail. Receiver MUST reject with IDENTITY_FAILED.",
   "tags": [

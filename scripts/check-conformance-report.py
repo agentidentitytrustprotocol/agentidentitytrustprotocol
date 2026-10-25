@@ -18,7 +18,7 @@ the rest from `results` and fails on any mismatch:
 
 With --fixtures-dir (the schemas/conformance/ directory at `spec.commit`) it
 also checks `fixtures_dir_digest`, that `results` covers exactly the
-non-reserved fixtures, and that `status`, `feature` and `required_for_v0_2`
+non-reserved fixtures, and that `status`, `feature` and `required_for_core`
 were copied correctly. A matrix or badge generator should run that form.
 
 --digest prints the `fixtures_dir_digest` of DIR and exits.
@@ -63,7 +63,7 @@ def gate_blocking(name, report):
     results = report["results"]
     if name == CORE_CLAIM:
         return [r["id"] for r in results
-                if r["status"] == "core" and r["required_for_v0_2"] and r["outcome"] != "pass"]
+                if r["status"] == "core" and r["required_for_core"] and r["outcome"] != "pass"]
     feature = FEATURE_CLAIMS[name]
     return [r["id"] for r in results
             if r["feature"] == feature and r["outcome"] != "pass"]
@@ -138,7 +138,7 @@ def check(report, fixtures_dir=None):
         for fixture_id in sorted(set(by_id) - set(fixtures)):
             errors.append(f"result {fixture_id} names no fixture in {fixtures_dir}")
         for fixture_id in sorted(set(by_id) & set(fixtures)):
-            for key in ("status", "feature", "required_for_v0_2"):
+            for key in ("status", "feature", "required_for_core"):
                 if by_id[fixture_id][key] != fixtures[fixture_id][key]:
                     errors.append(f"{fixture_id}: {key} is {by_id[fixture_id][key]!r}; "
                                   f"the fixture says {fixtures[fixture_id][key]!r}")

@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0008",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "$comment": "Positive half of the rev-005/rev-006 pair. `extensions.com.example.debug_trace` is a vendor-namespaced key (registries/extension-keys.md naming rules; RFC-AITP-0012 §1) that is NOT in the extension-key registry — deliberately unrecognized. `revocation_list.extensions` is schema-permitted (`aitp-revocation-list.schema.json` properties.extensions) and covered by the issuing peer's signature over the inner body like any other member (RFC-AITP-0008 §1.5), so it is schema-permitted rather than exempt from signing.",
   "description": "Revocation snapshot's inner `revocation_list` body carries an unrecognized, vendor-namespaced key (`extensions.com.example.debug_trace`) INSIDE the OPTIONAL `extensions` member. RFC-AITP-0001 §7 and RFC-AITP-0012 §5: unknown keys inside `extensions` MUST be ignored and MUST NOT drive a trust decision, but `extensions` itself remains a schema-permitted, ordinary part of the signed body. The receiver accepts: the snapshot is fresh (mirroring rev-003), the signature verifies under the issuing peer's key over the body INCLUDING `extensions`, and the queried JTI is not in `entries`. Counterpart: rev-005, where the same kind of unrecognized field placed OUTSIDE `extensions` is rejected with UNKNOWN_FIELD.",

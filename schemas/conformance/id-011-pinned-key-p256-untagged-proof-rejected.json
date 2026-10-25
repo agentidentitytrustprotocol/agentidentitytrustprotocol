@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0002",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "description": "The id-010 descriptor with the `p256.` tag stripped from `proof`. RFC-AITP-0002 §3.1 requires a `p256` sender to emit the tagged form, and RFC-AITP-0001 §5.4.3 reads an untagged signature as `ed25519`, so the tag does not match the sender AID's algorithm. The P-256 key is in `trust_store` and the raw 64 bytes are a valid P-256 signature over this `proof_input`, so the algorithm mismatch is the only reason to fail. Receiver MUST reject with IDENTITY_FAILED.",
   "tags": [

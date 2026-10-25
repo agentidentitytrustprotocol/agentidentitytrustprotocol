@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0002",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "description": "The id-017 descriptor plus an `issuer` member. RFC-AITP-0002 §1: `issuer` MUST be absent for `pinned_key`, whose trust anchor is the local `pinned_keys` store, not an issuer. The identity schema's non-`oidc` branch forbids it, so the descriptor is schema-invalid. The proof is valid and the sender is in `trust_store`, so the `issuer` member is the only reason to fail. Receiver MUST reject with IDENTITY_FAILED.",
   "tags": [
