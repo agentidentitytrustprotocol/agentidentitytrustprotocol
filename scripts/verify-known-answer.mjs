@@ -1203,6 +1203,7 @@ function checkSignedExamples() {
   checkVersionAlteredBodies();
   checkDiscardedSnapshotFixtures();
   checkNoRevocationSourceFixtures();
+  checkThirdPartySnapshotFixture();
   checkSelfAttestations();
 }
 
@@ -1345,6 +1346,45 @@ function checkNoRevocationSourceFixtures() {
     };
     if (!inputs['tct-024'] || !inputs['tct-025']) throw new Error('a fixture failed to load');
     eq(strip(inputs['tct-024']), strip(inputs['tct-025']), 'inputs without fail_mode');
+  });
+}
+
+// rev-011 (RFC-AITP-0008 §1.5, aitp-control-plane#153): the committed
+// kat-keypair-001 TCT checked against the committed kat-keypair-005-p256 snapshot,
+// unmodified. The snapshot is valid under its own signed issuer, which is not the
+// TCT's issuer, and does not list the TCT's jti, so only the per-issuer rule decides.
+function checkThirdPartySnapshotFixture() {
+  console.log('── rev-011: committed TCT, committed snapshot signed by a different issuer ──');
+  const conf = join(ROOT, 'schemas/conformance');
+  const tct = readJson(join(SIGNED, 'tct/kat-keypair-001-issues-002.json'));
+  const snap = readJson(join(SIGNED, 'revocation/kat-keypair-005-snapshot.json'));
+  check('rev-011: committed TCT verifies; snapshot is the committed kat-keypair-005-p256 one and verifies under its own issuer; that issuer is not the TCT iss; jti unlisted; fail_closed => TCT_REVOKED', () => {
+    const f = readJson(join(conf, 'rev-011-third-party-signed-list-discarded.json'));
+    eq(f.id, 'rev-011', 'id');
+    eq(f.status, 'core', 'status');
+    eq(f.required_for_v0_2, true, 'required_for_v0_2');
+    eq(f.input.operation, 'verify_tct', 'operation');
+    eq(f.input.tct_token, tct.tct_token, 'tct_token (committed signed example)');
+    const claims = verifyCompactJws(f.input.tct_token, 'aitp-tct+jwt');
+    eq(jcs(f.input.tct_token_claims), jcs(claims), 'tct_token_claims');
+    eq(f.input.expected_audience, claims.aud, 'expected_audience');
+    const irl = f.input.issuer_revocation_list;
+    eq(jcs(Object.keys(irl).sort()), jcs(['fail_mode', 'issuer', 'snapshot']), 'issuer_revocation_list members');
+    eq(irl.issuer, claims.iss, 'issuer_revocation_list.issuer is the TCT issuer');
+    eq(irl.fail_mode, 'fail_closed', 'fail_mode');
+    eq(jcs(Object.keys(irl.snapshot).sort()), jcs(['revocation_list', 'signature']), 'snapshot wrapper members');
+    eq(jcs(irl.snapshot.revocation_list), jcs(snap.revocation_list), 'snapshot body (committed signed example)');
+    eq(irl.snapshot.signature, snap.signature, 'snapshot signature (committed signed example)');
+    const signer = irl.snapshot.revocation_list.issuer;
+    if (signer === claims.iss) throw new Error('the snapshot issuer is the TCT issuer');
+    if (!verifySingleHash(signer, utf8(jcs(irl.snapshot.revocation_list)), irl.snapshot.signature)) {
+      throw new Error('the snapshot signature does not verify under its own issuer');
+    }
+    if (irl.snapshot.revocation_list.entries.some((e) => e.jti === claims.jti)) {
+      throw new Error('the TCT jti is listed in the snapshot');
+    }
+    eq(f.expected.outcome, 'failure', 'expected.outcome');
+    eq(f.expected.error_code, 'TCT_REVOKED', 'expected.error_code');
   });
 }
 
@@ -2012,7 +2052,7 @@ checkOidcP256Fixture();
 // emptied vector member; this catches coverage lost any other way — a check
 // commented out, a loop that stops early, a gate that stops matching. Coverage may
 // grow (raise this number in the same commit); it may never silently shrink.
-const EXPECTED_MIN_CHECKS = 170;
+const EXPECTED_MIN_CHECKS = 171;
 if (checks < EXPECTED_MIN_CHECKS) {
   failures.push(
     `coverage regression: ran ${checks} checks, expected at least ${EXPECTED_MIN_CHECKS}. ` +

@@ -391,13 +391,13 @@ The runner interface is implementation-defined.
 
 | Tier | Count | Required for v0.3 |
 |---|---|---|
-| `core` (`required_for_v0_2`) | 84 | ✅ Yes |
+| `core` (`required_for_v0_2`) | 85 | ✅ Yes |
 | `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (v0.1 runners only) |
 | `extension` — pinned-admission profile (RFC-AITP-0002 §3.4, `feature: aitp-pinned-admission`) | 8 | ❌ No (required of an implementation claiming the profile) |
 | `extension` — attestation verification (RFC-AITP-0005 §5.3, `feature: aitp-self-attestation`) | 3 | ❌ No (required of an implementation claiming the role) |
 | `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 8 | ❌ No |
 | `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 6 | ❌ No |
-| **Total** | **110** | |
+| **Total** | **111** | |
 
 Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A conformance runner for the current revision, `aitp/0.3`, MUST execute every `required_for_v0_2` core fixture (the key keeps its v0.2 name so existing runners keep working; for `aitp/0.3` it marks the core tier); `draft` and `extension` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
@@ -529,6 +529,7 @@ The rows marked *Pinned-admission* are `status: extension` under `feature: aitp-
 | `rev-008` | Snapshot signature does not validate under the issuing peer's key — the snapshot failed, not any token it lists | failure: REVOCATION_SNAPSHOT_SIGNATURE_INVALID |
 | `rev-009` | Same stale snapshot as `rev-001`/`rev-002`, but under `fail_open` mode — allows the request, grants un-narrowed | success |
 | `rev-010` | Committed signed snapshot with `version` changed to an unknown value after signing; structural validation runs before the signature check, and this is the snapshot's unknown-version code | failure: REVOCATION_SNAPSHOT_INVALID |
+| `rev-011` | Fresh, correctly signed snapshot obtained for the TCT's issuer, but signed by a different AID (the committed kat-keypair-005-p256 snapshot); the TCT's `jti` is not listed. A snapshot is valid only for tokens its signer issued (RFC-AITP-0008 §1.5): it is discarded, and `fail_closed` applies. There is no third-party revocation authority in `aitp/0.3` | failure: TCT_REVOKED |
 
 ### Delegation (RFC-AITP-0006)
 

@@ -69,7 +69,7 @@ QUIET = "--quiet" in sys.argv[1:]
 # silently stops running (commented out, a loop that ends early, a gate that no
 # longer matches) fails the run. Raise it in the same commit that adds checks;
 # lower it only on purpose, and say why.
-EXPECTED_MIN_CHECKS = 238
+EXPECTED_MIN_CHECKS = 244
 
 failures = 0
 checks = 0
@@ -888,6 +888,30 @@ def main() -> int:
               irl.get("fail_mode") == mode and fx["expected"]["outcome"] == outcome and fx["expected"].get("error_code") == code)
     check("tct-024 and tct-025 inputs differ only in fail_mode",
           without_mode(pair["tct-025"]) == pair["tct-024"]["input"])
+
+    section("── rev-011: committed TCT, committed snapshot signed by a different issuer (RFC-AITP-0008 §1.5) ──")
+    fx = load(CONF / "rev-011-third-party-signed-list-discarded.json")
+    snap5 = load(SIGNED / "revocation" / "kat-keypair-005-snapshot.json")
+    inp = fx["input"]
+    irl = inp["issuer_revocation_list"]
+    body, sig = irl["snapshot"]["revocation_list"], irl["snapshot"]["signature"]
+    check("rev-011: core fixture; token and claims are the committed signed example; audience is its aud",
+          fx["status"] == "core" and fx["required_for_v0_2"] is True
+          and inp["operation"] == "verify_tct" and inp["tct_token"] == tct_ex["tct_token"]
+          and inp["tct_token_claims"] == claims and inp["expected_audience"] == claims["aud"])
+    check("rev-011: snapshot is the committed kat-keypair-005-p256 one, unmodified",
+          body == snap5["revocation_list"] and sig == snap5["signature"]
+          and sorted(irl["snapshot"]) == ["revocation_list", "signature"])
+    check("rev-011: snapshot signature verifies under its own issuer kat-keypair-005-p256",
+          body["issuer"] == aid5
+          and p256_verify_strict(p256_vk_from_aid(body["issuer"]), H(jcs(body)), untag(sig, "p256")))
+    check("rev-011: the list was obtained for the TCT issuer, but its signer is not the TCT issuer",
+          irl["issuer"] == claims["iss"] and body["issuer"] != claims["iss"])
+    check("rev-011: the TCT jti is not listed",
+          all(e["jti"] != claims["jti"] for e in body["entries"]))
+    check("rev-011: fail_closed expects TCT_REVOKED",
+          sorted(irl) == ["fail_mode", "issuer", "snapshot"] and irl["fail_mode"] == "fail_closed"
+          and fx["expected"]["outcome"] == "failure" and fx["expected"].get("error_code") == "TCT_REVOKED")
 
     if checks < EXPECTED_MIN_CHECKS:
         failures += 1
