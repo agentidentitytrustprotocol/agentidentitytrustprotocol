@@ -6,6 +6,8 @@ context so you don't end up reading them backwards. For SDKs, an
 independent verifier, and other implementation-side material, see
 [`docs/ecosystem.md`](ecosystem.md).
 
+To see a working handshake before reading anything, run the three commands at the top of the [README](../README.md#try-it-in-three-commands) against the hosted interop peer.
+
 ---
 
 ## Two signing profiles

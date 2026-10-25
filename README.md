@@ -7,6 +7,20 @@
 **Normative transport:** HTTPS
 **Canonical signing input:** RFC 8785 (JCS) canonical JSON (protocol-internal artifacts); RFC 7515 compact JWS (portable trust artifacts, §5.4.5)
 
+## Try it in three commands
+
+```bash readme-smoke
+cargo install aitp-cli
+aitp enroll https://interop.agentidentitytrustprotocol.io
+aitp echo https://interop.agentidentitytrustprotocol.io
+```
+
+`aitp enroll` registers a fresh key with the hosted interop peer. `aitp echo` runs a full Mutual Handshake against it, proves possession of the resulting TCT and prints the TCT claims. The peer grants only the harmless `aitp.interop.echo` capability. These commands are copied from the [aitp-rs README](https://github.com/agentidentitytrustprotocol/aitp-rs#readme), where CI runs them daily against the live peer.
+
+- **Peer down?** Check its [status endpoint](https://interop.agentidentitytrustprotocol.io/status), or run both peers locally with `make demo` in [aitp-rs](https://github.com/agentidentitytrustprotocol/aitp-rs).
+- **Run your own peer:** [Rust](https://github.com/agentidentitytrustprotocol/aitp-rs), [Python](https://pypi.org/project/aitp-sdk/) (`pip install aitp-sdk`) or [Node](https://www.npmjs.com/package/@agentidentitytrustprotocol/aitp) (`npm install @agentidentitytrustprotocol/aitp`).
+- **Implementing AITP?** Start with the [implementer quickstart](docs/implementer-quickstart.md) and the [conformance fixtures](schemas/conformance/).
+
 AITP is an **agent-to-agent trust protocol**. It lets two autonomous agents — running in different organizations, behind different identity providers, with no shared verifier — establish bidirectional trust before they exchange any binding work.
 
 AITP introduces one strict invariant:
