@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+## v0.3.2-draft (2026-10-24)
+
+Protocol revision `aitp/0.3`, unchanged on the wire. Tags: `v0.3.2-draft`, `schema-v0.3.2`. Moves the schema `$id` namespace to `https://agentidentitytrustprotocol.io/schema/v0.3/` (RFC-AITP-0001 at `0.3.3-draft`), adds fixtures tct-024 and tct-025 (no revocation source: the default policy rejects) and rev-011 (a snapshot signed by anyone but the token's issuer is discarded; RFC-AITP-0008 at `0.3.2-draft`), runs the independent Python known-answer recompute in `make validate`, and pins CI actions to commit SHAs. Reference implementations at release: aitp-rs 0.19.0 and aitp-verifier-py `b762f8c` pass rev-011 and fail only the new tct-024 (both accept its token); aitp-rs RS1.2 and aitp-verifier-py VP1.1 track the fix.
+
+### Schema namespace moves to agentidentitytrustprotocol.io
+
+**Change class.** Schema metadata (non-wire). No validation outcome, wire byte, signature, fixture or vector changes. The `$id` is an identifier that nothing dereferences, so this is not a breaking schema change and the namespace path stays `v0.3/` (VERSIONING.md now says so). There is no alias for the old host: the project has no users, so this is a clean break.
+
+**Changes.**
+- Every canonical schema's `$id` moves from `https://aitp.dev/schema/v0.3/<name>.json` to `https://agentidentitytrustprotocol.io/schema/v0.3/<name>.json`. The project does not own `aitp.dev`; it owns `agentidentitytrustprotocol.io`.
+- The conformance-fixture schema's `$id` was the only one named after its file (`aitp-conformance-fixture.schema.json`); it is now `conformance-fixture.json`, like the other ten (`tct.json`, `envelope.json`, ...). File names in `schemas/json/` are unchanged.
+- README.md "Compatibility model", VERSIONING.md (layer table and the `aitp/0.3` migration note) and RFC-AITP-0001 §7 name the new namespace. VERSIONING.md adds that a change to the namespace host or to a schema's `$id` name that alters no validation outcome is schema metadata, not breaking.
+- `docs/ecosystem.md` gains a "Schema namespace" section: the project owns the host, `aitp-website` serves each schema at its `$id` URL as a convenience, and the canonical copy is `schemas/json/` at a `schema-vX.Y.Z` tag.
+- `scripts/check-doc-coherence.sh` stage 10 fails when any tracked file except this CHANGELOG names `aitp.dev`.
+
+**Version bumps.** RFC-AITP-0001 `0.3.2-draft` → `0.3.3-draft`.
+
 ### RFC-AITP-0008: revocation snapshots are per issuer; no third-party revocation authority
 
 **Change class.** Clarification (non-normative) and fixture addition (core). RFC-AITP-0008 moves to `0.3.2-draft` for an informative note. No requirement, schema, registry or vector changes. §1.5 already discards a snapshot whose signed `issuer` is not the issuer of the token being checked. Decision recorded in `governance/DECISIONS.md` (OQ-6), prompted by aitp-control-plane#153.
@@ -14,6 +31,7 @@
 - `scripts/fixture-validation-map.json` maps the token claims and the snapshot. `FIXTURE_INPUT_MIN_CHECKS` rises from 243 to 245.
 - `rfcs/README.md` records the RFC-AITP-0008 version.
 - Conformance index: `core` 84 → 85, total 110 → 111.
+
 ### Spec drift and CI hygiene
 
 **Change class.** Editorial + CI. No wire, schema, fixture or vector change.

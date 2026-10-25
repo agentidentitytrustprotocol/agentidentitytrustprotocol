@@ -17,7 +17,7 @@ substance: the envelope signature covers the whole envelope (issue #87). See
 | Layer | Identifier | Example | Compat rules |
 |---|---|---|---|
 | Protocol version | `version` field on JCS-profile objects (envelope, Manifest, revocation snapshot, session bundle); `ver` claim on JWS-profile artifacts (TCT, grant voucher, delegation token) | `aitp/0.3` | Major mismatch ⇒ rejected. Pre-1.0, the minor position is the revision, so **any** revision mismatch is rejected with the artifact's unknown-version code (see [Forward / backward compatibility](#forward--backward-compatibility)): an `aitp/0.3` verifier rejects `aitp/0.2` and `aitp/0.1`. |
-| JSON Schema namespace | `$id` URI on each canonical schema | `https://aitp.dev/schema/v0.3/...` | Breaking changes bump the path segment (`v0.1/` → `v0.2/` → `v0.3/`). The repo keeps a single flat `schemas/json/` directory tracking the current namespace; frozen earlier namespaces are available via the `schema-vX.Y.Z` git tags below, not via parallel directories. |
+| JSON Schema namespace | `$id` URI on each canonical schema | `https://agentidentitytrustprotocol.io/schema/v0.3/...` | Breaking changes bump the path segment (`v0.1/` → `v0.2/` → `v0.3/`). A change to the namespace host or to a schema's `$id` name that changes no validation outcome is schema metadata, not a breaking change, and does not bump the segment. The repo keeps a single flat `schemas/json/` directory tracking the current namespace; frozen earlier namespaces are available via the `schema-vX.Y.Z` git tags below, not via parallel directories. |
 | TCT version | `ver` claim inside the TCT JWS payload | `aitp/0.3` | Mirrors the protocol version. Consumers MUST reject unknown versions. |
 | Manifest version | `version` inside the Manifest | `aitp/0.3` | Mirrors the protocol version. |
 | RFC version | RFC document `Version:` header | `0.3.0-draft` | Tracks the RFC's lifecycle stage (`-draft`, `-rc.N`; the Reserved and Planned placeholders carry `-reserved` / `-planned`) **and each document's own editorial history**. Versions may diverge between documents within one protocol revision — a patch bump on one RFC does not move the others. The protocol literal is a separate layer and does not follow it. |
@@ -83,7 +83,7 @@ substance: the envelope signature covers the whole envelope (issue #87). See
    the signature (fixtures env-008 to env-010).
 2. **The literal.** Every `version` field (envelope, Manifest, revocation snapshot,
    session bundle) and every `ver` claim (TCT, grant voucher, delegation token) is
-   `aitp/0.3`, and the schema `$id` namespace is `https://aitp.dev/schema/v0.3/`. Because
+   `aitp/0.3`, and the schema `$id` namespace is `https://agentidentitytrustprotocol.io/schema/v0.3/`. Because
    the literal is inside every signed artifact, every signature changes: the known-answer
    vectors and signed examples are re-minted, and the CHANGELOG lists each old and new
    output.
@@ -118,7 +118,7 @@ Downstream consumers pin to a specific tag and upgrade on their own schedule.
 `aitp/0.2` (it already carries the new envelope signing input, landed one step ahead of
 the literal). The existing `v0.2.0-draft` and `schema-v0.2.0` tags point at an earlier
 v0.2 line commit (`ea22c71`); `f9ee7ea` itself is tagged `v0.2.1-draft` and
-`schema-v0.2.1`. The first `aitp/0.3` tags are `v0.3.0-draft` and `schema-v0.3.0`; the latest are `v0.3.1-draft` and `schema-v0.3.1`.
+`schema-v0.2.1`. The first `aitp/0.3` tags are `v0.3.0-draft` and `schema-v0.3.0`; the latest are `v0.3.2-draft` and `schema-v0.3.2`.
 
 ## Status ladder
 
