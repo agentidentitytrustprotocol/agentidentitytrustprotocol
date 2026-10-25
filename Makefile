@@ -117,6 +117,7 @@ docs:
 	@echo "Conformance (read after the RFCs):"
 	@echo "   - schemas/conformance/README.md"
 	@echo "   - schemas/conformance/PLACEHOLDERS.md"
+	@echo "   - docs/conformance-badge.md   (report format, per-claim badge rules)"
 
 # ── Clean ────────────────────────────────────────────────────────────────────
 

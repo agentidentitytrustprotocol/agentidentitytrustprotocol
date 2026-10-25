@@ -1,0 +1,23 @@
+{
+  "$comment": "Every file under schemas/conformance/reports/ (recursively) MUST have an entry here, and every entry MUST name a file that exists; scripts/validate-json.sh fails otherwise. expect: valid = passes aitp-conformance-report.schema.json and scripts/check-conformance-report.py; invalid_schema = fails the schema; invalid_check = passes the schema and fails the checker. Both negative kinds need a reason. Checked bidirectionally, like scripts/fixture-validation-map.json.",
+  "reports": {
+    "report-example.json": {
+      "expect": "valid"
+    },
+    "report-example-extensions-only.json": {
+      "expect": "valid"
+    },
+    "invalid/core-skip-under-passed-core-gate.json": {
+      "expect": "invalid_schema",
+      "reason": "mh-success-001, a required core fixture, is skip (OP_NOT_SUPPORTED) while the \"AITP v0.3\" gate says passed; a core skip blocks the core claim."
+    },
+    "invalid/missing-spec-commit.json": {
+      "expect": "invalid_schema",
+      "reason": "spec.commit is absent; a report not tied to a spec commit cannot be reproduced."
+    },
+    "invalid/totals-disagree-with-results.json": {
+      "expect": "invalid_check",
+      "reason": "totals.core.pass is 85 but results hold 86 core passes; only the checker recomputes totals."
+    }
+  }
+}

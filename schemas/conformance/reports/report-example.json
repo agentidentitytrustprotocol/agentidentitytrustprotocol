@@ -1,0 +1,1025 @@
+{
+  "report_version": "1",
+  "implementation": {
+    "name": "aitp-example",
+    "version": "1.4.0",
+    "repository": "https://github.com/example/aitp-example",
+    "commit": "0123456789abcdef0123456789abcdef01234567"
+  },
+  "runner": {
+    "name": "aitp-conformance",
+    "version": "0.20.0"
+  },
+  "spec": {
+    "commit": "308bb75d7e241ef14bdd3d9e6eaa8b43ca44be04",
+    "version": "v0.3.2-draft",
+    "protocol": "aitp/0.3"
+  },
+  "fixtures_dir_digest": "sha256:e94c217cd9ba715fd934f567bc76b375ed60be4891322777d8f4d0c52297f5a6",
+  "features_enabled": [
+    "aitp-pinned-admission",
+    "aitp-self-attestation"
+  ],
+  "results": [
+    {
+      "id": "del-001",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "duration_ms": 2
+    },
+    {
+      "id": "del-002",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "DELEGATION_SOURCE_TCT_REVOKED",
+      "duration_ms": 3
+    },
+    {
+      "id": "del-003",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "DELEGATION_SCOPE_EXCEEDED",
+      "duration_ms": 4
+    },
+    {
+      "id": "del-004",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": false,
+      "outcome": "pass",
+      "error_code": "DELEGATION_MULTIHOP_NOT_SUPPORTED",
+      "duration_ms": 5
+    },
+    {
+      "id": "del-005",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "DELEGATION_INVALID_VOUCHER",
+      "duration_ms": 6
+    },
+    {
+      "id": "del-006",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "DELEGATION_INVALID_VOUCHER",
+      "duration_ms": 7
+    },
+    {
+      "id": "del-007",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "DELEGATION_MULTIHOP_NOT_SUPPORTED",
+      "duration_ms": 8
+    },
+    {
+      "id": "del-008",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "REVOCATION_SNAPSHOT_SIGNATURE_INVALID",
+      "duration_ms": 2
+    },
+    {
+      "id": "env-001",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "TIMESTAMP_EXPIRED",
+      "duration_ms": 3
+    },
+    {
+      "id": "env-002",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "POLICY_VIOLATION",
+      "duration_ms": 4
+    },
+    {
+      "id": "env-003",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "KEY_RESOLUTION_FAILED",
+      "duration_ms": 5
+    },
+    {
+      "id": "env-004",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "duration_ms": 6
+    },
+    {
+      "id": "env-005",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "duration_ms": 7
+    },
+    {
+      "id": "env-006",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "UNKNOWN_FIELD",
+      "duration_ms": 8
+    },
+    {
+      "id": "env-007",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "duration_ms": 2
+    },
+    {
+      "id": "env-008",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "INVALID_SIGNATURE",
+      "duration_ms": 3
+    },
+    {
+      "id": "env-009",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "INVALID_SIGNATURE",
+      "duration_ms": 4
+    },
+    {
+      "id": "env-010",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "UNKNOWN_VERSION",
+      "duration_ms": 5
+    },
+    {
+      "id": "env-011",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "UNKNOWN_VERSION",
+      "duration_ms": 6
+    },
+    {
+      "id": "id-001",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "IDENTITY_FAILED",
+      "duration_ms": 7
+    },
+    {
+      "id": "id-002",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "IDENTITY_FAILED",
+      "duration_ms": 8
+    },
+    {
+      "id": "id-003",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "IDENTITY_FAILED",
+      "duration_ms": 2
+    },
+    {
+      "id": "id-004",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "IDENTITY_FAILED",
+      "duration_ms": 3
+    },
+    {
+      "id": "id-005",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "IDENTITY_FAILED",
+      "duration_ms": 4
+    },
+    {
+      "id": "id-006",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "IDENTITY_FAILED",
+      "duration_ms": 5
+    },
+    {
+      "id": "id-007",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "IDENTITY_FAILED",
+      "duration_ms": 6
+    },
+    {
+      "id": "id-008",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "IDENTITY_FAILED",
+      "duration_ms": 7
+    },
+    {
+      "id": "id-009",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "duration_ms": 8
+    },
+    {
+      "id": "id-010",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "duration_ms": 2
+    },
+    {
+      "id": "id-011",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "IDENTITY_FAILED",
+      "duration_ms": 3
+    },
+    {
+      "id": "id-011b",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "IDENTITY_FAILED",
+      "duration_ms": 4
+    },
+    {
+      "id": "id-012",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "IDENTITY_FAILED",
+      "duration_ms": 5
+    },
+    {
+      "id": "id-017",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "duration_ms": 6
+    },
+    {
+      "id": "id-018",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "IDENTITY_FAILED",
+      "duration_ms": 7
+    },
+    {
+      "id": "id-023",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "duration_ms": 8
+    },
+    {
+      "id": "man-001",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "MANIFEST_EXPIRED",
+      "duration_ms": 2
+    },
+    {
+      "id": "man-002",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "MANIFEST_VERSION_UNKNOWN",
+      "duration_ms": 3
+    },
+    {
+      "id": "man-003",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "MANIFEST_EXPIRED",
+      "duration_ms": 4
+    },
+    {
+      "id": "man-004",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "UNKNOWN_FIELD",
+      "duration_ms": 5
+    },
+    {
+      "id": "man-005",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "duration_ms": 6
+    },
+    {
+      "id": "man-006",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "MANIFEST_INVALID",
+      "duration_ms": 7
+    },
+    {
+      "id": "man-007",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "MANIFEST_INVALID",
+      "duration_ms": 8
+    },
+    {
+      "id": "mh-001",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "duration_ms": 2
+    },
+    {
+      "id": "mh-002",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "MANIFEST_SIGNATURE_INVALID",
+      "duration_ms": 3
+    },
+    {
+      "id": "mh-003",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "MANIFEST_POP_FAILED",
+      "duration_ms": 4
+    },
+    {
+      "id": "mh-004",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "INCOMPATIBLE_TRUST_ANCHORS",
+      "duration_ms": 5
+    },
+    {
+      "id": "mh-005",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "NONCE_MISMATCH",
+      "duration_ms": 6
+    },
+    {
+      "id": "mh-006",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "AUDIENCE_MISMATCH",
+      "duration_ms": 7
+    },
+    {
+      "id": "mh-007",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "GRANT_OVERFLOW",
+      "duration_ms": 8
+    },
+    {
+      "id": "mh-008",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "POP_VERIFICATION_FAILED",
+      "duration_ms": 2
+    },
+    {
+      "id": "mh-009",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "IDENTITY_FAILED",
+      "duration_ms": 3
+    },
+    {
+      "id": "mh-success-001",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "duration_ms": 4
+    },
+    {
+      "id": "rev-001",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "TCT_REVOKED",
+      "duration_ms": 5
+    },
+    {
+      "id": "rev-002",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "duration_ms": 6
+    },
+    {
+      "id": "rev-003",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "duration_ms": 7
+    },
+    {
+      "id": "rev-004",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "TCT_SIGNATURE_INVALID",
+      "duration_ms": 8
+    },
+    {
+      "id": "rev-005",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "UNKNOWN_FIELD",
+      "duration_ms": 2
+    },
+    {
+      "id": "rev-006",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "duration_ms": 3
+    },
+    {
+      "id": "rev-007",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "REVOCATION_SNAPSHOT_INVALID",
+      "duration_ms": 4
+    },
+    {
+      "id": "rev-008",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "REVOCATION_SNAPSHOT_SIGNATURE_INVALID",
+      "duration_ms": 5
+    },
+    {
+      "id": "rev-009",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "duration_ms": 6
+    },
+    {
+      "id": "rev-010",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "REVOCATION_SNAPSHOT_INVALID",
+      "duration_ms": 7
+    },
+    {
+      "id": "rev-011",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "TCT_REVOKED",
+      "duration_ms": 8
+    },
+    {
+      "id": "tct-002",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "TCT_EXPIRED",
+      "duration_ms": 2
+    },
+    {
+      "id": "tct-003",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "TCT_SIGNATURE_INVALID",
+      "duration_ms": 3
+    },
+    {
+      "id": "tct-004",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "TCT_REVOKED",
+      "duration_ms": 4
+    },
+    {
+      "id": "tct-005",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "TCT_EXPIRES_AFTER_MANIFEST",
+      "duration_ms": 5
+    },
+    {
+      "id": "tct-006",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "duration_ms": 6
+    },
+    {
+      "id": "tct-007",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "duration_ms": 7
+    },
+    {
+      "id": "tct-008",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "TOKEN_ALG_MISMATCH",
+      "duration_ms": 8
+    },
+    {
+      "id": "tct-009",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "TOKEN_ALG_MISMATCH",
+      "duration_ms": 2
+    },
+    {
+      "id": "tct-010",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "TOKEN_TYP_MISMATCH",
+      "duration_ms": 3
+    },
+    {
+      "id": "tct-011",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "UNKNOWN_FIELD",
+      "duration_ms": 4
+    },
+    {
+      "id": "tct-012",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "duration_ms": 5
+    },
+    {
+      "id": "tct-013",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "TCT_SIGNATURE_INVALID",
+      "duration_ms": 6
+    },
+    {
+      "id": "tct-014",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "TCT_SIGNATURE_INVALID",
+      "duration_ms": 7
+    },
+    {
+      "id": "tct-015",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "TCT_SIGNATURE_INVALID",
+      "duration_ms": 8
+    },
+    {
+      "id": "tct-016",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "TCT_SIGNATURE_INVALID",
+      "duration_ms": 2
+    },
+    {
+      "id": "tct-017",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "TCT_SIGNATURE_INVALID",
+      "duration_ms": 3
+    },
+    {
+      "id": "tct-018",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "TCT_SIGNATURE_INVALID",
+      "duration_ms": 4
+    },
+    {
+      "id": "tct-022",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "TCT_REVOKED",
+      "duration_ms": 5
+    },
+    {
+      "id": "tct-023",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "duration_ms": 6
+    },
+    {
+      "id": "tct-024",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "TCT_REVOKED",
+      "duration_ms": 7
+    },
+    {
+      "id": "tct-025",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "duration_ms": 8
+    },
+    {
+      "id": "vch-001",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "duration_ms": 2
+    },
+    {
+      "id": "vch-002",
+      "status": "core",
+      "feature": null,
+      "required_for_v0_2": true,
+      "outcome": "pass",
+      "error_code": "DELEGATION_EXPIRED",
+      "duration_ms": 3
+    },
+    {
+      "id": "id-013",
+      "status": "extension",
+      "feature": "aitp-pinned-admission",
+      "required_for_v0_2": false,
+      "outcome": "pass",
+      "duration_ms": 4
+    },
+    {
+      "id": "id-014",
+      "status": "extension",
+      "feature": "aitp-pinned-admission",
+      "required_for_v0_2": false,
+      "outcome": "pass",
+      "error_code": "IDENTITY_FAILED",
+      "duration_ms": 5
+    },
+    {
+      "id": "id-015",
+      "status": "extension",
+      "feature": "aitp-pinned-admission",
+      "required_for_v0_2": false,
+      "outcome": "pass",
+      "error_code": "INVALID_ENVELOPE",
+      "duration_ms": 6
+    },
+    {
+      "id": "id-016",
+      "status": "extension",
+      "feature": "aitp-pinned-admission",
+      "required_for_v0_2": false,
+      "outcome": "pass",
+      "duration_ms": 7
+    },
+    {
+      "id": "id-019",
+      "status": "extension",
+      "feature": "aitp-pinned-admission",
+      "required_for_v0_2": false,
+      "outcome": "pass",
+      "duration_ms": 8
+    },
+    {
+      "id": "id-020",
+      "status": "extension",
+      "feature": "aitp-pinned-admission",
+      "required_for_v0_2": false,
+      "outcome": "pass",
+      "error_code": "IDENTITY_FAILED",
+      "duration_ms": 2
+    },
+    {
+      "id": "id-021",
+      "status": "extension",
+      "feature": "aitp-pinned-admission",
+      "required_for_v0_2": false,
+      "outcome": "pass",
+      "error_code": "IDENTITY_FAILED",
+      "duration_ms": 3
+    },
+    {
+      "id": "id-022",
+      "status": "extension",
+      "feature": "aitp-pinned-admission",
+      "required_for_v0_2": false,
+      "outcome": "pass",
+      "duration_ms": 4
+    },
+    {
+      "id": "tct-019",
+      "status": "extension",
+      "feature": "aitp-self-attestation",
+      "required_for_v0_2": false,
+      "outcome": "pass",
+      "error_code": "TCT_SIGNATURE_INVALID",
+      "duration_ms": 5
+    },
+    {
+      "id": "tct-020",
+      "status": "extension",
+      "feature": "aitp-self-attestation",
+      "required_for_v0_2": false,
+      "outcome": "pass",
+      "duration_ms": 6
+    },
+    {
+      "id": "tct-021",
+      "status": "extension",
+      "feature": "aitp-self-attestation",
+      "required_for_v0_2": false,
+      "outcome": "pass",
+      "error_code": "TCT_SIGNATURE_INVALID",
+      "duration_ms": 7
+    },
+    {
+      "id": "bundle-001",
+      "status": "draft",
+      "feature": "experimental-session-bundle",
+      "required_for_v0_2": false,
+      "outcome": "skip",
+      "reason": "non-core fixture (status=draft); requires feature `experimental-session-bundle`"
+    },
+    {
+      "id": "bundle-002",
+      "status": "draft",
+      "feature": "experimental-session-bundle",
+      "required_for_v0_2": false,
+      "outcome": "skip",
+      "reason": "non-core fixture (status=draft); requires feature `experimental-session-bundle`"
+    },
+    {
+      "id": "bundle-003",
+      "status": "draft",
+      "feature": "experimental-session-bundle",
+      "required_for_v0_2": false,
+      "outcome": "skip",
+      "reason": "non-core fixture (status=draft); requires feature `experimental-session-bundle`"
+    },
+    {
+      "id": "bundle-004-signature-sibling-rejected",
+      "status": "draft",
+      "feature": "experimental-session-bundle",
+      "required_for_v0_2": false,
+      "outcome": "skip",
+      "reason": "non-core fixture (status=draft); requires feature `experimental-session-bundle`"
+    },
+    {
+      "id": "bundle-005-extensions-accepted",
+      "status": "draft",
+      "feature": "experimental-session-bundle",
+      "required_for_v0_2": false,
+      "outcome": "skip",
+      "reason": "non-core fixture (status=draft); requires feature `experimental-session-bundle`"
+    },
+    {
+      "id": "bundle-006-unknown-field-rejected",
+      "status": "draft",
+      "feature": "experimental-session-bundle",
+      "required_for_v0_2": false,
+      "outcome": "skip",
+      "reason": "non-core fixture (status=draft); requires feature `experimental-session-bundle`"
+    },
+    {
+      "id": "bundle-007",
+      "status": "draft",
+      "feature": "experimental-session-bundle",
+      "required_for_v0_2": false,
+      "outcome": "skip",
+      "reason": "non-core fixture (status=draft); requires feature `experimental-session-bundle`"
+    },
+    {
+      "id": "bundle-008",
+      "status": "draft",
+      "feature": "experimental-session-bundle",
+      "required_for_v0_2": false,
+      "outcome": "skip",
+      "reason": "non-core fixture (status=draft); requires feature `experimental-session-bundle`"
+    },
+    {
+      "id": "del-mh-001",
+      "status": "draft",
+      "feature": "experimental-multihop-delegation",
+      "required_for_v0_2": false,
+      "outcome": "skip",
+      "reason": "non-core fixture (status=draft); requires feature `experimental-multihop-delegation`"
+    },
+    {
+      "id": "del-mh-002",
+      "status": "draft",
+      "feature": "experimental-multihop-delegation",
+      "required_for_v0_2": false,
+      "outcome": "skip",
+      "reason": "non-core fixture (status=draft); requires feature `experimental-multihop-delegation`"
+    },
+    {
+      "id": "del-mh-003",
+      "status": "draft",
+      "feature": "experimental-multihop-delegation",
+      "required_for_v0_2": false,
+      "outcome": "skip",
+      "reason": "non-core fixture (status=draft); requires feature `experimental-multihop-delegation`"
+    },
+    {
+      "id": "del-mh-004",
+      "status": "draft",
+      "feature": "experimental-multihop-delegation",
+      "required_for_v0_2": false,
+      "outcome": "skip",
+      "reason": "non-core fixture (status=draft); requires feature `experimental-multihop-delegation`"
+    },
+    {
+      "id": "del-mh-005",
+      "status": "draft",
+      "feature": "experimental-multihop-delegation",
+      "required_for_v0_2": false,
+      "outcome": "skip",
+      "reason": "non-core fixture (status=draft); requires feature `experimental-multihop-delegation`"
+    },
+    {
+      "id": "del-mh-006",
+      "status": "draft",
+      "feature": "experimental-multihop-delegation",
+      "required_for_v0_2": false,
+      "outcome": "skip",
+      "reason": "non-core fixture (status=draft); requires feature `experimental-multihop-delegation`"
+    }
+  ],
+  "totals": {
+    "core": {
+      "pass": 86,
+      "fail": 0,
+      "skip": 0,
+      "excluded_by_role": 0
+    },
+    "extension": {
+      "pass": 11,
+      "fail": 0,
+      "skip": 0,
+      "excluded_by_role": 0
+    },
+    "draft": {
+      "pass": 0,
+      "fail": 0,
+      "skip": 14,
+      "excluded_by_role": 0
+    }
+  },
+  "gates": [
+    {
+      "name": "AITP v0.3",
+      "passed": true,
+      "criteria": "core-required-all-pass"
+    },
+    {
+      "name": "AITP v0.3 pinned-admission",
+      "passed": true,
+      "criteria": "feature-all-pass"
+    },
+    {
+      "name": "AITP v0.3 self-attestation",
+      "passed": true,
+      "criteria": "feature-all-pass"
+    }
+  ],
+  "generated_at": "2026-10-24T12:00:00Z",
+  "provenance": {
+    "ci_run_url": "https://github.com/example/aitp-example/actions/runs/1"
+  }
+}
