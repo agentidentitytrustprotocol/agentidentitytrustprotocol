@@ -342,3 +342,54 @@ patch-level, no new signatures). It deserves its own review rather than riding a
   6. **Report version 1 carries fixture results only.** The core claim attests item 9 of RFC-AITP-0001 §10. The known-answer vectors (item 8) are not in the report. *Reversal trigger:* a runner reports known-answer results. They are then added as an optional field, which does not break version 1.
 - **Enforcement:** the schema rejects a gate that passed over a blocking result, along with a missing `spec.commit`. `scripts/check-conformance-report.py` recomputes the totals and gates, and with `--fixtures-dir` it also checks the digest and fixture coverage. `make validate` checks the sample reports in `schemas/conformance/reports/` against `scripts/report-validation-map.json`, in both directions.
 - **Blast radius if wrong:** low to medium. No wire byte or fixture changes. A format change costs one bump PR in each emitter (aitp-rs RS3.1, aitp-verifier-py VP3.1) and in the matrix generator (aitp-website WEB3.1).
+
+---
+
+## 2026-10-24 — Freeze the `aitp/0.3` wire until 1.0, with a security-fix exception only (S2.1)
+
+- **Decided by:** the owner, taking the adoption plan's S2.1 approach. Opus drafted the text and
+  settled the two points the plan left open (the prose/artifact direction and the
+  `required_for_v0_2` rename), both recorded below.
+- **Context:** before this entry the pre-1.0 policy allowed any protocol revision with a strict
+  cutover, so no adopter could rely on today's wire staying valid. RFC-AITP-0001 to
+  RFC-AITP-0009 are about to enter Review (S2.3), and a Review stage limits nothing about wire
+  changes on its own.
+- **Options:**
+  1. No changes at all to RFC-AITP-0001 to RFC-AITP-0009. This blocks additive identity types
+     and opt-in extension RFCs, which change no existing outcome.
+  2. Freeze the wire with no exception. Nobody believes a promise that leaves a security defect
+     unfixed.
+  3. Freeze the wire, allow additive and opt-in work, and except disclosed security fixes.
+- **Chosen:** option 3. [`VERSIONING.md` § What is frozen](../VERSIONING.md#what-is-frozen-aitp03-line)
+  lists what is frozen (signing inputs, message and field sets outside `extensions`, error codes
+  and their meanings, the `aitp/0.3` literal, the known-answer set with additions only, and the
+  schema validation outcome of every existing artifact) and what stays allowed (additive identity
+  types, opt-in extension RFCs, clarifications, new fixtures and vectors, schema refactors that
+  leave every existing fixture's outcome unchanged, and security fixes under `SECURITY.md` with a
+  strict cutover). Two points the plan did not settle:
+  - **Prose against pinned artifact.** A contradiction is settled toward the pinned bytes, with
+    an erratum note in the prose. Changing a pinned output is a wire change and is taken only as
+    a security fix.
+  - **`required_for_v0_2`.** Fixture metadata key names are frozen, with this key listed as the
+    one pending rename. It may be renamed once, to a name with no version label, together with
+    the aitp-rs and aitp-verifier-py runners and the conformance report schema. The rename is
+    not part of this change. A general "renames are allowed before 1.0" rule was rejected,
+    because it would leave every key open.
+- **Who classifies:** the maintainer, acting as shepherd under the `CHARTER.md` § Core Team
+  substitute (the S2.2 entry above), decides whether an erratum or a review comment is a
+  clarification or a wire change, and whether a wire change is a security fix. Once a Core Team
+  is seated, it decides. Each classification is recorded with the change (for the first review
+  window, in its disposition record).
+- **Reasoning:** freezing the wire and not the prose keeps the review useful: reviewers can
+  still get the text fixed, and implementers know the bytes will not move. The exception is
+  limited to what `SECURITY.md` already handles, so it does not become a general escape hatch.
+- **Consequences:** a non-security wire change found during review is deferred to 1.0 and
+  recorded as deferred. "New optional fields" outside `extensions` are no longer a
+  backward-compatible addition on this line. The fixture key rename, if taken, costs one
+  coordinated change across the spec and both runners.
+- **Reversal trigger:** a security fix only. A disclosed defect that cannot be fixed without a
+  wire change ships under `SECURITY.md` as a new `aitp/0.3.x` tag with an advisory and a strict
+  cutover, and the freeze otherwise stands. Nothing else lifts it before 1.0. A dual-accept
+  window for such a fix is reconsidered only once real deployments exist.
+- **Blast radius if wrong:** medium. The freeze binds the project, not code: if it proves too
+  tight, the cost is wire changes waiting for 1.0, not broken implementations.

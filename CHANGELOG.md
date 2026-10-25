@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### What is frozen on the `aitp/0.3` line
+
+**Change class.** Policy, docs. No RFC, schema, fixture or vector change, and no RFC version bump.
+
+**Changes.**
+- `VERSIONING.md` gains "What is frozen (aitp/0.3 line)". Until 1.0 the line makes no wire-breaking change to RFC-AITP-0001 to RFC-AITP-0009, except a disclosed security fix under `SECURITY.md`. Frozen: signing inputs, message and field sets outside `extensions`, error codes and their meanings, the `aitp/0.3` literal, the known-answer set (additions only) and the schema validation outcome of existing artifacts. Allowed: additive identity types, opt-in extension RFCs, clarifications, new fixtures and vectors, schema refactors that leave every existing fixture's outcome unchanged, and security fixes with a strict cutover. Each item cites its RFC section.
+- The same section says what is frozen in the conformance fixtures: fixture ids, expected outcomes and metadata key meanings. Metadata key names are frozen too, with `required_for_v0_2` listed as the one pending rename, to be made together with the runners and the report schema. The conformance report format is not frozen and changes through `report_version`.
+- A contradiction between prose and a pinned artifact is now settled toward the pinned bytes. A "new optional field" outside `extensions` is no longer a backward-compatible addition on this line. The strict-cutover text says it applies next to a security fix or to 1.0.
+- `governance/DECISIONS.md` records the freeze, who classifies a change (the maintainer as shepherd until a Core Team is seated) and its reversal trigger (a security fix only). `README.md` links to the section.
+
 ### Conformance report schema and badge criteria
 
 **Change class.** New non-wire schema, docs and CI. No wire byte, RFC, fixture or vector changes, and no RFC version bump. Runners that emit their own JSON need to switch to the report format (no users, so no transition period).

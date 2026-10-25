@@ -48,6 +48,8 @@ substance: the envelope signature covers the whole envelope (issue #87). See
 - **Backward-compatible addition** — minor RFC bump. New optional fields, new error codes, new identity types. Unknown JSON fields outside explicit `extensions` namespaces MUST be rejected with `UNKNOWN_FIELD`. Unknown keys *inside* `extensions` MUST be ignored. See RFC-AITP-0001 §7.
   For error codes, this class composes with [`registries/error-codes.md`](registries/error-codes.md)'s stability note ("new codes can be added without an RFC") rather than contradicting it: the registry note waives the need for a new RFC *document*, while this class governs how the `Version:` header moves on the existing RFCs whose normative text gains the code. One addition, two policies, different questions — no new document, minor bump.
 - **Breaking change** — major RFC bump and a new schema namespace. Migration notes required.
+  On the `aitp/0.3` line a breaking change is taken only as a security fix; see
+  [What is frozen](#what-is-frozen-aitp03-line).
 
 > **Pre-1.0 position mapping.** While the protocol literal is `aitp/0.M`, RFC document
 > versions stay in the `0.M.x` line. The **minor position is reserved for the protocol
@@ -61,6 +63,75 @@ substance: the envelope signature covers the whole envelope (issue #87). See
 > document inside protocol `aitp/0.3` — readable as a protocol break, and leaving document
 > versions permanently offset once `aitp/0.4` arrives. The `UNKNOWN_FIELD` addition is the
 > worked example: minor class, patch position.
+
+## What is frozen (aitp/0.3 line)
+
+From the first release that carries this section until 1.0, the `aitp/0.3` line makes
+**no wire-breaking change** to the surfaces RFC-AITP-0001 to RFC-AITP-0009 define. The only
+exception is a disclosed security fix handled under [SECURITY.md](SECURITY.md). This is a
+promise to implementers: an artifact that verifies (or fails, with a given code) today
+does the same under every later `aitp/0.3` release.
+
+The freeze covers the wire, not the prose. The RFCs keep moving through their lifecycle
+stages and can still be clarified. The "backward-incompatible changes remain possible"
+sentence in RFC-AITP-0001 §1 is narrowed by this section to the security exception. The
+change classes above still apply, within the limits below. In particular, a "new optional
+field" outside `extensions` is not a backward-compatible addition on this line, because a
+peer that does not know the field rejects it with `UNKNOWN_FIELD` (RFC-AITP-0001 §7).
+
+### Frozen
+
+| Surface | What does not change | Defined in |
+|---|---|---|
+| Signing inputs | The bytes every signature and proof covers: the envelope `sig_input_v2`, the JCS profile and its wrapper rule, the PoP signing input, the algorithm-tagged signature format, the compact-JWS input and header rules, and the signing primitive for each algorithm. | RFC-AITP-0001 §5.4, §5.4.1, §5.4.2, §5.4.3, §5.4.5, §5.4.6; RFC-AITP-0002 §3.1; RFC-AITP-0003 §6.1; RFC-AITP-0005 §7.1; RFC-AITP-0006 §6; RFC-AITP-0008 §1.5 |
+| Message and field sets outside `extensions` | The `message_type` values, and the members of every envelope, payload, Manifest, identity descriptor, revocation snapshot and JWS claims set. No member outside `extensions` / `ext` is added, removed, renamed, retyped or made REQUIRED. The reject-unknown-member rule and the ignore-inside-`extensions` rule stay as they are. | RFC-AITP-0001 §5.2, §7; RFC-AITP-0002 §1; RFC-AITP-0003 §3; RFC-AITP-0004 §3; RFC-AITP-0005 §2, §8.1; RFC-AITP-0006 §2; RFC-AITP-0008 §1.5 |
+| Error codes and their meanings | Every code in [`registries/error-codes.md`](registries/error-codes.md), its meaning, and which code a given failure returns, including each artifact's check order. | RFC-AITP-0001 §5.4, §5.7; RFC-AITP-0003 §10; RFC-AITP-0004 §6; RFC-AITP-0006 §4 |
+| The `aitp/0.3` literal | Its spelling, the fields that carry it (`version`, `ver`), and the rule that any other value is rejected with the artifact's unknown-version code before anything else is checked. | RFC-AITP-0001 §5.2, §7; RFC-AITP-0005 §2 |
+| The known-answer set | Additions only. No existing vector's output and no known-answer keypair changes. | RFC-AITP-0001 §10 (item 8); [`known-answer/README.md`](schemas/conformance/known-answer/README.md) Stability |
+| Schema validation outcomes | Every existing fixture and every committed artifact passes or fails the canonical JSON Schemas exactly as it does now. | RFC-AITP-0001 §10 (item 9), §11; [Fixture-input validation](schemas/conformance/README.md#fixture-input-validation) |
+
+A contradiction between the prose and a pinned artifact is settled **toward the pinned
+bytes**: the prose is corrected with an erratum note (the "prose wrong, artifact right"
+class above). The "artifact wrong, prose right" direction changes a pinned output, so on
+this line it is a wire change and is taken only as a security fix.
+
+### Allowed
+
+| Change | Condition | Defined in |
+|---|---|---|
+| Additive identity types | A new `IdentityDescriptor.type`, registered at `Proposed`. A peer that does not implement it already rejects it with `IDENTITY_FAILED`, so no existing outcome moves. | RFC-AITP-0002 §5; [`registries/identity-types.md`](registries/identity-types.md) |
+| Opt-in extension RFCs | New behaviour carried inside `extensions` / `ext` under registered keys, or a new draft RFC whose fixtures are gated on a named `feature`. Additive registry rows (extension keys, message types, capabilities, error codes) enter at `Proposed`, and are used only by the opt-in surface. None of them changes the outcome of an existing core fixture. | RFC-AITP-0012 §1, §1.1; RFC-AITP-0001 §7, §9, §10 (item 9) |
+| Clarifications | Editorial and clarification changes, including a "prose wrong, artifact right" erratum. | RFC-AITP-0002 §3.1 (the worked erratum); [Change classes](#change-classes) |
+| New fixtures and known-answer vectors | They pin behaviour the RFCs already require. | RFC-AITP-0001 §10 (items 8 and 9) |
+| Schema refactors | A canonical schema may be restructured, for example `aitp-identity.schema.json` taking a new identity type, when **every existing fixture's validation outcome is unchanged**. `$id` metadata follows the [Layers](#layers) rule. | RFC-AITP-0001 §10 (item 9); RFC-AITP-0002 §1 |
+| Security fixes | A disclosed fix for a defect against the threat model ships as a new `aitp/0.3.x` release tag with a published advisory and a strict cutover ([SECURITY.md](SECURITY.md#security-fixes-that-change-the-wire)). A dual-accept window is reconsidered only once real deployments exist. | RFC-AITP-0009 §1, §2 |
+
+Any other wire change waits for 1.0.
+
+### Conformance fixtures and reports
+
+- **Frozen:** each existing fixture's `id` and its `expected` outcome (that is the wire
+  freeze seen through the fixtures); the meaning of every fixture metadata key in
+  [`aitp-conformance-fixture.schema.json`](schemas/json/aitp-conformance-fixture.schema.json)
+  (`id`, `rfc`, `status`, `required_for_v0_1`, `required_for_v0_2`, `feature`, `dynamic`,
+  `dynamic_fields`); each existing fixture's `status` and core-tier flags (new fixtures may join a tier, but none leaves it or changes tier); and the three claim
+  strings of RFC-AITP-0001 §10.
+- **Metadata key names are frozen, with one listed exception.** `required_for_v0_2` marks
+  the `aitp/0.3` core tier, and its version label is stale. It is the one pending rename:
+  it may be renamed once, to a name with no version label, in one change made together
+  with the runners that read it by name (aitp-rs, aitp-verifier-py) and the conformance
+  report schema, which copies it. Its meaning and the fixtures it marks do not change. No
+  other metadata key is renamed on this line.
+- **Not frozen:** the [conformance report](docs/conformance-badge.md) format. It is not a
+  wire artifact, and it changes only by moving to a new `report_version`.
+
+### Who classifies a change
+
+Whether a change is a clarification or a wire change, and whether a wire change is a
+security fix, is decided by the maintainer acting as shepherd under the `CHARTER.md`
+§ Core Team substitute, or by the Core Team once one is seated. Each classification of
+a review comment or erratum is recorded with the change. The decision and its reversal
+trigger are in [`governance/DECISIONS.md`](governance/DECISIONS.md).
 
 ## Forward / backward compatibility
 
@@ -94,7 +165,9 @@ not implement `aitp/0.2`: it rejects an `aitp/0.2` artifact with that artifact's
 compatibility above for the others),
 before the member set or the signature is examined, even when its signature is valid
 (fixture env-011). Peers upgrade together; an `aitp/0.2` peer and an `aitp/0.3` peer
-do not interoperate.
+do not interoperate. Under the [freeze](#what-is-frozen-aitp03-line) no further
+revision boundary is planned before 1.0, so this strict cutover applies next either to a
+security fix on the `aitp/0.3` line or to the 1.0 revision.
 
 **What is unchanged.** Everything else: the compact-JWS profile and its header rules,
 the JCS embedded-signature profile for Manifests, revocation snapshots and session
