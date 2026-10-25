@@ -468,7 +468,7 @@ patch-level, no new signatures). It deserves its own review rather than riding a
 
 ## 2026-10-24 — `spiffe` is a new identity type at Proposed; `x509` stays Web PKI (S5.2, OQ-7)
 
-- **Status:** UNCONFIRMED (owner to confirm). Taken as the plan's default for OQ-7.
+- **Status:** CONFIRMED by the owner on 2026-10-25. Taken as the plan's default for OQ-7.
 - **Decided by:** Opus, implementing adoption-plan S5.2.
 - **Context:** SPIFFE workload identities (SVIDs) are the identity layer of most service-mesh and
   SPIRE deployments. RFC-AITP-0002 §5 reserved `x509` for an X.509 chain without saying which PKI.
@@ -490,7 +490,7 @@ patch-level, no new signatures). It deserves its own review rather than riding a
 
 ## 2026-10-24 — SPIFFE binding rules: the tightenings over the SPIFFE standards (S5.2)
 
-- **Status:** UNCONFIRMED (owner to confirm), together with OQ-7 above.
+- **Status:** DECIDED. The owner confirmed the type and naming (OQ-7) on 2026-10-25. These tightenings stand as Opus's call and can be reversed before the type leaves Proposed.
 - **Decided by:** Opus, implementing S5.2. The sources are the `spiffe/spiffe` standards at commit
   `49a9cbbc018c39ec6643ad3301632f9f4549258b`, re-read for this change.
 - **Chosen**, each marked **Tightening** in RFC-AITP-0002 §6:
@@ -521,7 +521,7 @@ patch-level, no new signatures). It deserves its own review rather than riding a
 
 ## 2026-10-24 — RFC-AITP-0005 §10.5: the issuer-side TCT check (issue #120)
 
-- **Status:** UNCONFIRMED (owner to confirm). RFC-AITP-0005 is in Review, so public review can
+- **Status:** CONFIRMED by the owner on 2026-10-25, including the MUST reject when neither PoP nor a channel binding exists. RFC-AITP-0005 is in Review, so public review can
   still change the text.
 - **Decided by:** Opus, resolving issue #120.
 - **Context:** A TCT is usually consumed by the peer that issued it: the subject presents it back
