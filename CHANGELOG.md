@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### OIDC trust-anchor check before any key fetch (RFC-AITP-0004 §5.1 step 6)
+
+**Change class.** Clarification (erratum) under the `aitp/0.3` freeze. It adds one allowed outcome for inputs that fail more than one check and changes no wire byte, schema, error code, existing fixture outcome or known-answer vector. RFC-AITP-0002 and RFC-AITP-0004 go from `0.3.2-draft` to `0.3.3-draft` and stay in Review.
+
+**Changes.**
+- RFC-AITP-0004 §5.1 step 6 now orders its checks: (1) descriptor shape and hint consistency, `IDENTITY_FAILED`; (2) for OIDC, the issuer is in the verifier's own `trust_anchors` before any key material is resolved or fetched (SHOULD), else `INCOMPATIBLE_TRUST_ANCHORS`; (3) key resolution and proof verification, `IDENTITY_FAILED`. Read literally, the old text verified the proof, which needs the issuer's keys, before the step 8 trust-anchor check. The change lets a verifier avoid fetching key material from untrusted issuers.
+- When the issuer is untrusted and check 3, step 7 or step 8 also fails, either `INCOMPATIBLE_TRUST_ANCHORS` or the strict-order code is conformant. The allowance never reaches check 1 or steps 1 to 5. §5.2 step 6 applies the same order, and the §6 failure table notes the early check.
+- RFC-AITP-0002 §2.3 says that step 9 (trust anchors) SHOULD run before step 1 (key resolution) and cross-references RFC-AITP-0004 §5.1 step 6.
+- Conformance README, "Receiver policy inputs": when a fixture states no `self_trust_anchors`, only the runner-minted OIDC test issuer `https://auth.openai.com` is trusted. A new authoring rule says a fixture MUST NOT combine an untrusted OIDC issuer with a failure from check 3, step 7 or step 8. `PLACEHOLDERS.md` names the test issuer. Every existing fixture already meets the rule: `mh-004` has the untrusted issuer as its only failure, and `id-011b` pairs its untrusted issuer with a check 1 failure, so it stays `IDENTITY_FAILED`.
+- `governance/DECISIONS.md` records the decision.
+
 ### Check-order fixture `mh-014` (RFC-AITP-0004 §5.1 step 6 before step 8)
 
 **Change class.** New fixture under the `aitp/0.3` freeze. It pins the check order RFC-AITP-0004 §5.1 already makes explicit. No RFC text, schema, error code, existing fixture outcome or known-answer vector changes.
