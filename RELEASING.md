@@ -62,7 +62,7 @@ timestamped name. Never attach its output to a release.
 ## Override `RELEASE_VERSION`
 
 `RELEASE_VERSION` only sets the archive's file name. It defaults to the
-current protocol revision's release label, `v0.3.1-draft`. To produce an archive with a
+current protocol revision's release label, `v0.3.2-draft`. To produce an archive with a
 different label:
 
 ```sh

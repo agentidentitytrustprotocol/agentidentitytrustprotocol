@@ -44,6 +44,10 @@ All repositories live in the [`agentidentitytrustprotocol`](https://github.com/a
 | Try the protocol end to end | [playground getting started](https://github.com/agentidentitytrustprotocol/aitp-playground/blob/main/docs/getting-started.md) · [scenarios](https://github.com/agentidentitytrustprotocol/aitp-playground/blob/main/docs/scenarios.md) |
 | Give an AI agent access to the spec | [aitp-docs client setup](https://github.com/agentidentitytrustprotocol/aitp-docs/blob/main/docs/clients.md) |
 
+## Schema namespace
+
+Every canonical JSON Schema's `$id` lives under `https://agentidentitytrustprotocol.io/schema/v0.3/`. The host is the project domain `agentidentitytrustprotocol.io`, which the project owns; `aitp-website` serves it. The `$id` is an identifier: no part of the spec dereferences it, and a validator never needs to fetch it. The site serves each schema at its `$id` URL as a convenience; the canonical copy is `schemas/json/` at a `schema-vX.Y.Z` tag. No other host is an AITP schema namespace.
+
 ## Link convention for this repository
 
 - Links **within** this repository are relative.

@@ -1,6 +1,6 @@
 # Agent Identity & Trust Protocol (AITP)
 
-**Version:** 0.3.1-draft
+**Version:** 0.3.2-draft
 **Status:** Community Standards Track (Draft)
 **Canonical wire format:** JSON
 **Normative transport:** HTTPS
@@ -188,7 +188,7 @@ There is no service-consumer conformance target. AITP is peer-to-peer.
 ## Maintenance posture
 
 - **Status:** maintained, single maintainer, best-effort. Until a Core Team is seated, the repository maintainer acts in its place for editorial and registry matters (see [governance/CHARTER.md § Core Team](governance/CHARTER.md#core-team)); substantive RFC changes still go through the [RFC process](governance/RFC-PROCESS.md), not one person's judgment alone.
-- **What's stable vs. not:** `aitp/0.3` is the current revision; its latest tags are `v0.3.1-draft` / `schema-v0.3.1` (first tagged `v0.3.0-draft` / `schema-v0.3.0`), and aitp-rs 0.19.0 and aitp-verifier-py both pass its conformance suite. The previous revision is frozen: the v0.2 line ends at commit `f9ee7ea`, tagged `v0.2.1-draft` / `schema-v0.2.1` (`v0.2.0-draft` and `schema-v0.2.0` point at an earlier v0.2 line commit). `aitp/0.3` is a strict cutover with one breaking change, the envelope signing input — see [`VERSIONING.md`](VERSIONING.md) for the migration notes. On the [RFC status ladder](governance/RFC-PROCESS.md#rfc-lifecycle), RFCs 0001–0011 are `Draft` (0010 and 0011 opt-in, outside v0.3 core conformance), RFC-AITP-0012 is `Reserved`, and RFC-AITP-0013 is `Planned` — the [RFC index](rfcs/README.md) is the authoritative per-RFC table. Nothing in the v0.2 line or in `aitp/0.3` has reached Release Candidate (the earlier v0.1 line did, at `0.1.0-rc.3`).
+- **What's stable vs. not:** `aitp/0.3` is the current revision; its latest tags are `v0.3.2-draft` / `schema-v0.3.2` (first tagged `v0.3.0-draft` / `schema-v0.3.0`). aitp-rs 0.19.0 and aitp-verifier-py fail only fixture tct-024 of its conformance suite (added in `v0.3.2-draft`; both still accept its token). The previous revision is frozen: the v0.2 line ends at commit `f9ee7ea`, tagged `v0.2.1-draft` / `schema-v0.2.1` (`v0.2.0-draft` and `schema-v0.2.0` point at an earlier v0.2 line commit). `aitp/0.3` is a strict cutover with one breaking change, the envelope signing input — see [`VERSIONING.md`](VERSIONING.md) for the migration notes. On the [RFC status ladder](governance/RFC-PROCESS.md#rfc-lifecycle), RFCs 0001–0011 are `Draft` (0010 and 0011 opt-in, outside v0.3 core conformance), RFC-AITP-0012 is `Reserved`, and RFC-AITP-0013 is `Planned` — the [RFC index](rfcs/README.md) is the authoritative per-RFC table. Nothing in the v0.2 line or in `aitp/0.3` has reached Release Candidate (the earlier v0.1 line did, at `0.1.0-rc.3`).
 - **Cadence:** best-effort, driven by need. Changes land when a consumer needs them, not on a fixed schedule.
 
 ---
@@ -213,7 +213,7 @@ Reserved namespaces (see [registries/capabilities.md](registries/capabilities.md
 ## Compatibility model
 
 - **Protocol version** governs the envelope (`version: aitp/0.3`).
-- **JSON Schema namespace** governs canonical schema compatibility (`https://aitp.dev/schema/v0.3/`).
+- **JSON Schema namespace** governs canonical schema compatibility (`https://agentidentitytrustprotocol.io/schema/v0.3/`; the host is the project domain, see [docs/ecosystem.md](docs/ecosystem.md#schema-namespace)).
 - **TCT version** governs the canonical token contract.
 - **Manifest version** governs the agent self-description format.
 

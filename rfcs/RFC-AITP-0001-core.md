@@ -2,7 +2,7 @@
 # Agent Identity & Trust Protocol (AITP) — Core
 
 **Document:** RFC-AITP-0001
-**Version:** 0.3.2-draft
+**Version:** 0.3.3-draft
 **Status:** Community Standards Track (Draft)
 **Canonical wire format:** JSON
 **Normative transport:** HTTPS (any HTTP/1.1+ runtime)
@@ -636,7 +636,7 @@ There is no separate "protocol capability" object in v0.3. Implementations eithe
 AITP uses a layered compatibility model:
 
 - **Protocol version** governs envelope and base behavior (`version` field on JCS-profile objects, `ver` claim on JWS-profile artifacts; `aitp/0.3` for this RFC).
-- **JSON Schema namespace** governs canonical schema compatibility (the `$id` URIs under `https://aitp.dev/schema/v0.3/`).
+- **JSON Schema namespace** governs canonical schema compatibility (the `$id` URIs under `https://agentidentitytrustprotocol.io/schema/v0.3/`).
 - **TCT version** governs the canonical token contract (the `ver` claim).
 - **Manifest version** governs the agent self-description format.
 

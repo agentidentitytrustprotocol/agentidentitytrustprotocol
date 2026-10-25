@@ -45,6 +45,10 @@
 #   9. Threat-model index coverage — docs/threat-model.md cites every
 #      RFC-AITP-0009 §1.N threat heading, and its "Known limitations" table
 #      has one row per row of RFC-AITP-0009 §2.
+#  10. Retired schema host — no tracked file except CHANGELOG.md names
+#      `aitp[.]dev`, the schema namespace host retired in v0.3.2-draft
+#      (written defanged in this file so it passes its own check). The
+#      namespace is https://agentidentitytrustprotocol.io/schema/v0.3/.
 #
 #   Stage 1 also checks that README.md's `**Version:**` header names the
 #   newest release heading in CHANGELOG.md.
@@ -1157,9 +1161,48 @@ then
 fi
 echo
 
+# ── 10. Retired schema host (aitp[.]dev) ─────────────────────────────────
+echo "── Retired schema host (no \`aitp[.]dev\` outside CHANGELOG.md) ──"
+
+# The schema `$id` namespace moved from aitp[.]dev, a domain the project does
+# not own, to https://agentidentitytrustprotocol.io/schema/v0.3/ in
+# v0.3.2-draft. CHANGELOG.md is the one file allowed to name the old host,
+# because it records the move. Every other tracked file (schemas, RFCs,
+# docs, scripts, workflows) is scanned, binary files skipped.
+if ! python3 - "$ROOT" <<'PYEOF'
+import os, re, sys
+import doccheck
+
+root = sys.argv[1]
+HOST = "aitp" + ".dev"  # split so this file does not name the host itself
+pattern = re.compile(re.escape(HOST) + r'\b', re.IGNORECASE)
+problems = []
+scanned = 0
+for rel in doccheck.files(root):
+    if rel == "CHANGELOG.md":
+        continue
+    try:
+        with open(os.path.join(root, rel), encoding="utf-8") as fh:
+            lines = fh.read().split("\n")
+    except (UnicodeDecodeError, IsADirectoryError, FileNotFoundError):
+        continue
+    scanned += 1
+    for n, line in enumerate(lines, 1):
+        if pattern.search(line):
+            problems.append(f"    ✗ {rel}:{n}: names the retired schema host `{HOST}`")
+if problems:
+    print("\n".join(problems))
+    sys.exit(1)
+print(f"    ✓ {scanned} tracked text file(s) outside CHANGELOG.md; none names `{HOST}`")
+PYEOF
+then
+    FAIL=1
+fi
+echo
+
 echo "─────────────────────────────────────"
 if [ "$FAIL" -ne 0 ]; then
     echo "✗ Documentation coherence checks failed"
     exit 1
 fi
-echo "✓ Documentation is coherent (versions, anchors, section citations, fixture error codes, mirrored schema definitions, the RFC status ladder, stale vocabulary, sibling-link form, and the threat-model index)"
+echo "✓ Documentation is coherent (versions, anchors, section citations, fixture error codes, mirrored schema definitions, the RFC status ladder, stale vocabulary, sibling-link form, the threat-model index, and the retired schema host)"
