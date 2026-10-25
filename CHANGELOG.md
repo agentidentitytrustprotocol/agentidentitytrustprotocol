@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### One spec-pin policy across consumers
+
+**Change class.** Project process + CI. No RFC, schema, fixture or vector change, and no RFC version bump.
+
+**Changes.**
+- `CONTRIBUTING.md` gains "Consuming the spec". A consumer pins the spec by full commit SHA in one committed file, and its blocking CI checks out that SHA. The pin is bumped only by `aitp-ci` `bump-spec-ref` through a held PR. A floating-`main` job is allowed only as a non-blocking canary.
+- `docs/ecosystem.md` gains "Spec consumers and their pins", which gives each consumer's SHA-pin file and bump mechanism: aitp-rs `tests/schemas/SPEC_VERSION`, aitp-verifier-py `SPEC_VERSION` (planned, VP1.1), aitp-docs `sources.lock.json` `sources.spec.sha` (bump planned, DOC1.1) and the TypeScript verifier `SPEC_VERSION` (planned).
+- `notify-spec-consumers.yml` also dispatches `spec-released` to aitp-verifier-py, and its token is scoped to both repos. Until VP1.1 adds the listener (`bump-spec.yml`), that dispatch is a no-op there.
+- `CONTRIBUTING.md` "Technical requirements" lists the doc-coherence stage for the retired schema namespace host.
+
 ## v0.3.2-draft (2026-10-24)
 
 Protocol revision `aitp/0.3`, unchanged on the wire. Tags: `v0.3.2-draft`, `schema-v0.3.2`. Moves the schema `$id` namespace to `https://agentidentitytrustprotocol.io/schema/v0.3/` (RFC-AITP-0001 at `0.3.3-draft`), adds fixtures tct-024 and tct-025 (no revocation source: the default policy rejects) and rev-011 (a snapshot signed by anyone but the token's issuer is discarded; RFC-AITP-0008 at `0.3.2-draft`), runs the independent Python known-answer recompute in `make validate`, and pins CI actions to commit SHAs. Reference implementations at release: aitp-rs 0.19.0 and aitp-verifier-py `b762f8c` pass rev-011 and fail only the new tct-024 (both accept its token); aitp-rs RS1.2 and aitp-verifier-py VP1.1 track the fix.

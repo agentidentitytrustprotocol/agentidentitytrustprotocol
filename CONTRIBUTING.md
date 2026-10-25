@@ -125,7 +125,8 @@ before an artifact is checked against its schema.
   error codes, mirrored schema definitions, the RFC status ladder, stale
   superseded-revision vocabulary in `docs/` and the README, sibling-repo link
   form (`blob/main` URLs; with sibling checkouts next to this one, linked
-  paths and anchors are verified too) and the threat-model index; the header
+  paths and anchors are verified too), the threat-model index and the
+  retired schema namespace host; the header
   of `scripts/check-doc-coherence.sh` is the authoritative description of
   what each stage enforces.
 - Run `make validate` before opening a PR; it runs every check above plus
@@ -134,6 +135,30 @@ before an artifact is checked against its schema.
   `make kat-independent` needs python-ecdsa:
   `python3 -m pip install --require-hashes -r scripts/requirements-kat.txt`.
 - Backward compatibility MUST be addressed explicitly in the PR description.
+
+## Consuming the spec
+
+This rule binds every repository in the project that tests against the spec
+(implementations, verifiers, the docs knowledge base). It is a project rule,
+not part of the protocol.
+
+- A consumer MUST pin the spec by full commit SHA in one committed file, and
+  its blocking CI MUST check out the spec at that SHA. A branch name or tag is
+  not a pin.
+- The pin MUST be bumped by the `aitp-ci` reusable workflow `bump-spec-ref`,
+  run from the consumer's `bump-spec.yml` on the `spec-released` dispatch that
+  [`notify-spec-consumers.yml`](.github/workflows/notify-spec-consumers.yml)
+  sends on every conformance-relevant push to `main`. The bump opens a held
+  PR: adopting a spec revision is a reviewed change, and that PR's CI runs the
+  new fixtures.
+- A job that checks out the spec's floating `main` is allowed only as a
+  non-blocking canary (for example a scheduled run, or a job that is not a
+  required check). It warns early that a spec change will break the
+  consumer, and it never turns the consumer's own PRs red.
+- A new consumer is added to `notify-spec-consumers.yml` and to the
+  consumer table in [`docs/ecosystem.md`](docs/ecosystem.md#spec-consumers-and-their-pins).
+  The `aitp-deps-bot` GitHub App must be installed on it, or the dispatch
+  fails.
 
 ## Style
 
