@@ -54,7 +54,7 @@ Every repository that tests against the spec pins it by commit SHA and adopts a 
 |---|---|---|---|
 | `aitp-rs` | `tests/schemas/SPEC_VERSION` | `bump-spec.yml` → `aitp-ci` `bump-spec-ref` (file mode) | yes |
 | `aitp-verifier-py` | `SPEC_VERSION` | `bump-spec.yml` → `bump-spec-ref` | yes |
-| `aitp-docs` | `sources.lock.json` (`sources.spec.sha`) | planned, DOC1.1 | not yet |
+| `aitp-docs` | `sources.config.json` (`sources.spec.pin`) | `bump-spec.yml` → `bump-spec-ref` (file mode) | yes |
 | `aitp-verifier-ts` | `SPEC_VERSION` | `bump-spec.yml` → `bump-spec-ref` | yes |
 
 A floating-`main` job, such as `aitp-verifier-py`'s daily scheduled run, is a non-blocking canary only. `aitp-website` is not a pinning consumer: it republishes on the `docs-updated` dispatch.
