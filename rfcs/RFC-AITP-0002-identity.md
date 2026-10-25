@@ -2,8 +2,8 @@
 # Identity Binding
 
 **Document:** RFC-AITP-0002
-**Version:** 0.3.0-draft
-**Status:** Community Standards Track (Draft)
+**Version:** 0.3.1-draft
+**Status:** Community Standards Track (Review)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md)
 
 ---

@@ -2,8 +2,8 @@
 # Security & Threat Model
 
 **Document:** RFC-AITP-0009
-**Version:** 0.3.1-draft
-**Status:** Community Standards Track (Draft)
+**Version:** 0.3.2-draft
+**Status:** Community Standards Track (Review)
 **Depends on:** All preceding RFCs.
 
 ---

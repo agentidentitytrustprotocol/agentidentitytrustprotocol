@@ -2,8 +2,8 @@
 # Single-Hop Delegation
 
 **Document:** RFC-AITP-0006
-**Version:** 0.3.1-draft
-**Status:** Community Standards Track (Draft)
+**Version:** 0.3.2-draft
+**Status:** Community Standards Track (Review)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md)
 
 ---

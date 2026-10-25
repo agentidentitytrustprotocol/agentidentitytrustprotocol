@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### RFC-AITP-0001 to RFC-AITP-0009 enter Review; public review opens
+
+**Change class.** Lifecycle, docs. No wire, schema, fixture or vector change.
+
+**Changes.**
+- RFC-AITP-0001 to RFC-AITP-0009 move from `Community Standards Track (Draft)` to `Community Standards Track (Review)`. Each takes a patch bump and keeps its `-draft` suffix, which changes only at Release Candidate: 0001 `0.3.4-draft`, 0002 `0.3.1-draft`, 0003 `0.3.1-draft`, 0004 `0.3.1-draft`, 0005 `0.3.1-draft`, 0006 `0.3.2-draft`, 0007 `0.3.1-draft`, 0008 `0.3.3-draft`, 0009 `0.3.2-draft`. RFC-AITP-0010 and RFC-AITP-0011 stay Draft (opt-in), RFC-AITP-0012 stays Reserved and RFC-AITP-0013 stays Planned.
+- The public review window opens on 2026-10-24 and closes no earlier than 2027-01-10, under the 30-day rule in `governance/RFC-PROCESS.md` (Review stage). The thread is [Public review: aitp/0.3 (RFC-AITP-0001–0009)](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/discussions/117). Security issues go through `SECURITY.md`, never the thread.
+- RFC-AITP-0001 §1 (status memo) says the document is in Review and that, with the wire frozen until 1.0, a backward-incompatible change can only be a security fix.
+- `scripts/check-doc-coherence.sh` `EXPECTED` moves 0001–0009 to `Review`. `README.md` (Status header and the stability note), `rfcs/README.md`, `CONTRIBUTING.md` and `docs/GLOSSARY.md` match and link the thread.
+
 ### Conformance core-tier key renamed to `required_for_core`
 
 **Change class.** Breaking (conformance metadata only). No wire, RFC or known-answer change; the one rename the freeze allowed.
