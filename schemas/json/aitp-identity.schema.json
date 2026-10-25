@@ -44,39 +44,58 @@
       "description": "Optional extension namespace per RFC-AITP-0001 §7 and RFC-AITP-0012. Unknown keys inside `extensions` MUST be ignored; unknown fields outside it are rejected by this schema."
     }
   },
-  "if": {
-    "properties": {
-      "type": {
-        "const": "oidc"
-      }
-    }
-  },
-  "then": {
-    "required": [
-      "issuer"
-    ],
-    "not": {
-      "required": [
-        "public_key"
-      ]
-    }
-  },
-  "else": {
-    "required": [
-      "public_key"
-    ],
-    "properties": {
-      "proof": {
-        "type": "string",
-        "pattern": "^((ed25519|p256)\\.)?[A-Za-z0-9_-]{86}$"
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "oidc"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "issuer"
+        ],
+        "not": {
+          "required": [
+            "public_key"
+          ]
+        }
       }
     },
-    "not": {
-      "required": [
-        "issuer"
-      ]
+    {
+      "if": {
+        "required": [
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "const": "pinned_key"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "public_key"
+        ],
+        "properties": {
+          "proof": {
+            "type": "string",
+            "pattern": "^((ed25519|p256)\\.)?[A-Za-z0-9_-]{86}$"
+          }
+        },
+        "not": {
+          "required": [
+            "issuer"
+          ]
+        }
+      }
     }
-  },
+  ],
   "additionalProperties": false,
   "examples": [
     {

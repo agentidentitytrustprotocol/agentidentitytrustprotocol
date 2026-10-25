@@ -180,28 +180,47 @@
           "pattern": "^[A-Za-z0-9_-]{43,44}$"
         }
       },
-      "if": {
-        "properties": {
-          "type": {
-            "const": "oidc"
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "oidc"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "issuer"
+            ],
+            "not": {
+              "required": [
+                "public_key"
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "pinned_key"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "public_key"
+            ]
           }
         }
-      },
-      "then": {
-        "required": [
-          "issuer"
-        ],
-        "not": {
-          "required": [
-            "public_key"
-          ]
-        }
-      },
-      "else": {
-        "required": [
-          "public_key"
-        ]
-      },
+      ],
       "additionalProperties": false
     }
   },
