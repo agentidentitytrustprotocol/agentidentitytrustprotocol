@@ -144,7 +144,18 @@ A fixture states the revocation state it tests through `input.issuer_revocation_
 - A fixture that supplies neither key is **not testing revocation**. Its expected outcome assumes every lookup it would make returns "not revoked", and the runner MUST evaluate it that way: it MUST NOT apply `revocation_policy.mode` to the missing snapshot, and it MUST NOT fail the fixture for an unreachable revocation endpoint. `del-001` and `del-mh-001` are examples.
 - The convention is per issuer. When a fixture supplies `revocation_snapshots` for some issuers but not others, every issuer it supplies no entry for is likewise not under test, and its lookups read "not revoked". Only the supplied entries are evaluated, including discarding them under RFC-AITP-0008 §1.5. So `del-mh-004` and `del-mh-006` fail only because of the one hop issuer whose snapshot they supply.
 - This is a fixture convention, not protocol behaviour. In a deployment an absent, unobtainable or discarded snapshot is handled by `revocation_policy.mode` (RFC-AITP-0008 §1.5, §3.1; RFC-AITP-0011 §6), and under `fail_closed` the token is rejected.
-- That behaviour is covered by the dedicated revocation fixtures: `rev-*`, `tct-004`, `tct-022`, `tct-023`, `del-002`, `del-008`, `del-mh-004` and `del-mh-006`. Each supplies the revocation input it tests.
+- That behaviour is covered by the dedicated revocation fixtures: `rev-*`, `tct-004`, `tct-022` to `tct-025`, `del-002`, `del-008`, `del-mh-004` and `del-mh-006`. Each supplies the revocation input it tests.
+
+`issuer_revocation_list` has these members:
+
+| Member | Meaning |
+|---|---|
+| `issuer` | The AID of the issuer whose revocation state the entry describes: the TCT's `iss`. |
+| `snapshot` | The issuer's signed revocation snapshot (`{"revocation_list": …, "signature": …}`, RFC-AITP-0008 §1.5), as the verifier obtained it. It is verified and, if it fails, discarded under §1.5. |
+| `available` | Boolean, default `true`. `false` states that the verifier has **no revocation source** for the issuer: no snapshot can be obtained at all, as for an issuer Manifest without `rfc-aitp-0008.revocation_list_uri` (RFC-AITP-0008 §1.4) or an unreachable endpoint. It is not an empty list. An entry with `available: false` MUST NOT carry `snapshot`. |
+| `fail_mode` | The verifier's `revocation_policy.mode` (RFC-AITP-0008 §3.1). When absent, the runner MUST run the verifier with its default revocation policy and MUST NOT set a mode; the expected outcome assumes the schema default, `fail_closed`. |
+
+`available: false` is the one way a fixture says "the source is unavailable". A missing key still means "not tested" (above), so a runner MUST NOT apply that convention when the key is present, and MUST NOT turn `available: false` into an empty snapshot. `tct-024` (no `fail_mode`, so the default: `TCT_REVOKED`) and `tct-025` (`fail_open`: success) use it. An implementation that reads an unavailable source as "nothing is revoked" passes `tct-025` and fails `tct-024`.
 
 ### Manifest inputs (`issuer_manifests`, `coordinator_manifest`)
 
@@ -380,13 +391,13 @@ The runner interface is implementation-defined.
 
 | Tier | Count | Required for v0.3 |
 |---|---|---|
-| `core` (`required_for_v0_2`) | 82 | ✅ Yes |
+| `core` (`required_for_v0_2`) | 84 | ✅ Yes |
 | `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (v0.1 runners only) |
 | `extension` — pinned-admission profile (RFC-AITP-0002 §3.4, `feature: aitp-pinned-admission`) | 8 | ❌ No (required of an implementation claiming the profile) |
 | `extension` — attestation verification (RFC-AITP-0005 §5.3, `feature: aitp-self-attestation`) | 3 | ❌ No (required of an implementation claiming the role) |
 | `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 8 | ❌ No |
 | `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 6 | ❌ No |
-| **Total** | **108** | |
+| **Total** | **110** | |
 
 Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A conformance runner for the current revision, `aitp/0.3`, MUST execute every `required_for_v0_2` core fixture (the key keeps its v0.2 name so existing runners keep working; for `aitp/0.3` it marks the core tier); `draft` and `extension` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
@@ -493,6 +504,8 @@ The rows marked *Pinned-admission* are `status: extension` under `feature: aitp-
 | `tct-021` | Extension (`aitp-self-attestation`): `kat-tct-002` presented to a relying party whose records do not show the issuer key as trusted at `iat` (`verify_attestation`) | failure: TCT_SIGNATURE_INVALID |
 | `tct-022` | Valid TCT checked against its issuer's snapshot, whose signature does not validate and which does not list the `jti`, under `fail_closed`: the snapshot is discarded and counts as absent (RFC-AITP-0008 §1.5, aitp-rs#271). Committed signed example and snapshot, signature bit flipped; nothing minted | failure: TCT_REVOKED |
 | `tct-023` | Same as `tct-022` under `fail_open`: the discarded snapshot counts as absent, the token is allowed and the condition logged | success |
+| `tct-024` | Valid TCT whose issuer has no revocation source (`issuer_revocation_list.available: false`), with no `fail_mode`, so the schema default `fail_closed` applies (RFC-AITP-0008 §1.4, §3.1). Committed signed example; nothing minted | failure: TCT_REVOKED |
+| `tct-025` | Same as `tct-024` with an explicit `fail_open`: the token is allowed and the condition logged | success |
 | `tct-017` | ES256 TCT whose signature is high-S (`S > n/2`): a stock JOSE verifier accepts it, an AITP verifier rejects it (RFC-AITP-0001 §5.4.7) | failure: TCT_SIGNATURE_INVALID |
 
 ### Grant voucher (RFC-AITP-0005 §8)
