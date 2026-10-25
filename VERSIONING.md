@@ -190,7 +190,7 @@ Downstream consumers pin to a specific tag and upgrade on their own schedule.
 `aitp/0.2` (it already carries the new envelope signing input, landed one step ahead of
 the literal). The existing `v0.2.0-draft` and `schema-v0.2.0` tags point at an earlier
 v0.2 line commit (`ea22c71`); `f9ee7ea` itself is tagged `v0.2.1-draft` and
-`schema-v0.2.1`. The first `aitp/0.3` tags are `v0.3.0-draft` and `schema-v0.3.0`; the latest are `v0.3.2-draft` and `schema-v0.3.2`.
+`schema-v0.2.1`. The first `aitp/0.3` tags are `v0.3.0-draft` and `schema-v0.3.0`; the latest are `v0.3.3-draft` and `schema-v0.3.3`.
 
 ## Status ladder
 

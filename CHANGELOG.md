@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.3.3-draft (2026-10-25)
+
+Protocol revision `aitp/0.3`, unchanged on the wire. Tags: `v0.3.3-draft`, `schema-v0.3.3`. The `aitp/0.3` freeze, and RFC-AITP-0001 to RFC-AITP-0009 entering Review with the public review open until at least 2027-01-10. Adds the `spiffe` identity type (RFC-AITP-0002 §6), the trust-anchors and conformance-report schemas with their badge criteria, RFC-AITP-0014 (A2A Agent Card security scheme, Draft) and the non-normative MCP mapping guide. Also includes clarifications and new fixtures under the freeze (issuer-side TCT check, OIDC trust-anchor check before any key fetch, JWT-SVID key and `alg` match, `INCOMPATIBLE_IDENTITY_TYPE`), and the security policy and governance gate. At release, three independent implementations pass every core fixture: aitp-rs, aitp-verifier-py 0.1.2 and aitp-verifier-ts 0.1.0.
+
 ### Handshake fixtures state the receiver's `self_aid`
 
 **Change class.** Fixture input only. No wire byte, RFC text, schema, error code, outcome or known-answer vector changes.
