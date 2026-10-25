@@ -1,9 +1,12 @@
 name: Notify spec consumers
 
 # On a conformance-relevant change to the spec, dispatch `spec-released {sha}`
-# to every repo that pins the spec by git SHA. Today that is aitp-rs (it pins
-# the spec in tests/schemas/SPEC_VERSION). aitp-verifier-py tracks the spec on
-# `main` (floating), so it is intentionally not notified.
+# to every repo that pins the spec by git SHA (CONTRIBUTING.md "Consuming the
+# spec"; the consumer table is in docs/ecosystem.md):
+#   - aitp-rs pins it in tests/schemas/SPEC_VERSION.
+#   - aitp-verifier-py pins it in SPEC_VERSION once VP1.1 lands its
+#     bump-spec.yml. Until then the dispatch reaches a repo with no listener
+#     and is a no-op; its floating-`main` cron stays as a non-blocking canary.
 #
 # The consumer's bump-spec.yml calls aitp-ci/bump-spec-ref, which opens a HELD
 # PR (never auto-merged): adopting a new spec is a deliberate review decision,
@@ -29,19 +32,27 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      - name: Mint GitHub App token (scoped to aitp-rs)
+      - name: Mint GitHub App token (scoped to the consumers)
         id: app
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
           app-id: ${{ secrets.AITP_BOT_APP_ID }}
           private-key: ${{ secrets.AITP_BOT_PRIVATE_KEY }}
           owner: agentidentitytrustprotocol
-          repositories: aitp-rs
+          repositories: aitp-rs,aitp-verifier-py
 
       - name: Dispatch spec-released to aitp-rs
         uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
         with:
           token: ${{ steps.app.outputs.token }}
           repository: agentidentitytrustprotocol/aitp-rs
+          event-type: spec-released
+          client-payload: '{"sha": "${{ github.sha }}"}'
+
+      - name: Dispatch spec-released to aitp-verifier-py
+        uses: peter-evans/repository-dispatch@28959ce8df70de7be546dd1250a005dd32156697 # v4.0.1
+        with:
+          token: ${{ steps.app.outputs.token }}
+          repository: agentidentitytrustprotocol/aitp-verifier-py
           event-type: spec-released
           client-payload: '{"sha": "${{ github.sha }}"}'

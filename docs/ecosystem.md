@@ -44,6 +44,19 @@ All repositories live in the [`agentidentitytrustprotocol`](https://github.com/a
 | Try the protocol end to end | [playground getting started](https://github.com/agentidentitytrustprotocol/aitp-playground/blob/main/docs/getting-started.md) · [scenarios](https://github.com/agentidentitytrustprotocol/aitp-playground/blob/main/docs/scenarios.md) |
 | Give an AI agent access to the spec | [aitp-docs client setup](https://github.com/agentidentitytrustprotocol/aitp-docs/blob/main/docs/clients.md) |
 
+## Spec consumers and their pins
+
+Every repository that tests against the spec pins it by commit SHA and adopts a new revision through a held bump PR; the rule is in [CONTRIBUTING.md](../CONTRIBUTING.md#consuming-the-spec). [`notify-spec-consumers.yml`](../.github/workflows/notify-spec-consumers.yml) dispatches `spec-released` to the consumers marked "dispatched".
+
+| Consumer | SHA-pin file | Bumped by | Dispatched |
+|---|---|---|---|
+| `aitp-rs` | `tests/schemas/SPEC_VERSION` | `bump-spec.yml` → `aitp-ci` `bump-spec-ref` (file mode) | yes |
+| `aitp-verifier-py` | `SPEC_VERSION` (planned, VP1.1; until then CI tracks floating `main`) | `bump-spec.yml` → `bump-spec-ref` (planned, VP1.1) | yes |
+| `aitp-docs` | `sources.lock.json` (`sources.spec.sha`) | planned, DOC1.1 | not yet |
+| TypeScript verifier (repository not yet created) | `SPEC_VERSION` (planned) | `bump-spec-ref` (planned) | not yet |
+
+A floating-`main` job, such as `aitp-verifier-py`'s daily scheduled run, is a non-blocking canary only. `aitp-website` is not a pinning consumer: it republishes on the `docs-updated` dispatch.
+
 ## Schema namespace
 
 Every canonical JSON Schema's `$id` lives under `https://agentidentitytrustprotocol.io/schema/v0.3/`. The host is the project domain `agentidentitytrustprotocol.io`, which the project owns; `aitp-website` serves it. The `$id` is an identifier: no part of the spec dereferences it, and a validator never needs to fetch it. The site serves each schema at its `$id` URL as a convenience; the canonical copy is `schemas/json/` at a `schema-vX.Y.Z` tag. No other host is an AITP schema namespace.
