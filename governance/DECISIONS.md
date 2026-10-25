@@ -203,3 +203,53 @@ patch-level, no new signatures). It deserves its own review rather than riding a
 - **v0.1 allow-list by in-line wording, not HTML comments.** docs/ is synced to MDX where `<!-- -->` breaks the build. Confirmed: `legacy` / `v0.1-frozen` / `v0.1 line` mark a mention as historical (scripts/check-doc-coherence.sh stage 7). Reversible in one regex.
 - **CODE_OF_CONDUCT contact is an interim.** No address exists and GitHub private reporting is disabled; the doc asks for a no-details contact-request issue and invents nothing. Confirmed as interim; a real address is the maintainer's to supply.
 - **README conformance profile names removed.** `aitp-a2a-peer` / `aitp-session-participant` / `aitp-full` were defined in no RFC; conformance is selected by fixture `feature` flags (RFC-AITP-0001 §10). Confirmed. Defining profiles would need the RFC process.
+
+---
+
+## 2026-10-24 — Revocation snapshots are per issuer; no third-party revocation authority in `aitp/0.3` (aitp-control-plane#153)
+
+- **Decided by:** the owner (OQ-6, 2026-10-24), taking the plan's recommended default.
+- **Context:** aitp-control-plane#153. The control plane signs one revocation list with its
+  own AID, but it issues no TCTs; the entries are for tokens other agents issued. RFC-AITP-0008
+  §1.5 (`rfcs/RFC-AITP-0008-revocation.md:112`, the **Verification** paragraph) requires a
+  verifier to discard a snapshot "if its signed `issuer` is not the issuing peer whose token is
+  being checked", and the §1.5 `issuer` row says the `issuer` MUST equal the `iss` of every TCT
+  the entries cover. A conformant verifier therefore discards the control plane's list for every
+  token and falls through to `revocation_policy.mode`. Under `fail_open` an operator's revocation
+  is silently ignored; under `fail_closed` every token is rejected.
+- **Options:**
+  1. Keep §1.5 as written: a snapshot is valid only for tokens its signer issued. Central
+     management becomes a relay, and each issuer signs its own list.
+  2. Add a delegated "revocation authority", named in the issuer Manifest or in the verifier's
+     trust anchors, whose list may cover other issuers' tokens.
+  3. Leave the question to the control plane's own docs.
+- **Chosen:** option 1. RFC-AITP-0008 §1.5 is unchanged. A snapshot is per issuer, and
+  `aitp/0.3` has no third-party revocation authority. RFC-AITP-0008 (0.3.2-draft) gains an
+  informative note saying so, and `docs/operational-guidance.md`
+  [Centralised revocation management](../docs/operational-guidance.md#centralised-revocation-management)
+  describes the relay pattern: the registry records intent with the token's `iss`, relays each
+  entry to its issuer, and each issuer signs and serves its own `ListRevoked`.
+- **Pinned by:** the new core fixture `rev-011-third-party-signed-list-discarded`. The committed
+  kat-keypair-001 TCT is checked against the committed kat-keypair-005-p256 snapshot, which is
+  fresh and correctly signed by its own (third-party) issuer and does not list the token. Under
+  `fail_closed` the expected outcome is `TCT_REVOKED`. No earlier fixture covered another
+  issuer's snapshot: `tct-022` and `del-mh-006` discard a snapshot for a bad signature, and
+  `rev-001` for staleness.
+- **Reasoning:** the issuer rule is what stops a compromised third party from un-revoking or
+  mass-revoking tokens it never issued. Option 2 is a new wire feature and a new trust root. It
+  needs an RFC, fixtures and an RFC-AITP-0009 threat-model entry, and it would land days before
+  the freeze. Option 3 is already failing: the control plane's `docs/api.md` tells relying
+  parties to pin the control plane's AID as the expected issuer, which is the non-conformant
+  arrangement #153 reports.
+- **Consequences:** an agent that issues TCTs but publishes no list has no revocation source, and
+  under the default `fail_closed` its TCTs are rejected (RFC-AITP-0008 §1.4, fixture `tct-024`).
+  The guidance says so plainly. Replicas of one issuer must sign with the same key and serve the
+  same entry set. The control plane's audit trail stays a record of intent, not an authority.
+  The control-plane side (relay, record `iss`, fix `docs/api.md`) is that repository's work.
+- **Reversal trigger:** a real deployment that cannot have each issuer publish its own list. A
+  delegated revocation authority then comes back as an opt-in extension RFC after the freeze,
+  with normative text, fixtures and a threat-model entry. It is a post-1.0 candidate, not a
+  change to §1.5.
+- **Blast radius if wrong:** low before the freeze, because nobody uses the protocol yet. After
+  the freeze the per-issuer rule is part of the frozen surface, and only an additive opt-in
+  extension can relax it.

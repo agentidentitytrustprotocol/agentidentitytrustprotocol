@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### RFC-AITP-0008: revocation snapshots are per issuer; no third-party revocation authority
+
+**Change class.** Clarification (non-normative) and fixture addition (core). RFC-AITP-0008 moves to `0.3.2-draft` for an informative note. No requirement, schema, registry or vector changes. §1.5 already discards a snapshot whose signed `issuer` is not the issuer of the token being checked. Decision recorded in `governance/DECISIONS.md` (OQ-6), prompted by aitp-control-plane#153.
+
+**Changes.**
+- RFC-AITP-0008 §1.5 (`0.3.2-draft`) gains an informative note after the **Verification** paragraph: a snapshot speaks only for its signer, `aitp/0.3` has no third-party revocation authority, and a list signed that way is discarded like any other.
+- `docs/operational-guidance.md` gains a non-normative section, "Centralised revocation management". A registry or control plane records revocations as intent and relays each entry to the issuer of the token, and each issuer signs and serves its own `ListRevoked`. It also says that an agent that issues TCTs but publishes no list has its TCTs rejected under `fail_closed` (`tct-024`), and that replicas of one issuer must sign with one key and serve one entry set.
+- **New fixture `rev-011-third-party-signed-list-discarded`** (`core`, expected `TCT_REVOKED`). The committed TCT `signed-examples/tct/kat-keypair-001-issues-002.json` is checked under `fail_closed` against the committed, unmodified snapshot `signed-examples/revocation/kat-keypair-005-snapshot.json`. That snapshot is fresh and verifies under its own signed `issuer` (kat-keypair-005-p256), which is not the TCT's `iss`, and it does not list the TCT's `jti`. A verifier that honours the list because its signature verifies accepts the token, and fails the fixture. Nothing is minted.
+- `scripts/verify-known-answer.mjs` (`EXPECTED_MIN_CHECKS` 170 → 171) and `scripts/recompute-known-answer-independent.py` (`EXPECTED_MIN_CHECKS` 238 → 244) both check the fixture against the committed examples, verify the snapshot under its own issuer, and check that this issuer is not the TCT's `iss` and that the `jti` is unlisted.
+- `scripts/fixture-validation-map.json` maps the token claims and the snapshot. `FIXTURE_INPUT_MIN_CHECKS` rises from 243 to 245.
+- `rfcs/README.md` records the RFC-AITP-0008 version.
+- Conformance index: `core` 84 → 85, total 110 → 111.
 ### Spec drift and CI hygiene
 
 **Change class.** Editorial + CI. No wire, schema, fixture or vector change.

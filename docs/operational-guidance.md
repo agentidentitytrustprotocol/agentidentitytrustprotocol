@@ -156,6 +156,51 @@ side-effect-free deny-list check may run earlier
 ([RFC-AITP-0008 §3.3](../rfcs/RFC-AITP-0008-revocation.md#33-revocation-lookup-ordering),
 fixture `rev-004`).
 
+### Centralised revocation management
+
+*Non-normative.* A revocation snapshot is valid only for tokens its signer
+issued. A verifier MUST discard a snapshot whose signed `issuer` is not the
+issuer of the token being checked
+([RFC-AITP-0008 §1.5](../rfcs/RFC-AITP-0008-revocation.md#15-signed-revocation-response)).
+`aitp/0.3` has no third-party revocation authority. A registry or control
+plane that signs one combined list with its own key does not revoke anything:
+every verifier discards that list for every other issuer's tokens, and under
+`fail_closed` it then rejects them all (fixture `rev-011`). The rule exists so
+that a compromised registry cannot un-revoke or mass-revoke tokens it never
+issued.
+
+To manage revocation from one place, make the registry a relay:
+
+1. An operator records the revocation at the registry. The record names the
+   token's `jti` and its issuer (`iss`).
+2. The registry relays the entry to that issuer, or the issuer fetches its own
+   entries from the registry.
+3. The issuer adds the `jti` to its own deny list, then signs and serves its
+   own `ListRevoked` snapshot at the URL its Manifest advertises
+   ([RFC-AITP-0008 §1.4](../rfcs/RFC-AITP-0008-revocation.md#14-distribution)).
+4. Verifiers poll each issuer, as for any other deployment. They never
+   consult the registry.
+
+Points to get right:
+
+- **The registry is a record of intent, not an authority.** Its audit trail
+  says who asked for what and when. Whether a token is revoked is what its
+  issuer's signed list says. A revocation is in force once the issuer
+  publishes it, and verifiers see it at their next poll, within
+  `max_staleness_secs` ([§3.2](../rfcs/RFC-AITP-0008-revocation.md#32-staleness)).
+- **Every issuer publishes a list.** Every peer that issues TCTs MUST serve
+  `ListRevoked` (RFC-AITP-0008 §1.4), and MUST sign it even when it is empty
+  (§1.5). An issuer with no list has no revocation source, and under the
+  default `fail_closed` every verifier rejects its TCTs with `TCT_REVOKED`
+  (fixture `tct-024`). Relaying through a registry does not change this: an
+  agent that issues tokens but publishes no list cannot have its tokens
+  accepted under `fail_closed`.
+- **Replicas of one issuer sign as one issuer.** Every replica that serves an
+  issuer's list signs it with that issuer's key and serves the same entry set.
+  A replica that serves fewer entries un-revokes the missing ones until the
+  next poll. A replica that signs with a different key is a different issuer,
+  and its list is discarded.
+
 ---
 
 ## Rate limiting and the handshake endpoint

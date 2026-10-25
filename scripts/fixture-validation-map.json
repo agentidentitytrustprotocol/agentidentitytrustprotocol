@@ -1305,6 +1305,20 @@
         }
       ]
     },
+    "rev-011": {
+      "artifacts": [
+        {
+          "pointer": "/input/tct_token_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/issuer_revocation_list/snapshot",
+          "schema": "aitp-revocation-list.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
     "tct-002": {
       "artifacts": [
         {
