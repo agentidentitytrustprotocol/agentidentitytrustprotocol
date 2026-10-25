@@ -564,8 +564,10 @@ patch-level, no new signatures). It deserves its own review rather than riding a
 
 ## 2026-10-24 — Conformance fixtures for `INCOMPATIBLE_IDENTITY_TYPE` (RFC-AITP-0004 §5.1 step 8)
 
-- **Status:** UNCONFIRMED (owner to confirm).
-- **Decided by:** Opus, while adding the first fixtures for the step 8 identity-type check.
+- **Status:** Decided. The check order (decision 4) was settled 2026-10-24: the RFC order is kept
+  and aitp-rs conforms.
+- **Decided by:** Opus for decisions 1 to 3, while adding the first fixtures for the step 8
+  identity-type check. Decision 4 by the coordinator, after aitp-rs PR #344 raised it.
 - **Context:** RFC-AITP-0004 §5.1 step 8 requires the receiver to reject a peer whose
   `identity.type` is not in its own `accepted_identity_types` (default `["oidc"]`). No fixture
   exercised the code, and no fixture input stated the receiver's own list: the only
@@ -583,19 +585,19 @@ patch-level, no new signatures). It deserves its own review rather than riding a
   3. **Tier: core.** The fixtures pin a MUST in a core RFC using the core identity types `oidc` and
      `pinned_key`, so a core implementation that fails them does not implement §5.1. VERSIONING.md
      allows new fixtures that pin required behaviour; new fixtures may join the core tier.
-  4. **No check-order fixture yet.** §5.1 says its numbered steps "make the order explicit",
-     and it verifies the identity proof at step 6, before policy at step 8. So when both fail,
-     the RFC's code is `IDENTITY_FAILED`. aitp-rs PR #344 runs the type check after the
-     descriptor and hint checks but before proof verification, which returns
-     `INCOMPATIBLE_IDENTITY_TYPE` in that case. A fixture pinning the RFC order would fail that
-     implementation, so it is left to the owner: either aitp-rs moves the check after proof
-     verification and an ordering fixture is added, or the order is reconsidered (it is frozen
-     under VERSIONING.md, "Error codes and their meanings"). Each fixture here has a
-     well-formed descriptor that matches its hint and a valid proof, so the identity type is
-     the only defect and both orders give the same code.
+  4. **Check order: the RFC order is kept, and aitp-rs conforms (`mh-014`).** §5.1 says its
+     numbered steps "make the order explicit", and it verifies the identity proof at step 6,
+     before policy at step 8. So when the proof and the type are both bad, the code is
+     `IDENTITY_FAILED`. aitp-rs PR #344 ran the type check before proof verification and
+     returned `INCOMPATIBLE_IDENTITY_TYPE` in that case; it moves its check after proof
+     verification. Reason: the order is frozen, and a type check before the proof would change
+     the error code, which is a wire change (VERSIONING.md, "Error codes and their meanings").
+     `mh-014` pins the order as a core fixture. Its descriptor is well-formed and matches its
+     hint, so only the proof and the type are bad. `mh-010` to `mh-013` have a valid proof, so
+     the identity type is their only defect.
 - **Rejected:** putting the receiver's list in a `self_manifest` object. It would carry many fields
   no step reads, and every existing fixture states receiver policy as flat `self_*` keys.
-- **Reversal trigger:** the owner settles the check order (decision 4). The four fixtures hold
-  under either order.
-- **Blast radius if wrong:** low to medium. Four core fixtures; an implementation that skips the
+- **Reversal trigger:** for decisions 1 to 3, public review settles a different fixture input
+  shape. Decision 4 changes only with the frozen check order, at 1.0 or under a security fix.
+- **Blast radius if wrong:** low to medium. Five core fixtures; an implementation that skips the
   check or reorders it now fails them, which is the intent.
