@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Conformance core-tier key renamed to `required_for_core`
+
+**Change class.** Breaking (conformance metadata only). No wire, RFC or known-answer change; the one rename the freeze allowed.
+
+**Changes.**
+- Every fixture, `aitp-conformance-fixture.schema.json`, `aitp-conformance-report.schema.json`, the example reports, `docs/conformance-badge.md` and `schemas/conformance/README.md` use `required_for_core` in place of `required_for_v0_2`. Same values, same fixtures, no alias.
+- Runners that read the key by name (aitp-rs `aitp-conformance`, aitp-verifier-py) change in the same window.
+
 ### What is frozen on the `aitp/0.3` line
 
 **Change class.** Policy, docs. No RFC, schema, fixture or vector change, and no RFC version bump.

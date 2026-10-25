@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0008",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "$comment": "Negative half of the rev-005/rev-006 pair pinning RFC-AITP-0001 §7 for the revocation snapshot's INNER `revocation_list` body — the artifact whose `signature` is a SIBLING of the body rather than a member of it (PLACEHOLDERS.md's `__VALID_A_SIG__` resolution table; RFC-AITP-0008 §1.5). `list_owner` is placed inside `revocation_list`, beside its schema-defined fields, not inside `revocation_list.extensions` — the case RFC-AITP-0012 does not reserve. `aitp-revocation-list.schema.json` sets `additionalProperties: false` on the inner `revocation_list` object, so this is a schema-level rejection. Otherwise byte-identical to rev-003's fresh, non-revoked shape, so the unknown field is the only defect under test.",
   "description": "Revocation snapshot's inner `revocation_list` body carries one unrecognized member (`list_owner`) beside its known, schema-defined fields — not inside `extensions`. RFC-AITP-0001 §7: unknown JSON fields outside `extensions` MUST be rejected, for the same cross-implementation signature-ambiguity reason as every other JCS-profile artifact — the inner body (not the wrapper) is what the issuing peer's signature covers (RFC-AITP-0008 §1.5), so a verifier that silently drops the unrecognized field before recomputing the canonical form would accept bytes a strict peer would reject. Receivers MUST reject with UNKNOWN_FIELD. Counterpart: rev-006, which places an unrecognized key INSIDE `extensions` and MUST succeed.",

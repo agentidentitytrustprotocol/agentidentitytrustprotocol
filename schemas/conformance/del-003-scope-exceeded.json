@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0006",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "description": "Delegation scope exceeds the embedded voucher's grants (aitp/0.3 compact-JWS shape). The outer delegation JWS declares scope [read_data, write_data] but A's grant voucher (embedded verbatim as the `voucher` claim) granted B only [read_data]. The outer signature and the voucher signature are both valid; the defect is purely scope ⊄ voucher.grants (RFC-AITP-0006 §4 step 6). MUST be rejected with DELEGATION_SCOPE_EXCEEDED. Manifest source: `input.issuer_manifests` carries B's (kat-keypair-002) signed Manifest, and the outer JWS verifies under the key that Manifest designates (RFC-AITP-0006 §4 step 1, RFC-AITP-0007 §1).",
   "tags": [

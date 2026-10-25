@@ -113,15 +113,14 @@ Any other wire change waits for 1.0.
 - **Frozen:** each existing fixture's `id` and its `expected` outcome (that is the wire
   freeze seen through the fixtures); the meaning of every fixture metadata key in
   [`aitp-conformance-fixture.schema.json`](schemas/json/aitp-conformance-fixture.schema.json)
-  (`id`, `rfc`, `status`, `required_for_v0_1`, `required_for_v0_2`, `feature`, `dynamic`,
+  (`id`, `rfc`, `status`, `required_for_v0_1`, `required_for_core`, `feature`, `dynamic`,
   `dynamic_fields`); each existing fixture's `status` and core-tier flags (new fixtures may join a tier, but none leaves it or changes tier); and the three claim
   strings of RFC-AITP-0001 §10.
-- **Metadata key names are frozen, with one listed exception.** `required_for_v0_2` marks
-  the `aitp/0.3` core tier, and its version label is stale. It is the one pending rename:
-  it may be renamed once, to a name with no version label, in one change made together
-  with the runners that read it by name (aitp-rs, aitp-verifier-py) and the conformance
-  report schema, which copies it. Its meaning and the fixtures it marks do not change. No
-  other metadata key is renamed on this line.
+- **Metadata key names are frozen.** `required_for_core` marks the `aitp/0.3` core tier. It
+  was renamed once from `required_for_v0_2` (2026-10-24), together with the runners that
+  read it by name (aitp-rs, aitp-verifier-py) and the conformance report schema, which copies
+  it. Its meaning and the fixtures it marks did not change. No other metadata key is renamed
+  on this line.
 - **Not frozen:** the [conformance report](docs/conformance-badge.md) format. It is not a
   wire artifact, and it changes only by moving to a new `report_version`.
 
@@ -174,8 +173,8 @@ the JCS embedded-signature profile for Manifests, revocation snapshots and sessi
 bundles (only the literal inside them changes), the AID forms and identity binding, the
 handshake, TCT, delegation, multi-hop and revocation semantics, the error-code
 registry, canonical byte lengths (the literal keeps its length), and every key in the
-known-answer keypair set. The conformance fixture schema keeps `required_for_v0_2` as
-its core-tier key; for `aitp/0.3` it marks the core fixtures.
+known-answer keypair set. The conformance fixture schema's core-tier key is `required_for_core`;
+for `aitp/0.3` it marks the core fixtures.
 
 ## Release tags
 

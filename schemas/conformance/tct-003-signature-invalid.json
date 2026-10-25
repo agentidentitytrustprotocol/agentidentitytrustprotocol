@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0005",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "description": "TCT compact-JWS signature does not validate under the issuing peer's resolved public key (tampered signature segment). Receivers MUST reject with TCT_SIGNATURE_INVALID (RFC-AITP-0005 §7.2 step 4). The check is local. The `typ` and `alg` header checks pass (steps 2-3); only the signature bytes are corrupt.",
   "tags": [

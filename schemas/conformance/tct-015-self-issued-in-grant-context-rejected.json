@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0005",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "$comment": "Negative fixture for RFC-AITP-0005 §5.3 (proposal #72 Item 5). The token is a standard mint (`__JWS_TCT__`) signed by kat-keypair-001, which is also `sub` and `aud`, so `aud` equals `expected_audience` and the signature verifies. The claims are schema-valid (the schema cannot express `iss != sub`), so the map entry is `expect: valid`.",
   "description": "A self-issued TCT (`iss == sub`) presented in a grant context MUST be rejected with TCT_SIGNATURE_INVALID (RFC-AITP-0005 §5.3, §7.2 step 5). agentA signs a TCT naming itself as issuer, subject and audience, carrying an ordinary capability grant. Its signature verifies and every other claim is well formed. `verify_tct` evaluates the token as a capability grant, and no agent can grant capabilities to itself. A verifier that checks only the signature and `aud` accepts it.",

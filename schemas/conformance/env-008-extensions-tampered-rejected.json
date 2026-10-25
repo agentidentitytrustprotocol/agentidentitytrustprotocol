@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0001",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "$comment": "Derived from env-007: the same envelope and the same committed signature (kat-envelope-002-ed25519, signed by kat-keypair-001), with one change made after signing: the vendor key `extensions.com.example.debug_trace` is renamed to `extensions.com.example.audit_trace`, value unchanged. The result is schema-valid, fresh and carries only unknown `extensions` keys, so nothing before the signature check rejects it. scripts/verify-known-answer.mjs and scripts/recompute-known-answer-independent.py assert that the signature verifies over env-007's envelope and does not verify over this one. Reusing env-007's message_id is safe: each fixture runs against fresh verifier state.",
   "description": "Envelope whose `extensions` member was changed after signing. RFC-AITP-0001 §5.4: the envelope signing input is the domain-tagged JCS form of the whole envelope minus `signature`, so `extensions` is covered and a relabelled extension key breaks the signature. Under the `aitp/0.3` pipe-composed input (before issue #87) this envelope verified. Expected: INVALID_SIGNATURE.",

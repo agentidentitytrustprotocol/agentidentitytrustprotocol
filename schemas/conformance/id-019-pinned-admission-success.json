@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0002",
   "status": "extension",
   "required_for_v0_1": false,
-  "required_for_v0_2": false,
+  "required_for_core": false,
   "feature": "aitp-pinned-admission",
   "$comment": "Static fixture. The `proof` is minted over the 193-byte §3.1 proof_input (sender workerA, receiver self_aid, message_id …901, timestamp 1711900000, pop_nonce bytes 01..10); scripts/verify-known-answer.mjs and scripts/recompute-known-answer-independent.py both re-verify it. Only the envelope signature is a placeholder. Extension-gated: the pinned-admission profile of RFC-AITP-0002 §3.4 is OPTIONAL, so this fixture is `status: extension` under `feature: aitp-pinned-admission`. The default runner MUST SKIP it. A runner testing an implementation that claims \"AITP v0.2 pinned-admission\" conformance executes it, and that implementation MUST pass it (RFC-AITP-0001 §10 item 9).",
   "description": "One-way pinned-key admission succeeds (RFC-AITP-0002 §3.4). workerA (kat-keypair-003) answers the verifier's outstanding challenge with an `identity_presentation` envelope. The payload is exactly `{identity, pop_nonce}`, and the `pinned_key` proof is a real Ed25519 signature over the §3.1 tuple, with `receiver` = the verifier's AID (`self_aid`, kat-keypair-001) and the challenge nonce. All nine steps of the §3.4 check order pass and the verifier MUST admit the subject and consume the nonce.",

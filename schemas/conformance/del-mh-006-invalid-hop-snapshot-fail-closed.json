@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0011",
   "status": "draft",
   "required_for_v0_1": false,
-  "required_for_v0_2": false,
+  "required_for_core": false,
   "feature": "experimental-multihop-delegation",
   "$comment": "Derived from del-mh-004: the same chain, Manifests and clock, with B's revocation snapshot (B = chain[0].iss, kat-keypair-002) changed in two ways. Its `signature` is `__TAMPERED_SIGNATURE__`: minted by B over the JCS-canonical INNER `revocation_list` body, then the least-significant bit of the last raw signature byte is flipped (PLACEHOLDERS.md, as in rev-008; no signed B snapshot is committed to reuse). Its `entries` no longer list chain[0].jti, only an unrelated jti. del-mh fixtures carry no revocation-policy input key, so this fixture relies on the schema default `revocation_policy.mode` = `fail_closed` (aitp-trust-anchors.schema.json; RFC-AITP-0008 §3.1). No policy key is introduced.",
   "description": "Multi-hop per-hop revocation with a discarded hop snapshot (RFC-AITP-0011 §6, RFC-AITP-0008 §1.5). The chain is the valid chain of del-mh-001 and del-mh-004. B's revocation snapshot does not list chain[0].jti, but its signature does not validate, so the verifier discards it and B's deny list is absent for that hop's lookup. Under the default `fail_closed` the hop counts as revoked, and the whole delegation MUST be rejected with DELEGATION_SOURCE_TCT_REVOKED. A verifier that ignores the bad snapshot and accepts the chain downgrades fail_closed to fail-open.",

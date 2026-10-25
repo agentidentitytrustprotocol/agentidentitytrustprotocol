@@ -645,7 +645,7 @@ def main() -> int:
     check("pinned-admission fixtures: exactly eight, all status extension under feature aitp-pinned-admission",
           sorted(x["id"] for x in gated) == ["id-013", "id-014", "id-015", "id-016", "id-019", "id-020", "id-021", "id-022"]
           and all(x["status"] == "extension" and x["feature"] == "aitp-pinned-admission"
-                  and x["required_for_v0_1"] is False and x["required_for_v0_2"] is False for x in gated))
+                  and x["required_for_v0_1"] is False and x["required_for_core"] is False for x in gated))
 
     section("── self-attestation fixtures (RFC-AITP-0005 §5.3) ──")
     f20t = load(CONF / "tct-020-self-attestation-verifies-as-attestation.json")
@@ -878,7 +878,7 @@ def main() -> int:
         inp = fx["input"]
         irl = inp["issuer_revocation_list"]
         check(f"{fid}: core fixture; token and claims are the committed signed example; audience is its aud",
-              fx["status"] == "core" and fx["required_for_v0_2"] is True
+              fx["status"] == "core" and fx["required_for_core"] is True
               and inp["operation"] == "verify_tct" and inp["tct_token"] == tct_ex["tct_token"]
               and inp["tct_token_claims"] == claims and inp["expected_audience"] == claims["aud"])
         check(f"{fid}: issuer_revocation_list names the TCT issuer, is unavailable and carries no snapshot",
@@ -896,7 +896,7 @@ def main() -> int:
     irl = inp["issuer_revocation_list"]
     body, sig = irl["snapshot"]["revocation_list"], irl["snapshot"]["signature"]
     check("rev-011: core fixture; token and claims are the committed signed example; audience is its aud",
-          fx["status"] == "core" and fx["required_for_v0_2"] is True
+          fx["status"] == "core" and fx["required_for_core"] is True
           and inp["operation"] == "verify_tct" and inp["tct_token"] == tct_ex["tct_token"]
           and inp["tct_token_claims"] == claims and inp["expected_audience"] == claims["aud"])
     check("rev-011: snapshot is the committed kat-keypair-005-p256 one, unmodified",

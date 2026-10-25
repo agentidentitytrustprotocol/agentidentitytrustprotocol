@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0002",
   "status": "extension",
   "required_for_v0_1": false,
-  "required_for_v0_2": false,
+  "required_for_core": false,
   "feature": "aitp-pinned-admission",
   "dynamic": true,
   "dynamic_fields": [

@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0002",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "description": "Peer's OIDC identity JWT is otherwise valid but is missing the `cnf.jkt` claim. Without `cnf.jkt` the verifier cannot bind the JWT to the AID's public key — anyone could replay the JWT against a different AID. The receiving peer MUST reject with IDENTITY_FAILED (RFC-AITP-0002 §2.3).",
   "tags": [

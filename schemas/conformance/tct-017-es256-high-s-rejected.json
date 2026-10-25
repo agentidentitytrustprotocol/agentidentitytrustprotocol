@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0005",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "$comment": "`tct_token` is a literal committed ES256 JWS, not a placeholder, and a minter MUST NOT re-sign it. It was signed by kat-keypair-005-p256 over `tct_token_claims` (RFC 6979 deterministic k, low-S), and then S was replaced by n - S, where n is the P-256 group order. The low-S twin (the same token with S restored) verifies under the issuer key; scripts/verify-known-answer.mjs derives it and asserts that it verifies, that the committed high-S token passes a lax ECDSA check, and that the §5.4.7 strict check rejects it.",
   "description": "TCT compact JWS signed ES256 by a P-256 issuer whose signature has a high S value (S > n/2). The header, claims and the ECDSA equation are all valid: a stock JOSE ES256 verifier accepts the token. RFC-AITP-0001 §5.4.7 requires verifiers to reject S > n/2, for compact JWS as for the JCS profile, so receivers MUST reject with TCT_SIGNATURE_INVALID (RFC-AITP-0005 §7.2 step 4).",

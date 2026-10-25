@@ -336,7 +336,7 @@ patch-level, no new signatures). It deserves its own review rather than riding a
 - **Chosen:**
   1. **Fixture digest = SHA-256 of a `sha256sum` listing.** `fixtures_dir_digest` is `sha256:` plus the SHA-256 of the `sha256sum`-format listing (file hash, two spaces, name, newline) of the top-level `*.json` files in `schemas/conformance/`, sorted by name in byte order. The plan said "sha256 over sorted fixture file bytes". Plain concatenation has no file boundaries and ignores names, so a rename or a byte moved between two files would not change it. The listing form can be reproduced with `sha256sum` alone. *Reversal trigger:* a consumer cannot compute it portably, or the fixture set moves into subdirectories. Either takes `report_version` "2".
   2. **`gates[]`, one per claim, not one `gate{}`.** The plan listed `gate{name,passed,criteria}` but also made badges per claim. One object cannot carry three claims, so `gates` is an array. `name` is restricted to the three RFC-AITP-0001 §10 claim strings and `criteria` to `core-required-all-pass` / `feature-all-pass`. *Reversal trigger:* an RFC adds a claim; the enum grows with it.
-  3. **The core claim gates on `required_for_v0_2`, not on every `status: core` fixture.** `del-004` is core but frozen in the v0.1 shape (`required_for_v0_2: false`), and no `aitp/0.3` runner is required to pass it. Results copy `required_for_v0_2` for this reason. *Reversal trigger:* the core-tier key is renamed or `del-004` is removed. The rule then follows the new key.
+  3. **The core claim gates on `required_for_core`, not on every `status: core` fixture.** `del-004` is core but frozen in the v0.1 shape (`required_for_core: false`), and no `aitp/0.3` runner is required to pass it. Results copy `required_for_core` for this reason. *Reversal trigger:* the core-tier key is renamed or `del-004` is removed. The rule then follows the new key.
   4. **Four outcomes: `pass`, `fail`, `skip`, `excluded_by_role`.** There is no separate "feature-negated" outcome. A core assertion that an enabled draft feature negates (`del-007` under `experimental-multihop-delegation`) is a `skip`, and it blocks the core claim for that run. aitp-rs's exit-code gate exempts such skips, but a badge has to make a claim about the core behaviour itself, so the core claim is run without draft features. *Reversal trigger:* a draft RFC is promoted into the core and its negated fixtures are retired, or an implementation cannot turn a draft feature off.
   5. **Shapes.** `report_version` is the string `"1"`, the same convention as the adapter `init` version. `generated_at` is an RFC 3339 UTC string, not Unix seconds as wire artifacts use, because the badge shows a date. `reserved` fixtures never appear in `results`, and `spec.protocol` is fixed to `aitp/0.3`. (The plan listed a `v0.1` status, but the fixture schema has `reserved` and no `v0.1`.) *Reversal trigger:* any breaking change to the shape takes `report_version` "2", with no dual-accept period (no users).
   6. **Report version 1 carries fixture results only.** The core claim attests item 9 of RFC-AITP-0001 §10. The known-answer vectors (item 8) are not in the report. *Reversal trigger:* a runner reports known-answer results. They are then added as an optional field, which does not break version 1.
@@ -371,10 +371,10 @@ patch-level, no new signatures). It deserves its own review rather than riding a
     an erratum note in the prose. Changing a pinned output is a wire change and is taken only as
     a security fix.
   - **`required_for_v0_2`.** Fixture metadata key names are frozen, with this key listed as the
-    one pending rename. It may be renamed once, to a name with no version label, together with
-    the aitp-rs and aitp-verifier-py runners and the conformance report schema. The rename is
-    not part of this change. A general "renames are allowed before 1.0" rule was rejected,
-    because it would leave every key open.
+    one pending rename, to a name with no version label, made together with the aitp-rs and
+    aitp-verifier-py runners and the conformance report schema. A general "renames are allowed
+    before 1.0" rule was rejected, because it would leave every key open. *Done 2026-10-24:*
+    renamed to `required_for_core`, with no alias; see the entry below.
 - **Who classifies:** the maintainer, acting as shepherd under the `CHARTER.md` § Core Team
   substitute (the S2.2 entry above), decides whether an erratum or a review comment is a
   clarification or a wire change, and whether a wire change is a security fix. Once a Core Team
@@ -393,3 +393,16 @@ patch-level, no new signatures). It deserves its own review rather than riding a
   window for such a fix is reconsidered only once real deployments exist.
 - **Blast radius if wrong:** medium. The freeze binds the project, not code: if it proves too
   tight, the cost is wire changes waiting for 1.0, not broken implementations.
+
+## 2026-10-24 — Rename the fixture core-tier key to `required_for_core`
+
+- **Decided by:** Opus, under the S2.1 freeze text that listed this rename as pending.
+- **Context:** `required_for_v0_2` marked the `aitp/0.3` core tier under a stale version label.
+  Key names freeze with the line, so a label-free name had to land before external runners exist.
+- **Chosen:** `required_for_core`, a boolean with unchanged values. There is no alias, because
+  there are no users; aitp-rs and aitp-verifier-py change their runners in the same window.
+  `required_for_v0_1` (true only on `del-004`) is left as is: it records history, not a live tier.
+- **Rejected:** `required_for_v0_3`, which would go stale again at 0.4. `core: true` collides
+  with `status: core`, which `del-004` carries while being outside the tier.
+- **Reversal trigger:** none on this line; key names are frozen.
+

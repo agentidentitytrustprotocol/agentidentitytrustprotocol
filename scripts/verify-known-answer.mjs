@@ -1321,7 +1321,7 @@ function checkNoRevocationSourceFixtures() {
       const f = readJson(join(conf, c.file));
       eq(f.id, c.id, 'id');
       eq(f.status, 'core', 'status');
-      eq(f.required_for_v0_2, true, 'required_for_v0_2');
+      eq(f.required_for_core, true, 'required_for_core');
       eq(f.input.operation, 'verify_tct', 'operation');
       eq(f.input.tct_token, tct.tct_token, 'tct_token (committed signed example)');
       const claims = verifyCompactJws(f.input.tct_token, 'aitp-tct+jwt');
@@ -1362,7 +1362,7 @@ function checkThirdPartySnapshotFixture() {
     const f = readJson(join(conf, 'rev-011-third-party-signed-list-discarded.json'));
     eq(f.id, 'rev-011', 'id');
     eq(f.status, 'core', 'status');
-    eq(f.required_for_v0_2, true, 'required_for_v0_2');
+    eq(f.required_for_core, true, 'required_for_core');
     eq(f.input.operation, 'verify_tct', 'operation');
     eq(f.input.tct_token, tct.tct_token, 'tct_token (committed signed example)');
     const claims = verifyCompactJws(f.input.tct_token, 'aitp-tct+jwt');
@@ -1552,7 +1552,7 @@ function checkEnvelopeTamperedFixtures() {
       const f = readJson(join(conf, t.file));
       eq(f.id, t.id, 'id');
       eq(f.status, 'core', 'status');
-      eq(f.required_for_v0_2, true, 'required_for_v0_2');
+      eq(f.required_for_core, true, 'required_for_core');
       eq(f.input.operation, 'verify_envelope', 'operation');
       eq(jcs(Object.fromEntries(Object.entries(f.input).filter(([k]) => k !== 'envelope'))),
         jcs(Object.fromEntries(Object.entries(f7.input).filter(([k]) => k !== 'envelope'))), 'inputs other than the envelope');
@@ -1583,7 +1583,7 @@ function checkEnvelopeTamperedFixtures() {
     const f = readJson(join(conf, 'env-011-previous-revision-rejected.json'));
     eq(f.id, 'env-011', 'id');
     eq(f.status, 'core', 'status');
-    eq(f.required_for_v0_2, true, 'required_for_v0_2');
+    eq(f.required_for_core, true, 'required_for_core');
     eq(f.input.operation, 'verify_envelope', 'operation');
     const e = f.input.envelope;
     eq(e.version, 'aitp/0.2', 'version');
@@ -1907,13 +1907,13 @@ function checkPinnedAdmission() {
     for (const f of gated) {
       eq(f.status, 'extension', `${f.id} status`);
       eq(f.feature, 'aitp-pinned-admission', `${f.id} feature`);
-      eq(f.required_for_v0_2, false, `${f.id} required_for_v0_2`);
+      eq(f.required_for_core, false, `${f.id} required_for_core`);
       eq(f.required_for_v0_1, false, `${f.id} required_for_v0_1`);
     }
     for (const id of ['tct-015', 'tct-016', 'tct-018']) {
       const f = load(id);
       eq(f.status, 'core', `${id} status`);
-      eq(f.required_for_v0_2, true, `${id} required_for_v0_2`);
+      eq(f.required_for_core, true, `${id} required_for_core`);
     }
     for (const id of ['tct-019', 'tct-020', 'tct-021']) {
       const f = load(id);

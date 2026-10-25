@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0002",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "description": "A pinned-key identity from a P-256 sender (`aid:pubkey:p256:`, kat-keypair-005-p256) MUST verify. `public_key` is the 44-char SEC1-compressed identifier, byte-equal to the AID's key (RFC-AITP-0002 §3.2 step 2); `(p256, public_key)` is in `trust_store` (step 3); and `proof` is the `p256.`-tagged signature of `kat-pinned-key-proof-002-p256`, over the single SHA-256 digest of the §3.1 `proof_input` (RFC-AITP-0001 §5.4.6). A verifier that hard-codes Ed25519, requires a 32-byte key, or hashes the digest a second time fails this fixture.",
   "tags": [

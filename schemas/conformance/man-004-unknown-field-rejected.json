@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0003",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "$comment": "Negative half of the man-004/man-005 pair pinning RFC-AITP-0001 §7 for the Manifest body. `deployment_region` is an ordinary-looking unknown member placed as a SIBLING of the schema-defined fields, not inside `extensions` — the case RFC-AITP-0012 does not reserve. `aitp-manifest.schema.json`'s inner `manifest` object sets `additionalProperties: false`, so this is a schema-level rejection, matching how man-002 (unknown version) is asserted. Body is otherwise byte-identical to man-003's non-expired shape.",
   "description": "Manifest body carries one unrecognized member (`deployment_region`) beside its known, schema-defined fields — not inside `extensions`. RFC-AITP-0001 §7 requires unknown JSON fields outside `extensions` to be REJECTED: silently ignoring them would let one implementation hash the field into the JCS-canonical signing input while another drops it first, so the same wire bytes verify under one peer's reconstruction and fail under another's. Receivers MUST reject with UNKNOWN_FIELD. Counterpart: man-005, which places an unrecognized key INSIDE `extensions` and MUST succeed.",

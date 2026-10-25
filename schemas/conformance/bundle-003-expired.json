@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0010",
   "status": "draft",
   "required_for_v0_1": false,
-  "required_for_v0_2": false,
+  "required_for_core": false,
   "feature": "experimental-session-bundle",
   "$comment": "Participant TCT claims-sibling convention as in bundle-001 (tct_claims next to each __JWS_TCT__; minter strips the companions before signing the bundle with __VALID_A_SIG__).",
   "description": "Session Trust Bundle expiry check (RFC-AITP-0010 §5 step 2, aitp/0.3 shape). Bundle is well-formed: coordinator signature verifies, embedded TCT compact JWS strings verify, expiry-window invariant holds (bundle.expires_at = min of the embedded TCTs' exp claims = 1711799000), participants non-empty. The defect is that bundle.expires_at = 1711799000 is before `now` = 1711900100. Verifier MUST reject with BUNDLE_EXPIRED before consuming any embedded TCT. Coordinator key source: `input.coordinator_manifest` carries the coordinator's (kat-keypair-001) signed Manifest; the bundle signature and the embedded TCTs verify under the key it designates (RFC-AITP-0010 §5 step 5).",

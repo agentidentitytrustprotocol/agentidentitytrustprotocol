@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0005",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "$comment": "Negative fixture for RFC-AITP-0005 §5.3 (proposal #72 Item 5). The token is a standard mint (`__JWS_TCT__`) signed by kat-keypair-002, the `iss`; `aud` equals `expected_audience`. `aitp.attestation` satisfies the schema's no-whitespace grant pattern, so the claims are schema-valid and the map entry is `expect: valid`: the rejection is a verifier rule, not a schema one.",
   "description": "A TCT carrying the `aitp.attestation` marker grant MUST be rejected in a grant context with TCT_SIGNATURE_INVALID, even when `iss != sub` (RFC-AITP-0005 §5.3). agentB issues the token to agentA with the sole grant `aitp.attestation`. An issuer MUST NOT mint that marker with `iss != sub`, and a verifier in a grant context MUST reject any TCT that contains it. A verifier that treats the marker as an ordinary (if unknown) capability string and accepts the token fails this fixture.",

@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0005",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "$comment": "Negative fixture for RFC-AITP-0005 §5.3. The token is a standard mint (`__JWS_TCT__`) signed by kat-keypair-002, the `iss`; `aud` equals `expected_audience`. The claims are schema-valid, so the map entry is `expect: valid`: the rejection is a verifier rule. `iss != sub` keeps the iss == sub rule (tct-015) from firing, and the marker is not the first or only grant, so only a full scan of `grants` catches it.",
   "description": "A TCT whose `grants` carries the `aitp.attestation` marker beside an ordinary grant MUST be rejected in a grant context with TCT_SIGNATURE_INVALID (RFC-AITP-0005 §5.3, \"Marker grant\"). agentB issues agentA a TCT with grants `[\"read_data\", \"aitp.attestation\"]`. An issuer MUST NOT put the marker beside any other grant, and a verifier in a grant context MUST reject any TCT whose `grants` contains it. A verifier that only recognizes an attestation by `grants == [\"aitp.attestation\"]`, or that grants `read_data` and ignores the unknown marker, fails this fixture.",

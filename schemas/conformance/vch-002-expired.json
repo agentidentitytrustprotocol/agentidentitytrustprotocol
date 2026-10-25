@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0005",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "description": "Expired grant voucher. Same shape as vch-001 but the voucher's `exp` is in the past relative to the pinned reference clock. The voucher has no independent lifecycle: it is only ever verified by its issuer during delegation verification, where an expired voucher MUST be rejected at the expiry-monotonicity step (RFC-AITP-0006 §4 step 5: `voucher.exp` MUST be in the future). The signature, typ, and alg checks pass; only the expiry fails.",
   "tags": [

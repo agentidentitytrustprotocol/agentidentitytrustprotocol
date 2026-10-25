@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0002",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "description": "The positive counterpart of id-007: the same Ed25519 pinned-key descriptor and proof (kat-pinned-key-proof-001, signed by workerA / kat-keypair-003), with workerA's AID now in `trust_store`. All five steps of RFC-AITP-0002 §3.2 pass and the identity MUST verify. Before this fixture the conformance pack had no passing pinned-key case, so a verifier that rejected every pinned identity passed every pinned fixture.",
   "tags": [

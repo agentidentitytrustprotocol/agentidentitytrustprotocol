@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0003",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "$comment": "Pins the oidc-side half of `$defs/IdentityHint`'s if/then/else in `aitp-manifest.schema.json` (issue #59): `type: \"oidc\"` REQUIRES `issuer` and FORBIDS `public_key`. The `pinned_key`-requires-`public_key` half and the hint-level `type`/`subject` requirement are already exercised incidentally by every success fixture's `identity_hint`; only the oidc-forbids-`public_key` branch had no vector anywhere in the pack — id-008 pins the same rule at the handshake's identity DESCRIPTOR (RFC-AITP-0002 §1, a different object, exchanged in MUTUAL_HELLO with a live JWT proof), not the Manifest's static identity_hint. Otherwise byte-identical to man-001's non-expired, well-formed Manifest body, so the added `public_key` is the only defect under test.",
   "description": "Manifest `identity_hint` has `type: \"oidc\"` and also carries `public_key`. RFC-AITP-0003 §3.1 requires the oidc branch of `identity_hint` to omit `public_key`: the agent's public key is already encoded in the Manifest's own `aid`, so a second copy in the hint creates an ambiguity over which key is authoritative — the same rationale RFC-AITP-0002 §1 states for the handshake's identity descriptor. `aitp-manifest.schema.json`'s `$defs/IdentityHint` enforces this structurally (`then.not.required: [public_key]` under the oidc branch). Receivers MUST reject with MANIFEST_INVALID.",

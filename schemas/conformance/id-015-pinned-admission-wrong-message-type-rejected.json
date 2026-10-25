@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0002",
   "status": "extension",
   "required_for_v0_1": false,
-  "required_for_v0_2": false,
+  "required_for_core": false,
   "feature": "aitp-pinned-admission",
   "$comment": "Static fixture. The identity proof is id-019's real proof: the §3.1 tuple does not include `message_type`, so the only defect is the envelope type. Extension-gated: the pinned-admission profile of RFC-AITP-0002 §3.4 is OPTIONAL, so this fixture is `status: extension` under `feature: aitp-pinned-admission`. The default runner MUST SKIP it. A runner testing an implementation that claims \"AITP v0.2 pinned-admission\" conformance executes it, and that implementation MUST pass it (RFC-AITP-0001 §10 item 9).",
   "description": "A presentation whose envelope `message_type` is not `identity_presentation` MUST be rejected with INVALID_ENVELOPE (RFC-AITP-0002 §3.4 rule 2, check-order step 4). The envelope is id-019's presentation with `message_type` changed to `mutual_hello` and nothing else changed. Its `proof` still verifies, because the §3.1 proof does not cover `message_type`. A verifier that dispatches on the payload alone, or checks only the proof, admits this subject and fails the fixture.",

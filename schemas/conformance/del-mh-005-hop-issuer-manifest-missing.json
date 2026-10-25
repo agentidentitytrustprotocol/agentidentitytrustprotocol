@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0011",
   "status": "draft",
   "required_for_v0_1": false,
-  "required_for_v0_2": false,
+  "required_for_core": false,
   "feature": "experimental-multihop-delegation",
   "$comment": "Chain claims-sibling convention and __COMPUTED_CHAIN_HASH__ as in del-mh-001; every token is validly signed by its iss key. The only difference from del-mh-001 is `input.issuer_manifests`: the second entry is kat-keypair-004's (D's) own valid, signed Manifest in place of C's. The runner MUST supply exactly these Manifests as the verifier's whole Manifest source and MUST NOT derive a key from the hop's iss AID, synthesize a Manifest, or fetch one (README, 'Manifest inputs').",
   "description": "Multi-hop delegation whose outer hop issuer has no Manifest (RFC-AITP-0011 §3 step 1, aitp/0.3 shape). The chain is identical to del-mh-001 and every JWS is validly signed by its iss key, but `input.issuer_manifests` holds B's Manifest and D's (kat-keypair-004), not C's. Both Manifests verify; neither designates C's AID (aid:pubkey:dqFZIESm...), so the key the outer hop (iss = C) is signed with is not in any Manifest the verifier holds. RFC-AITP-0011 §3 step 1 requires each hop's key to be resolved from its issuer's Manifest, and RFC-AITP-0007 §1 requires a peer key resolution failure to result in KEY_RESOLUTION_FAILED. A verifier that takes the key straight from the iss AID would accept this chain; this fixture catches it. Expected: KEY_RESOLUTION_FAILED.",

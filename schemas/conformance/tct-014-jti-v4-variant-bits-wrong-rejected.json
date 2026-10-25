@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0005",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "$comment": "Negative fixture for RFC-AITP-0005 §2.2 (proposal #72 Item 6b). The claims are tct-003's otherwise-valid claims with `jti` carrying version nibble `4` but variant nibble `c` (bits `110`, the reserved Microsoft variant) instead of `8`-`b` (bits `10`). This is the defect a derived identifier produces when the issuer sets the version nibble and forgets `h[8] = (h[8] & 0x3f) | 0x80`. The token is a standard mint (`__JWS_TCT__`), so its signature verifies. `aitp-tct.schema.json`'s `jti` pattern requires `[89ab]` in that position, so this is a schema-level rejection, and the map entry is `expect: invalid`.",
   "description": "TCT `jti` has version nibble `4` but wrong variant bits (`…-c716-…`, variant `110` instead of `10`). RFC-AITP-0005 §2.2 requires both the version nibble and the variant bits. The verifier MUST reject before signature verification (§7.2 step 1) with TCT_SIGNATURE_INVALID. A verifier that checks only the version nibble fails this fixture.",

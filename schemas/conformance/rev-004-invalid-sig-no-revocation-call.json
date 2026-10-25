@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0008",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "description": "A TCT compact JWS whose signature does not validate under the resolved issuer key MUST be rejected with TCT_SIGNATURE_INVALID before any remote revocation lookup is attempted. Verifiers that route revocation lookups (HTTPS fetch of `ListRevoked`, DNS resolution of the issuing peer's endpoint, or cache writes keyed off the token's `iss` / `jti` claims) before signature verification are vulnerable to network-amplification DoS, revocation-cache pollution, and telemetry manipulation against arbitrary AIDs — `iss` and `jti` are attacker-controlled bytes until the TCT signature is verified. This fixture pins the ordering requirement in RFC-AITP-0008 §3.3 (restated in RFC-AITP-0005 §7.2: revocation is step 6, after all signature checks): the conformance harness instruments the revocation source and asserts it was NOT called when the TCT signature is invalid. A purely local, side-effect-free in-memory deny-list check that performs no network I/O and no cache writes derived from issuer-provided input is exempt from this ordering requirement (RFC-AITP-0008 §3.3) and MAY run before signature verification.",
   "tags": [

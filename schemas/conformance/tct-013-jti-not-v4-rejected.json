@@ -3,7 +3,7 @@
   "rfc": "RFC-AITP-0005",
   "status": "core",
   "required_for_v0_1": false,
-  "required_for_v0_2": true,
+  "required_for_core": true,
   "feature": null,
   "$comment": "Negative fixture for RFC-AITP-0005 §2.2 (proposal #72 Item 6b). The claims are tct-003's otherwise-valid claims (exp far in the future, correct audience) with `jti` replaced by a well-formed lowercase UUID v7: version nibble `7`, variant bits `10`. The token is a standard mint (`__JWS_TCT__`), so its signature verifies; the `jti` layout is the only defect. `aitp-tct.schema.json`'s `jti` pattern requires version nibble `4`, so this is a schema-level rejection, and the map entry is `expect: invalid`.",
   "description": "TCT `jti` is a lowercase UUID v7 (`…-7a5b-…`), not the UUID v4 layout RFC-AITP-0005 §2.2 requires. The verifier MUST reject it before signature verification (§7.2 step 1) with TCT_SIGNATURE_INVALID, the TCT's structural-rejection code (registries/error-codes.md). A verifier that accepts any UUID version, or that reaches step 4 and finds the signature valid, fails this fixture.",
