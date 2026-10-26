@@ -23,7 +23,8 @@
 #     never edited);
 #   - the seed files README.md (skeleton with the independence statement),
 #     CLAUDE.md and SPEC_VERSION (the spec repo's main SHA when first
-#     written), each written only if absent;
+#     written), each written only if absent (a README without the
+#     Independence section is GitHub's auto_init stub and is replaced);
 #   - one issue per plan phase GO4.1-GO4.5 with the phase block inline,
 #     created only if no issue with the same title exists;
 #   - a check, read-only, that the aitp-deps-bot App installation covers the
@@ -305,15 +306,29 @@ Branch, open a PR, merge on green CI. No force-push to main.
 EOF
 }
 
-step_seed_file() {   # step_seed_file PATH MESSAGE CONTENT-FILE
-    local path="$1" msg="$2" src="$3"
-    if [ "$REPO_EXISTS" = true ] && gh api "repos/$FULL/contents/$path" > /dev/null 2>&1; then
-        say "  = $path present"
-        return
-    fi
-    mut PUT "repos/$FULL/contents/$path" "$(python3 - "$src" "$msg" <<'PY'
+step_seed_file() {   # step_seed_file PATH MESSAGE CONTENT-FILE [REPLACE-UNLESS]
+    # Writes PATH if absent. With REPLACE-UNLESS, an existing PATH that does
+    # not contain that text is a stub (GitHub's auto_init README) and is
+    # replaced; one that contains it is left alone.
+    local path="$1" msg="$2" src="$3" keep="${4:-}" sha=""
+    if [ "$REPO_EXISTS" = true ] && gh api "repos/$FULL/contents/$path" > "$WORK/cur.json" 2>/dev/null; then
+        if [ -z "$keep" ] || python3 - "$WORK/cur.json" "$keep" <<'PY'
 import base64, json, sys
-print(json.dumps({"message": sys.argv[2], "content": base64.b64encode(open(sys.argv[1], "rb").read()).decode(), "branch": "main"}))
+sys.exit(0 if sys.argv[2] in base64.b64decode(json.load(open(sys.argv[1]))["content"]).decode() else 1)
+PY
+        then
+            say "  = $path present"
+            return
+        fi
+        sha="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["sha"])' "$WORK/cur.json")"
+        say "  ~ $path is a stub; replacing"
+    fi
+    mut PUT "repos/$FULL/contents/$path" "$(python3 - "$src" "$msg" "$sha" <<'PY'
+import base64, json, sys
+body = {"message": sys.argv[2], "content": base64.b64encode(open(sys.argv[1], "rb").read()).decode(), "branch": "main"}
+if sys.argv[3]:
+    body["sha"] = sys.argv[3]
+print(json.dumps(body))
 PY
 )"
 }
@@ -327,7 +342,7 @@ step_seed() {
     printf '%s\n' "$spec_sha" > "$WORK/SPEC_VERSION"
     step_seed_file README.md "docs: README skeleton with the independence statement
 
-$SESSION_TRAILER" "$WORK/README.md"
+$SESSION_TRAILER" "$WORK/README.md" "## Independence"
     step_seed_file CLAUDE.md "docs: CLAUDE.md with the independence rule and constraints
 
 $SESSION_TRAILER" "$WORK/CLAUDE.md"
