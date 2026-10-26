@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Conformance adapter protocol (`schemas/conformance/ADAPTER.md`)
+
+**Change class.** Informative document and repository tooling. No wire, schema, fixture or RFC change.
+
+- `schemas/conformance/ADAPTER.md` describes the NDJSON protocol between a conformance runner and an implementation's adapter, versioned `adapter-protocol: 1`: message shapes, `init` and housekeeping ops, the fixture operations, SKIP semantics, the timeout and one request at a time, the aitp-rs `--target` invocation, and gating on claims instead of a pass count. It was defined only in aitp-rs's `docs/conformance.md` before.
+- `scripts/check-adapter-ops.py`, run by `make validate`, fails when a fixture uses an operation ADAPTER.md does not name.
+
 ### aitp-docs receives `spec-released`
 
 **Change class.** Repository tooling. No wire, schema, fixture or RFC change.

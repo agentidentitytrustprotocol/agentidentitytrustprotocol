@@ -79,6 +79,7 @@ jobs:
           echo "  - Every pinned canonical byte sequence and signature verified"
           echo "  - Known answers recomputed again by the independent Python checker"
           echo "  - Doc coherence (stages in scripts/check-doc-coherence.sh; the sibling-repo existence/anchor sub-check is local-only, skipped in CI)"
+          echo "  - ADAPTER.md names every fixture op"
           echo "  - No release junk in tree"
           echo "  - Release archive (git archive, tracked files only) dry-run clean"
 
