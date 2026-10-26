@@ -1,4 +1,4 @@
-.PHONY: help validate json-validate json-schema-validate kat-verify kat-independent doc-coherence conflict-markers clean install-tools docs release
+.PHONY: help validate json-validate json-schema-validate kat-verify kat-independent doc-coherence adapter-ops conflict-markers clean install-tools docs release
 
 # AITP ships as JSON only (RFC-AITP-0001 §5.1). There are two signing
 # profiles (RFC-AITP-0001 §5.4): RFC 8785 (JCS) canonical JSON is the
@@ -27,6 +27,7 @@ help:
 	@echo "                             the RFC status ladder, stale superseded-revision vocabulary,"
 	@echo "                             sibling-repo link form, and the threat-model index"
 	@echo "                             (stages documented in scripts/check-doc-coherence.sh)"
+	@echo "  make adapter-ops           Check schemas/conformance/ADAPTER.md names every fixture op"
 	@echo
 	@echo "Docs:"
 	@echo "  make docs                  Print the docs reading order"
@@ -38,7 +39,7 @@ help:
 
 # ── Validation ────────────────────────────────────────────────────────────────
 
-validate: conflict-markers json-schema-validate json-validate kat-verify kat-independent doc-coherence
+validate: conflict-markers json-schema-validate json-validate kat-verify kat-independent doc-coherence adapter-ops
 	@echo "✓ All v0.3 validations passed"
 
 json-schema-validate:
@@ -72,6 +73,12 @@ kat-independent:
 doc-coherence:
 	@echo "Checking RFC and README version claims, intra-repo anchor links, section citations, fixture error codes, mirrored schema definitions, the RFC status ladder, stale superseded-revision vocabulary, sibling-repo link form, and the threat-model index..."
 	@./scripts/check-doc-coherence.sh
+
+# schemas/conformance/ADAPTER.md lists the adapter-protocol ops. This fails
+# when a fixture uses an op the document does not name.
+adapter-ops:
+	@echo "Checking that ADAPTER.md names every op the fixtures use..."
+	@$(PYTHON) scripts/check-adapter-ops.py
 
 # A merge that leaves conflict markers in a file can still pass every check
 # above (it happened to CHANGELOG.md in PR #123), so look for them directly.
