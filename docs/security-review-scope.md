@@ -2,7 +2,9 @@
 
 This page scopes an external security review of the `aitp/0.3` core (RFC-AITP-0001 to RFC-AITP-0009). It lists the surfaces to review, the issues already known, and the gaps in runtime fuzzing. Findings are reported through [SECURITY.md](../SECURITY.md).
 
-Opt-in drafts (RFC-AITP-0010, RFC-AITP-0011) are out of scope, as are deployment and hosting.
+Also in scope, at lower priority: the Manifest ([RFC-AITP-0003](../rfcs/RFC-AITP-0003-manifest.md)), single-hop delegation ([RFC-AITP-0006](../rfcs/RFC-AITP-0006-delegation.md)) and key resolution ([RFC-AITP-0007](../rfcs/RFC-AITP-0007-key-resolution.md)).
+
+Out of scope: the opt-in drafts (RFC-AITP-0010 to RFC-AITP-0014, including the `spiffe` identity type and the A2A binding), deployment and hosting.
 
 ## Surfaces in scope
 

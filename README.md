@@ -302,6 +302,7 @@ This repository is the specification only. Implementations, tools and services l
 
 - **Reference implementation (Rust, with Python and Node SDKs):** [aitp-rs](https://github.com/agentidentitytrustprotocol/aitp-rs/blob/main/README.md) — [Python SDK](https://github.com/agentidentitytrustprotocol/aitp-rs/blob/main/docs/sdk-python.md), [Node SDK](https://github.com/agentidentitytrustprotocol/aitp-rs/blob/main/docs/sdk-node.md)
 - **Independent verifier (Python, written from the RFCs alone):** [aitp-verifier-py](https://github.com/agentidentitytrustprotocol/aitp-verifier-py/blob/main/README.md)
+- **Verifier (TypeScript, written from the RFCs; npm `aitp-verifier-ts`):** [aitp-verifier-ts](https://github.com/agentidentitytrustprotocol/aitp-verifier-ts/blob/main/README.md)
 - **End-to-end demo:** [aitp-playground getting started](https://github.com/agentidentitytrustprotocol/aitp-playground/blob/main/docs/getting-started.md)
 - **Spec access for AI agents (MCP server):** [aitp-docs client setup](https://github.com/agentidentitytrustprotocol/aitp-docs/blob/main/docs/clients.md)
 
