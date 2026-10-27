@@ -76,11 +76,14 @@ rule R_Hello:
       Out(<bodyB, sign(<'aitp-envelope-v2', bodyB>, ~ltkB)>) ]
 
 // RFC-AITP-0004 §5.2 (A verifies B) and §3.3 (A sends MUTUAL_COMMIT).
-//  steps 1-7 as §5.1 with roles swapped (ID token aud = A, nonce = nB)
-//  step 8    pop_nonce_echo = A's pop_nonce (pattern ~nA)
-//  step 9    issue a TCT for the ACK's sender Bp (§4.1-§4.4), PoP over
+//  step 3    the ACK's sender is the intended peer B from St_I1 (pattern
+//            Bp = B: St_I1 is matched on Bp)
+//  steps 1-8 otherwise as §5.1 with roles swapped (ID token aud = A,
+//            nonce = nB)
+//  step 9    pop_nonce_echo = A's pop_nonce (pattern ~nA)
+//  step 10   issue a TCT for the ACK's sender Bp (§4.1-§4.4), PoP over
 //            sha256(Bp's pop_nonce) (§3.3)
-// Bp is the peer authenticated by steps 1-7 (envelope and ID token).
+// Bp is the peer authenticated by steps 4-8 (envelope and ID token).
 rule I_HelloAck:
     let A       = pk(~ltkA)
         Bp      = pk(skB)
@@ -93,7 +96,7 @@ rule I_HelloAck:
         pC      = <'commit', tctB, popA, ~nB>
         bodyC   = <'aitp/0.3', 'mutual_commit', ~mid3, A, pC>
     in
-    [ St_I1(tid, A, ~ltkA, B, ~nA, $reqA), !IdP(skI), !Manifest(Bp, subjB),
+    [ St_I1(tid, A, ~ltkA, Bp, ~nA, $reqA), !IdP(skI), !Manifest(Bp, subjB),
       In(<bodyB, sign(<'aitp-envelope-v2', bodyB>, skB)>),
       Fr(~jti), Fr(~mid3) ]
   --[ Seen(A, mid),
@@ -102,7 +105,7 @@ rule I_HelloAck:
       TCTIssued(A, Bp, $reqB, ~jti),
       PoPSign(A, ~nB), HSPoPSign(A, ~nB),
       Send(A, 'mutual_commit', ~mid3, pC) ]->
-    [ St_I2(tid, A, ~ltkA, B, Bp, ~nA, ~nB, $reqA, tctB),
+    [ St_I2(tid, A, ~ltkA, Bp, Bp, ~nA, ~nB, $reqA, tctB),
       Out(<bodyC, sign(<'aitp-envelope-v2', bodyC>, ~ltkA)>) ]
 
 // RFC-AITP-0004 §5.3 (B finalizes) and §3.4 (B sends MUTUAL_COMMIT_ACK).

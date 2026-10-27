@@ -6,7 +6,7 @@ The normative threat model is [RFC-AITP-0009 Security](../rfcs/RFC-AITP-0009-sec
 
 | Threat | Defense (summary) | Normative source |
 |---|---|---|
-| Impersonation | Envelopes signed by the sender's AID key; identity binding by PoP or trusted-issuer credential; round-2 handshake PoP; TCT bound to the subject key via `cnf.jkt`. | [RFC-AITP-0009 §1.1](../rfcs/RFC-AITP-0009-security.md#11-impersonation); formal model: [P1, P2](../formal/README.md#lemma--rfc-section-map) |
+| Impersonation | Envelopes signed by the sender's AID key; identity binding by PoP or trusted-issuer credential; round-2 handshake PoP; ACK sender bound to the addressed peer (RFC-AITP-0004 §5.2 step 3); TCT bound to the subject key via `cnf.jkt`. | [RFC-AITP-0009 §1.1](../rfcs/RFC-AITP-0009-security.md#11-impersonation); formal model: [P1, P2](../formal/README.md#lemma--rfc-section-map) |
 | Replay | `message_id` deny list + timestamp window + handshake nonce echoes + TCT `exp` + `jti` revocation. | [RFC-AITP-0009 §1.2](../rfcs/RFC-AITP-0009-security.md#12-replay); [RFC-AITP-0001 §5.5](../rfcs/RFC-AITP-0001-core.md#55-replay-protection); formal model: [P4](../formal/README.md#lemma--rfc-section-map) |
 | Manifest tampering | Manifest signature + PoP over a publish-time challenge, both verified before any handshake. | [RFC-AITP-0009 §1.3](../rfcs/RFC-AITP-0009-security.md#13-manifest-tampering) |
 | Manifest replay across agents | PoP verified under the key in `manifest.aid`; the signature covers `aid`. | [RFC-AITP-0009 §1.4](../rfcs/RFC-AITP-0009-security.md#14-manifest-replay-across-agents) |

@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Initiator checks the MUTUAL_HELLO_ACK sender (RFC-AITP-0004 §5.2 step 3), new code `PEER_MISMATCH`
+
+**Change class.** Security fix under the `aitp/0.3` freeze ([SECURITY.md](SECURITY.md#security-fixes-that-change-the-wire)): a new verification rule and a new error outcome, shipped with a strict cutover. No signed byte, schema, `aitp/0.3` literal, known-answer vector or existing fixture outcome changes. The new code is a backward-compatible addition (minor class, patch position). RFC-AITP-0004 and RFC-AITP-0009 go from `0.3.3-draft` to `0.3.4-draft` and stay in Review. Advisory: [GHSA-c26h-f9hm-2wj7](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/security/advisories/GHSA-c26h-f9hm-2wj7).
+
+**Changes.**
+- RFC-AITP-0004 §2: before sending MUTUAL_HELLO the initiator fixes the AID it addresses, the `aid` of the Manifest it fetched: the *intended peer*.
+- RFC-AITP-0004 §5.2: new step 3. The initiator confirms that the MUTUAL_HELLO_ACK `envelope.sender.agent_id` equals the intended peer AID, else `PEER_MISMATCH`. The check runs before any Manifest cryptography. The old steps 3 to 9 become 4 to 10, and the §6 failure table follows.
+- RFC-AITP-0004 §7: a state row for the intended peer AID, which the initiator MUST NOT take from the ACK itself. §11.5 states the resulting property: the initiator's session and the TCT it issues are bound to the peer it chose.
+- `registries/error-codes.md`: `PEER_MISMATCH` in the Mutual Handshake table, `core`. RFC-AITP-0009 §1.1 and `docs/threat-model.md` list the check under Impersonation.
+- New core fixture `mh-015` with a new input, `peer_aid`: the AID the initiator addressed. An otherwise fully valid ACK from agentC, when the initiator addressed agentB, fails with `PEER_MISMATCH`. The conformance README ("Initiator's intended peer") and `PLACEHOLDERS.md` document the input. A fixture without `peer_aid`, such as `mh-005`, does not test the step.
+- The Tamarin handshake model binds the ACK's sender to the intended peer in `I_HelloAck`, as §5.2 step 3 now requires.
+
+**Cutover.** An upgraded initiator interoperates with an un-upgraded responder: the responder's behaviour does not change. aitp-rs's initiator state machine already enforced this comparison (reported as `INVALID_ENVELOPE`); it now reports `PEER_MISMATCH`. aitp-verifier-py, aitp-verifier-ts and aitp-verifier-go add the `peer_aid` input and the check.
+
 ### Conformance adapter protocol (`schemas/conformance/ADAPTER.md`)
 
 **Change class.** Informative document and repository tooling. No wire, schema, fixture or RFC change.

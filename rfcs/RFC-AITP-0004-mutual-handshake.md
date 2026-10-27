@@ -2,7 +2,7 @@
 # Mutual Handshake
 
 **Document:** RFC-AITP-0004
-**Version:** 0.3.3-draft
+**Version:** 0.3.4-draft
 **Status:** Community Standards Track (Review)
 **Depends on:**
   [RFC-AITP-0001 Core](RFC-AITP-0001-core.md),
@@ -84,6 +84,8 @@ Agent A                              Agent B
    |   A holds TCT_A  (from B)          |
    |   B holds TCT_B  (from A)          |
 ```
+
+Before sending MUTUAL_HELLO, A fixes the AID it is addressing: the `aid` of the Manifest it fetched and verified. That AID is the **intended peer**. A uses it in §5.2 step 3 and MUST NOT take it from the MUTUAL_HELLO_ACK it later receives.
 
 The handshake is **four messages over two round trips**. The first round trip exchanges credentials and nonces. The second round trip exchanges the signed TCTs (each with its OPTIONAL companion grant voucher) and proof-of-possession signatures.
 
@@ -388,8 +390,9 @@ B MUST:
 
 ### 5.2 On receiving MUTUAL_HELLO_ACK (A verifies B)
 
-A applies the same 8-step bootstrap to B's inline Manifest, with one
-additional check before step 8:
+A applies the same 8-step bootstrap to B's inline Manifest, with two
+additional checks: the sender check of step 3 and the nonce echo of
+step 9.
 
 A MUST:
 
@@ -397,28 +400,30 @@ A MUST:
 2. Parse the payload as a `MutualHelloAckPayload`, enforcing the same
    member-set rule as §5.1 step 2 against the §3.2 field table (unknown
    member outside `extensions` ⇒ `UNKNOWN_FIELD`).
-3. Confirm `payload.manifest.aid` equals `envelope.sender.agent_id`.
+3. **Confirm `envelope.sender.agent_id` equals the intended peer AID**:
+   the AID A addressed in MUTUAL_HELLO (§2). Failure ⇒ `PEER_MISMATCH`.
+4. Confirm `payload.manifest.aid` equals `envelope.sender.agent_id`.
    Failure ⇒ `INVALID_ENVELOPE`.
-4. Verify B's Manifest `proof_of_possession.signature`.
-5. Verify B's Manifest `signature`.
-6. Verify B's identity binding per RFC-AITP-0002 (including `aud` and
+5. Verify B's Manifest `proof_of_possession.signature`.
+6. Verify B's Manifest `signature`.
+7. Verify B's identity binding per RFC-AITP-0002 (including `aud` and
    `cnf.jkt`), with the same internal order as §5.1 step 6: descriptor
    shape and hint consistency first, then, for OIDC, the check that B's
    issuer is in A's `trust_anchors` before any key fetch (SHOULD;
    failure ⇒ `INCOMPATIBLE_TRUST_ANCHORS`), then key resolution and proof
    verification. The §5.1 allowance applies here too: when B's issuer is
    untrusted and a later check also fails (key resolution or proof
-   verification, step 7, step 8 or step 9), either
+   verification, step 8, step 9 or step 10), either
    `INCOMPATIBLE_TRUST_ANCHORS` or the code the strict step order gives
-   is conformant.
-7. Verify the envelope signature.
-8. **Verify `pop_nonce_echo`** equals A's original `pop_nonce` from
+   is conformant. The allowance never reaches steps 1 to 6.
+8. Verify the envelope signature.
+9. **Verify `pop_nonce_echo`** equals A's original `pop_nonce` from
    MUTUAL_HELLO. Failure ⇒ `NONCE_MISMATCH`.
-9. Apply policy: check B's identity issuer is in A's `trust_anchors`,
-   evaluate B's `requested_grants`, construct the `tct` A will issue for
-   B (and, if A's policy permits B to delegate, the companion
-   `grant_voucher`) per §4, compute `pop_signature` over B's `pop_nonce`,
-   and send MUTUAL_COMMIT.
+10. Apply policy: check B's identity issuer is in A's `trust_anchors`,
+    evaluate B's `requested_grants`, construct the `tct` A will issue for
+    B (and, if A's policy permits B to delegate, the companion
+    `grant_voucher`) per §4, compute `pop_signature` over B's `pop_nonce`,
+    and send MUTUAL_COMMIT.
 
 ### 5.3 On receiving MUTUAL_COMMIT (B finalizes)
 
@@ -530,20 +535,21 @@ A MUST:
 
 | Scenario | Who fails | Error code |
 |---|---|---|
-| `payload.manifest.aid ≠ envelope.sender.agent_id` (step §5.1 #3) | Either | `INVALID_ENVELOPE` |
+| `payload.manifest.aid ≠ envelope.sender.agent_id` (step §5.1 #3, §5.2 #4) | Either | `INVALID_ENVELOPE` |
+| MUTUAL_HELLO_ACK `envelope.sender.agent_id` ≠ the intended peer AID (step §5.2 #3) | A | `PEER_MISMATCH` |
 | Payload does not match its schema — missing REQUIRED member, wrong type, value outside its grammar | Either | `INVALID_ENVELOPE` |
 | Peer's Manifest does not match its schema (RFC-AITP-0003 §5 step 2) | Either | `MANIFEST_INVALID` |
 | Peer's `identity` descriptor does not match its schema — including an `oidc` descriptor carrying `public_key` (RFC-AITP-0002 §1) | Either | `IDENTITY_FAILED` |
 | Payload carries a member outside its schema and outside `extensions` (step #2 of §5.1, §5.2, §5.3, and §5.4; RFC-AITP-0001 §7) | Either | `UNKNOWN_FIELD` |
 | Manifest PoP signature invalid (step §5.1 #4) | Either | `MANIFEST_POP_FAILED` |
 | A's Manifest signature invalid (step §5.1 #5) | B | `MANIFEST_SIGNATURE_INVALID` |
-| B's Manifest signature invalid (step §5.2 #5) | A | `MANIFEST_SIGNATURE_INVALID` |
+| B's Manifest signature invalid (step §5.2 #6) | A | `MANIFEST_SIGNATURE_INVALID` |
 | Identity proof failed or `identity.type` ≠ `manifest.identity_hint.type` (step §5.1 #6) | Either | `IDENTITY_FAILED` |
 | Peer's identity `type` not in own `accepted_identity_types` (step §5.1 #8) | Either | `INCOMPATIBLE_IDENTITY_TYPE` |
 | Peer's OIDC `issuer` not in own `trust_anchors` (step §5.1 #8, OIDC only; SHOULD be checked in step 6 before any key fetch) | Either | `INCOMPATIBLE_TRUST_ANCHORS` |
 | Envelope signature invalid after trust bootstrap (step §5.1 #7, §5.3 #1, §5.4 #1) | Either | `INVALID_SIGNATURE` |
 | PoP signature verification failed (step §5.3 #4, §5.4 #4) | Either | `POP_VERIFICATION_FAILED` |
-| `pop_nonce_echo` mismatch (step §5.2 #8, §5.3 #3, §5.4 #3) | Either | `NONCE_MISMATCH` |
+| `pop_nonce_echo` mismatch (step §5.2 #9, §5.3 #3, §5.4 #3) | Either | `NONCE_MISMATCH` |
 | Peer TCT header `typ` is not exactly `aitp-tct+jwt` (step §5.3 #5, §5.4 #5; RFC-AITP-0005 §7.2) | Either | `TOKEN_TYP_MISMATCH` |
 | Peer TCT header `alg` is not the sole AID-derived value, including `none` (step §5.3 #5, §5.4 #5; RFC-AITP-0001 §5.4.5) | Either | `TOKEN_ALG_MISMATCH` |
 | Peer TCT `aud` does not match self AID | Either | `AUDIENCE_MISMATCH` |
@@ -566,6 +572,7 @@ The Mutual Handshake requires the following transient state, retained for at mos
 | State | Owner | Retained until |
 |---|---|---|
 | Peer's inline Manifest | Both | Handshake complete or failure |
+| Intended peer AID (§2) | Initiator | MUTUAL_HELLO_ACK verified (§5.2 step 3) |
 | Own `pop_nonce` | Both | `pop_nonce_echo` verified in next message |
 | Peer's `pop_nonce` | Both | PoP signature computed and sent |
 | Own issued TCT and grant voucher (constructed, not yet confirmed) | Both | COMMIT_ACK verified |
@@ -576,6 +583,8 @@ After the handshake is complete:
 |---|---|---|
 | Peer's TCT and grant voucher (received) | Both | TCT `exp` or revocation |
 | Peer's Manifest (cached) | Both | Manifest `expires_at` |
+
+The initiator records the intended peer AID when it sends MUTUAL_HELLO and MUST NOT take it from the MUTUAL_HELLO_ACK itself.
 
 Agents MUST NOT persist `pop_nonce` values across restarts. Restarting agents MUST re-initiate any interrupted handshake from scratch.
 
@@ -665,6 +674,10 @@ If Agent B rotates its key between A fetching the Manifest and A initiating the 
 ### 11.4 Denial-of-service on handshake endpoint
 
 The `handshake_endpoint` in the Manifest is a public-facing surface. Implementations MUST apply per-source rate limiting as specified in [RFC-AITP-0009 §3.1](RFC-AITP-0009-security.md#31-rate-limiting), which is the single normative home of the requirement, its source-key rule (a transport-level identifier MUST be part of the key, because a pre-verification `sender.agent_id` is self-asserted) and its RECOMMENDED defaults.
+
+### 11.5 Peer binding of the initiator's session
+
+The initiator accepts a MUTUAL_HELLO_ACK only from the AID it addressed in MUTUAL_HELLO (§5.2 step 3), so the session it completes, and the TCT it issues in §5.2 step 10, are bound to the peer it chose, not to whichever agent answered. Round 2 relies on the Manifest cached from that verified ACK (§5.3, §5.4), so it inherits the binding.
 
 ---
 
