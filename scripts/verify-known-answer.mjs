@@ -581,6 +581,37 @@ const JCS_EXPECTED = new Map([
   ['kat-derived-uuid-001', ['domain_tag', 'input_hex', 'preimage_hex', 'sha256_hex', 'uuid']],
 ]);
 
+// Vectors and signed examples pinned for a Draft RFC (RFC-AITP-0010, RFC-AITP-0011).
+// Each carries `"draft": true` and stays outside the frozen known-answer set until
+// its RFC reaches Release Candidate (known-answer/README.md § Stability). The tag
+// is asserted in both directions: every listed entry carries exactly `true`, and
+// no other entry carries a `draft` member at all, so a frozen vector cannot be
+// moved out of the frozen set by tagging it.
+const DRAFT_JCS_VECTORS = new Set(['kat-multihop-chain-001', 'kat-multihop-truncation-001', 'kat-session-bundle-001']);
+const DRAFT_SIGNED_EXAMPLES = new Set(['session-bundle/kat-keypair-001-bundle.json']);
+
+function checkDraftTags() {
+  console.log('── draft tags: Draft-RFC vectors sit outside the frozen set ──');
+  const { vectors } = readJson(join(KAT, 'jcs-sha256.json'));
+  for (const v of vectors) {
+    const want = DRAFT_JCS_VECTORS.has(v.id);
+    check(`${v.id} draft tag is ${want ? '"draft": true' : 'absent'}`, () => {
+      if (want && v.draft !== true) throw new Error(`must carry "draft": true, got ${JSON.stringify(v.draft)}`);
+      if (!want && v.draft !== undefined) throw new Error(`must not carry a "draft" member, got ${JSON.stringify(v.draft)}`);
+    });
+  }
+  const walk = (dir, rel = '') => readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? walk(join(dir, e.name), `${rel}${e.name}/`) : e.name.endsWith('.json') ? [`${rel}${e.name}`] : []);
+  for (const rel of walk(SIGNED)) {
+    const file = readJson(join(SIGNED, rel));
+    const want = DRAFT_SIGNED_EXAMPLES.has(rel);
+    check(`${rel} draft tag is ${want ? '"draft": true' : 'absent'}`, () => {
+      if (want && file.draft !== true) throw new Error(`must carry "draft": true, got ${JSON.stringify(file.draft)}`);
+      if (!want && file.draft !== undefined) throw new Error(`must not carry a "draft" member, got ${JSON.stringify(file.draft)}`);
+    });
+  }
+}
+
 const KEYPAIRS_EXPECTED = new Map([
   ['kat-keypair-001', ['seed_hex', 'pubkey_b64url', 'aid']],
   ['kat-keypair-002', ['seed_hex', 'pubkey_b64url', 'aid']],
@@ -2236,6 +2267,7 @@ const keypairs = checkKeypairs();
 checkThumbprints(keypairs);
 checkOidcTestIssuers();
 checkJcsVectors(keypairs);
+checkDraftTags();
 checkSignedExamples();
 checkSignatureStrictness();
 checkTct017();

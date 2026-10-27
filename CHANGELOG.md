@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### v1.0 criteria, review disposition record, known-answer stability rule
+
+**Change class.** Governance and editorial. No wire, schema, error code, fixture outcome or RFC text changes, and no known-answer value changes.
+
+- `VERSIONING.md` gains "v1.0 criteria": seven criteria for releasing AITP 1.0, each with how to check it and its current status. One is met (the conformance report format and badge rules). Six are unmet, including at least one core-passing implementation by an author with no commit access to aitp-rs.
+- `governance/RFC-PROCESS.md` gains "Review disposition record": the record each public review window ends with. It states the window and announcement dates, the Discussion and the versions under review, a row per comment thread with its class and resolution, the changes made in the window that no comment prompted, an `External comments: N` line, and the sign-off. `CONTRIBUTING.md` points to it.
+- One known-answer stability rule: "additions only, except a security fix under SECURITY.md". It replaces the earlier wording ("an existing vector's output MUST NOT change without an RFC bump") in `schemas/conformance/known-answer/README.md` § Stability and in the `VERSIONING.md` Change classes quote, and the What is frozen row states it too.
+- Draft-RFC vectors are tagged `"draft": true`: `kat-multihop-chain-001`, `kat-multihop-truncation-001` and `kat-session-bundle-001` in `jcs-sha256.json`, and `signed-examples/session-bundle/kat-keypair-001-bundle.json`. They sit outside the frozen set until their RFC (RFC-AITP-0010, RFC-AITP-0011) reaches Release Candidate. Their values are unchanged. `make kat-verify` checks the tag in both directions, and the signed-example schema check strips the `draft` member.
+
 ## v0.3.4-draft (2026-10-27)
 
 Protocol revision `aitp/0.3`. Tags: `v0.3.4-draft`, `schema-v0.3.4`. A security fix under the `aitp/0.3` freeze: the initiator now checks that MUTUAL_HELLO_ACK comes from the peer it addressed (RFC-AITP-0004 §5.2 step 3), with the new core code `PEER_MISMATCH` and core fixture `mh-015` ([GHSA-c26h-f9hm-2wj7](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/security/advisories/GHSA-c26h-f9hm-2wj7)). No signed byte, schema or known-answer vector changes. Also adds the conformance adapter protocol (`schemas/conformance/ADAPTER.md`), the Tamarin model of the handshake, TCTs and delegation with its CI (`formal/`), and the `spec-released` dispatch to aitp-docs. At release, four implementations pass every core fixture, `mh-015` included: aitp-rs, aitp-verifier-py 0.1.3, aitp-verifier-ts 0.1.1 and aitp-verifier-go 0.1.1.
