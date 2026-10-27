@@ -9,7 +9,7 @@ discover each other's optional features without ad-hoc string matching.
 | Key | Object | Type | RFC | Status |
 |---|---|---|---|---|
 | `rfc-aitp-0005.verify_uri` | Manifest `extensions` | HTTPS URL | [RFC-AITP-0005](../rfcs/RFC-AITP-0005-tct.md) | Provisional |
-| `rfc-aitp-0005.renew_uri` | Manifest `extensions` | HTTPS URL | [RFC-AITP-0004 §8.1](../rfcs/RFC-AITP-0004-mutual-handshake.md#81-non-normative-shortened-renewal-extension) (non-normative; eventual standardization reserved as RFC-AITP-0013) | Provisional |
+| `rfc-aitp-0005.renew_uri` | Manifest `extensions` | HTTPS URL | [RFC-AITP-0013 §2](../rfcs/RFC-AITP-0013-tct-renewal-extension.md#2-discovery) (Draft, opt-in) | Provisional |
 | `rfc-aitp-0006.delegation_verify_uri` | Manifest `extensions` | HTTPS URL | [RFC-AITP-0006](../rfcs/RFC-AITP-0006-delegation.md) | Provisional |
 | `rfc-aitp-0008.revocation_list_uri` | Manifest `extensions` | HTTPS URL of the issuer's `ListRevoked` endpoint. REQUIRED in the Manifest of every peer that issues TCTs; a verifier MUST NOT reject a Manifest solely for its absence | [RFC-AITP-0008 §1.4](../rfcs/RFC-AITP-0008-revocation.md#14-distribution), [RFC-AITP-0005 §11](../rfcs/RFC-AITP-0005-tct.md#11-peer-issued-tct-verification-api) | Provisional |
 | `rfc-aitp-0010.bundle_uri` | Manifest `extensions` | HTTPS URL | [RFC-AITP-0010 §4.3](../rfcs/RFC-AITP-0010-session-trust-bundle.md) (Draft; opt-in) | Provisional |

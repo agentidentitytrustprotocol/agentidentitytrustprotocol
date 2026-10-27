@@ -26,7 +26,7 @@ restriction OnlyOnce:
 // RFC-AITP-0001 §5.5 (1)+(2): the timestamp window plus a deny list kept
 // for at least that window means a receiver never accepts one message_id
 // twice. The same restriction models any other single-use store (the
-// renewal nonce store of RFC-AITP-0004 §8.1), keyed by a tagged value.
+// renewal nonce store of RFC-AITP-0013 §5), keyed by a tagged value.
 restriction DenyList:
   "All r mid #i #j. Seen(r, mid) @ #i & Seen(r, mid) @ #j ==> #i = #j"
 

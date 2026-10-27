@@ -267,16 +267,13 @@ is [`rfcs/README.md`](../rfcs/README.md).
 - **0010 Session Trust Bundle** — coordinator-mediated trust for N-agent sessions. Core runners SKIP the `bundle-*` fixtures.
 - **0011 Multi-hop Delegation** — chains beyond a single hop. Core implementations reject `del-mh-*` tokens with `DELEGATION_MULTIHOP_NOT_SUPPORTED`
   ([RFC-AITP-0001 §10](../rfcs/RFC-AITP-0001-core.md#10-conformance)).
+- **0013 TCT Renewal Extension** — renews a TCT without a fresh handshake: a PoP-signed request to the issuer's `renew_uri`, answered with the new TCT in a signed `tct` envelope. Core runners SKIP the `ren-*` fixtures.
 - **0014 A2A Agent Card Security Scheme** — an A2A (Agent2Agent protocol) Agent Card advertises AITP; the client trusts the bound Manifest, never the Card. Core runners SKIP the `a2a-*` fixtures.
 
 **Reserved** (a real document whose contents are non-normative for `aitp/0.3`):
 
 - **0012 Extensions** — reserves `extensions.zk`, `extensions.tee` and the selective-disclosure `ext.sd_grant` key. It still constrains v0.3 peers: they MUST NOT make a trust decision based on that extension data
   ([RFC-AITP-0012 §5](../rfcs/RFC-AITP-0012-extensions.md#5-compatibility)).
-
-**Planned** (stub document only):
-
-- **0013 TCT Renewal Extension** — eventual standardization of the non-normative shortened renewal endpoint ([RFC-AITP-0004 §8.1](../rfcs/RFC-AITP-0004-mutual-handshake.md#81-non-normative-shortened-renewal-extension)).
 
 Every error code lives in [`registries/error-codes.md`](../registries/error-codes.md);
 its [structural-rejection table](../registries/error-codes.md#structural-rejection)

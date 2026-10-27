@@ -119,11 +119,11 @@ Per the [RFC index](../rfcs/README.md), RFCs 0001–0009 are in **Review**
 and RFCs 0010, 0011 and 0014 are **Draft** (see
 [governance/RFC-PROCESS.md](../governance/RFC-PROCESS.md) for the
 lifecycle). RFC-AITP-0010 (Session Trust Bundle), RFC-AITP-0011
-(Multi-hop Delegation) and RFC-AITP-0014 (A2A Agent Card Security
-Scheme) are **opt-in**: Draft normative text, outside v0.3 core
-conformance. RFC-AITP-0012 (Extensions) is
-**Reserved** — its contents are non-normative for `aitp/0.3` — and
-RFC-AITP-0013 (TCT Renewal Extension) is a **Planned** stub. Core
+(Multi-hop Delegation), RFC-AITP-0013 (TCT Renewal Extension) and
+RFC-AITP-0014 (A2A Agent Card Security Scheme) are **opt-in**: Draft
+normative text, outside v0.3 core conformance. RFC-AITP-0012
+(Extensions) is **Reserved**: its contents are non-normative for
+`aitp/0.3`. Core
 conformance does not require implementing 0010–0014, but the
 [RFC-AITP-0012](../rfcs/RFC-AITP-0012-extensions.md) §5–§6 constraints (ignore
 unknown keys inside `extensions`/`ext`; make no trust decision from

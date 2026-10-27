@@ -1,7 +1,7 @@
 /*
  * A TCT held after the handshake: presented back to its issuer under
  * downstream PoP (RFC-AITP-0005 §10.5, §6.1, §6.2) and renewed with the
- * proposed renewal PoP input (RFC-AITP-0004 §8.1, RFC-AITP-0013).
+ * renewal PoP input of RFC-AITP-0013 §3.1.
  * Included by aitp-tct.spthy after common.splib, holder.splib and
  * handshake.splib.
  */
@@ -43,26 +43,27 @@ rule RS_Accept:
     [ ]
 
 /* ------------------------------------------------------------------ */
-/* TCT renewal (RFC-AITP-0004 §8.1, RFC-AITP-0013 Planned)            */
+/* TCT renewal (RFC-AITP-0013)                                       */
 /* ------------------------------------------------------------------ */
 
 // The holder H of a TCT issued by I sends current_tct, a holder-chosen
-// fresh pop_nonce, and pop_signature over the proposed renewal PoP input:
-// a domain tag, the issuer AID and sha256(pop_nonce), in the style of the
-// RFC-AITP-0002 §3.1 proof_input. The request is not enveloped (§8.1).
+// fresh pop_nonce, and pop_signature over the renewal PoP input of
+// RFC-AITP-0013 §3.1: the tag, the issuer AID, the current TCT's jti and
+// the nonce. The request is not enveloped (RFC-AITP-0013 §3).
 rule Renew_Request:
     let H   = pk(~ltkH)
     in
     [ !Ltk(H, ~ltkH), !Held(H, I, g, jti, tct), Fr(~rn) ]
   --[ RenewRequest(H, I, jti, ~rn), PoPSign(H, ~rn),
       RenPoPSign(H, I, ~rn) ]->
-    [ Out(<tct, ~rn, sign(<'aitp-renewal-pop-v1', I, h(~rn)>, ~ltkH)>) ]
+    [ Out(<tct, ~rn, sign(<'aitp-renewal-pop-v1', I, jti, ~rn>, ~ltkH)>) ]
 
 // The issuer I checks that it issued current_tct (signature under its own
 // key, unexpired: time is abstracted), that pop_signature verifies under
-// the key in sub over the renewal input naming I, and that pop_nonce is
-// new to its replay store; it then re-evaluates grants (permissive: the
-// same grants) and issues a fresh TCT with a new jti.
+// the key in sub over the renewal input built from I and the TCT's jti,
+// and that pop_nonce is new to its replay store; it then re-evaluates
+// grants (permissive: the same grants) and issues a fresh TCT with a new
+// jti (RFC-AITP-0013 §4).
 rule Renew_Issue:
     let I    = pk(~ltkI)
         H    = pk(skH)
@@ -71,7 +72,7 @@ rule Renew_Issue:
         tc2  = <'tct', 'aitp/0.3', I, H, H, $g, ~jti2, jkt(H)>
     in
     [ !Ltk(I, ~ltkI),
-      In(<tct, ~rn, sign(<'aitp-renewal-pop-v1', I, h(~rn)>, skH)>),
+      In(<tct, ~rn, sign(<'aitp-renewal-pop-v1', I, ~jti, ~rn>, skH)>),
       Fr(~jti2) ]
   --[ Seen(I, <'renewal_nonce', ~rn>),
       PoPAccept(I, H, ~rn), RenPoPAccept(I, H, ~rn),

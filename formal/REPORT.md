@@ -8,7 +8,7 @@ The model covers, from the RFC text of spec v0.3.3-draft:
 
 - the four-message Mutual Handshake of RFC-AITP-0004 over the signed envelopes of RFC-AITP-0001, with OIDC-bound identities (RFC-AITP-0002 §2) and Manifests (RFC-AITP-0003);
 - a TCT presented back to its issuer under downstream PoP (RFC-AITP-0005 §6, §10.5);
-- TCT renewal (RFC-AITP-0004 §8.1, RFC-AITP-0013), with the proposed renewal PoP input `<'aitp-renewal-pop-v1', issuer AID, sha256(pop_nonce)>`;
+- TCT renewal (RFC-AITP-0013), with the renewal PoP input of RFC-AITP-0013 §3.1, `<'aitp-renewal-pop-v1', issuer AID, current TCT jti, pop_nonce>`;
 - single-hop delegation with a grant voucher (RFC-AITP-0006, RFC-AITP-0005 §8).
 
 The adversary controls the network, can register its own AIDs with valid Manifests, can enroll at the identity provider under subjects of its own, and can reveal any honest agent's long-term key.

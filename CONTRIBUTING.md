@@ -163,7 +163,7 @@ per-RFC table is [`rfcs/README.md`](rfcs/README.md).
 - **[RFC-AITP-0010 Session Trust Bundle](rfcs/RFC-AITP-0010-session-trust-bundle.md)** *(Draft, opt-in — not part of v0.3 core conformance)*
 - **[RFC-AITP-0011 Multi-hop Delegation](rfcs/RFC-AITP-0011-multihop-delegation.md)** *(Draft, opt-in — not part of v0.3 core conformance)*
 - **[RFC-AITP-0012 Extensions](rfcs/RFC-AITP-0012-extensions.md)** *(Reserved — non-normative for `aitp/0.3`)*
-- **[RFC-AITP-0013 TCT Renewal Extension](rfcs/RFC-AITP-0013-tct-renewal-extension.md)** *(Planned — stub reserving the number)*
+- **[RFC-AITP-0013 TCT Renewal Extension](rfcs/RFC-AITP-0013-tct-renewal-extension.md)** *(Draft, opt-in — not part of v0.3 core conformance)*
 - **[RFC-AITP-0014 A2A Agent Card Security Scheme](rfcs/RFC-AITP-0014-a2a-agent-card.md)** *(Draft, opt-in — not part of v0.3 core conformance)*
 
 ## Releases

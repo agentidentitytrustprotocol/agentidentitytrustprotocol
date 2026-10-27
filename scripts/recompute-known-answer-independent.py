@@ -69,7 +69,7 @@ QUIET = "--quiet" in sys.argv[1:]
 # silently stops running (commented out, a loop that ends early, a gate that no
 # longer matches) fails the run. Raise it in the same commit that adds checks;
 # lower it only on purpose, and say why.
-EXPECTED_MIN_CHECKS = 265
+EXPECTED_MIN_CHECKS = 324
 
 failures = 0
 checks = 0
@@ -302,6 +302,11 @@ def proof_input(sender: str, receiver: str, message_id: str, timestamp: int, pop
                        message_id.encode(), str(timestamp).encode(), b64d(pop_nonce)])
 
 
+def renewal_input(issuer: str, jti: str, pop_nonce: str) -> bytes:
+    """RFC-AITP-0013 §3.1 renewal PoP input."""
+    return b"aitp-renewal-pop-v1\0" + issuer.encode() + b"\0" + jti.encode() + b"\0" + b64d(pop_nonce)
+
+
 def derived_uuid(tag: str, inp: str) -> str:
     """RFC-AITP-0005 §2.2 derived identifier: SHA-256(tag || 0x00 || input)[0..16], v4 bits set."""
     b = bytearray(H(tag.encode() + b"\0" + inp.encode())[:16])
@@ -416,6 +421,76 @@ def main() -> int:
           and e25["payload"]["identity"]["proof"] == v["signature_b64url"]
           and e25["payload"]["identity"]["svid_type"] == "x509-svid"
           and f25["expected"]["outcome"] == "success")
+
+    section("── jcs-sha256.json renewal PoP (RFC-AITP-0013 §3.1, Draft) ──")
+    k2 = keypairs["kat-keypair-002"]
+    seed2 = bytes.fromhex(k2["seed_hex"])
+    A2 = ed_public(seed2)
+    check("kat-keypair-002 pubkey", b64e(A2) == k2["pubkey_b64url"])
+    ren_tct = load(SIGNED / "tct" / "kat-keypair-001-issues-002.json")
+    rc = ren_tct["decoded_claims"]
+    v = jcsv["kat-renewal-pop-001"]
+    pre = renewal_input(v["issuer_aid"], v["current_tct_jti"], v["pop_nonce"])
+    check("kat-renewal-pop-001 iss, jti and signer are the committed TCT's iss, jti and sub",
+          v["issuer_aid"] == rc["iss"] and v["current_tct_jti"] == rc["jti"]
+          and v["signer_aid"] == rc["sub"] == "aid:pubkey:" + b64e(A2)
+          and json.loads(b64d(ren_tct["tct_token"].split(".")[1])) == rc)
+    check("kat-renewal-pop-001 input", pre.hex() == v["input_hex"] and len(pre) == v["input_len_bytes"] == 128)
+    check("kat-renewal-pop-001 sha256", H(pre).hex() == v["sha256_hex"] and b64e(H(pre)) == v["sha256_b64url"])
+    sigr = b64d(v["signature_b64url"])
+    check("kat-renewal-pop-001 re-signs byte for byte", ed_sign(seed2, H(pre)) == sigr)
+    check("kat-renewal-pop-001 verifies strictly", ed_verify_strict(A2, H(pre), sigr))
+    ascii_nonce = pre[: -16] + v["pop_nonce"].encode()
+    check("kat-renewal-pop-001 does not verify with the base64url nonce string", not ed_verify_strict(A2, H(ascii_nonce), sigr))
+    tagged_iss = renewal_input(v["issuer_aid"].replace("aid:pubkey:", "aid:pubkey:ed25519:"), v["current_tct_jti"], v["pop_nonce"])
+    check("kat-renewal-pop-001 does not verify over the tagged issuer spelling", not ed_verify_strict(A2, H(tagged_iss), sigr))
+    v2 = jcsv["kat-renewal-pop-002-p256"]
+    check("kat-renewal-pop-002-p256 has -001's input",
+          all(v2[k] == v[k] for k in ("issuer_aid", "current_tct_jti", "pop_nonce", "input_hex", "input_len_bytes", "sha256_hex", "sha256_b64url")))
+    check("kat-renewal-pop-002-p256 signer", v2["signer_aid"] == aid5 and v2["signature"] == "p256." + v2["signature_b64url"])
+    p256_signature("kat-renewal-pop-002-p256", sk, vk, pre, v2["signature"], v2["double_hash_signature_MUST_NOT_verify"])
+
+    section("── ren-* fixtures: renewal PoP signatures and the committed TCT (RFC-AITP-0013) ──")
+    k3r = keypairs["kat-keypair-003"]
+    A3r = ed_public(bytes.fromhex(k3r["seed_hex"]))
+    other_jti = "550e8400-e29b-41d4-a716-446655440001"
+    other_iss = keypairs["kat-keypair-004"]["aid"]
+    ren = {}
+    for path in sorted(CONF.glob("ren-*.json")):
+        f = load(path)
+        ren[f["id"]] = f
+    check("ren-*: twelve fixtures, all draft under experimental-renewal",
+          sorted(ren) == [f"ren-{i:03d}" for i in range(1, 13)]
+          and all(f["status"] == "draft" and f["feature"] == "experimental-renewal"
+                  and f["required_for_core"] is False and f["required_for_v0_1"] is False for f in ren.values()))
+    for fid, f in sorted(ren.items()):
+        inp = f["input"]
+        check(f"{fid}: current TCT is the committed signed example", inp["current_tct_claims"] == rc
+              and (inp.get("current_tct") or (inp.get("renewal_request") or inp["sequence"][0]["renewal_request"])["current_tct"]) == ren_tct["tct_token"])
+        if inp.get("operation") == "verify_renewal_response":
+            pl = inp["envelope"]["payload"]
+            check(f"{fid}: holder is the TCT sub, sender is its iss, the echo is the sent nonce",
+                  inp["self_aid"] == rc["sub"] and inp["envelope"]["sender"]["agent_id"] == rc["iss"]
+                  and pl["pop_nonce_echo"] == inp["sent_pop_nonce"] and pl["tct_claims"]["iss"] == rc["iss"]
+                  and pl["tct_claims"]["jti"] != rc["jti"])
+            continue
+        reqs = [inp["renewal_request"]] if "renewal_request" in inp else [st["renewal_request"] for st in inp["sequence"]]
+        check(f"{fid}: issuer is the TCT iss", inp["self_aid"] == rc["iss"] and inp["issuer_manifest"]["aid"] == rc["iss"])
+        for r in reqs:
+            sig = b64d(r["pop_signature"])
+            good = H(renewal_input(rc["iss"], rc["jti"], r["pop_nonce"]))
+            if fid == "ren-005":
+                check(f"{fid}: PoP verifies under kat-keypair-003 over the correct input, not under sub",
+                      ed_verify_strict(A3r, good, sig) and not ed_verify_strict(A2, good, sig))
+            elif fid == "ren-006":
+                check(f"{fid}: PoP verifies under sub over another jti only",
+                      ed_verify_strict(A2, H(renewal_input(rc["iss"], other_jti, r["pop_nonce"])), sig) and not ed_verify_strict(A2, good, sig))
+            elif fid == "ren-007":
+                check(f"{fid}: PoP verifies under sub over another issuer only",
+                      ed_verify_strict(A2, H(renewal_input(other_iss, rc["jti"], r["pop_nonce"])), sig) and not ed_verify_strict(A2, good, sig))
+            else:
+                check(f"{fid}: PoP re-signs byte for byte under sub over the correct input",
+                      ed_sign(seed2, good) == sig and ed_verify_strict(A2, good, sig))
 
     section("── pinned-key fixtures: each proof against its own tuple ──")
     for name, kind in [
