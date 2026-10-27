@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Implementer quickstart: "Implementations wanted"
+
+**Change class.** Documentation only. No wire, schema, fixture or RFC change.
+
+- `docs/implementer-quickstart.md` gains "Implementations wanted". It explains why 1.0 needs a core-passing implementation by a different author (`VERSIONING.md` § v1.0 criteria, criterion 3, unmet), what passing means (the conformance report and the `AITP v0.3` claim, `docs/conformance-badge.md`), and which languages have no implementation yet. Its "A good first implementation" path runs through the known-answer vectors, the core operations and adapter protocol in `schemas/conformance/ADAPTER.md`, the fixture summary, and a published report.
+
 ### v1.0 criteria, review disposition record, known-answer stability rule
 
 **Change class.** Governance and editorial. No wire, schema, error code, fixture outcome or RFC text changes, and no known-answer value changes.
