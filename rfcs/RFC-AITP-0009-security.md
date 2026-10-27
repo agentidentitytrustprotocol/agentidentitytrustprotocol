@@ -2,7 +2,7 @@
 # Security & Threat Model
 
 **Document:** RFC-AITP-0009
-**Version:** 0.3.3-draft
+**Version:** 0.3.4-draft
 **Status:** Community Standards Track (Review)
 **Depends on:** All preceding RFCs.
 
@@ -24,6 +24,7 @@ This RFC enumerates the threats AITP defends against in the agent-to-agent setti
 - All envelopes are signed with the sender's private key (AID).
 - Identity binding requires proof-of-possession or a verifiable credential from a trusted issuer.
 - The Mutual Handshake includes a PoP exchange in round 2 that binds the TCT to a live private key.
+- The initiator accepts a MUTUAL_HELLO_ACK only from the peer it addressed: the ACK sender is bound to the intended peer AID ([RFC-AITP-0004 §5.2](RFC-AITP-0004-mutual-handshake.md#52-on-receiving-mutual_hello_ack-a-verifies-b) step 3), else `PEER_MISMATCH`.
 - Peer-issued TCTs are bound to the subject's public key via the `cnf` claim (`cnf.jkt`, RFC-AITP-0001 §5.4.4).
 
 ### 1.2 Replay
