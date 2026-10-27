@@ -200,3 +200,65 @@ CI. Adding a fixture? Read the contract in
 [`schemas/conformance/README.md`](../schemas/conformance/README.md#fixture-input-validation).
 The documentation-coherence stages are described in the header of
 [`scripts/check-doc-coherence.sh`](../scripts/check-doc-coherence.sh).
+
+---
+
+## Implementations wanted
+
+AITP needs an implementation written by someone other than its author.
+
+**Why.** AITP 1.0 needs at least two implementations that pass the core
+conformance tier and interoperate end-to-end, and at least one of them
+must be by an author with no commit access to aitp-rs
+([VERSIONING.md § v1.0 criteria](../VERSIONING.md#v10-criteria),
+criterion 3). That criterion is unmet. Every implementation listed in
+[`docs/ecosystem.md`](ecosystem.md) (Rust, Python, TypeScript and Go) is
+by the same author. They share no code, but two programs by one person
+can share one misreading of the RFCs. Only an implementation by a
+different author can find the places where the text is ambiguous.
+
+**What passing means.** Your runner emits a conformance report, and the
+`AITP v0.3` claim passes when every `required_for_core` fixture has the
+outcome `pass`. A skipped core fixture blocks the claim. The report
+format, the claim rules and the badge are defined in
+[Conformance reports and badges](conformance-badge.md). A report is
+trusted because anyone can reproduce it from the spec commit, the fixture
+digest and a public CI run.
+
+**Languages with no implementation yet.** Java, C#, Swift, and any other
+language not listed above. A Rust, Python, TypeScript or Go implementation
+by a different author counts just as much: the criterion is about who
+wrote it, not which language it is in.
+
+### A good first implementation
+
+You don't need a full agent stack. Start with a verification core: the
+part that takes an artifact and returns success or a specific error code.
+
+1. **Read the core RFCs** in the order [above](#read-in-this-order), and
+   reproduce the [known-answer vectors](../schemas/conformance/known-answer/README.md)
+   first. They pin the exact bytes every signature covers, so they catch
+   canonicalization and encoding mistakes before any fixture does.
+2. **Implement the core operations.** The core fixtures drive the
+   operations marked "Required for core" in
+   [`schemas/conformance/ADAPTER.md` § Fixture operations](../schemas/conformance/ADAPTER.md#fixture-operations).
+   Most are `verify_*` operations. The rest are the few proof-of-possession
+   and handshake steps the core fixtures exercise.
+3. **Write an adapter.** [`ADAPTER.md`](../schemas/conformance/ADAPTER.md)
+   (`adapter-protocol: 1`) describes the NDJSON protocol between a
+   conformance runner and your implementation: the messages, the
+   operations, SKIP semantics and how claims are gated. You do not need
+   to read another implementation's source to write one.
+4. **Run the core tier.** The
+   [fixture summary](../schemas/conformance/README.md#fixture-summary) gives
+   the count of each tier. Only the `core` tier gates the `AITP v0.3`
+   claim; run it with no draft features enabled. The `extension` and
+   `draft` tiers are optional.
+5. **Publish the report** from a public CI run, and open an issue or a
+   Discussion with the link so the implementation can be listed in
+   [`docs/ecosystem.md`](ecosystem.md).
+
+Questions about the text are welcome on
+[Discussions](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/discussions)
+while you build. A place where two careful readers disagree is exactly
+what this effort is meant to find.
