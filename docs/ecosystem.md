@@ -20,6 +20,7 @@ All repositories live in the [`agentidentitytrustprotocol`](https://github.com/a
 | `aitp-rs` | Reference implementation (Rust) with Python and Node bindings and a CLI | [README](https://github.com/agentidentitytrustprotocol/aitp-rs/blob/main/README.md) · [docs index](https://github.com/agentidentitytrustprotocol/aitp-rs/blob/main/docs/README.md) |
 | `aitp-verifier-py` | Independent Python implementation of the verification core, written from the RFCs and schemas only | [README](https://github.com/agentidentitytrustprotocol/aitp-verifier-py/blob/main/README.md) |
 | `aitp-verifier-ts` | Independent TypeScript implementation of the verification core, written from the RFCs and schemas only: zero dependencies, WebCrypto only, published to npm as `@agentidentitytrustprotocol/verifier` | [README](https://github.com/agentidentitytrustprotocol/aitp-verifier-ts/blob/main/README.md) |
+| `aitp-verifier-go` | Go implementation of the verification core, zero dependencies, with the conformance adapter in the module. Written from the RFCs, schemas and conformance expectations only. Shares no code with aitp-rs, aitp-verifier-py or aitp-verifier-ts and meets them only at the known-answer vectors. **Same author** as the other implementations: independent in code, not in authorship. It does not satisfy the v1.0 different-authorship criterion. | [README](https://github.com/agentidentitytrustprotocol/aitp-verifier-go/blob/main/README.md) |
 | `aitp-control-plane` | API-only registry, audit log, revocation list and webhook backend; not in the trust path | [README](https://github.com/agentidentitytrustprotocol/aitp-control-plane/blob/main/README.md) · [docs](https://github.com/agentidentitytrustprotocol/aitp-control-plane/blob/main/docs/README.md) |
 | `aitp-playground` | Scenario harness that runs AITP end to end with real LLM agents (a demo, not production) | [README](https://github.com/agentidentitytrustprotocol/aitp-playground/blob/main/README.md) · [getting started](https://github.com/agentidentitytrustprotocol/aitp-playground/blob/main/docs/getting-started.md) |
 | `aitp-ui-console` | Monitoring and control console over the playground and control plane | [README](https://github.com/agentidentitytrustprotocol/aitp-ui-console/blob/main/README.md) · [features](https://github.com/agentidentitytrustprotocol/aitp-ui-console/blob/main/docs/FEATURES.md) |
@@ -56,6 +57,7 @@ Every repository that tests against the spec pins it by commit SHA and adopts a 
 | `aitp-verifier-py` | `SPEC_VERSION` | `bump-spec.yml` → `bump-spec-ref` | yes |
 | `aitp-docs` | `sources.config.json` (`sources.spec.pin`) | `bump-spec.yml` → `bump-spec-ref` (file mode) | yes |
 | `aitp-verifier-ts` | `SPEC_VERSION` | `bump-spec.yml` → `bump-spec-ref` | yes |
+| `aitp-verifier-go` | `SPEC_VERSION` | `bump-spec.yml` → `bump-spec-ref` (file mode, `post-bump` regenerates `testdata/spec`) | yes |
 
 A floating-`main` job, such as `aitp-verifier-py`'s daily scheduled run, is a non-blocking canary only. `aitp-website` is not a pinning consumer: it republishes on the `docs-updated` dispatch.
 

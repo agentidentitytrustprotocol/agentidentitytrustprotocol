@@ -7,7 +7,7 @@ This policy covers the AITP specification: the RFCs, JSON Schemas, registries, c
 | You found | Report it to |
 |---|---|
 | A **spec defect**: a rule in an RFC, schema, registry or fixture that, implemented as written, lets a conformant peer accept what it should reject (or the reverse) | This repository |
-| An **implementation bug**: a library or service departs from the spec | That implementation's repository. aitp-rs, aitp-verifier-py, aitp-verifier-ts, aitp-control-plane, aitp-playground and aitp-ui-console each accept private reports the same way. |
+| An **implementation bug**: a library or service departs from the spec | That implementation's repository. aitp-rs, aitp-verifier-py, aitp-verifier-ts, aitp-verifier-go, aitp-control-plane, aitp-playground and aitp-ui-console each accept private reports the same way. |
 
 If you are not sure which it is, report it here. We move it if needed.
 
