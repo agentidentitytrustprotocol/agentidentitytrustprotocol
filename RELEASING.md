@@ -32,8 +32,9 @@ timestamped name. Never attach its output to a release.
    known-answer verification (every pinned canonical byte sequence, key and
    signature recomputed), the independent known-answer recompute
    (`make kat-independent`; install `scripts/requirements-kat.txt` first),
-   and the doc-coherence check (stages listed in the header of
-   `scripts/check-doc-coherence.sh`).
+   the known-answer frozen-set check and its tests (`make kat-frozen-check`,
+   `make kat-frozen-test`), and the doc-coherence check (stages listed in
+   the header of `scripts/check-doc-coherence.sh`).
 4. **Commit, then tag the commit.** Release tags in use are
    `v<version>` for the specification (e.g. `v0.3.0-draft`) and
    `schema-v<version>` for the canonical JSON Schemas (e.g. `schema-v0.3.0`);

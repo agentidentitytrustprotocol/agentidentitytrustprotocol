@@ -1,4 +1,4 @@
-.PHONY: help formal formal-check validate json-validate json-schema-validate kat-verify kat-independent doc-coherence adapter-ops conflict-markers clean install-tools docs release
+.PHONY: help formal formal-check validate json-validate json-schema-validate kat-verify kat-independent kat-frozen kat-frozen-check kat-frozen-test doc-coherence adapter-ops conflict-markers clean install-tools docs release
 
 # AITP ships as JSON only (RFC-AITP-0001 §5.1). There are two signing
 # profiles (RFC-AITP-0001 §5.4): RFC 8785 (JCS) canonical JSON is the
@@ -21,6 +21,10 @@ help:
 	@echo "  make kat-verify            Recompute and verify every pinned known-answer value"
 	@echo "  make kat-independent       Recompute the known answers again with independent Python"
 	@echo "                             code (needs scripts/requirements-kat.txt installed)"
+	@echo "  make kat-frozen            Print the frozen known-answer manifest (id -> sha256(JCS(entry)),"
+	@echo "                             non-draft entries only) and its overall digest"
+	@echo "  make kat-frozen-check      Check the tree against known-answer/FROZEN.json, if it exists"
+	@echo "  make kat-frozen-test       Scripted kat-frozen --check cases on a temp copy"
 	@echo "  make doc-coherence         Doc coherence check: RFC and README version claims,"
 	@echo "                             intra-repo anchor links, RFC section citations,"
 	@echo "                             fixture error codes, mirrored schema definitions,"
@@ -44,7 +48,7 @@ help:
 
 # ── Validation ────────────────────────────────────────────────────────────────
 
-validate: conflict-markers json-schema-validate json-validate kat-verify kat-independent doc-coherence adapter-ops
+validate: conflict-markers json-schema-validate json-validate kat-verify kat-independent kat-frozen-check kat-frozen-test doc-coherence adapter-ops
 	@echo "✓ All v0.3 validations passed"
 
 json-schema-validate:
@@ -71,6 +75,24 @@ PYTHON ?= python3
 kat-independent:
 	@echo "Recomputing known-answer values independently (python-ecdsa + RFC 8032 reference)..."
 	@$(PYTHON) scripts/recompute-known-answer-independent.py --quiet
+
+# The frozen known-answer set as a per-vector manifest: every entry without
+# "draft": true maps to sha256(JCS(entry)), plus one digest over the sorted
+# manifest. `make kat-frozen` prints it (stdout is exactly the FROZEN.json
+# format). kat-frozen-check fails when an id listed in
+# schemas/conformance/known-answer/FROZEN.json is removed, changed or tagged
+# draft; new ids pass. Until FROZEN.json exists (RC2.1 writes it) it only
+# computes and prints the digest. Standard library only.
+kat-frozen:
+	@$(PYTHON) scripts/kat-frozen.py
+
+kat-frozen-check:
+	@echo "Checking the known-answer set against FROZEN.json (per-vector manifest)..."
+	@$(PYTHON) scripts/kat-frozen.py --check --quiet
+
+kat-frozen-test:
+	@echo "Running the kat-frozen --check cases on a temp copy..."
+	@$(PYTHON) scripts/test-kat-frozen.py
 
 # rfcs/README.md and VERSIONING.md are prose, not generated from the RFC
 # headers -- this is the mechanical check that stops them from drifting the
