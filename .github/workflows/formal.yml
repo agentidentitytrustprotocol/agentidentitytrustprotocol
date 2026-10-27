@@ -1,0 +1,63 @@
+name: Formal model
+
+on:
+  pull_request:
+    paths:
+      - 'formal/**'
+      - 'rfcs/RFC-AITP-000[1-6]*'
+      - 'rfcs/RFC-AITP-0013*'
+      - '.github/workflows/formal.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'formal/**'
+      - 'rfcs/RFC-AITP-000[1-6]*'
+      - 'rfcs/RFC-AITP-0013*'
+      - '.github/workflows/formal.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  tamarin:
+    name: Prove the Tamarin lemmas
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      TAMARIN_VERSION: 1.12.0
+      TAMARIN_SHA256: 201be06f469e47cff554df6ca93db8366fc2c69d70c61fcbd1370a1074b469c6
+      MAUDE_VERSION: 3.5.1
+      MAUDE_SHA256: 72ed1ca87e3b3d0dfc6ee1436baf154bf04c45ff97d521bec040c5e8dfc8f92c
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install pinned Tamarin and Maude
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/formal-tools/bin"
+          cd "$HOME/formal-tools"
+          curl -fsSL -o tamarin.tar.gz \
+            "https://github.com/tamarin-prover/tamarin-prover/releases/download/${TAMARIN_VERSION}/tamarin-prover-${TAMARIN_VERSION}-linux64-ubuntu.tar.gz"
+          echo "${TAMARIN_SHA256}  tamarin.tar.gz" | sha256sum -c -
+          tar -xzf tamarin.tar.gz
+          install -m 0755 "$(find . -type f -name tamarin-prover | head -n1)" bin/tamarin-prover
+          curl -fsSL -o maude.zip \
+            "https://github.com/maude-lang/Maude/releases/download/Maude${MAUDE_VERSION}/Maude-${MAUDE_VERSION}-linux-x86_64.zip"
+          echo "${MAUDE_SHA256}  maude.zip" | sha256sum -c -
+          unzip -q maude.zip -d maude
+          MAUDE_BIN="$(find "$PWD/maude" -type f -name maude | head -n1)"
+          chmod +x "$MAUDE_BIN"
+          echo "MAUDE_LIB=$(dirname "$MAUDE_BIN")" >> "$GITHUB_ENV"
+          echo "$(dirname "$MAUDE_BIN")" >> "$GITHUB_PATH"
+          echo "$HOME/formal-tools/bin" >> "$GITHUB_PATH"
+
+      - name: Show versions
+        run: |
+          tamarin-prover --version | head -n1
+          maude --version
+
+      - name: Prove lemmas and compare with the committed summary
+        run: make formal-check FORMAL_CORES=$(nproc)
