@@ -183,7 +183,7 @@ clean:
 # repository (one level up) so it never lands inside the tree.
 
 RELEASE_NAME ?= agentidentitytrustprotocol
-RELEASE_VERSION ?= v0.3.3-draft
+RELEASE_VERSION ?= v0.3.4-draft
 RELEASE_ARCHIVE := ../$(RELEASE_NAME)-$(RELEASE_VERSION).zip
 
 release:

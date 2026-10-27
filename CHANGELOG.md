@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.3.4-draft (2026-10-27)
+
+Protocol revision `aitp/0.3`. Tags: `v0.3.4-draft`, `schema-v0.3.4`. A security fix under the `aitp/0.3` freeze: the initiator now checks that MUTUAL_HELLO_ACK comes from the peer it addressed (RFC-AITP-0004 §5.2 step 3), with the new core code `PEER_MISMATCH` and core fixture `mh-015` ([GHSA-c26h-f9hm-2wj7](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/security/advisories/GHSA-c26h-f9hm-2wj7)). No signed byte, schema or known-answer vector changes. Also adds the conformance adapter protocol (`schemas/conformance/ADAPTER.md`), the Tamarin model of the handshake, TCTs and delegation with its CI (`formal/`), and the `spec-released` dispatch to aitp-docs. At release, four implementations pass every core fixture, `mh-015` included: aitp-rs, aitp-verifier-py 0.1.3, aitp-verifier-ts 0.1.1 and aitp-verifier-go 0.1.1.
+
 ### Initiator checks the MUTUAL_HELLO_ACK sender (RFC-AITP-0004 §5.2 step 3), new code `PEER_MISMATCH`
 
 **Change class.** Security fix under the `aitp/0.3` freeze ([SECURITY.md](SECURITY.md#security-fixes-that-change-the-wire)): a new verification rule and a new error outcome, shipped with a strict cutover. No signed byte, schema, `aitp/0.3` literal, known-answer vector or existing fixture outcome changes. The new code is a backward-compatible addition (minor class, patch position). RFC-AITP-0004 and RFC-AITP-0009 go from `0.3.3-draft` to `0.3.4-draft` and stay in Review. Advisory: [GHSA-c26h-f9hm-2wj7](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/security/advisories/GHSA-c26h-f9hm-2wj7).
