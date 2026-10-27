@@ -33,11 +33,6 @@ These are already tracked. A review need not rediscover them.
 
 ## Runtime fuzz gaps
 
-aitp-rs has eight fuzz targets: envelope, Manifest and delegation parsing, JCS canonicalization, JWS, TCT, delegation and revocation verification. These inputs have none:
+aitp-rs has fourteen fuzz targets, run in CI: envelope, Manifest and delegation parsing, JCS canonicalization, JWS, TCT, delegation and revocation verification, handshake payload decoding (RFC-AITP-0004 §3), OIDC identity proofs (RFC-AITP-0002 §2.3), pinned-key admission (RFC-AITP-0002 §3.4), SPIFFE SVID verification, session bundles (RFC-AITP-0010, opt-in) and interop enrolment.
 
-- handshake payloads (RFC-AITP-0004 §3);
-- OIDC identity proofs (RFC-AITP-0002 §2.3);
-- pinned-key admission (RFC-AITP-0002 §3.4);
-- session bundles (RFC-AITP-0010, opt-in).
-
-aitp-verifier-py has no fuzz targets.
+aitp-verifier-go fuzzes its JCS canonicalizer and strict JSON parser with Go native fuzzing. aitp-verifier-py and aitp-verifier-ts have no fuzz targets.
