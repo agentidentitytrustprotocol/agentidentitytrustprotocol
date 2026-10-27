@@ -1,0 +1,79 @@
+/*
+ * A TCT held after the handshake: presented back to its issuer under
+ * downstream PoP (RFC-AITP-0005 §10.5, §6.1, §6.2) and renewed with the
+ * proposed renewal PoP input (RFC-AITP-0004 §8.1, RFC-AITP-0013).
+ * Included by aitp-tct.spthy after common.splib, holder.splib and
+ * handshake.splib.
+ */
+
+/* ------------------------------------------------------------------ */
+/* TCT presented back to its issuer (RFC-AITP-0005 §10.5, §6.1, §6.2) */
+/* ------------------------------------------------------------------ */
+
+// §10.5 items 1-2: the TCT's iss is the verifier I (signature under I's own
+// key), aud = sub = H and cnf.jkt = jkt(H). Item 3: I establishes the
+// presenter by downstream PoP over a fresh challenge for this jti (§6.1
+// step 1).
+rule RS_Challenge:
+    let I     = pk(~ltkI)
+        tc    = <'tct', 'aitp/0.3', I, H, H, $g, ~jti, jkt(H)>
+        cp    = <'pop_challenge', ~jti, ~n>
+        cbody = <'aitp/0.3', 'pop_challenge', ~mid, I, cp>
+    in
+    [ !Ltk(I, ~ltkI), In(<tc, sign(<'aitp-tct+jwt', tc>, ~ltkI)>),
+      Fr(~n), Fr(~mid) ]
+  --[ RS_Challenge(I, H, ~jti, ~n) ]->
+    [ St_RS(I, H, $g, ~jti, ~n),
+      Out(<cbody, sign(<'aitp-envelope-v2', cbody>, ~ltkI)>) ]
+
+// §6.2 steps 1-4 and §10.5 item 4: the response envelope verifies under
+// H's key, nonce_echo is the challenge nonce, pop_signature verifies under
+// the key in sub, and the presenter is H = sub = aud. Item 6: grants are
+// then enforced.
+rule RS_Accept:
+    let H     = pk(skH)
+        rp    = <'pop_response', ~jti, ~n, sign(h(~n), skH)>
+        rbody = <'aitp/0.3', 'pop_response', mid, H, rp>
+    in
+    [ St_RS(I, H, $g, ~jti, ~n),
+      In(<rbody, sign(<'aitp-envelope-v2', rbody>, skH)>) ]
+  --[ Seen(I, mid), Accept(I, H, 'pop_response', mid, rp),
+      PoPAccept(I, H, ~n), DSPoPAccept(I, H, ~n),
+      RS_Accept(I, H, $g, ~jti, ~n) ]->
+    [ ]
+
+/* ------------------------------------------------------------------ */
+/* TCT renewal (RFC-AITP-0004 §8.1, RFC-AITP-0013 Planned)            */
+/* ------------------------------------------------------------------ */
+
+// The holder H of a TCT issued by I sends current_tct, a holder-chosen
+// fresh pop_nonce, and pop_signature over the proposed renewal PoP input:
+// a domain tag, the issuer AID and sha256(pop_nonce), in the style of the
+// RFC-AITP-0002 §3.1 proof_input. The request is not enveloped (§8.1).
+rule Renew_Request:
+    let H   = pk(~ltkH)
+    in
+    [ !Ltk(H, ~ltkH), !Held(H, I, g, jti, tct), Fr(~rn) ]
+  --[ RenewRequest(H, I, jti, ~rn), PoPSign(H, ~rn),
+      RenPoPSign(H, I, ~rn) ]->
+    [ Out(<tct, ~rn, sign(<'aitp-renewal-pop-v1', I, h(~rn)>, ~ltkH)>) ]
+
+// The issuer I checks that it issued current_tct (signature under its own
+// key, unexpired: time is abstracted), that pop_signature verifies under
+// the key in sub over the renewal input naming I, and that pop_nonce is
+// new to its replay store; it then re-evaluates grants (permissive: the
+// same grants) and issues a fresh TCT with a new jti.
+rule Renew_Issue:
+    let I    = pk(~ltkI)
+        H    = pk(skH)
+        tc   = <'tct', 'aitp/0.3', I, H, H, $g, ~jti, jkt(H)>
+        tct  = <tc, sign(<'aitp-tct+jwt', tc>, ~ltkI)>
+        tc2  = <'tct', 'aitp/0.3', I, H, H, $g, ~jti2, jkt(H)>
+    in
+    [ !Ltk(I, ~ltkI),
+      In(<tct, ~rn, sign(<'aitp-renewal-pop-v1', I, h(~rn)>, skH)>),
+      Fr(~jti2) ]
+  --[ Seen(I, <'renewal_nonce', ~rn>),
+      PoPAccept(I, H, ~rn), RenPoPAccept(I, H, ~rn),
+      RenewAccept(I, H, ~jti, ~rn), TCTIssued(I, H, $g, ~jti2) ]->
+    [ Out(<tc2, sign(<'aitp-tct+jwt', tc2>, ~ltkI)>) ]

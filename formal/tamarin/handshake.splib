@@ -1,0 +1,164 @@
+/*
+ * RFC-AITP-0004 Mutual Handshake. Included after common.splib by
+ * aitp-handshake.spthy and aitp-tct.spthy.
+ *
+ *   id_token = sign(claims, skIdP),
+ *   claims   = <'jwt', subject, cnf.jkt, aud, nonce>               (0002 §2.2)
+ *   tct      = <claims, sign(<'aitp-tct+jwt', claims>, sk)>,
+ *   claims   = <'tct', 'aitp/0.3', iss, sub, aud, grants, jti,
+ *               cnf.jkt>                                           (0005 §2, §3)
+ *
+ * Inside the handshake every claim of an ID token or TCT is a value the
+ * receiver already holds (its own AID and nonce, the sender's AID and
+ * Manifest subject, the grants it asked for) and checks for equality, and
+ * all of them are public. So the handshake messages carry only the
+ * signature (ID token) or the jti and the signature (TCT): a receiver
+ * rebuilds the claims, and the adversary learns nothing it lacked. The
+ * holder stores the full TCT, which it presents in that form downstream.
+ *
+ * Field formats. A pop_nonce is exactly 16 decoded bytes (RFC-AITP-0004
+ * §3, RFC-AITP-0001 §5.4.2) and a jti is a UUID (RFC-AITP-0005 §2.2), so a
+ * receiver only accepts fresh-name values (~x) there: the adversary may
+ * send any fresh name, including its own, but not a signature or a tuple.
+ * Grants are strings (RFC-AITP-0005 §4.1), modelled as public names ($x).
+ *
+ * The inline Manifest of MUTUAL_HELLO / MUTUAL_HELLO_ACK is abstracted to
+ * the receiver's !Manifest(sender, subject) check (RFC-AITP-0004 §5.1
+ * steps 3-6): the sender must have a valid Manifest whose identity_hint
+ * subject is the ID token's subject. The Manifest bytes themselves are not
+ * carried (see formal/README.md, modelling limits).
+ */
+
+// RFC-AITP-0004 §2 and §3.1: A has fetched and verified the intended peer
+// B's Manifest (any valid Manifest, honest or adversarial) and sends
+// MUTUAL_HELLO with a fresh pop_nonce, its requested grants and a fresh ID
+// token whose aud is B and whose nonce is the pop_nonce (RFC-AITP-0002
+// §2.2).
+rule I_Hello:
+    let A       = pk(~ltkA)
+        jclaims = <'jwt', subjA, jkt(A), B, ~nA>
+        jwtA    = sign(jclaims, skI)
+        payload = <'hello', jwtA, $reqA, ~nA>
+        body    = <'aitp/0.3', 'mutual_hello', ~mid, A, payload>
+    in
+    [ !Ltk(A, ~ltkA), !Enrolled(A, subjA), !IdP(skI), !Manifest(B, subjB),
+      Fr(~tid), Fr(~nA), Fr(~mid) ]
+  --[ I_Start(~tid, A, B, ~nA), Send(A, 'mutual_hello', ~mid, payload) ]->
+    [ St_I1(~tid, A, ~ltkA, B, ~nA, $reqA),
+      Out(<body, sign(<'aitp-envelope-v2', body>, ~ltkA)>) ]
+
+// RFC-AITP-0004 §5.1 (B verifies A) and §3.2 (B sends MUTUAL_HELLO_ACK).
+//  step 1    replay controls (DenyList)
+//  steps 3-5 the sender A has a valid Manifest with subject subjA
+//  step 6    ID token: subject = identity_hint.subject, aud = B, nonce =
+//            pop_nonce, cnf.jkt = jkt(A), signed by the trusted IdP
+//  step 7    envelope signature under A
+//  step 8    policy: single trusted IdP, permissive grants
+rule R_Hello:
+    let B       = pk(~ltkB)
+        A       = pk(skA)
+        jcA     = <'jwt', subjA, jkt(A), B, ~nA>
+        pA      = <'hello', sign(jcA, skI), $reqA, ~nA>
+        bodyA   = <'aitp/0.3', 'mutual_hello', mid, A, pA>
+        jcB     = <'jwt', subjB, jkt(B), A, ~nB>
+        jwtB    = sign(jcB, skI)
+        pB      = <'hello_ack', jwtB, $reqB, ~nB, ~nA>
+        bodyB   = <'aitp/0.3', 'mutual_hello_ack', ~mid2, B, pB>
+    in
+    [ !Ltk(B, ~ltkB), !Enrolled(B, subjB), !IdP(skI), !Manifest(A, subjA),
+      In(<bodyA, sign(<'aitp-envelope-v2', bodyA>, skA)>),
+      Fr(~tid), Fr(~nB), Fr(~mid2) ]
+  --[ Seen(B, mid),
+      Accept(B, A, 'mutual_hello', mid, pA),
+      R_Hello(~tid, B, A, ~nA, ~nB),
+      Send(B, 'mutual_hello_ack', ~mid2, pB) ]->
+    [ St_R1(~tid, B, ~ltkB, A, ~nA, ~nB, $reqA, $reqB),
+      Out(<bodyB, sign(<'aitp-envelope-v2', bodyB>, ~ltkB)>) ]
+
+// RFC-AITP-0004 §5.2 (A verifies B) and §3.3 (A sends MUTUAL_COMMIT).
+//  steps 1-7 as §5.1 with roles swapped (ID token aud = A, nonce = nB)
+//  step 8    pop_nonce_echo = A's pop_nonce (pattern ~nA)
+//  step 9    issue a TCT for the ACK's sender Bp (§4.1-§4.4), PoP over
+//            sha256(Bp's pop_nonce) (§3.3)
+// Bp is the peer authenticated by steps 1-7 (envelope and ID token).
+rule I_HelloAck:
+    let A       = pk(~ltkA)
+        Bp      = pk(skB)
+        jcB     = <'jwt', subjB, jkt(Bp), A, ~nB>
+        pB      = <'hello_ack', sign(jcB, skI), $reqB, ~nB, ~nA>
+        bodyB   = <'aitp/0.3', 'mutual_hello_ack', mid, Bp, pB>
+        tclaims = <'tct', 'aitp/0.3', A, Bp, Bp, $reqB, ~jti, jkt(Bp)>
+        tctB    = <~jti, sign(<'aitp-tct+jwt', tclaims>, ~ltkA)>
+        popA    = sign(h(~nB), ~ltkA)
+        pC      = <'commit', tctB, popA, ~nB>
+        bodyC   = <'aitp/0.3', 'mutual_commit', ~mid3, A, pC>
+    in
+    [ St_I1(tid, A, ~ltkA, B, ~nA, $reqA), !IdP(skI), !Manifest(Bp, subjB),
+      In(<bodyB, sign(<'aitp-envelope-v2', bodyB>, skB)>),
+      Fr(~jti), Fr(~mid3) ]
+  --[ Seen(A, mid),
+      Accept(A, Bp, 'mutual_hello_ack', mid, pB),
+      I_Running(tid, A, Bp, ~nA, ~nB, tctB),
+      TCTIssued(A, Bp, $reqB, ~jti),
+      PoPSign(A, ~nB), HSPoPSign(A, ~nB),
+      Send(A, 'mutual_commit', ~mid3, pC) ]->
+    [ St_I2(tid, A, ~ltkA, B, Bp, ~nA, ~nB, $reqA, tctB),
+      Out(<bodyC, sign(<'aitp-envelope-v2', bodyC>, ~ltkA)>) ]
+
+// RFC-AITP-0004 §5.3 (B finalizes) and §3.4 (B sends MUTUAL_COMMIT_ACK).
+//  step 1  envelope signature under A's cached key; replay controls
+//  step 3  pop_nonce_echo = B's pop_nonce (pattern ~nB)
+//  step 4  verify(A, sha256(nB), pop_signature)
+//  step 5  TCT: signature under A, ver, sub = B, aud = B, cnf.jkt = jkt(B)
+//  steps 6-8  issue a TCT for A, PoP over sha256(A's pop_nonce)
+rule R_Commit:
+    let B       = pk(~ltkB)
+        A       = pk(skA)
+        tcB     = <'tct', 'aitp/0.3', A, B, B, $reqB, ~jtiB, jkt(B)>
+        sigB    = sign(<'aitp-tct+jwt', tcB>, skA)
+        tctB    = <~jtiB, sigB>
+        pC      = <'commit', tctB, sign(h(~nB), skA), ~nB>
+        bodyC   = <'aitp/0.3', 'mutual_commit', mid, A, pC>
+        tcA     = <'tct', 'aitp/0.3', B, A, A, $reqA, ~jti, jkt(A)>
+        tctA    = <~jti, sign(<'aitp-tct+jwt', tcA>, ~ltkB)>
+        popB    = sign(h(~nA), ~ltkB)
+        pD      = <'commit_ack', tctA, popB, ~nA>
+        bodyD   = <'aitp/0.3', 'mutual_commit_ack', ~mid4, B, pD>
+    in
+    [ St_R1(tid, B, ~ltkB, A, ~nA, ~nB, $reqA, $reqB),
+      In(<bodyC, sign(<'aitp-envelope-v2', bodyC>, skA)>),
+      Fr(~jti), Fr(~mid4) ]
+  --[ Seen(B, mid),
+      Accept(B, A, 'mutual_commit', mid, pC),
+      PoPAccept(B, A, ~nB), HSPoPAccept(B, A, ~nB),
+      R_Commit(tid, B, A, ~nA, ~nB, tctB),
+      R_Running(tid, B, A, ~nA, ~nB, tctB, tctA),
+      TCTIssued(B, A, $reqA, ~jti),
+      PoPSign(B, ~nA), HSPoPSign(B, ~nA),
+      Send(B, 'mutual_commit_ack', ~mid4, pD) ]->
+    [ !Held(B, A, $reqB, ~jtiB, <tcB, sigB>),
+      Out(<bodyD, sign(<'aitp-envelope-v2', bodyD>, ~ltkB)>) ]
+
+// RFC-AITP-0004 §5.4 (A finalizes).
+//  step 1  envelope signature under B's cached key; replay controls
+//  step 3  pop_nonce_echo = A's pop_nonce (pattern ~nA)
+//  step 4  verify(B, sha256(nA), pop_signature)
+//  step 5  TCT: signature under B, ver, sub = A, aud = A, cnf.jkt = jkt(A),
+//          grants = what A requested
+//  step 7  store the TCT; handshake complete
+rule I_CommitAck:
+    let A       = pk(~ltkA)
+        Bp      = pk(skB)
+        tcA     = <'tct', 'aitp/0.3', Bp, A, A, $reqA, ~jtiA, jkt(A)>
+        sigA    = sign(<'aitp-tct+jwt', tcA>, skB)
+        tctA    = <~jtiA, sigA>
+        pD      = <'commit_ack', tctA, sign(h(~nA), skB), ~nA>
+        bodyD   = <'aitp/0.3', 'mutual_commit_ack', mid, Bp, pD>
+    in
+    [ St_I2(tid, A, ~ltkA, B, Bp, ~nA, ~nB, $reqA, tctB),
+      In(<bodyD, sign(<'aitp-envelope-v2', bodyD>, skB)>) ]
+  --[ Seen(A, mid),
+      Accept(A, Bp, 'mutual_commit_ack', mid, pD),
+      PoPAccept(A, Bp, ~nA), HSPoPAccept(A, Bp, ~nA),
+      I_Commit(tid, A, Bp, ~nA, ~nB, tctB, tctA) ]->
+    [ !Held(A, Bp, $reqA, ~jtiA, <tcA, sigA>) ]

@@ -1,0 +1,178 @@
+theory AitpDelegation
+begin
+
+/*
+ * AITP single-hop delegation (RFC-AITP-0006) with the grant voucher of
+ * RFC-AITP-0005 §8 and the downstream PoP exchange of RFC-AITP-0005 §6.1.
+ *
+ * Modelled from the RFC text (spec v0.3.3-draft), not from any
+ * implementation. See formal/README.md for the lemma <-> RFC section map
+ * and the modelling limits. Shared setup (agents, Manifests, compromise)
+ * is in common.splib, the holder's PoP responder in holder.splib.
+ *
+ * Abstractions beyond those of common.splib:
+ *  - The handshake that delivers the voucher is not re-modelled: A, at the
+ *    end of a handshake with B (RFC-AITP-0004 §4.5), mints a voucher for
+ *    B, which B then holds. aitp-handshake.spthy covers the handshake.
+ *  - Grants are public names; a grant set has one or two members, written
+ *    $g or <$g1, $g2>. Subset is the fixed relation !Sub(S, G): S = G, or
+ *    S is one member of a two-member G.
+ *  - Time, exp and the expiry-monotonicity checks (RFC-AITP-0006 §4
+ *    step 5) are abstracted; revocation (step 7) is not modelled.
+ */
+
+builtins: signing, hashing
+
+functions: jkt/1
+
+#include "common.splib"
+#include "holder.splib"
+
+/* ------------------------------------------------------------------ */
+/* Grant sets and subset                                              */
+/* ------------------------------------------------------------------ */
+
+rule Sub_Same_1: [ ] --> [ !Sub($g, $g) ]
+rule Sub_Same_2: [ ] --> [ !Sub(<$g1, $g2>, <$g1, $g2>) ]
+rule Sub_First:  [ ] --> [ !Sub($g1, <$g1, $g2>) ]
+rule Sub_Second: [ ] --> [ !Sub($g2, <$g1, $g2>) ]
+
+/* ------------------------------------------------------------------ */
+/* Voucher issuance (RFC-AITP-0004 §4.5, RFC-AITP-0005 §8)            */
+/* ------------------------------------------------------------------ */
+
+// At the end of a handshake with B, A mints the grant voucher for B's TCT:
+// iss = A, sub = B, grants = what A granted, src_jti = the TCT's jti.
+//   voucher = <claims, sign(<'aitp-grant+jwt', claims>, sk)>,
+//   claims  = <'grant', 'aitp/0.3', iss, sub, grants, src_jti>
+rule Issue_Voucher_1:
+    let A   = pk(~ltkA)
+        vc  = <'grant', 'aitp/0.3', A, B, $g, ~jti>
+        vch = <vc, sign(<'aitp-grant+jwt', vc>, ~ltkA)>
+    in
+    [ !Ltk(A, ~ltkA), !Manifest(B, subjB), Fr(~jti) ]
+  --[ VoucherIssued(A, B, $g, ~jti), Neq(A, B) ]->
+    [ !Voucher(B, A, $g, ~jti, vch), Out(vch) ]
+
+rule Issue_Voucher_2:
+    let A   = pk(~ltkA)
+        G   = <$g1, $g2>
+        vc  = <'grant', 'aitp/0.3', A, B, G, ~jti>
+        vch = <vc, sign(<'aitp-grant+jwt', vc>, ~ltkA)>
+    in
+    [ !Ltk(A, ~ltkA), !Manifest(B, subjB), Fr(~jti) ]
+  --[ VoucherIssued(A, B, G, ~jti), Neq(A, B) ]->
+    [ !Voucher(B, A, G, ~jti, vch), Out(vch) ]
+
+/* ------------------------------------------------------------------ */
+/* Delegation (RFC-AITP-0006 §2, §3)                                  */
+/* ------------------------------------------------------------------ */
+
+// RFC-AITP-0006 §3: B chooses scope S within its voucher's grants and
+// signs a delegation token for C with aud = A, embedding the voucher
+// verbatim.
+//   token  = <claims, sign(<'aitp-delegation+jwt', claims>, sk)>,
+//   claims = <'deleg', 'aitp/0.3', iss, sub, aud, scope, voucher, cnf.jkt>
+rule Delegate:
+    let B   = pk(~ltkB)
+        dc  = <'deleg', 'aitp/0.3', B, C, A, S, vch, jkt(C)>
+    in
+    [ !Ltk(B, ~ltkB), !Voucher(B, A, G, jti, vch), !Sub(S, G),
+      !Manifest(C, subjC) ]
+  --[ Delegated(B, A, C, S) ]->
+    [ Out(<dc, sign(<'aitp-delegation+jwt', dc>, ~ltkB)>) ]
+
+// RFC-AITP-0006 §4, at A:
+//  step 1  outer signature under the iss key B (resolved via B's Manifest)
+//  step 2  aud = A
+//  step 3  the voucher's iss is A and it verifies under A's own key
+//  step 4  voucher.sub = outer iss
+//  step 6  scope within the voucher's grants
+//  step 8  iss differs from sub (Neq)
+//  step 9  downstream PoP: a fresh pop_challenge to C
+rule Verify_Delegation:
+    let A     = pk(~ltkA)
+        B     = pk(skB)
+        C     = pk(skC)
+        vc    = <'grant', 'aitp/0.3', A, B, G, ~jti>
+        vch   = <vc, sign(<'aitp-grant+jwt', vc>, ~ltkA)>
+        dc    = <'deleg', 'aitp/0.3', B, C, A, S, vch, jkt(C)>
+        cp    = <'pop_challenge', ~jti, ~n>
+        cbody = <'aitp/0.3', 'pop_challenge', ~mid, A, cp>
+    in
+    [ !Ltk(A, ~ltkA), !Manifest(B, subjB), !Sub(S, G),
+      In(<dc, sign(<'aitp-delegation+jwt', dc>, skB)>),
+      Fr(~n), Fr(~mid) ]
+  --[ Neq(B, C), DelegChallenge(A, B, C, S, ~n) ]->
+    [ St_D(A, B, C, S, G, ~jti, ~n),
+      Out(<cbody, sign(<'aitp-envelope-v2', cbody>, ~ltkA)>) ]
+
+// RFC-AITP-0006 §4 step 9 (RFC-AITP-0005 §6.2) and §7: the PoP response
+// verifies under C's key over A's nonce; A issues C a TCT whose grants
+// are the delegated scope.
+rule Accept_Delegation:
+    let C     = pk(skC)
+        rp    = <'pop_response', ~jti, ~n, sign(h(~n), skC)>
+        rbody = <'aitp/0.3', 'pop_response', mid, C, rp>
+        tc    = <'tct', 'aitp/0.3', A, C, C, S, ~jti2, jkt(C)>
+    in
+    [ St_D(A, B, C, S, G, ~jti, ~n), !Ltk(A, ltkA),
+      In(<rbody, sign(<'aitp-envelope-v2', rbody>, skC)>), Fr(~jti2) ]
+  --[ Seen(A, mid), DelegAccept(A, B, C, S, G, ~n),
+      TCTIssued(A, C, S, ~jti2) ]->
+    [ Out(<tc, sign(<'aitp-tct+jwt', tc>, ltkA)>) ]
+
+/* ------------------------------------------------------------------ */
+/* Executability                                                      */
+/* ------------------------------------------------------------------ */
+
+// Honest A, B and C complete a delegation of 'read' out of B's voucher
+// for {'read', 'write'}.
+lemma exec_delegation:
+  exists-trace
+  "Ex A B C jti n #v #d #c #p #i #h1 #h2 #h3.
+     HonestAgent(A) @ #h1 & HonestAgent(B) @ #h2 & HonestAgent(C) @ #h3 &
+     VoucherIssued(A, B, <'read', 'write'>, jti) @ #v &
+     Delegated(B, A, C, 'read') @ #d &
+     DelegChallenge(A, B, C, 'read', n) @ #c & PoPAnswered(C, A, n) @ #p &
+     DelegAccept(A, B, C, 'read', <'read', 'write'>, n) @ #i &
+     #v < #d & #d < #c & #c < #p & #p < #i &
+     (All h v n2 #k. PoPAnswered(h, v, n2) @ #k ==> #k = #p) &
+     (All a b g j #k. VoucherIssued(a, b, g, j) @ #k ==> #k = #v) &
+     (All b a c s #k. Delegated(b, a, c, s) @ #k ==> #k = #d) &
+     (All a b c s n2 #k. DelegChallenge(a, b, c, s, n2) @ #k ==> #k = #c) &
+     (All X #k. HonestAgent(X) @ #k ==> #k = #h1 | #k = #h2 | #k = #h3) &
+     not (Ex X #r. Reveal(X) @ #r)"
+
+/* ------------------------------------------------------------------ */
+/* P5: single-hop delegation non-escalation                           */
+/* ------------------------------------------------------------------ */
+
+// RFC-AITP-0006 §4 steps 3-4, 6 and §5.3: when an uncompromised A accepts
+// C under scope S, A itself issued B a voucher whose grants G contain S
+// (the verification rule checks !Sub(S, G)).
+lemma P5_scope_within_voucher:
+  "All A B C S G n #i.
+     DelegAccept(A, B, C, S, G, n) @ #i & not (Ex #r. Reveal(A) @ #r)
+   ==>
+     (Ex jti #j. VoucherIssued(A, B, G, jti) @ #j & #j < #i)"
+
+// RFC-AITP-0006 §4 steps 1-2 and §5.1-§5.2: if the delegator B is
+// uncompromised, B itself delegated exactly scope S to C for audience A.
+lemma P5_delegator_signed:
+  "All A B C S G n #i.
+     DelegAccept(A, B, C, S, G, n) @ #i &
+     (Ex #h. HonestAgent(B) @ #h) & not (Ex #r. Reveal(B) @ #r)
+   ==>
+     (Ex #j. Delegated(B, A, C, S) @ #j & #j < #i)"
+
+// RFC-AITP-0006 §4 step 9: if the delegatee C is uncompromised, C itself
+// signed A's fresh challenge (Verify_Delegation's ~n) with its key.
+lemma P5_delegatee_pop:
+  "All A B C S G n #i.
+     DelegAccept(A, B, C, S, G, n) @ #i &
+     (Ex #h. HonestAgent(C) @ #h) & not (Ex #r. Reveal(C) @ #r)
+   ==>
+     (Ex #j. PoPSign(C, n) @ #j & #j < #i)"
+
+end

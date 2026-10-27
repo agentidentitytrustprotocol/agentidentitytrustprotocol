@@ -19,7 +19,7 @@ Out of scope: the opt-in drafts (RFC-AITP-0010 to RFC-AITP-0014, including the `
 
 The threat model the review checks against is [RFC-AITP-0009](../rfcs/RFC-AITP-0009-security.md).
 
-**Optional stretch.** A symbolic model (Tamarin or ProVerif) of the four-message handshake in [RFC-AITP-0004 §2](../rfcs/RFC-AITP-0004-mutual-handshake.md#2-protocol-overview), proving mutual authentication and agreement on the issued TCTs.
+**Formal model.** A Tamarin model of the handshake, TCT use and renewal, and single-hop delegation is in [`formal/`](../formal/README.md). [formal/REPORT.md](../formal/REPORT.md) states what it proves and its limits; per-lemma results are in [formal/results/summary.md](../formal/results/summary.md). A review can start from the modelling limits listed there.
 
 ## Known items
 

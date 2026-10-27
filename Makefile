@@ -1,4 +1,4 @@
-.PHONY: help validate json-validate json-schema-validate kat-verify kat-independent doc-coherence adapter-ops conflict-markers clean install-tools docs release
+.PHONY: help formal formal-check validate json-validate json-schema-validate kat-verify kat-independent doc-coherence adapter-ops conflict-markers clean install-tools docs release
 
 # AITP ships as JSON only (RFC-AITP-0001 §5.1). There are two signing
 # profiles (RFC-AITP-0001 §5.4): RFC 8785 (JCS) canonical JSON is the
@@ -28,6 +28,11 @@ help:
 	@echo "                             sibling-repo link form, and the threat-model index"
 	@echo "                             (stages documented in scripts/check-doc-coherence.sh)"
 	@echo "  make adapter-ops           Check schemas/conformance/ADAPTER.md names every fixture op"
+	@echo
+	@echo "Formal model (needs Tamarin 1.12.0 + Maude 3.5.1, see formal/README.md):"
+	@echo "  make formal                Prove every Tamarin lemma, write formal/results/summary.md"
+	@echo "  make formal-check          Prove every lemma, fail on drift from the committed summary"
+	@echo "                             (3 min cap per lemma, 18 min for the suite)"
 	@echo
 	@echo "Docs:"
 	@echo "  make docs                  Print the docs reading order"
@@ -86,6 +91,32 @@ conflict-markers:
 	@echo "Checking for unresolved merge conflict markers..."
 	@if git grep -nE '^(<{7}|>{7})( |$$)|^={7}$$' -- . ; then \
 		echo "✗ unresolved conflict markers (above)"; exit 1; fi
+
+# ── Formal model ─────────────────────────────────────────────────────────────
+
+# Tamarin model of the RFC-AITP-0004 handshake. Not part of `validate`: it
+# needs tamarin-prover and maude installed (pinned versions in
+# formal/run-lemmas.py). Each lemma runs in its own prover process under a
+# 3-minute cap; a lemma that hits the cap is reported "inconclusive".
+FORMAL_LEMMA_CAP ?= 180
+FORMAL_SUITE_CAP ?= 1080
+FORMAL_CORES ?= 2
+FORMAL_THEORIES = formal/tamarin/aitp-handshake.spthy formal/tamarin/aitp-tct.spthy \
+	formal/tamarin/aitp-delegation.spthy
+FORMAL_SUMMARY = formal/results/summary.md
+
+formal:
+	@echo "Proving the Tamarin models ($(FORMAL_THEORIES))..."
+	@$(PYTHON) formal/run-lemmas.py $(FORMAL_THEORIES) \
+		--lemma-cap $(FORMAL_LEMMA_CAP) --suite-cap $(FORMAL_SUITE_CAP) \
+		--cores $(FORMAL_CORES) --summary $(FORMAL_SUMMARY)
+
+# CI: prove every lemma and fail if the theory, lemma, result or Tamarin
+# column drifts from the committed formal/results/summary.md.
+formal-check:
+	@$(PYTHON) formal/run-lemmas.py $(FORMAL_THEORIES) \
+		--lemma-cap $(FORMAL_LEMMA_CAP) --suite-cap $(FORMAL_SUITE_CAP) \
+		--cores $(FORMAL_CORES) --check $(FORMAL_SUMMARY)
 
 # ── Docs ─────────────────────────────────────────────────────────────────────
 
