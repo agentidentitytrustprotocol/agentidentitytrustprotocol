@@ -81,8 +81,8 @@ kat-independent:
 # manifest. `make kat-frozen` prints it (stdout is exactly the FROZEN.json
 # format). kat-frozen-check fails when an id listed in
 # schemas/conformance/known-answer/FROZEN.json is removed, changed or tagged
-# draft; new ids pass. Until FROZEN.json exists (RC2.1 writes it) it only
-# computes and prints the digest. Standard library only.
+# draft; new ids pass. Until FROZEN.json exists (it is recorded at Release
+# Candidate) it only computes and prints the digest. Standard library only.
 kat-frozen:
 	@$(PYTHON) scripts/kat-frozen.py
 

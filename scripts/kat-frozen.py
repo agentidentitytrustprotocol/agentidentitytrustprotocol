@@ -20,7 +20,7 @@ independent of whitespace, member order and line endings, so it is the same
 on every platform. The overall digest is sha256(JCS(vectors)), taken over
 the id-sorted manifest object. The printed JSON is exactly what
 `schemas/conformance/known-answer/FROZEN.json` holds once the frozen set is
-recorded (RC2.1).
+recorded, at Release Candidate.
 
 A file-level digest would not work: draft vectors share files such as
 jcs-sha256.json with frozen ones, so adding one would change it.
@@ -238,7 +238,7 @@ def main(argv):
 
     frozen_path = os.path.join(args.kat_dir, FROZEN_NAME)
     if not os.path.isfile(frozen_path):
-        print("kat-frozen: no %s yet (RC2.1 records it); computed %s" % (FROZEN_NAME, summary))
+        print("kat-frozen: no %s yet (it is recorded at Release Candidate); computed %s" % (FROZEN_NAME, summary))
         return 0
     try:
         errors = check(entries, frozen_path)
