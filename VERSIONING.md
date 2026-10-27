@@ -156,9 +156,10 @@ Status as of 2026-10-27.
 
 ### Versioning model at 1.0
 
-> **PLACEHOLDER: not yet written.** This subsection will state how the protocol
-> literal and the RFC tags move at 1.0. It is pending a maintainer decision and is
-> added before this section merges.
+- **Until Accepted:** the protocol literal stays `aitp/0.3`, including on the RC line. RC can still change bytes under the security exception, so the literal does not move at RC.
+- **At Accepted (1.0):** the protocol literal becomes `aitp/1` in every `version` field and `ver` claim, and the schema `$id` namespace becomes `.../schema/v1/`. This is a strict cutover with the same strict cutover as [the move to `aitp/0.3`](#migrating-from-aitp02-to-aitp03): every signed example and known-answer vector is re-minted, and the KAT set is frozen again with a new digest and tag. RFC documents move to `1.0.0` and are tagged `rfc-aitp-NNNN-v1.0.0`.
+- **After 1.0:** the literal has no minor position. Nothing negotiates the protocol version and unknown members are rejected, so a wire-compatible minor cannot exist. Compatible evolution uses `extensions`, the registries and opt-in RFCs. Any literal mismatch is rejected with the artifact's unknown-version code, and a new literal (`aitp/2`) always means a strict cutover.
+- **Implementations:** an implementation's own semver is independent of the literal. A crate or package at 1.x speaks `aitp/1`.
 
 ## Forward / backward compatibility
 
