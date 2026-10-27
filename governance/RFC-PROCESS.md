@@ -116,6 +116,89 @@ Reserved → Planned → Idea → Draft → Review → Release Candidate → Fin
 
 ---
 
+## Review disposition record
+
+Every stage gate that waits on a public review window (leaving Review, Release
+Candidate or Final Comment Period; see [§ Stages](#stages)) produces one
+**disposition record**: a file in `governance/` named
+`review-<subject>-<YYYY-MM>.md`, where `<subject>` names what was reviewed (for
+example `aitp-0.3`) and `<YYYY-MM>` is the month the window closed. The record lands
+in the same pull request that moves the RFCs to their next stage, or that records
+why they do not move. It accounts for every comment and every change made during the
+window, so nothing changes without a trace.
+
+A record MUST contain the following parts.
+
+1. **Header facts:**
+   - the window's open date and close date;
+   - the date the window was announced;
+   - the URL of the Discussion that announced it;
+   - the RFCs under review, each with the `Version:` it had when the window opened.
+2. **Comment dispositions:** a table with one row per comment thread, in either
+   place a comment may be left (the Discussion or the RFC's pull request). Columns:
+
+   | Column | Content |
+   |---|---|
+   | Thread | Link to the thread or comment. |
+   | RFC § | The RFC and section it concerns, or `general`. |
+   | Class | One of `clarification`, `erratum`, `rejected`, `deferred`, `security`. |
+   | Resolution PR | The pull request that resolved it. A `rejected` or `deferred` row links the reply that says why instead. A `security` row links the published advisory. |
+   | Author | The comment author's handle. |
+
+3. **Changes not prompted by a comment:** a separate table listing every other
+   change merged to the RFCs under review during the window, with the columns
+   Change (a one-line description), RFC §, Class and PR. Every change made in the
+   window appears in one of the two tables.
+4. **External comments:** one line, `External comments: N`, where N is the number of
+   threads opened by someone other than the maintainer and Core Team members. A
+   window with no outside comments says `External comments: 0`.
+5. **Sign-off:** the gate outcome (each RFC's new stage and `Version:`, or a dated
+   note explaining a deferral), the date, and the name of who decided it. Until a
+   Core Team is seated, that is the maintainer acting under the
+   [CHARTER.md § Core Team](CHARTER.md#core-team) substitute; afterwards, the Core
+   Team.
+
+The classes mean the following:
+
+- `clarification`: the text changes, the wire and the pinned artifacts do not;
+- `erratum`: a contradiction between the text and a pinned artifact is corrected
+  ([VERSIONING.md § Change classes](../VERSIONING.md#change-classes));
+- `rejected`: no change, with the reason given in the thread;
+- `deferred`: a valid point taken after the current stage, for example a non-security
+  wire change held for 1.0 under the freeze;
+- `security`: handled under [SECURITY.md](../SECURITY.md).
+
+A record is not signed off while a security fix to the RFCs under review is still
+undisclosed.
+
+Template:
+
+```markdown
+# Review disposition: <subject>, <window close month>
+
+- Window: <open date> to <close date>
+- Announced: <date>, <Discussion URL>
+- Under review: RFC-AITP-NNNN <Version>, ...
+
+## Comment dispositions
+
+| Thread | RFC § | Class | Resolution PR | Author |
+|---|---|---|---|---|
+
+## Changes not prompted by a comment
+
+| Change | RFC § | Class | PR |
+|---|---|---|---|
+
+External comments: N
+
+## Sign-off
+
+<outcome per RFC, or the dated deferral note>. Decided <date> by <name>, <role>.
+```
+
+---
+
 ## RFC Template
 
 ```markdown

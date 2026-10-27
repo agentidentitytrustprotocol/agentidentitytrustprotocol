@@ -51,6 +51,9 @@ request. The first window, the review of the `aitp/0.3` core RFCs
 (RFC-AITP-0001 to RFC-AITP-0009), opened on 2026-10-24 and closes no earlier
 than 2027-01-10. Its thread is
 [Public review: aitp/0.3](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/discussions/117).
+Each window ends with a disposition record that accounts for every comment and
+every change made during it
+([RFC-PROCESS.md § Review disposition record](governance/RFC-PROCESS.md#review-disposition-record)).
 
 ## Registry additions
 

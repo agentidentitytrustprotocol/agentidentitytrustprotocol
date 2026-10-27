@@ -573,8 +573,10 @@ fi
 # Files under signed-examples/ carry top-level companions that document the
 # fixture but are not part of the wire artifact: every member whose name
 # starts with "_" (`_kat_input`, the minting parameters, and `_must_not_verify`,
-# the P-256 double-hash negatives) and `signing_input` (the self-certifying
-# declaration read by scripts/verify-known-answer.mjs). The signed object
+# the P-256 double-hash negatives), `signing_input` (the self-certifying
+# declaration read by scripts/verify-known-answer.mjs) and `draft` (true on an
+# example pinned for a Draft RFC, outside the frozen known-answer set; see
+# known-answer/README.md § Stability). The signed object
 # beside them MUST validate against the canonical schema. We strip them to a
 # temp file, then validate the remainder.
 #
@@ -601,13 +603,13 @@ validate_signed_kat() {
         if ! python3 -c "
 import json,sys
 d=json.load(open(sys.argv[1]))
-d={k:v for k,v in d.items() if not k.startswith('_') and k!='signing_input'}
+d={k:v for k,v in d.items() if not k.startswith('_') and k not in ('signing_input','draft')}
 if sys.argv[3]:
     d=d[sys.argv[3]]
 json.dump(d,open(sys.argv[2],'w'))
 " "$f" "$tmp" "$unwrap"; then
             rm -f "$tmp"
-            echo "    ✗ Could not strip _* / signing_input companions${unwrap:+ or unwrap \"${unwrap}\"}"
+            echo "    ✗ Could not strip _* / signing_input / draft companions${unwrap:+ or unwrap \"${unwrap}\"}"
             exit 1
         fi
         if ajv validate -s "${schema}" -d "${tmp}" --spec=draft2020 --strict=false -c ajv-formats >/dev/null 2>&1; then
@@ -615,7 +617,7 @@ json.dump(d,open(sys.argv[2],'w'))
             echo "    ✓ Valid (signed payload)"
             rm -f "$tmp"
         else
-            echo "    ✗ Invalid against ${label} schema (after stripping _* / signing_input companions)"
+            echo "    ✗ Invalid against ${label} schema (after stripping _* / signing_input / draft companions)"
             ajv validate -s "${schema}" -d "${tmp}" --spec=draft2020 --strict=false -c ajv-formats || true
             rm -f "$tmp"
             exit 1

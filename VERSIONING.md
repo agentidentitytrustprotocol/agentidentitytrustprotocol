@@ -40,10 +40,12 @@ substance: the envelope signature covers the whole envelope (issue #87). See
       implementations following it must switch. RFC-AITP-0002 §3.1's timestamp
       encoding is the worked example.
   Either direction is a patch bump on the RFCs whose citations move, not a breaking
-  change. Such a bump is what
+  change. The *artifact wrong, prose right* direction changes a pinned output, so it
+  is also bounded by
   [`schemas/conformance/known-answer/README.md`](schemas/conformance/known-answer/README.md)'s
-  Stability rule ("an existing vector's output MUST NOT change without an RFC bump")
-  requires, and the CHANGELOG MUST publish the old and new values so a consumer
+  Stability rule ("additions only, except a security fix under SECURITY.md"): for a
+  vector in the frozen set it is taken only as a security fix. Whenever a pinned output
+  does change, the CHANGELOG MUST publish the old and new values so a consumer
   pinning them can identify their copy.
 - **Backward-compatible addition** — minor RFC bump. New optional fields, new error codes, new identity types. Unknown JSON fields outside explicit `extensions` namespaces MUST be rejected with `UNKNOWN_FIELD`. Unknown keys *inside* `extensions` MUST be ignored. See RFC-AITP-0001 §7.
   For error codes, this class composes with [`registries/error-codes.md`](registries/error-codes.md)'s stability note ("new codes can be added without an RFC") rather than contradicting it: the registry note waives the need for a new RFC *document*, while this class governs how the `Version:` header moves on the existing RFCs whose normative text gains the code. One addition, two policies, different questions — no new document, minor bump.
@@ -87,7 +89,7 @@ peer that does not know the field rejects it with `UNKNOWN_FIELD` (RFC-AITP-0001
 | Message and field sets outside `extensions` | The `message_type` values, and the members of every envelope, payload, Manifest, identity descriptor, revocation snapshot and JWS claims set. No member outside `extensions` / `ext` is added, removed, renamed, retyped or made REQUIRED. The reject-unknown-member rule and the ignore-inside-`extensions` rule stay as they are. | RFC-AITP-0001 §5.2, §7; RFC-AITP-0002 §1; RFC-AITP-0003 §3; RFC-AITP-0004 §3; RFC-AITP-0005 §2, §8.1; RFC-AITP-0006 §2; RFC-AITP-0008 §1.5 |
 | Error codes and their meanings | Every code in [`registries/error-codes.md`](registries/error-codes.md), its meaning, and which code a given failure returns, including each artifact's check order. | RFC-AITP-0001 §5.4, §5.7; RFC-AITP-0003 §10; RFC-AITP-0004 §6; RFC-AITP-0006 §4 |
 | The `aitp/0.3` literal | Its spelling, the fields that carry it (`version`, `ver`), and the rule that any other value is rejected with the artifact's unknown-version code before anything else is checked. | RFC-AITP-0001 §5.2, §7; RFC-AITP-0005 §2 |
-| The known-answer set | Additions only. No existing vector's output and no known-answer keypair changes. | RFC-AITP-0001 §10 (item 8); [`known-answer/README.md`](schemas/conformance/known-answer/README.md) Stability |
+| The known-answer set | Additions only, except a security fix under SECURITY.md. No existing vector's output and no known-answer keypair changes. A vector or signed example tagged `"draft": true` belongs to a Draft RFC and is outside the set until that RFC reaches Release Candidate. | RFC-AITP-0001 §10 (item 8); [`known-answer/README.md`](schemas/conformance/known-answer/README.md) Stability |
 | Schema validation outcomes | Every existing fixture and every committed artifact passes or fails the canonical JSON Schemas exactly as it does now. | RFC-AITP-0001 §10 (item 9), §11; [Fixture-input validation](schemas/conformance/README.md#fixture-input-validation) |
 
 A contradiction between the prose and a pinned artifact is settled **toward the pinned
@@ -131,6 +133,33 @@ security fix, is decided by the maintainer acting as shepherd under the `CHARTER
 § Core Team substitute, or by the Core Team once one is seated. Each classification of
 a review comment or erratum is recorded with the change. The decision and its reversal
 trigger are in [`governance/DECISIONS.md`](governance/DECISIONS.md).
+
+## v1.0 criteria
+
+AITP 1.0 is released only when every criterion below is met. Each one is phrased so
+that a reader can check it against the repositories and mark it met or unmet. The
+status column is the state on the date given and is updated when a criterion changes
+state. Nothing here is met by assertion: a criterion is met when its evidence exists
+and is linked from this table.
+
+Status as of 2026-10-27.
+
+| # | Criterion | How to check | Status |
+|---|---|---|---|
+| 1 | RFC-AITP-0001 to RFC-AITP-0009 are each **Accepted** on the [RFC lifecycle](governance/RFC-PROCESS.md#rfc-lifecycle), and each went through a public review of at least 30 days at Final Comment Period. | Each RFC's `**Status:**` header reads `Community Standards Track (Accepted)`, and a [disposition record](governance/RFC-PROCESS.md#review-disposition-record) for its FCP window shows open and close dates at least 30 days apart. | **Unmet.** All nine are at Review. The first public review window opened 2026-10-24 and closes no earlier than 2027-01-10. |
+| 2 | **No wire change for at least 90 consecutive days** on the Release Candidate line. A wire change is a change to any surface in [What is frozen](#what-is-frozen-aitp03-line). A security fix that changes the wire, shipped with a strict cutover ([Strict cutover](#migrating-from-aitp02-to-aitp03)), **resets** the 90-day count. | The date of the last wire-changing commit on the RC line is at least 90 days before the 1.0 decision. | **Unmet.** No RFC is at Release Candidate yet, so the count has not started. |
+| 3 | **At least two implementations pass the core conformance tier and interoperate end-to-end**, and **at least one of them is by an author with no commit access to aitp-rs**. | Each has a published [conformance report](docs/conformance-badge.md) at the 1.0 candidate commit whose core claim passes. A recorded end-to-end run between them exists. Authorship and commit access are checked against each repository's history and the aitp-rs collaborator list. | **Unmet.** Every implementation listed in [`docs/ecosystem.md`](docs/ecosystem.md) is by the same author, who has commit access to aitp-rs. No implementation by a different author exists yet. |
+| 4 | **An external security review report is published**, with its findings and how each was resolved. The [formal model](formal/README.md) counts toward this criterion but does not meet it alone. | The report, written by a reviewer outside the project, is linked from [`docs/security-review-scope.md`](docs/security-review-scope.md), and every finding in it has a recorded resolution. | **Unmet.** The review is scoped in [`docs/security-review-scope.md`](docs/security-review-scope.md). No external review has been done. |
+| 5 | **The known-answer set is frozen**: a manifest of the frozen vectors and its digest are recorded in the repository and tagged. | A frozen-set manifest is committed under [`schemas/conformance/known-answer/`](schemas/conformance/known-answer/README.md), CI fails when a listed vector changes, and a release tag points at the commit that records it. | **Unmet.** The known-answer set follows the [Stability](schemas/conformance/known-answer/README.md#stability) rule, but no frozen-set manifest or digest is recorded yet. |
+| 6 | **A conformance report format and badge rules are published.** | [`docs/conformance-badge.md`](docs/conformance-badge.md) and [`schemas/json/aitp-conformance-report.schema.json`](schemas/json/aitp-conformance-report.schema.json) exist and define the report, the claims and the badge rules. | **Met.** Both are published. |
+| 7 | **A security policy is in force, and a second person holds release rights.** | [`SECURITY.md`](SECURITY.md) defines coordinated disclosure, and a person other than the project lead can cut a spec release and publish the reference packages. | **Unmet.** `SECURITY.md` is in force. The project lead is the only person with release rights. |
+
+### Versioning model at 1.0
+
+- **Until Accepted:** the protocol literal stays `aitp/0.3`, including on the RC line. RC can still change bytes under the security exception, so the literal does not move at RC.
+- **At Accepted (1.0):** the protocol literal becomes `aitp/1` in every `version` field and `ver` claim, and the schema `$id` namespace becomes `.../schema/v1/`. This is a strict cutover with the same strict cutover as [the move to `aitp/0.3`](#migrating-from-aitp02-to-aitp03): every signed example and known-answer vector is re-minted, and the KAT set is frozen again with a new digest and tag. RFC documents move to `1.0.0` and are tagged `rfc-aitp-NNNN-v1.0.0`.
+- **After 1.0:** the literal has no minor position. Nothing negotiates the protocol version and unknown members are rejected, so a wire-compatible minor cannot exist. Compatible evolution uses `extensions`, the registries and opt-in RFCs. Any literal mismatch is rejected with the artifact's unknown-version code, and a new literal (`aitp/2`) always means a strict cutover.
+- **Implementations:** an implementation's own semver is independent of the literal. A crate or package at 1.x speaks `aitp/1`.
 
 ## Forward / backward compatibility
 

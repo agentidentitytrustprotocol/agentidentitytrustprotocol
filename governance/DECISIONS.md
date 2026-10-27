@@ -644,3 +644,17 @@ patch-level, no new signatures). It deserves its own review rather than riding a
   removed.
 - **Blast radius if wrong:** low. No fixture outcome changes, and the allowance covers only inputs
   with more than one defect.
+
+## 2026-10-27 — Versioning model at 1.0 (R0.3, OQ-A)
+
+- **Status:** Decided.
+- **Decided by:** the maintainer.
+- **Context:** the protocol literal `aitp/0.3` is matched by exact string in every signed artifact, nothing negotiates it, and unknown members are rejected. The v1.0 criteria needed a stated model for what the literal says at 1.0.
+- **Chosen:** `aitp/0.3` until Accepted; `aitp/1` at Accepted with a strict cutover, a `v1/` schema namespace, re-minted examples and vectors, and `rfc-aitp-NNNN-v1.0.0` tags. After 1.0 the literal has no minor position. See VERSIONING.md "Versioning model at 1.0".
+- **Rejected:**
+  - `aitp/1.0`: the minor position would promise a compatibility no verifier implements.
+  - Keeping `aitp/0.3` after 1.0: every artifact would name a pre-1.0 revision forever, and a later wire change needs a new literal anyway.
+  - Switching at RC: RC can still change bytes under one literal, and it would re-mint vectors inside the review window.
+- **Follow-up:** RFC-AITP-0001 §7 and README.md say "minor versions are expected to be backward compatible". Align them with this model at 1.0, or earlier as a clarification.
+- **Blast radius if wrong:** low before 1.0. No literal changes until Accepted.
+
