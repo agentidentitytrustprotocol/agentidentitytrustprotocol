@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### RFC-AITP-0013 TCT renewal reaches Draft
+
+**Change class.** A new opt-in Draft RFC, additive under the `aitp/0.3` freeze. No message type, field, signing input, error code or fixture outcome of RFC-AITP-0001 to RFC-AITP-0009 changes, and no frozen known-answer vector changes. RFC-AITP-0013 goes from `0.3.0-planned` (Planned) to `0.3.0-draft` (Draft). RFC-AITP-0004 goes to `0.3.5-draft` and RFC-AITP-0014 to `0.3.2-draft`. Closes #147.
+
+**Changes.**
+- RFC-AITP-0013 specifies renewal: discovery through the Manifest extension key `rfc-aitp-0005.renew_uri` (§2); the request, a JSON body `{current_tct, pop_nonce, pop_signature}` POSTed to that endpoint (§3); the renewal PoP input `"aitp-renewal-pop-v1\0" || issuer AID || "\0" || current TCT jti || "\0" || decoded pop_nonce`, signed over its SHA-256 digest under the RFC-AITP-0001 §5.4.3 and §5.4.6 rules (§3.1); the issuer's checks in order (§4); the issuer's nonce store, retained until the current TCT's `exp` and shared across replicas (§5); the response, an RFC-AITP-0001 envelope with `message_type` `tct` and payload `{tct, grant_voucher?, pop_nonce_echo}`, and the holder's checks (§6); and its Security Considerations (§10).
+- Renewal registers no error code. It reuses `POP_RESPONSE_INVALID`, `TCT_REVOKED`, `TCT_EXPIRED`, `TCT_EXPIRES_AFTER_MANIFEST`, `REPLAY_DETECTED`, `POLICY_VIOLATION`, `PEER_MISMATCH`, `NONCE_MISMATCH`, `AUDIENCE_MISMATCH` and `GRANT_OVERFLOW`; `registries/error-codes.md` gains a "TCT renewal codes" table giving each its renewal meaning. The `tct` row of `registries/message-types.md` points to the renewal response, and the `renew_uri` row of `registries/extension-keys.md` to RFC-AITP-0013 §2.
+- RFC-AITP-0004 §8.1 is now an informative pointer to RFC-AITP-0013, with no requirement of its own. Its heading, and so its anchor, changes; the links to it now point to RFC-AITP-0013.
+- RFC-AITP-0014 §3.1: the `/v1` URI is never repurposed; a breaking change takes `/ext/a2a/v2`.
+- New schema `schemas/json/aitp-tct-renewal.schema.json` (`$defs/RenewalRequest`, `$defs/RenewalResponsePayload`).
+- New Draft known-answer vectors `kat-renewal-pop-001` (Ed25519, holder `kat-keypair-002`, over the `iss` and `jti` of the committed TCT `signed-examples/tct/kat-keypair-001-issues-002.json`) and `kat-renewal-pop-002-p256` (the same input, `p256.`-tagged, with a double-hash negative). Both carry `"draft": true`. `make kat-verify` and the independent recompute check them.
+- Twelve fixtures `ren-001` to `ren-012`, all `status: draft`, `feature: experimental-renewal`, `required_for_core: false`, with two new operations, `renew_tct` and `verify_renewal_response` (`ADAPTER.md`, `PLACEHOLDERS.md`). They cover a valid renewal, a revoked TCT, the Manifest `expires_at` cap, a replayed nonce, a PoP by a key other than `sub`, PoPs over another `jti` and another issuer, grants that are not widened, a withdrawn grant, an expired TCT, and the holder accepting a response and rejecting widened grants. Every issuer-side `pop_signature` is real and committed; both KAT scripts check each one. The fixture count goes from 133 to 145.
+- The Tamarin model's renewal rules use the RFC-AITP-0013 §3.1 input (`formal/tamarin/tct.splib`); lemma names are unchanged.
 ### Implementer quickstart: "Implementations wanted"
 
 **Change class.** Documentation only. No wire, schema, fixture or RFC change.

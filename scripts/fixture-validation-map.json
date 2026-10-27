@@ -2140,6 +2140,199 @@
           "expect": "valid"
         }
       ]
+    },
+    "ren-001": {
+      "artifacts": [
+        {
+          "pointer": "/input/renewal_request",
+          "schema": "aitp-tct-renewal.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/current_tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "ren-002": {
+      "artifacts": [
+        {
+          "pointer": "/input/renewal_request",
+          "schema": "aitp-tct-renewal.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/current_tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "ren-003": {
+      "artifacts": [
+        {
+          "pointer": "/input/renewal_request",
+          "schema": "aitp-tct-renewal.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/current_tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "ren-005": {
+      "artifacts": [
+        {
+          "pointer": "/input/renewal_request",
+          "schema": "aitp-tct-renewal.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/current_tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "ren-006": {
+      "artifacts": [
+        {
+          "pointer": "/input/renewal_request",
+          "schema": "aitp-tct-renewal.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/current_tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "ren-007": {
+      "artifacts": [
+        {
+          "pointer": "/input/renewal_request",
+          "schema": "aitp-tct-renewal.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/current_tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "ren-008": {
+      "artifacts": [
+        {
+          "pointer": "/input/renewal_request",
+          "schema": "aitp-tct-renewal.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/current_tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "ren-009": {
+      "artifacts": [
+        {
+          "pointer": "/input/renewal_request",
+          "schema": "aitp-tct-renewal.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/current_tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "ren-012": {
+      "artifacts": [
+        {
+          "pointer": "/input/renewal_request",
+          "schema": "aitp-tct-renewal.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/current_tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "ren-004": {
+      "artifacts": [
+        {
+          "pointer": "/input/sequence/0/renewal_request",
+          "schema": "aitp-tct-renewal.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/sequence/1/renewal_request",
+          "schema": "aitp-tct-renewal.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/current_tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "ren-010": {
+      "artifacts": [
+        {
+          "pointer": "/input/current_tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-tct-renewal.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "ren-011": {
+      "artifacts": [
+        {
+          "pointer": "/input/current_tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-tct-renewal.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
     }
   }
 }

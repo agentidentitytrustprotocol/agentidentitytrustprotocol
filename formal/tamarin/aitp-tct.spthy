@@ -5,8 +5,8 @@ begin
  * The TCTs issued by the AITP Mutual Handshake (RFC-AITP-0004) after the
  * handshake: key and audience binding when a TCT is presented back to its
  * issuer under downstream PoP (RFC-AITP-0005 §6, §10.5), and TCT renewal
- * (RFC-AITP-0004 §8.1, RFC-AITP-0013) with the proposed renewal PoP input
- * <'aitp-renewal-pop-v1', issuer AID, sha256(pop_nonce)>.
+ * (RFC-AITP-0013) with the renewal PoP input of RFC-AITP-0013 §3.1,
+ * <'aitp-renewal-pop-v1', issuer AID, current TCT jti, pop_nonce>.
  *
  * Modelled from the RFC text (spec v0.3.3-draft), not from any
  * implementation. Same abstractions and proof strategy as
@@ -84,7 +84,7 @@ lemma P3_presenter_pop:
    ==>
      (Ex #j. PoPSign(H, n) @ #j & #j < #i)"
 
-// RFC-AITP-0004 §8.1, RFC-AITP-0013: a renewal that I accepts for an
+// RFC-AITP-0013 §4: a renewal that I accepts for an
 // uncompromised holder H was requested by H, of I, with that pop_nonce.
 lemma P3_renewal_requested_by_holder:
   "All I H jti rn #i.

@@ -45,11 +45,11 @@ Every security lemma assumes the agents it names are honest and that their keys 
 | `P4_envelope_accepted_once` | A receiver accepts each `message_id` at most once | RFC-AITP-0001 §5.5 |
 | `P4_hello_single_session` | One MUTUAL_HELLO opens at most one responder session | RFC-AITP-0004 §5.1 step 1; RFC-AITP-0001 §5.5 |
 | `exec_tct_use` | A TCT issued in a handshake is presented back to its issuer and accepted | RFC-AITP-0005 §6.1, §6.2, §10.5 |
-| `exec_renewal` | A TCT issued in a handshake is renewed | RFC-AITP-0004 §8.1; RFC-AITP-0013 |
+| `exec_renewal` | A TCT issued in a handshake is renewed | RFC-AITP-0013 §3, §4 |
 | `P3_tct_issued_to_presenter` | A TCT its issuer accepts back was issued by it, to that presenter (`sub` = `aud`, `cnf.jkt`), with those grants | RFC-AITP-0005 §3, §5.2, §10.5 items 1-2 |
 | `P3_presenter_pop` | The accepted presenter itself signed the issuer's fresh challenge | RFC-AITP-0005 §6.2; §10.5 items 3-4 |
-| `P3_renewal_requested_by_holder` | An accepted renewal was requested by the holder, of that issuer, with that `pop_nonce` | RFC-AITP-0004 §8.1; RFC-AITP-0013 |
-| `P3_renewal_nonce_once` | The issuer accepts each renewal `pop_nonce` once | RFC-AITP-0004 §8.1 |
+| `P3_renewal_requested_by_holder` | An accepted renewal was requested by the holder, of that issuer, with that `pop_nonce` | RFC-AITP-0013 §3.1, §4 step 3 |
+| `P3_renewal_nonce_once` | The issuer accepts each renewal `pop_nonce` once | RFC-AITP-0013 §4 step 5, §5 |
 | `exec_delegation` | Honest A, B and C complete a delegation of one of two vouchered grants | RFC-AITP-0006 §2-§4 |
 | `P5_scope_within_voucher` | When A accepts C under scope S, A itself issued B a voucher whose grants contain S | RFC-AITP-0006 §4 steps 3-4, 6, §5.3; RFC-AITP-0005 §8 |
 | `P5_delegator_signed` | B itself delegated exactly scope S to C for audience A | RFC-AITP-0006 §4 steps 1-2, §5.1-§5.2 |
@@ -57,13 +57,11 @@ Every security lemma assumes the agents it names are honest and that their keys 
 
 ### TCT renewal input
 
-RFC-AITP-0004 §8.1 sketches renewal and RFC-AITP-0013 is planned. The model uses the proposed renewal PoP input, a domain tag, the issuer AID and the hash of the nonce:
+The model uses the renewal PoP input of RFC-AITP-0013 §3.1: the tag, the issuer AID, the current TCT's `jti` and the nonce.
 
 ```
-pop_signature = sign(holder_key, <'aitp-renewal-pop-v1', issuer AID, sha256(pop_nonce)>)
+pop_signature = sign(holder_key, <'aitp-renewal-pop-v1', issuer AID, current TCT jti, pop_nonce>)
 ```
-
-The renewal lemmas hold for this construction.
 
 ## Modelling limits
 
@@ -83,4 +81,4 @@ The results hold for the model, not beyond it.
 There are no inconclusive lemmas in the merged theories. Open items:
 
 - Model revocation (RFC-AITP-0008) and Manifest rotation.
-- Model RFC-AITP-0013 renewal once it leaves Planned status, and re-check the renewal lemmas against its text.
+- Model the rest of RFC-AITP-0013: the renewal response envelope and the holder checks of §6.1.

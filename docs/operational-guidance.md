@@ -35,24 +35,28 @@ Operational pattern:
 
 ### Shortened renewal (opt-in, not part of v0.3 conformance)
 
-[RFC-AITP-0004 §8.1](../rfcs/RFC-AITP-0004-mutual-handshake.md#81-non-normative-shortened-renewal-extension)
-sketches a non-normative shortened renewal endpoint; its standardization is
-reserved as [RFC-AITP-0013](../rfcs/RFC-AITP-0013-tct-renewal-extension.md)
-(status: Planned). The points an operator needs:
+[RFC-AITP-0013](../rfcs/RFC-AITP-0013-tct-renewal-extension.md) (Draft)
+specifies a renewal endpoint as an opt-in extension. The points an operator
+needs:
 
-- It MUST be gated behind an explicit opt-in and advertised through the
-  Manifest extension key `rfc-aitp-0005.renew_uri`
+- It is gated behind an explicit opt-in and advertised through the Manifest
+  extension key `rfc-aitp-0005.renew_uri`
   ([registry](../registries/extension-keys.md)). Peers that do not find the
-  key MUST renew with a full Mutual Handshake and MUST NOT probe a guessed
-  path (RFC-AITP-0004 §8.1).
-- The current TCT MUST still be unexpired, and the issuer MUST re-evaluate
-  its grant policy — shortened renewal is not a bypass for revocation,
-  Manifest rotation or trust-anchor changes (RFC-AITP-0004 §8.1).
-- The response is a fresh TCT with a new `jti`, accompanied per issuer
-  policy by a freshly minted grant voucher; vouchers bound to the old TCT's
-  `jti` do not carry over to the renewed token (RFC-AITP-0004 §8.1,
-  [RFC-AITP-0013](../rfcs/RFC-AITP-0013-tct-renewal-extension.md#sketch-under-aitp03-non-normative)).
-- v0.3 conformance testers MUST NOT require it (RFC-AITP-0004 §8.1).
+  key renew with a full Mutual Handshake and do not probe a guessed path
+  ([RFC-AITP-0013 §2](../rfcs/RFC-AITP-0013-tct-renewal-extension.md#2-discovery)).
+- The current TCT must still be unexpired, and the issuer re-runs
+  revocation, the Manifest bound and its grant policy on every request.
+  Renewal is not a bypass for revocation, Manifest rotation or trust-anchor
+  changes ([RFC-AITP-0013 §4](../rfcs/RFC-AITP-0013-tct-renewal-extension.md#4-issuer-processing)).
+- The issuer keeps a store of accepted renewal nonces, retained until the
+  current TCT's `exp` and shared across replicas
+  ([RFC-AITP-0013 §5](../rfcs/RFC-AITP-0013-tct-renewal-extension.md#5-nonce-store)).
+- The response is a fresh TCT with a new `jti` in a signed `tct` envelope,
+  accompanied per issuer policy by a freshly minted grant voucher; vouchers
+  bound to the old TCT's `jti` do not carry over to the renewed token
+  ([RFC-AITP-0013 §7](../rfcs/RFC-AITP-0013-tct-renewal-extension.md#7-the-current-tct-after-renewal)).
+- Core conformance does not require it; its `ren-*` fixtures run only under
+  the `experimental-renewal` feature flag.
 
 How the reference implementation exposes it (wire format, issuer-side
 algorithm, SDK calls, known limitations):

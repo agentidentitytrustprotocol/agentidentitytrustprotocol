@@ -44,13 +44,13 @@ Reserved → Planned → Idea → Draft → Review → Release Candidate → Fin
 - `**Status:**` reads bare `Planned`.
 - The distinction from Reserved is a matter of degree (how much of the
   mechanism is actually written down), not a bright line like "a file
-  exists" — both RFC-AITP-0012 (Reserved) and RFC-AITP-0013 (Planned)
-  have files, and both currently carry a handful of real MUST/MAY
-  constraints on v0.3 implementations despite each calling itself
-  non-normative. Neither is a numbered RFC's usual all-or-nothing
-  normative/non-normative split; that pre-existing wrinkle is noted here
-  rather than resolved, since resolving it changes those RFCs' actual
+  exists" — RFC-AITP-0012 (Reserved) has a file, and it carries a
+  handful of real MUST/MAY constraints on v0.3 implementations despite
+  calling itself non-normative. That is not a numbered RFC's usual
+  all-or-nothing normative/non-normative split; the wrinkle is noted here
+  rather than resolved, since resolving it changes that RFC's actual
   content, which is out of scope for a status-vocabulary cleanup.
+  RFC-AITP-0013 was Planned until it reached Draft.
 
 ### Stages
 

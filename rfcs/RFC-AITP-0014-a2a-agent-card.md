@@ -2,7 +2,7 @@
 # A2A Agent Card Security Scheme
 
 **Document:** RFC-AITP-0014
-**Version:** 0.3.1-draft
+**Version:** 0.3.2-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0003 Agent Manifest](RFC-AITP-0003-manifest.md), [RFC-AITP-0004 Mutual Handshake](RFC-AITP-0004-mutual-handshake.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md), [RFC-AITP-0009 Security](RFC-AITP-0009-security.md)
 
@@ -99,7 +99,7 @@ A server that offers this binding MUST include exactly one AgentExtension in `ca
 https://agentidentitytrustprotocol.io/ext/a2a/v1
 ```
 
-The URI is an identifier and is compared byte for byte. A change to this binding that a `v1` client cannot process takes a new URI (`…/v2`), as A2A section 4.6.3 requires; a server MUST NOT answer a `v2` activation with `v1` behavior.
+The URI is an identifier and is compared byte for byte. A change to this binding that a `v1` client cannot process takes a new URI (`…/v2`), as A2A section 4.6.3 requires; a server MUST NOT answer a `v2` activation with `v1` behavior. The `/v1` URI is never repurposed: it keeps the behavior this RFC defines for it.
 
 `required` SHOULD be `true` only when every entry of `securityRequirements` includes the AITP scheme of [§3.3](#33-the-security-scheme-entry), so that the agent cannot be used without AITP. When AITP is one alternative among several, `required` MUST be `false`.
 

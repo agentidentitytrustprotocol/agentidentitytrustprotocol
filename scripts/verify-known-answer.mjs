@@ -578,16 +578,18 @@ const JCS_EXPECTED = new Map([
   ['kat-manifest-pop-002-p256', ['challenge', 'decoded_hex', 'sha256_hex', 'sha256_b64url', 'signing_keypair_id', 'signer_aid', 'signature_b64url', 'signature', 'double_hash_signature_MUST_NOT_verify']],
   ['kat-multihop-chain-001', ['voucher_jws', 'chain', 'chain_entry_sha256_b64url', 'digest_array_jcs', 'chain_hash', 'outer_delegation_jws']],
   ['kat-multihop-truncation-001', ['chain_hash_full', 'chain_truncated', 'chain_hash_truncated', 'must_differ']],
+  ['kat-renewal-pop-001', ['issuer_aid', 'current_tct_jti', 'pop_nonce', 'source_tct', 'input_hex', 'input_len_bytes', 'sha256_hex', 'sha256_b64url', 'signing_keypair_id', 'signer_aid', 'signature_b64url']],
+  ['kat-renewal-pop-002-p256', ['issuer_aid', 'current_tct_jti', 'pop_nonce', 'input_hex', 'input_len_bytes', 'sha256_hex', 'sha256_b64url', 'signing_keypair_id', 'signer_aid', 'signature_b64url', 'signature', 'double_hash_signature_MUST_NOT_verify']],
   ['kat-derived-uuid-001', ['domain_tag', 'input_hex', 'preimage_hex', 'sha256_hex', 'uuid']],
 ]);
 
-// Vectors and signed examples pinned for a Draft RFC (RFC-AITP-0010, RFC-AITP-0011).
+// Vectors and signed examples pinned for a Draft RFC (RFC-AITP-0010, RFC-AITP-0011, RFC-AITP-0013).
 // Each carries `"draft": true` and stays outside the frozen known-answer set until
 // its RFC reaches Release Candidate (known-answer/README.md § Stability). The tag
 // is asserted in both directions: every listed entry carries exactly `true`, and
 // no other entry carries a `draft` member at all, so a frozen vector cannot be
 // moved out of the frozen set by tagging it.
-const DRAFT_JCS_VECTORS = new Set(['kat-multihop-chain-001', 'kat-multihop-truncation-001', 'kat-session-bundle-001']);
+const DRAFT_JCS_VECTORS = new Set(['kat-multihop-chain-001', 'kat-multihop-truncation-001', 'kat-session-bundle-001', 'kat-renewal-pop-001', 'kat-renewal-pop-002-p256']);
 const DRAFT_SIGNED_EXAMPLES = new Set(['session-bundle/kat-keypair-001-bundle.json']);
 
 function checkDraftTags() {
@@ -655,6 +657,7 @@ const MEMBER_TYPES = new Map([
   ['preimage_len_bytes', { ok: (x) => Number.isInteger(x) && x > 0, want: 'a positive integer' }],
   ['expected', { ok: (x) => x === 'reject', want: 'exactly "reject"' }],
   ['proof_input_len_bytes', { ok: (x) => Number.isInteger(x) && x > 0, want: 'a positive integer' }],
+  ['input_len_bytes', { ok: (x) => Number.isInteger(x) && x > 0, want: 'a positive integer' }],
   ['timestamp', { ok: (x) => Number.isInteger(x) && x > 0, want: 'a positive integer' }],
   ['must_differ', { ok: (x) => x === true, want: 'exactly true' }],
   ['chain', { ok: (x) => Array.isArray(x) && x.length > 0 && x.every(nonEmptyString), want: 'a non-empty array of strings' }],
@@ -867,6 +870,77 @@ function checkJcsVectors(keypairs) {
           if (v.proof_input_hex === one.proof_input_hex) throw new Error('proof_input equals -001');
           if (v.signature_b64url === one.signature_b64url) throw new Error('proof equals -001');
           if (verifySingleHash(v.sender_aid, input, one.signature_b64url)) throw new Error("-001's proof verifies over -003's proof_input");
+        });
+      }
+    }
+
+    if (v.id === 'kat-renewal-pop-001' || v.id === 'kat-renewal-pop-002-p256') {
+      // RFC-AITP-0013 §3.1 renewal PoP input:
+      // "aitp-renewal-pop-v1\0" || iss || "\0" || jti || "\0" || decoded pop_nonce.
+      const renewalInput = (iss, nonceBytes) => Buffer.concat([
+        utf8('aitp-renewal-pop-v1\0'),
+        utf8(iss), utf8('\0'),
+        utf8(v.current_tct_jti), utf8('\0'),
+        nonceBytes,
+      ]);
+      let input;
+      check(`${v.id} renewal_pop_input + digest`, () => {
+        input = renewalInput(v.issuer_aid, b64uDecode(v.pop_nonce, 16, 'pop_nonce'));
+        eq(input.toString('hex'), v.input_hex, 'input_hex');
+        eq(input.length, v.input_len_bytes, 'input_len_bytes');
+        const digest = sha256(input);
+        eq(digest.toString('hex'), v.sha256_hex, 'sha256_hex');
+        eq(b64uEncode(digest), v.sha256_b64url, 'sha256_b64url');
+        const kp = keypairs.get(v.signing_keypair_id);
+        if (!kp) throw new Error(`signing_keypair_id ${v.signing_keypair_id} is not in keypairs.json`);
+        eq(v.signer_aid, kp.aid, `signer_aid does not match ${v.signing_keypair_id}`);
+      });
+      if (!input) continue;
+      if (v.id === 'kat-renewal-pop-001') {
+        check(`${v.id} iss and jti are the committed TCT's, and the signer is its sub`, () => {
+          const ex = readJson(join(KAT, v.source_tct));
+          const claims = JSON.parse(b64uDecode(ex.tct_token.split('.')[1], undefined, 'tct payload').toString('utf8'));
+          eq(claims.iss, v.issuer_aid, 'iss');
+          eq(claims.jti, v.current_tct_jti, 'jti');
+          eq(claims.sub, v.signer_aid, 'sub');
+        });
+        check(`${v.id} Ed25519 renewal PoP verifies untagged and ed25519.-tagged`, () => {
+          if (!verifySingleHash(v.signer_aid, input, v.signature_b64url)) throw new Error('untagged PoP does not verify');
+          if (!verifySingleHash(v.signer_aid, input, `ed25519.${v.signature_b64url}`)) throw new Error('ed25519.-tagged PoP does not verify');
+        });
+        check(`${v.id} renewal PoP does NOT verify with the base64url nonce string in the input`, () => {
+          if (verifySingleHash(v.signer_aid, renewalInput(v.issuer_aid, utf8(v.pop_nonce)), v.signature_b64url)) {
+            throw new Error('the PoP verifies over the base64url nonce string too');
+          }
+        });
+        check(`${v.id} renewal PoP does NOT verify over the aid:pubkey:ed25519: spelling of issuer_aid`, () => {
+          const tagged = v.issuer_aid.replace('aid:pubkey:', 'aid:pubkey:ed25519:');
+          if (tagged === v.issuer_aid) throw new Error('issuer_aid is already tagged');
+          const other = renewalInput(tagged, b64uDecode(v.pop_nonce, 16, 'pop_nonce'));
+          if (verifySingleHash(v.signer_aid, other, v.signature_b64url)) throw new Error('the PoP verifies over the tagged issuer spelling too');
+        });
+      } else {
+        check(`${v.id} has kat-renewal-pop-001's input`, () => {
+          const one = byId.get('kat-renewal-pop-001');
+          if (!one) throw new Error('kat-renewal-pop-001 is missing');
+          for (const k of ['issuer_aid', 'current_tct_jti', 'pop_nonce', 'input_hex', 'sha256_hex']) eq(v[k], one[k], k);
+        });
+        check(`${v.id} p256 renewal PoP verifies (single hash, strict, low-S) and is tagged`, () => {
+          eq(aidKey(v.signer_aid).alg, 'p256', 'signer algorithm');
+          eq(v.signature, `p256.${v.signature_b64url}`, 'signature is not the tagged form of signature_b64url');
+          if (!verifySingleHash(v.signer_aid, input, v.signature)) throw new Error('PoP does not verify over renewal_pop_input');
+        });
+        check(`${v.id} double-hash PoP does NOT verify (and is a real e = sha256(d) signature)`, () => {
+          assertDoubleHashNegative(v.signer_aid, input, v.double_hash_signature_MUST_NOT_verify, 'double_hash_signature_MUST_NOT_verify');
+        });
+        check(`${v.id} untagged PoP is rejected as an algorithm mismatch (§5.4.3 rule 3)`, () => {
+          let threw = false;
+          try { verifySingleHash(v.signer_aid, input, v.signature_b64url); } catch { threw = true; }
+          if (!threw) throw new Error('the untagged PoP was not rejected on its tag');
+          const { point } = aidKey(v.signer_aid);
+          if (!p256Verify(point, input, b64uDecode(v.signature_b64url, 64, 'signature_b64url'))) {
+            throw new Error('the raw bytes do not verify under P-256, so the tag is not the only defect');
+          }
         });
       }
     }
@@ -1319,6 +1393,58 @@ function checkSignedExamples() {
   checkIssuerSideFixtures();
   checkThirdPartySnapshotFixture();
   checkSelfAttestations();
+  checkRenewalFixtures();
+}
+
+// ren-*: RFC-AITP-0013 renewal fixtures (Draft). Every issuer-side fixture
+// renews the committed TCT with a committed renewal PoP; each PoP is checked
+// against the §3.1 input the fixture says it was made over.
+function checkRenewalFixtures() {
+  console.log('── ren-*: TCT renewal fixtures (RFC-AITP-0013, Draft) ──');
+  const conf = join(ROOT, 'schemas/conformance');
+  const tct = readJson(join(SIGNED, 'tct/kat-keypair-001-issues-002.json'));
+  const claims = verifyCompactJws(tct.tct_token, 'aitp-tct+jwt');
+  const AGENT_C = 'aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU';
+  const AGENT_D = 'aid:pubkey:iojj3XQJ8ZX9UtstPLpdcspnCb8dlBIb83SIAbQPb1w';
+  const OTHER_JTI = '550e8400-e29b-41d4-a716-446655440001';
+  const input = (iss, jti, nonce) => Buffer.concat([
+    utf8('aitp-renewal-pop-v1\0'), utf8(iss), utf8('\0'), utf8(jti), utf8('\0'), b64uDecode(nonce, 16, 'pop_nonce'),
+  ]);
+  const names = readdirSync(conf).filter((n) => /^ren-\d{3}-.*\.json$/.test(n)).sort();
+  check('ren-*: twelve fixtures, ren-001 to ren-012', () => {
+    eq(jcs(names.map((n) => n.slice(0, 7))), jcs(Array.from({ length: 12 }, (_, i) => `ren-${String(i + 1).padStart(3, '0')}`)), 'ids');
+  });
+  for (const name of names) {
+    const f = readJson(join(conf, name));
+    check(`${f.id}: draft, experimental-renewal, committed TCT, PoP over its stated input`, () => {
+      eq(f.rfc, 'RFC-AITP-0013', 'rfc');
+      eq(f.status, 'draft', 'status');
+      eq(f.feature, 'experimental-renewal', 'feature');
+      eq(f.required_for_core, false, 'required_for_core');
+      eq(jcs(f.input.current_tct_claims), jcs(claims), 'current_tct_claims');
+      if (f.input.operation === 'verify_renewal_response') {
+        eq(f.input.current_tct, tct.tct_token, 'current_tct');
+        eq(f.input.self_aid, claims.sub, 'self_aid is sub');
+        eq(f.input.envelope.sender.agent_id, claims.iss, 'sender is iss');
+        eq(f.input.envelope.payload.pop_nonce_echo, f.input.sent_pop_nonce, 'pop_nonce_echo');
+        return;
+      }
+      eq(f.input.self_aid, claims.iss, 'self_aid is iss');
+      const reqs = f.input.renewal_request ? [f.input.renewal_request] : f.input.sequence.map((st) => st.renewal_request);
+      for (const r of reqs) {
+        eq(r.current_tct, tct.tct_token, 'current_tct');
+        const good = input(claims.iss, claims.jti, r.pop_nonce);
+        let signer = claims.sub, over = good;
+        if (f.id === 'ren-005') signer = AGENT_C;
+        if (f.id === 'ren-006') over = input(claims.iss, OTHER_JTI, r.pop_nonce);
+        if (f.id === 'ren-007') over = input(AGENT_D, claims.jti, r.pop_nonce);
+        if (!verifySingleHash(signer, over, r.pop_signature)) throw new Error('pop_signature does not verify over its stated input');
+        const validForIssuer = verifySingleHash(claims.sub, good, r.pop_signature);
+        const wantValid = !['ren-005', 'ren-006', 'ren-007'].includes(f.id);
+        if (validForIssuer !== wantValid) throw new Error(`pop_signature ${wantValid ? 'does not verify' : 'verifies'} under sub over the issuer's input`);
+      }
+    });
+  }
 }
 
 // rev-010 and bundle-008: a committed signed example's body and signature, with
@@ -2279,7 +2405,7 @@ checkOidcP256Fixture();
 // emptied vector member; this catches coverage lost any other way — a check
 // commented out, a loop that stops early, a gate that stops matching. Coverage may
 // grow (raise this number in the same commit); it may never silently shrink.
-const EXPECTED_MIN_CHECKS = 190;
+const EXPECTED_MIN_CHECKS = 240;
 if (checks < EXPECTED_MIN_CHECKS) {
   failures.push(
     `coverage regression: ran ${checks} checks, expected at least ${EXPECTED_MIN_CHECKS}. ` +

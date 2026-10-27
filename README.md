@@ -81,7 +81,7 @@ agentidentitytrustprotocol/
     RFC-AITP-0010-session-trust-bundle.md   # Draft, opt-in (not part of v0.3 core conformance)
     RFC-AITP-0011-multihop-delegation.md    # Draft, opt-in (not part of v0.3 core conformance)
     RFC-AITP-0012-extensions.md             # Reserved
-    RFC-AITP-0013-tct-renewal-extension.md  # Planned
+    RFC-AITP-0013-tct-renewal-extension.md  # Draft, opt-in (not part of v0.3 core conformance)
     RFC-AITP-0014-a2a-agent-card.md         # Draft, opt-in (not part of v0.3 core conformance)
 
   docs/                                     # Non-normative guides
@@ -120,6 +120,7 @@ agentidentitytrustprotocol/
       aitp-delegation.schema.json
       aitp-revocation-list.schema.json
       aitp-session-bundle.schema.json
+      aitp-tct-renewal.schema.json          # RFC-AITP-0013 request and response payload
       aitp-trust-anchors.schema.json
       aitp-conformance-fixture.schema.json  # metadata block every fixture carries
       aitp-conformance-report.schema.json   # what a conformance runner emits
@@ -128,7 +129,7 @@ agentidentitytrustprotocol/
       PLACEHOLDERS.md                       # placeholder tokens runners substitute
       env-*.json  man-*.json  id-*.json  mh-*.json
       tct-*.json  vch-*.json  del-*.json  rev-*.json   # v0.3 core
-      del-mh-*.json  bundle-*.json                     # opt-in drafts (RFC-AITP-0011 / 0010)
+      del-mh-*.json  bundle-*.json  ren-*.json         # opt-in drafts (RFC-AITP-0011 / 0010 / 0013)
       known-answer/                         # pinned canonical bytes, keys, signatures
         signed-examples/
       reports/                              # sample conformance reports (valid and invalid/)
@@ -187,7 +188,7 @@ If you are new to AITP, read in this order:
 
 v0.3 defines one conformance target: what a conformant implementation MUST do is listed in [RFC-AITP-0001 §10](rfcs/RFC-AITP-0001-core.md#10-conformance) (RFCs 0001–0009, the mandatory known-answer vectors, and the core conformance fixtures). There are no named conformance profiles.
 
-The opt-in drafts are selected per fixture, not per profile: every fixture under [`schemas/conformance/`](schemas/conformance/README.md) carries a metadata block (`status`, `required_for_core`, `feature`), and a `draft` fixture runs only when the runner has explicitly opted into its named `feature` flag — `experimental-session-bundle` (RFC-AITP-0010), `experimental-multihop-delegation` (RFC-AITP-0011) or `aitp-a2a-agent-card` (RFC-AITP-0014). See the [runner enforcement rules](schemas/conformance/README.md#conformance-runner-enforcement-rules) and RFC-AITP-0001 §10 for how a core-only implementation treats those fixtures.
+The opt-in drafts are selected per fixture, not per profile: every fixture under [`schemas/conformance/`](schemas/conformance/README.md) carries a metadata block (`status`, `required_for_core`, `feature`), and a `draft` fixture runs only when the runner has explicitly opted into its named `feature` flag — `experimental-session-bundle` (RFC-AITP-0010), `experimental-multihop-delegation` (RFC-AITP-0011), `experimental-renewal` (RFC-AITP-0013) or `aitp-a2a-agent-card` (RFC-AITP-0014). See the [runner enforcement rules](schemas/conformance/README.md#conformance-runner-enforcement-rules) and RFC-AITP-0001 §10 for how a core-only implementation treats those fixtures.
 
 A conformance runner emits a [conformance report](docs/conformance-badge.md) ([`aitp-conformance-report.schema.json`](schemas/json/aitp-conformance-report.schema.json)). A badge shows one RFC-AITP-0001 §10 claim string ("AITP v0.3", "AITP v0.3 pinned-admission" or "AITP v0.3 self-attestation"), each decided on its own fixture set, with the spec commit and date.
 
@@ -209,7 +210,7 @@ There is no service-consumer conformance target. AITP is peer-to-peer.
 - **RFC-AITP-0010 Session Trust Bundle** *(Draft, opt-in — not part of v0.3 core conformance)* — multi-agent session scaling.
 - **RFC-AITP-0011 Multi-hop Delegation** *(Draft, opt-in — not part of v0.3 core conformance)* — chains beyond a single hop.
 - **RFC-AITP-0012 Extensions** *(reserved)* — `extensions.zk` and `extensions.tee` namespaces.
-- **RFC-AITP-0013 TCT Renewal Extension** *(Planned)* — standardization of the non-normative shortened renewal endpoint described in RFC-AITP-0004 §8.1.
+- **RFC-AITP-0013 TCT Renewal Extension** *(Draft, opt-in — not part of v0.3 core conformance)* — renews a TCT without a fresh handshake: a PoP-signed request to the issuer, answered with the new TCT in a signed envelope.
 - **RFC-AITP-0014 A2A Agent Card Security Scheme** *(Draft, opt-in — not part of v0.3 core conformance)* — advertises AITP in an A2A (Agent2Agent protocol) Agent Card, bound to the agent's signed Manifest.
 
 ---
@@ -217,7 +218,7 @@ There is no service-consumer conformance target. AITP is peer-to-peer.
 ## Maintenance posture
 
 - **Status:** maintained, single maintainer, best-effort. Until a Core Team is seated, the repository maintainer acts in its place for editorial and registry matters (see [governance/CHARTER.md § Core Team](governance/CHARTER.md#core-team)); substantive RFC changes still go through the [RFC process](governance/RFC-PROCESS.md), not one person's judgment alone, and each stage gate waits for a public review of at least 30 days ([CONTRIBUTING.md § Review windows](CONTRIBUTING.md#review-windows)). The project intends to move to a neutral foundation ([CHARTER.md § Neutral home](governance/CHARTER.md#neutral-home)).
-- **What's stable vs. not:** `aitp/0.3` is the current revision; its latest tags are `v0.3.4-draft` / `schema-v0.3.4` (first tagged `v0.3.0-draft` / `schema-v0.3.0`). Four implementations written independently from the spec pass every core fixture of its conformance suite: aitp-rs, aitp-verifier-py, aitp-verifier-ts and aitp-verifier-go. All four are by one author: independent in code, not in authorship. v1.0 requires an implementation by a different author, which none of them is. The previous revision is frozen: the v0.2 line ends at commit `f9ee7ea`, tagged `v0.2.1-draft` / `schema-v0.2.1` (`v0.2.0-draft` and `schema-v0.2.0` point at an earlier v0.2 line commit). `aitp/0.3` is a strict cutover with one breaking change, the envelope signing input — see [`VERSIONING.md`](VERSIONING.md) for the migration notes. On the [RFC status ladder](governance/RFC-PROCESS.md#rfc-lifecycle), RFCs 0001–0009 are in `Review` (public review until at least 2027-01-10, [review thread](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/discussions/117)), RFCs 0010, 0011 and 0014 are `Draft` (opt-in, outside v0.3 core conformance), RFC-AITP-0012 is `Reserved`, and RFC-AITP-0013 is `Planned` — the [RFC index](rfcs/README.md) is the authoritative per-RFC table. Nothing in the v0.2 line or in `aitp/0.3` has reached Release Candidate (the earlier v0.1 line did, at `0.1.0-rc.3`).
+- **What's stable vs. not:** `aitp/0.3` is the current revision; its latest tags are `v0.3.4-draft` / `schema-v0.3.4` (first tagged `v0.3.0-draft` / `schema-v0.3.0`). Four implementations written independently from the spec pass every core fixture of its conformance suite: aitp-rs, aitp-verifier-py, aitp-verifier-ts and aitp-verifier-go. All four are by one author: independent in code, not in authorship. v1.0 requires an implementation by a different author, which none of them is. The previous revision is frozen: the v0.2 line ends at commit `f9ee7ea`, tagged `v0.2.1-draft` / `schema-v0.2.1` (`v0.2.0-draft` and `schema-v0.2.0` point at an earlier v0.2 line commit). `aitp/0.3` is a strict cutover with one breaking change, the envelope signing input — see [`VERSIONING.md`](VERSIONING.md) for the migration notes. On the [RFC status ladder](governance/RFC-PROCESS.md#rfc-lifecycle), RFCs 0001–0009 are in `Review` (public review until at least 2027-01-10, [review thread](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/discussions/117)), RFCs 0010, 0011, 0013 and 0014 are `Draft` (opt-in, outside v0.3 core conformance), and RFC-AITP-0012 is `Reserved` — the [RFC index](rfcs/README.md) is the authoritative per-RFC table. Nothing in the v0.2 line or in `aitp/0.3` has reached Release Candidate (the earlier v0.1 line did, at `0.1.0-rc.3`).
 - **Cadence:** best-effort, driven by need. Changes land when a consumer needs them, not on a fixed schedule.
 
 ---

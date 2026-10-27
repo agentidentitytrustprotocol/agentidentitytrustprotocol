@@ -2,7 +2,7 @@
 # Mutual Handshake
 
 **Document:** RFC-AITP-0004
-**Version:** 0.3.4-draft
+**Version:** 0.3.5-draft
 **Status:** Community Standards Track (Review)
 **Depends on:**
   [RFC-AITP-0001 Core](RFC-AITP-0001-core.md),
@@ -594,54 +594,9 @@ Agents MUST NOT persist `pop_nonce` values across restarts. Restarting agents MU
 
 TCTs expire per `exp`. Peers MAY initiate a fresh Mutual Handshake before expiry to renew trust. There is no in-band renewal message in v0.3. Agents MUST NOT use an expired peer TCT. See [`docs/operational-guidance.md`](../docs/operational-guidance.md) for non-normative renewal patterns.
 
-### 8.1 Non-normative: shortened renewal extension
+### 8.1 Renewal extension (RFC-AITP-0013)
 
-Implementations MAY offer a shortened renewal endpoint as a non-normative
-extension. Shortened renewal is NOT part of v0.3 conformance and MUST be
-gated behind an explicit feature or configuration opt-in. Peers MUST
-advertise support via the `extensions["rfc-aitp-0005.renew_uri"]`
-Manifest field (see [`registries/extension-keys.md`](../registries/extension-keys.md))
-so other implementations can discover it without assuming its presence.
-
-The path `/aitp/handshake/renew` is used in examples only. It is **NOT
-a reserved path** in core v0.3 — implementations MAY mount the
-shortened-renewal endpoint at any path, host, or port that is reachable
-over HTTPS. Implementations offering shortened renewal MUST advertise
-the **actual concrete endpoint** they expose in
-`extensions["rfc-aitp-0005.renew_uri"]`; peers that do not find this
-extension key in the issuer's Manifest MUST fall back to a fresh Mutual
-Handshake (this RFC, §1 onward) for renewal. Peers MUST NOT probe
-`/aitp/handshake/renew` directly when the extension is absent — the
-absence of the extension key is the discovery signal, not the HTTP
-response from a guessed path.
-
-Wire format for the experimental shortened renewal:
-
-- `POST /aitp/handshake/renew` (illustrative path; the actual endpoint
-  is whatever the issuer advertises in `extensions["rfc-aitp-0005.renew_uri"]`).
-- Request body:
-  ```json
-  {
-    "current_tct": "<compact JWS string: aitp-tct+jwt>",
-    "pop_nonce": "<22-char unpadded base64url>",
-    "pop_signature": "<86-char unpadded base64url, sign(holder_key, sha256(base64url_decode(pop_nonce)))>"
-  }
-  ```
-- Response: a fresh TCT (compact JWS string, `typ` `aitp-tct+jwt`) with
-  a new `jti` and `exp ≤ issuer.manifest.expires_at` — accompanied, per
-  issuer policy, by a fresh companion grant voucher
-  (RFC-AITP-0005 §8.2).
-
-An expired TCT MUST NOT be used to bootstrap a shortened renewal — the
-issuer MUST verify `current_tct.exp > now` before issuing a
-replacement. The issuer MUST also re-evaluate its grant policy for the
-holder; shortened renewal is not a bypass for revocation, manifest
-rotation, or trust-anchor changes.
-
-v0.3 conformance testers MUST NOT require shortened renewal support and
-MUST NOT fail implementations that only support full Mutual Handshake
-renewal. The eventual standardization of this extension is reserved as
-[RFC-AITP-0013 TCT Renewal Extension](RFC-AITP-0013-tct-renewal-extension.md) (Planned).
+Renewing a TCT without a fresh Mutual Handshake is an opt-in extension, specified in [RFC-AITP-0013 TCT Renewal Extension](RFC-AITP-0013-tct-renewal-extension.md) (Draft). It is not part of v0.3 core conformance. This subsection is informative: every requirement on renewal is in RFC-AITP-0013.
 
 ---
 
