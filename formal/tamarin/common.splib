@@ -1,0 +1,87 @@
+/*
+ * Shared setup for the AITP Tamarin theories: restrictions, the OIDC
+ * identity provider, agent registration, Manifests and key compromise.
+ * Included by every theory in formal/tamarin/. Needs `builtins: signing, hashing` and
+ * `functions: jkt/1` in the including theory.
+ *
+ * Message shapes used throughout.
+ *   envelope = <body, sign(<'aitp-envelope-v2', body>, sk)>       (0001 §5.4)
+ *   body     = <'aitp/0.3', message_type, message_id, sender, payload>
+ *                                                                  (0001 §5.1)
+ * The envelope timestamp is not modelled (see the DenyList restriction).
+ *
+ * Every signature check is a pattern match on sign(m, sk) with the signer's
+ * public key pk(sk). In the `signing` theory this is equivalent to
+ * verify(sig, m, pk(sk)) = true (RFC-AITP-0001 §5.4) and avoids equational
+ * variants.
+ */
+
+/* ------------------------------------------------------------------ */
+/* Restrictions                                                       */
+/* ------------------------------------------------------------------ */
+
+restriction OnlyOnce:
+  "All x #i #j. OnlyOnce(x) @ #i & OnlyOnce(x) @ #j ==> #i = #j"
+
+// RFC-AITP-0001 §5.5 (1)+(2): the timestamp window plus a deny list kept
+// for at least that window means a receiver never accepts one message_id
+// twice. The same restriction models any other single-use store (the
+// renewal nonce store of RFC-AITP-0004 §8.1), keyed by a tagged value.
+restriction DenyList:
+  "All r mid #i #j. Seen(r, mid) @ #i & Seen(r, mid) @ #j ==> #i = #j"
+
+restriction Neq:
+  "All x y #i. Neq(x, y) @ #i ==> not (x = y)"
+
+/* ------------------------------------------------------------------ */
+/* Setup                                                              */
+/* ------------------------------------------------------------------ */
+
+// RFC-AITP-0002 §2: the OIDC identity provider. Honest and unique.
+rule IdP_Setup:
+    [ Fr(~skI) ]
+  --[ OnlyOnce('idp') ]->
+    [ !IdP(~skI), Out(pk(~skI)) ]
+
+// RFC-AITP-0003 §3, §3.1: an honest agent generates its key (its AID is the
+// public key, RFC-AITP-0001 §5.3), is enrolled at the IdP under a subject
+// of its own (a fresh name, so no other enrollment shares it), and
+// publishes a signed Manifest carrying identity_hint and
+// proof_of_possession over a random challenge it chose
+// (RFC-AITP-0001 §5.4.2: sign(sk, sha256(challenge))).
+rule Register_Honest:
+    let A    = pk(~ltk)
+        man  = <'manifest', A, ~subj, ~chal>
+        mpop = sign(h(~chal), ~ltk)
+        msig = sign(<'manifest_body', man, mpop>, ~ltk)
+    in
+    [ Fr(~ltk), Fr(~chal), Fr(~subj) ]
+  --[ HonestAgent(A), ManifestPoPSign(A, ~chal) ]->
+    [ !Ltk(A, ~ltk), !Enrolled(A, ~subj), !Manifest(A, ~subj),
+      Out(<man, mpop, msig>) ]
+
+// RFC-AITP-0003 §5 steps 4-5, RFC-AITP-0004 §5.1 steps 3-5: a Manifest is
+// valid for an AID iff its proof_of_possession and signature verify under
+// the key in its `aid`. Valid Manifests are therefore exactly the honest
+// ones above plus any the adversary signs with a key it knows, for any
+// identity_hint subject it likes. This rule produces the second kind.
+rule Manifest_Adversary:
+    [ In(<sk, subj>) ]
+  --[ AdversaryAgent(pk(sk)) ]->
+    [ !Manifest(pk(sk), subj) ]
+
+// RFC-AITP-0002 §2.2: the adversary is enrolled at the honest IdP under
+// subjects of its own (public names, which never equal an honest agent's
+// fresh subject). The IdP issues an ID token for such a subject with any
+// aud and nonce the adversary asks for, and cnf bound to any key the
+// adversary holds (the IdP checks possession of the cnf key).
+rule IdP_Issue_Adversary:
+    let claims = <'jwt', $subj, jkt(pk(x)), aud, nonce>
+    in
+    [ !IdP(skI), In(<x, aud, nonce>) ]
+  -->
+    [ Out(sign(claims, skI)) ]
+
+// Long-term key compromise of an honest agent.
+rule Reveal_Ltk:
+    [ !Ltk(A, ltk) ] --[ Reveal(A), Corrupt(A) ]-> [ Out(ltk) ]

@@ -1,0 +1,168 @@
+theory AitpHandshake
+begin
+
+/*
+ * AITP Mutual Handshake (RFC-AITP-0004) over RFC-AITP-0001 envelopes.
+ * aitp-tct.spthy extends this model with the use and renewal of the TCTs
+ * it issues.
+ *
+ * Modelled from the RFC text (spec v0.3.3-draft), not from any
+ * implementation. See formal/README.md for the lemma <-> RFC section map
+ * and the modelling limits.
+ *
+ * Abstractions:
+ *  - An AID is the agent's public key pk(ltk) (RFC-AITP-0001 §5.3). The JWK
+ *    thumbprint used by cnf.jkt is the free function jkt/1
+ *    (RFC-AITP-0001 §5.4.4).
+ *  - Signatures use the built-in `signing` theory; sha256 is the free
+ *    function h/1. JCS and base64url are treated as injective encodings,
+ *    so a signed object is modelled as a tuple.
+ *  - Time is abstracted. The 300 s tolerance window and the message_id
+ *    deny list of RFC-AITP-0001 §5.5 together become the restriction
+ *    `DenyList`: a receiver accepts a given message_id at most once. TCT
+ *    `exp` and Manifest `expires_at` are always in range.
+ *  - One honest OIDC identity provider, trusted by every agent
+ *    (RFC-AITP-0002 §2). Its key is never revealed.
+ *  - Grants and IdP subjects are public names. Grants are opaque. The
+ *    issuer grants exactly what the peer requested (RFC-AITP-0004 §4.1
+ *    with a permissive policy).
+ *
+ * Proof search: goals are ranked by the oracle oracles/aitp.py (run with
+ * --heuristic=o --oraclename=...; formal/run-lemmas.py does this). Each
+ * property is stated as its own lemma: Tamarin proves a conjunction of
+ * agreement and uniqueness far more slowly than the two parts apart.
+ * Executability lemmas name every protocol step of the run they look for
+ * and allow no other session, so the search builds that run directly.
+ */
+
+builtins: signing, hashing
+
+functions: jkt/1
+
+#include "common.splib"
+#include "handshake.splib"
+
+/* ------------------------------------------------------------------ */
+/* Executability (sanity) lemmas: each MUST find a trace              */
+/* ------------------------------------------------------------------ */
+
+// Two honest agents complete a handshake, with no key compromise.
+lemma exec_honest_handshake:
+  exists-trace
+  "Ex tid tid2 A B nA nB tctB tctA #i0 #i1 #i2 #i3 #i4 #h1 #h2.
+     HonestAgent(A) @ #h1 & HonestAgent(B) @ #h2 &
+     I_Start(tid, A, B, nA) @ #i0 & R_Hello(tid2, B, A, nA, nB) @ #i1 &
+     I_Running(tid, A, B, nA, nB, tctB) @ #i2 &
+     R_Running(tid2, B, A, nA, nB, tctB, tctA) @ #i3 &
+     I_Commit(tid, A, B, nA, nB, tctB, tctA) @ #i4 &
+     #i0 < #i1 & #i1 < #i2 & #i2 < #i3 & #i3 < #i4 &
+     (All X #k. HonestAgent(X) @ #k ==> #k = #h1 | #k = #h2) &
+     (All t a b n #k. I_Start(t, a, b, n) @ #k ==> #k = #i0) &
+     (All t b a n m #k. R_Hello(t, b, a, n, m) @ #k ==> #k = #i1) &
+     not (Ex X #r. Reveal(X) @ #r)"
+
+// An honest agent completes a handshake with an adversary-held AID that
+// has a valid Manifest and ID token: the adversary is a legitimate peer.
+lemma exec_adversary_peer:
+  exists-trace
+  "Ex tid A C nA nB tctB tctA #i0 #i2 #i4 #h1 #k.
+     HonestAgent(A) @ #h1 & AdversaryAgent(C) @ #k &
+     I_Start(tid, A, C, nA) @ #i0 &
+     I_Running(tid, A, C, nA, nB, tctB) @ #i2 &
+     I_Commit(tid, A, C, nA, nB, tctB, tctA) @ #i4 &
+     #i0 < #i2 & #i2 < #i4 &
+     (All X #k2. HonestAgent(X) @ #k2 ==> #k2 = #h1) &
+     (All t a b n #k2. I_Start(t, a, b, n) @ #k2 ==> #k2 = #i0) &
+     not (Ex X #r. Reveal(X) @ #r)"
+
+/* ------------------------------------------------------------------ */
+/* P1: mutual injective agreement                                     */
+/* ------------------------------------------------------------------ */
+
+// Responder's view (RFC-AITP-0004 §5.1, §5.3): if B completes round 2 with
+// an honest A, and neither key is compromised, then A ran the handshake
+// with B on the same nonces and the same TCT for B.
+lemma P1_agreement_responder:
+  "All tid B A nA nB tctB #i.
+     R_Commit(tid, B, A, nA, nB, tctB) @ #i &
+     (Ex #h. HonestAgent(A) @ #h) & not (Ex #r. Reveal(A) @ #r) &
+     not (Ex #r. Reveal(B) @ #r)
+   ==>
+     (Ex tidA #j. I_Running(tidA, A, B, nA, nB, tctB) @ #j & #j < #i)"
+
+// Injectivity: no two responder sessions complete on the same run.
+lemma P1_agreement_responder_injective:
+  "All tid tid2 B B2 A nA nB tctB #i #i2.
+     R_Commit(tid, B, A, nA, nB, tctB) @ #i &
+     R_Commit(tid2, B2, A, nA, nB, tctB) @ #i2
+   ==> #i = #i2"
+
+// Initiator's view (RFC-AITP-0004 §5.2, §5.4): if A completes with an
+// honest B, and neither key is compromised, then B ran the handshake with
+// A on the same nonces and the same two TCTs.
+lemma P1_agreement_initiator:
+  "All tid A B nA nB tctB tctA #i.
+     I_Commit(tid, A, B, nA, nB, tctB, tctA) @ #i &
+     (Ex #h. HonestAgent(B) @ #h) & not (Ex #r. Reveal(B) @ #r) &
+     not (Ex #r. Reveal(A) @ #r)
+   ==>
+     (Ex tidB #j. R_Running(tidB, B, A, nA, nB, tctB, tctA) @ #j & #j < #i)"
+
+// Injectivity: no two initiator sessions complete on the same run.
+lemma P1_agreement_initiator_injective:
+  "All tid tid2 A A2 B nA nB tctB tctA #i #i2.
+     I_Commit(tid, A, B, nA, nB, tctB, tctA) @ #i &
+     I_Commit(tid2, A2, B, nA, nB, tctB, tctA) @ #i2
+   ==> #i = #i2"
+
+/* ------------------------------------------------------------------ */
+/* P2: key confirmation                                               */
+/* ------------------------------------------------------------------ */
+
+// RFC-AITP-0004 §5.3 step 4: when B accepts A's round-2 PoP over B's
+// pop_nonce, and A is uncompromised, A's key signed that nonce.
+lemma P2_key_confirmation_responder:
+  "All B A nB #i.
+     HSPoPAccept(B, A, nB) @ #i &
+     (Ex #h. HonestAgent(A) @ #h) & not (Ex #r. Reveal(A) @ #r)
+   ==>
+     (Ex #j. PoPSign(A, nB) @ #j & #j < #i)"
+
+// RFC-AITP-0004 §5.4 step 4: the same for A accepting B's PoP.
+lemma P2_key_confirmation_initiator:
+  "All A B nA #i.
+     HSPoPAccept(A, B, nA) @ #i &
+     (Ex #h. HonestAgent(B) @ #h) & not (Ex #r. Reveal(B) @ #r)
+   ==>
+     (Ex #j. PoPSign(B, nA) @ #j & #j < #i)"
+
+/* ------------------------------------------------------------------ */
+/* P4: replay resistance (message_id deny list)                       */
+/* ------------------------------------------------------------------ */
+
+// RFC-AITP-0001 §5.4: every envelope an honest receiver accepts from an
+// honest, uncompromised sender was sent by that sender.
+lemma P4_envelope_authentic:
+  "All r s t mid p #i.
+     Accept(r, s, t, mid, p) @ #i &
+     (Ex #h. HonestAgent(s) @ #h) & not (Ex #k. Reveal(s) @ #k)
+   ==>
+     (Ex #j. Send(s, t, mid, p) @ #j & #j < #i)"
+
+// RFC-AITP-0001 §5.5: a receiver accepts each message_id at most once.
+lemma P4_envelope_accepted_once:
+  "All r s s2 t t2 mid p p2 #i #i2.
+     Accept(r, s, t, mid, p) @ #i & Accept(r, s2, t2, mid, p2) @ #i2
+   ==> #i = #i2"
+
+// RFC-AITP-0004 §5.1 step 1: one MUTUAL_HELLO from an uncompromised A
+// opens at most one responder session at B, so replaying it cannot make
+// B issue a second TCT for the same run.
+lemma P4_hello_single_session:
+  "All tid1 tid2 B A nA nB1 nB2 #i #j.
+     R_Hello(tid1, B, A, nA, nB1) @ #i &
+     R_Hello(tid2, B, A, nA, nB2) @ #j &
+     (Ex #h. HonestAgent(A) @ #h) & not (Ex #r. Reveal(A) @ #r)
+   ==> #i = #j"
+
+end
