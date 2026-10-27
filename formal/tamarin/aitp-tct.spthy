@@ -1,0 +1,102 @@
+theory AitpTct
+begin
+
+/*
+ * The TCTs issued by the AITP Mutual Handshake (RFC-AITP-0004) after the
+ * handshake: key and audience binding when a TCT is presented back to its
+ * issuer under downstream PoP (RFC-AITP-0005 §6, §10.5), and TCT renewal
+ * (RFC-AITP-0004 §8.1, RFC-AITP-0013) with the proposed renewal PoP input
+ * <'aitp-renewal-pop-v1', issuer AID, sha256(pop_nonce)>.
+ *
+ * Modelled from the RFC text (spec v0.3.3-draft), not from any
+ * implementation. Same abstractions and proof strategy as
+ * aitp-handshake.spthy; see formal/README.md for the lemma <-> RFC
+ * section map and the modelling limits.
+ */
+
+builtins: signing, hashing
+
+functions: jkt/1
+
+#include "common.splib"
+#include "holder.splib"
+#include "handshake.splib"
+#include "tct.splib"
+
+/* ------------------------------------------------------------------ */
+/* Executability (sanity) lemmas: each MUST find a trace              */
+/* ------------------------------------------------------------------ */
+
+// The TCT that I issued to H in a handshake is presented back to I and
+// accepted under downstream PoP.
+lemma exec_tct_use:
+  exists-trace
+  "Ex tid tid2 H I nA nB tctB tctA g jti n #i0 #i1 #i2 #i3 #i4 #c #p #a #h1 #h2.
+     HonestAgent(H) @ #h1 & HonestAgent(I) @ #h2 &
+     I_Start(tid, H, I, nA) @ #i0 & R_Hello(tid2, I, H, nA, nB) @ #i1 &
+     I_Running(tid, H, I, nA, nB, tctB) @ #i2 &
+     R_Running(tid2, I, H, nA, nB, tctB, tctA) @ #i3 &
+     I_Commit(tid, H, I, nA, nB, tctB, tctA) @ #i4 &
+     RS_Challenge(I, H, jti, n) @ #c & DSPoPSign(H, n) @ #p &
+     RS_Accept(I, H, g, jti, n) @ #a &
+     #i0 < #i1 & #i1 < #i2 & #i2 < #i3 & #i3 < #i4 & #i4 < #c & #c < #p & #p < #a &
+     (All h n2 #k. DSPoPSign(h, n2) @ #k ==> #k = #p) &
+     (All X #k. HonestAgent(X) @ #k ==> #k = #h1 | #k = #h2) &
+     (All t a b n2 #k. I_Start(t, a, b, n2) @ #k ==> #k = #i0) &
+     (All t b a n2 m #k. R_Hello(t, b, a, n2, m) @ #k ==> #k = #i1) &
+     not (Ex X #r. Reveal(X) @ #r)"
+
+// The TCT that I issued to H in a handshake is renewed by I.
+lemma exec_renewal:
+  exists-trace
+  "Ex tid tid2 H I nA nB tctB tctA jti rn #i0 #i1 #i2 #i3 #i4 #q #a #h1 #h2.
+     HonestAgent(H) @ #h1 & HonestAgent(I) @ #h2 &
+     I_Start(tid, H, I, nA) @ #i0 & R_Hello(tid2, I, H, nA, nB) @ #i1 &
+     I_Running(tid, H, I, nA, nB, tctB) @ #i2 &
+     R_Running(tid2, I, H, nA, nB, tctB, tctA) @ #i3 &
+     I_Commit(tid, H, I, nA, nB, tctB, tctA) @ #i4 &
+     RenewRequest(H, I, jti, rn) @ #q & RenewAccept(I, H, jti, rn) @ #a &
+     #i0 < #i1 & #i1 < #i2 & #i2 < #i3 & #i3 < #i4 & #i4 < #q & #q < #a &
+     not (Ex h n2 #k. DSPoPSign(h, n2) @ #k) &
+     (All X #k. HonestAgent(X) @ #k ==> #k = #h1 | #k = #h2) &
+     (All t a b n2 #k. I_Start(t, a, b, n2) @ #k ==> #k = #i0) &
+     (All t b a n2 m #k. R_Hello(t, b, a, n2, m) @ #k ==> #k = #i1) &
+     not (Ex X #r. Reveal(X) @ #r)"
+
+/* ------------------------------------------------------------------ */
+/* P3: TCT key and audience binding, and renewal                      */
+/* ------------------------------------------------------------------ */
+
+// RFC-AITP-0005 §10.5 items 1-2: a TCT that its issuer I accepts back was
+// issued by I, to that presenter, with those grants.
+lemma P3_tct_issued_to_presenter:
+  "All I H g jti n #i.
+     RS_Accept(I, H, g, jti, n) @ #i & not (Ex #r. Reveal(I) @ #r)
+   ==>
+     (Ex #j. TCTIssued(I, H, g, jti) @ #j & #j < #i)"
+
+// RFC-AITP-0005 §6.2, §10.5 items 3-4: if the presenter H is
+// uncompromised, H itself signed I's fresh challenge.
+lemma P3_presenter_pop:
+  "All I H g jti n #i.
+     RS_Accept(I, H, g, jti, n) @ #i &
+     (Ex #h. HonestAgent(H) @ #h) & not (Ex #r. Reveal(H) @ #r)
+   ==>
+     (Ex #j. PoPSign(H, n) @ #j & #j < #i)"
+
+// RFC-AITP-0004 §8.1, RFC-AITP-0013: a renewal that I accepts for an
+// uncompromised holder H was requested by H, of I, with that pop_nonce.
+lemma P3_renewal_requested_by_holder:
+  "All I H jti rn #i.
+     RenewAccept(I, H, jti, rn) @ #i &
+     (Ex #h. HonestAgent(H) @ #h) & not (Ex #r. Reveal(H) @ #r)
+   ==>
+     (Ex jti0 #j. RenewRequest(H, I, jti0, rn) @ #j & #j < #i)"
+
+// I accepts each renewal pop_nonce once.
+lemma P3_renewal_nonce_once:
+  "All I H H2 jti jti2 rn #i #i2.
+     RenewAccept(I, H, jti, rn) @ #i & RenewAccept(I, H2, jti2, rn) @ #i2
+   ==> #i = #i2"
+
+end

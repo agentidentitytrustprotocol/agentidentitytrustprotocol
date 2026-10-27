@@ -1,0 +1,26 @@
+/*
+ * The downstream PoP responder of a TCT holder (RFC-AITP-0005 §6.1).
+ * Included after common.splib by aitp-tct.spthy and aitp-delegation.spthy.
+ */
+
+/* ------------------------------------------------------------------ */
+/* Downstream PoP, holder side (RFC-AITP-0005 §6.1 step 2)            */
+/* ------------------------------------------------------------------ */
+
+// An honest holder answers any pop_challenge whose envelope verifies, for
+// any tct_jti and from any sender: this over-approximates every holder
+// policy. pop_signature = sign(holder_key, sha256(nonce)). The nonce is a
+// 128-bit value and the jti a UUID (RFC-AITP-0005 §2.2, §6.1), modelled as
+// fresh names: a value of another shape fails the format check.
+rule Holder_PoP_Response:
+    let H     = pk(~ltkH)
+        V     = pk(skV)
+        cbody = <'aitp/0.3', 'pop_challenge', mid, V, <'pop_challenge', ~jti, ~n>>
+        rp    = <'pop_response', ~jti, ~n, sign(h(~n), ~ltkH)>
+        rbody = <'aitp/0.3', 'pop_response', ~mid2, H, rp>
+    in
+    [ !Ltk(H, ~ltkH),
+      In(<cbody, sign(<'aitp-envelope-v2', cbody>, skV)>), Fr(~mid2) ]
+  --[ PoPSign(H, ~n), DSPoPSign(H, ~n), PoPAnswered(H, V, ~n),
+      Send(H, 'pop_response', ~mid2, rp) ]->
+    [ Out(<rbody, sign(<'aitp-envelope-v2', rbody>, ~ltkH)>) ]
