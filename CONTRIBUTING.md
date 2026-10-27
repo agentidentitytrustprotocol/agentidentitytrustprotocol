@@ -107,7 +107,9 @@ format itself is in [`schemas/conformance/README.md`](schemas/conformance/README
   what each stage enforces.
 - Run `make validate` before opening a PR; it runs every check above plus
   `make kat-verify` and `make kat-independent` (pinned known-answer values,
-  recomputed by two implementations that share no code), exactly as CI does.
+  recomputed by two implementations that share no code) and
+  `make kat-frozen-check` (the known-answer frozen set against
+  `FROZEN.json`, once it exists), exactly as CI does.
   `make kat-independent` needs python-ecdsa:
   `python3 -m pip install --require-hashes -r scripts/requirements-kat.txt`.
 - Backward compatibility MUST be addressed explicitly in the PR description.

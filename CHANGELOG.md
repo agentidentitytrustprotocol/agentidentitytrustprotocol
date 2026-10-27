@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Known-answer frozen-set manifest (`make kat-frozen`)
+
+**Change class.** Tooling only. No RFC, schema, fixture, error code or known-answer value changes, and the conformance report format is unchanged. Closes #148.
+
+**Changes.**
+- New `scripts/kat-frozen.py` (standard library only) builds a per-vector manifest of the frozen known-answer set: each non-draft entry, meaning each `id` in a `schemas/conformance/known-answer/*.json` vector file and each `signed-examples/` file keyed by its path, maps to `sha256(JCS(entry))`. One overall digest, `sha256(JCS(vectors))`, covers the sorted manifest. `make kat-frozen` prints it. Its output is exactly the format of `known-answer/FROZEN.json`, which is recorded when the core RFCs reach Release Candidate.
+- `make kat-frozen-check` (now part of `make validate`): once `FROZEN.json` exists, it fails when a listed id is missing, has a different hash or carries `"draft": true`, or when the file's digest does not match its vectors. New ids, draft or not, pass. Until then it only computes the digest, and CI also prints the full manifest. The current digest over 39 frozen entries (6 draft entries excluded) is `4605e1e1ead2fc109987ba6df75378c98b78d3509bf9a2521eb858d42fce26c8`.
+- `make kat-frozen-test` (also in `make validate`) runs 14 scripted `--check` cases against a temporary copy with a generated `FROZEN.json`. Among them: a mutated frozen vector, a deleted frozen id or signed example, and a draft id listed in `FROZEN.json`, which fail; an appended vector, draft or not, a changed draft vector and a reformatted file, which pass.
+- `schemas/conformance/known-answer/README.md` documents the manifest and the check.
+
 ### RFC-AITP-0013 TCT renewal reaches Draft
 
 **Change class.** A new opt-in Draft RFC, additive under the `aitp/0.3` freeze. No message type, field, signing input, error code or fixture outcome of RFC-AITP-0001 to RFC-AITP-0009 changes, and no frozen known-answer vector changes. RFC-AITP-0013 goes from `0.3.0-planned` (Planned) to `0.3.0-draft` (Draft). RFC-AITP-0004 goes to `0.3.5-draft` and RFC-AITP-0014 to `0.3.2-draft`. Closes #147.

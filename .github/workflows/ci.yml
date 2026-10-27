@@ -32,8 +32,11 @@ jobs:
       - name: Install python-ecdsa (hash-pinned) for the independent KAT recompute
         run: python -m pip install --require-hashes -r scripts/requirements-kat.txt
 
-      - name: make validate (schemas, examples, fixtures, both known-answer checkers, doc coherence)
+      - name: make validate (schemas, examples, fixtures, both known-answer checkers, KAT frozen-set check and its tests, doc coherence)
         run: make validate
+
+      - name: Known-answer frozen-set manifest and digest (make kat-frozen)
+        run: make kat-frozen
 
       - name: Check for release junk (.DS_Store, __MACOSX)
         run: |
@@ -78,6 +81,7 @@ jobs:
           echo "  - Conformance fixtures + KAT vectors valid"
           echo "  - Every pinned canonical byte sequence and signature verified"
           echo "  - Known answers recomputed again by the independent Python checker"
+          echo "  - Known-answer frozen set checked against FROZEN.json (when present)"
           echo "  - Doc coherence (stages in scripts/check-doc-coherence.sh; the sibling-repo existence/anchor sub-check is local-only, skipped in CI)"
           echo "  - ADAPTER.md names every fixture op"
           echo "  - No release junk in tree"
