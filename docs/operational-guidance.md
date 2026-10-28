@@ -51,6 +51,12 @@ needs:
 - The issuer keeps a store of accepted renewal nonces, retained until the
   current TCT's `exp` and shared across replicas
   ([RFC-AITP-0013 §5](../rfcs/RFC-AITP-0013-tct-renewal-extension.md#5-nonce-store)).
+- If the issuer cannot read its own deny list or its nonce store, it refuses
+  with `RENEWAL_UNAVAILABLE` (retryable, HTTP `503`) and does not mint; it
+  does not answer `TCT_REVOKED`. Alert on it as an outage. Holders retry with
+  backoff and a fresh `pop_nonce`, and fall back to a full handshake before
+  the current TCT expires
+  ([RFC-AITP-0013 §4](../rfcs/RFC-AITP-0013-tct-renewal-extension.md#4-issuer-processing)).
 - The response is a fresh TCT with a new `jti` in a signed `tct` envelope,
   accompanied per issuer policy by a freshly minted grant voucher; vouchers
   bound to the old TCT's `jti` do not carry over to the renewed token
