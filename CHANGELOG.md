@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### RFC-AITP-0013: `RENEWAL_UNAVAILABLE` for an issuer-side dependency failure
+
+**Change class.** Addition to an opt-in Draft RFC: one new `draft` error code. No change to RFC-AITP-0001 to RFC-AITP-0009, to any schema, fixture outcome or known-answer vector. RFC-AITP-0013 goes to `0.3.1-draft`.
+
+**Changes.**
+- New code `RENEWAL_UNAVAILABLE` (retryable, `spec_status` `draft`) in the "TCT renewal codes" table of `registries/error-codes.md`: the issuer could not complete renewal because an issuer-side dependency it must consult (its revocation state, its renewal nonce store) was unavailable. The registry's `spec_status` note now lists RFC-AITP-0013 among the draft RFCs.
+- RFC-AITP-0013 §4 step 4: an issuer that cannot determine its own revocation state for `current_tct.jti` MUST refuse with `RENEWAL_UNAVAILABLE` and MUST NOT mint. `TCT_REVOKED` is only for a `jti` actually in its deny list. The RFC-AITP-0008 §3.1 `fail_closed` reading is a consuming peer's policy about another peer's snapshot and does not apply to the issuer's own list.
+- §5: a nonce-store failure answers `RENEWAL_UNAVAILABLE`. §6: the issuer SHOULD send it with HTTP `503`; §6.1: the holder MAY retry with backoff, each time with a fresh `pop_nonce`, and SHOULD fall back to a fresh handshake before the current TCT's `exp`. §8 and §10 list the code.
+- No fixture: the `renew_tct` inputs state the issuer's deny list and nonce store by their contents, with no way to say one is unreadable, and no new fixture vocabulary is added. `docs/operational-guidance.md` gains the operator view.
+
 ### Known-answer frozen-set manifest (`make kat-frozen`)
 
 **Change class.** Tooling only. No RFC, schema, fixture, error code or known-answer value changes, and the conformance report format is unchanged. Closes #148.

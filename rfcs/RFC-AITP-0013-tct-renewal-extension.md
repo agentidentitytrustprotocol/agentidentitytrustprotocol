@@ -2,13 +2,13 @@
 # TCT Renewal Extension
 
 **Document:** RFC-AITP-0013
-**Version:** 0.3.0-draft
+**Version:** 0.3.1-draft
 **Status:** Community Standards Track (Draft)
 **Depends on:** [RFC-AITP-0001 Core](RFC-AITP-0001-core.md), [RFC-AITP-0003 Agent Manifest](RFC-AITP-0003-manifest.md), [RFC-AITP-0004 Mutual Handshake](RFC-AITP-0004-mutual-handshake.md), [RFC-AITP-0005 TCT](RFC-AITP-0005-tct.md), [RFC-AITP-0008 Revocation](RFC-AITP-0008-revocation.md)
 
 ---
 
-> **Status: Draft.** This RFC replaces the non-normative sketch that RFC-AITP-0004 §8.1 carried through `0.3.4-draft`. It is opt-in and additive: it changes no message type, field, signing input or error code of RFC-AITP-0001 to RFC-AITP-0009, so it sits inside the `aitp/0.3` freeze ([`VERSIONING.md` § What is frozen](../VERSIONING.md#what-is-frozen-aitp03-line)). Its wire format, its known-answer vectors and its fixtures may still change while it is Draft.
+> **Status: Draft.** This RFC replaces the non-normative sketch that RFC-AITP-0004 §8.1 carried through `0.3.4-draft`. It is opt-in and additive: it changes no message type, field, signing input or error code of RFC-AITP-0001 to RFC-AITP-0009, and the one code it registers, `RENEWAL_UNAVAILABLE` (§8), is scoped to renewal, so it sits inside the `aitp/0.3` freeze ([`VERSIONING.md` § What is frozen](../VERSIONING.md#what-is-frozen-aitp03-line)). Its wire format, its known-answer vectors and its fixtures may still change while it is Draft.
 
 > **Conformance scope.** RFC-AITP-0013 is **not part of AITP core
 > conformance**. Implementations MUST NOT fail core conformance because
@@ -122,6 +122,8 @@ An issuer that receives a renewal request MUST run these steps in order and stop
    - `exp` MUST NOT exceed the `expires_at` of the issuer's current Manifest (RFC-AITP-0005 §10.4, which is unconditional here: the issuer always has its own Manifest) ⇒ `TCT_EXPIRES_AFTER_MANIFEST`.
 3. **Verify the renewal PoP.** Rebuild `renewal_pop_input` (§3.1) from the verified `iss` and `jti` of `current_tct` and the decoded `pop_nonce`, and verify `pop_signature` against the key encoded in the TCT's `sub`, per RFC-AITP-0001 §5.4.3 and §5.4.6. The issuer MUST NOT take the input's fields from anywhere else. Failure, including a valid signature by any key other than the one in `sub`, ⇒ `POP_RESPONSE_INVALID`.
 4. **Check revocation.** Look up `jti` in the issuer's own deny list (RFC-AITP-0008), after every signature check above (RFC-AITP-0008 §3.3). A revoked TCT MUST NOT be renewed ⇒ `TCT_REVOKED`.
+   - `TCT_REVOKED` is only for a `jti` that is actually in the issuer's deny list.
+   - An issuer that cannot determine its own revocation state for `jti`, because it cannot read its deny list or the source that produces it, MUST refuse the request ⇒ `RENEWAL_UNAVAILABLE`, and MUST NOT mint. It MUST NOT answer `TCT_REVOKED` for that case. The `fail_closed` reading of RFC-AITP-0008 §3.1, under which unknown status counts as revoked, is a consuming peer's policy about another peer's snapshot; an issuer that cannot read its own list has a transient fault of its own, and the holder's TCT is not known to be revoked.
 5. **Check and record the nonce.** If this issuer has already accepted a renewal request with this `pop_nonce`, the request is a replay ⇒ `REPLAY_DETECTED`. Otherwise the issuer records the nonce (§5) and continues.
 6. **Re-evaluate grants.** The renewed grants are the current TCT's `grants` intersected with the `offered_capabilities` of the issuer's current Manifest (RFC-AITP-0004 §4.1), then narrowed by the issuer's grant policy for the holder. The renewed grants MUST be a subset of the current TCT's `grants`: renewal never widens them, whatever the Manifest now offers. An empty result, or an issuer policy that refuses renewal to this holder, ⇒ `POLICY_VIOLATION`.
 7. **Mint the renewed TCT** per RFC-AITP-0004 §4 and RFC-AITP-0005:
@@ -144,7 +146,7 @@ The issuer keeps a store of the `pop_nonce` values it has accepted for renewal.
 - A nonce is recorded only by step 5 of §4, so only a request whose TCT and PoP have verified reaches the store.
 - An entry is the decoded nonce; the issuer MAY record the holder's `sub` and the current TCT's `jti` beside it. It MUST be retained at least until the current TCT's `exp`. After that the current TCT can no longer be renewed (§4 step 2), so the entry may go.
 - An issuer that runs several replicas MUST share one store across them, or the replay check holds per replica only.
-- A store failure MUST fail the request closed. The issuer answers with a retryable error envelope and does not mint.
+- A store failure, whether the issuer cannot read the store or cannot record the nonce, MUST fail the request closed. The issuer answers `RENEWAL_UNAVAILABLE` (§8), a retryable code, and does not mint.
 
 Nonces in this store are separate from the envelope `message_id` deny list of RFC-AITP-0001 §5.5 and from any other nonce store.
 
@@ -175,7 +177,7 @@ The payload of a `tct` renewal response is a JSON object with exactly these memb
 
 The schema is `$defs/RenewalResponsePayload` in [`schemas/json/aitp-tct-renewal.schema.json`](../schemas/json/aitp-tct-renewal.schema.json).
 
-The HTTP status code is informative. An issuer SHOULD answer a `tct` envelope with `200` and an error envelope with a `4xx` status, or `503` for a retryable failure. A holder MUST decide from the envelope, not from the status.
+The HTTP status code is informative. An issuer SHOULD answer a `tct` envelope with `200` and an error envelope with a `4xx` status. An issuer that refuses with `RENEWAL_UNAVAILABLE` (§4 step 4, §5) SHOULD answer `503`. A holder MUST decide from the envelope, not from the status.
 
 ### 6.1 Holder verification
 
@@ -192,6 +194,8 @@ If the payload carries `grant_voucher`, the holder stores it verbatim beside the
 
 A holder that receives an error envelope verifies it under step 1 and step 2 before acting on its code. It then either keeps the current TCT until its `exp` or runs a fresh Mutual Handshake.
 
+On `RENEWAL_UNAVAILABLE` the holder MAY retry the renewal with backoff. Each retry is a new request with a fresh `pop_nonce` and its own `pop_signature` (§3), and the holder SHOULD stop retrying in time to run a fresh Mutual Handshake before the current TCT's `exp`, after which it can no longer be renewed (§4 step 2).
+
 ---
 
 ## 7. The current TCT after renewal
@@ -205,13 +209,22 @@ A holder that receives an error envelope verifies it under step 1 and step 2 bef
 
 ## 8. Error codes
 
-Renewal registers no new error code. It uses these existing codes from [`registries/error-codes.md`](../registries/error-codes.md), with the renewal meaning given in its "TCT renewal codes" table:
+Renewal registers one error code, `RENEWAL_UNAVAILABLE`, in the "TCT renewal codes" table of [`registries/error-codes.md`](../registries/error-codes.md):
+
+| Code | Meaning | Retryable |
+|---|---|---|
+| `RENEWAL_UNAVAILABLE` | The issuer could not complete renewal because an issuer-side dependency it must consult (its revocation state, its renewal nonce store) was unavailable. | true |
+
+The code is scoped to renewal: it is `draft` in the registry, and no peer emits it outside this RFC. It says nothing about the current TCT, which may be renewed once the dependency is back.
+
+Every other renewal failure uses an existing code, with the renewal meaning given in the same table:
 
 | Code | Raised by | Step |
 |---|---|---|
 | `POP_RESPONSE_INVALID` | Issuer | §4 step 1 (malformed request), step 3 (PoP) |
 | `TCT_SIGNATURE_INVALID`, `TOKEN_TYP_MISMATCH`, `TOKEN_ALG_MISMATCH`, `UNKNOWN_FIELD`, `TCT_EXPIRED`, `TCT_EXPIRES_AFTER_MANIFEST` | Issuer, holder | §4 step 2, §6.1 step 4 (RFC-AITP-0005 §7.2, §10.4) |
-| `TCT_REVOKED` | Issuer | §4 step 4 |
+| `TCT_REVOKED` | Issuer | §4 step 4 (`jti` in the deny list) |
+| `RENEWAL_UNAVAILABLE` | Issuer | §4 step 4 (revocation state unavailable), §5 (nonce store failure) |
 | `REPLAY_DETECTED` | Issuer | §4 step 5 |
 | `POLICY_VIOLATION` | Issuer | §4 step 6 |
 | `INVALID_ENVELOPE`, `INVALID_SIGNATURE`, `TIMESTAMP_EXPIRED` | Holder | §6.1 step 1 (RFC-AITP-0001 §5) |
@@ -248,6 +261,8 @@ The `ren-*` fixtures in [`schemas/conformance/`](../schemas/conformance/) carry 
 | `ren-011` | The renewed TCT carries a grant the current TCT does not (§6.1 step 6) | failure: GRANT_OVERFLOW |
 | `ren-012` | The current TCT has expired (§4 step 2) | failure: TCT_EXPIRED |
 
+`RENEWAL_UNAVAILABLE` has no fixture. The `renew_tct` inputs state the issuer's deny list and nonce store by their contents, not by whether they can be read, so an unavailable dependency cannot yet be expressed.
+
 ---
 
 ## 10. Security considerations
@@ -259,6 +274,7 @@ The `ren-*` fixtures in [`schemas/conformance/`](../schemas/conformance/) carry 
 | Renewal is used to keep a TCT alive past revocation, Manifest rotation or a policy change. | The issuer re-runs revocation, the Manifest bound and grant policy on every request (§4 steps 2, 4 and 6). An expired TCT cannot be renewed. |
 | Renewal widens the holder's grants. | The renewed grants are a subset of the current ones (§4 step 6), and the holder rejects a renewed TCT that carries more (§6.1 step 6). |
 | A forged or replayed response gives the holder a TCT the issuer did not send for this request. | The response is an envelope signed by the issuer and replay-protected (RFC-AITP-0001 §5.4, §5.5), sent by the AID that issued the current TCT, and it echoes the request's nonce (§6.1 steps 1 to 3). |
+| An issuer that cannot read its own revocation state or nonce store renews anyway. | It MUST refuse with `RENEWAL_UNAVAILABLE` and MUST NOT mint (§4 step 4, §5). The code is retryable, so the outage costs the holder a retry, not the trust relationship. |
 | The renewal endpoint is flooded. | The endpoint is an issuance surface and falls under the rate limiting of RFC-AITP-0009 §3.1. The nonce store holds only nonces of requests whose TCT and PoP verified (§5), so a flood of invalid requests does not fill it. |
 | Renewal extends trust without re-verifying identity. | By design: renewal carries forward the binding verified at issuance, bounded by the Manifest `expires_at` (§4 step 7). A deployment that needs fresh identity proof runs a full handshake (Abstract). |
 
