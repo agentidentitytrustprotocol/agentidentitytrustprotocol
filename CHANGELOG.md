@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Conformance errata from the aitp-verifier-go review input (#160)
+
+**Change class.** Conformance documentation and fixture-input errata. No RFC text, schema, error code, expected outcome, signed byte or known-answer vector changes. Rows 1, 3, 5 and 6 of #160 are left for their RC2.1 dispositions.
+
+**Changes.**
+- `tct-004` now states `input.expected_audience`, the token's `aud` and `sub`. It was the only `verify_tct` fixture without one. The outcome stays `TCT_REVOKED`.
+- `mh-006` and `mh-007` now state `input.self_pop_nonce_sent_in_hello`, the initiator's round-1 nonce, equal to the payload `pop_nonce_echo`. RFC-AITP-0004 §5.4 steps 3 and 4 can now be run as written, and the PoP signature is minted over the same nonce as before. A new README section, "Receiver's own round-1 nonce", documents this key and `self_pop_nonce_sent_in_hello_ack`.
+- README, "Receiver policy inputs", and ADAPTER.md, "Request": the runner sends `self_accepted_identity_types`, defaulting to `["oidc"]`, for every `mh-*` `verify_handshake_payload` fixture. Whether step 8 runs follows from the fixture family, not from whether the key is present.
+- README enforcement rules: a `status: core` fixture whose required flag for the runner is `false` (`del-004` for a core runner) MAY be executed and reported, and its result gates no claim. The summary row no longer reads as "skipped".
+- ADAPTER.md gains a "Side effects" section: `result.side_effects` in a success response, an object of boolean values keyed by the README's side-effect keys. A failure response carries none under `adapter-protocol: 1`.
+
 ### RFC-AITP-0013: `RENEWAL_UNAVAILABLE` for an issuer-side dependency failure
 
 **Change class.** Addition to an opt-in Draft RFC: one new `draft` error code. No change to RFC-AITP-0001 to RFC-AITP-0009, to any schema, fixture outcome or known-answer vector. RFC-AITP-0013 goes to `0.3.1-draft`.
