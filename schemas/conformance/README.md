@@ -91,6 +91,12 @@ before executing a fixture:
 - `status: "reserved"` → MUST be ignored by every runner; reserved status
   exists only so a fixture id slot can be claimed before the underlying
   RFC normative text lands.
+- `status: "core"` + the matching `required_for_v0_N: false` → not
+  required of this runner. The runner MAY execute the fixture and report
+  its result, and that result gates no claim
+  ([`docs/conformance-badge.md`](../../docs/conformance-badge.md)). For a
+  core runner the only such fixture is `del-004`; the aitp-rs runner
+  executes it and reports the result.
 
 Any fixture missing the metadata block, or carrying invalid values for
 these fields, MUST cause the runner to fail loudly rather than silently
@@ -132,6 +138,8 @@ Currently defined side-effect keys:
 | `pop_challenge_issued` | Whether the verifier issued a `pop_challenge` during fixture evaluation. Used by `tct-007` for PoP-enforcement conformance and by `tct-026` for the issuer-side check. |
 | `capability_authorized` | Whether the verifier authorized a capability invocation. Used by `tct-007` to assert PoP-required grants are rejected without a valid `pop_response`, and by `tct-026` to `tct-029` for the issuer-side check (RFC-AITP-0005 §10.5). |
 
+Each value is a boolean. An adapter reports the effects it observed as `result.side_effects` in a success response ([ADAPTER.md, "Side effects"](ADAPTER.md#side-effects)).
+
 A runner that cannot instrument a listed side effect MUST report SKIP for that assertion (NOT silent pass). The schema (`schemas/json/aitp-conformance-fixture.schema.json`) lists the keys above; additional keys are permitted (`additionalProperties: true`) so new fixtures can add side-effect surfaces without a schema bump, but the registered keys are the only ones a runner is required to recognize.
 
 ### Trust-store input (`trust_store`)
@@ -151,6 +159,7 @@ An `mh-*` fixture that receives a MUTUAL_HELLO runs RFC-AITP-0004 §5.1 through 
 - When `self_trust_anchors` is absent, as in every `id-*` fixture and the earlier `mh-*` fixtures, the receiver's `trust_anchors` hold exactly the runner-minted OIDC test issuer listed in PLACEHOLDERS.md ("Identity-issuer keys"), `https://auth.openai.com`. No other issuer counts as trusted, and the runner MUST NOT add one. This applies to an `id-*` fixture too: it does not run step 8, but a verifier may run the trust-anchor check inside step 6 (RFC-AITP-0004 §5.1 step 6, check 2).
 - **Authoring rule: an untrusted OIDC issuer is a fixture's only late failure.** RFC-AITP-0004 §5.1 step 6 lets a verifier check the issuer against `trust_anchors` before it fetches key material, so when the issuer is untrusted and key resolution or proof verification (check 3), step 7 or step 8 also fails, either `INCOMPATIBLE_TRUST_ANCHORS` or the strict-order code is conformant. A fixture MUST NOT combine an untrusted OIDC issuer with any of those failures, because its single `expected.error_code` could not be right for every conformant verifier. Combining one with a failure that runs earlier under either order (steps 1–5, or the descriptor-shape and hint checks of step 6 check 1) is allowed, because the code is fixed: `id-011b` pairs the untrusted issuer `https://auth.example.com` with a forbidden `public_key` and expects `IDENTITY_FAILED`. `mh-004` is the fixture for an untrusted issuer alone.
 - When `self_accepted_identity_types` is absent, the receiver runs with the default `["oidc"]`. The runner MUST NOT configure accepted types of its own, and MUST NOT add the type the payload presents (`mh-011` tests exactly this).
+- The runner applies that default before the request reaches the adapter: for an `mh-*` fixture with `verify_handshake_payload` it sends `self_accepted_identity_types`, set to `["oidc"]` when the fixture omits it ([ADAPTER.md, "Request"](ADAPTER.md#request)). Whether step 8 runs therefore follows from the fixture family, not from whether the fixture states the key: every `mh-*` fixture that receives a MUTUAL_HELLO runs it, and an `id-*` fixture does not (below).
 - The sender's Manifest may carry its own `accepted_identity_types`. That is the sender's policy for its peers, and step 8 does not read it.
 - `mh-010` to `mh-014` use these keys. The earlier `mh-*` fixtures that reach step 8 present `oidc`, which the default accepts, and `mh-009` presents `pinned_key` but fails at step 6. So the default changes none of their outcomes.
 
@@ -159,6 +168,15 @@ An `mh-*` fixture that receives a MUTUAL_HELLO runs RFC-AITP-0004 §5.1 through 
 An `mh-*` fixture whose `step` is `initiator received MUTUAL_HELLO_ACK` runs RFC-AITP-0004 §5.2 as the initiator, whose own AID is `input.self_aid`. `input.peer_aid` is the AID the initiator addressed in MUTUAL_HELLO, the intended peer of RFC-AITP-0004 §2. When it is present, the verifier MUST compare the ACK's `envelope.sender.agent_id` against it (§5.2 step 3), and a different sender fails with `PEER_MISMATCH` (`mh-015`). When it is absent, as in `mh-005`, the fixture does not test that step: the runner treats the ACK sender as the intended peer and MUST NOT fail the fixture for it.
 
 An `id-*` fixture with `verify_handshake_payload` checks the identity binding, which is §5.1 step 6, and does not run step 8 (PLACEHOLDERS.md, "Operation key"). The pinned-key successes `id-010` and `id-017` and the `spiffe` successes state no receiver types for that reason. A runner whose implementation always runs step 8 configures the receiver to accept the fixture's identity type for an `id-*` fixture, as the `spiffe` rule already says.
+
+### Receiver's own round-1 nonce (`self_pop_nonce_sent_in_hello`, `self_pop_nonce_sent_in_hello_ack`)
+
+A round-2 `mh-*` fixture states the `pop_nonce` the receiver sent in round 1, which RFC-AITP-0004 §5.3 and §5.4 steps 3 and 4 check `pop_nonce_echo` and `pop_signature` against:
+
+- `input.self_pop_nonce_sent_in_hello` is the initiator's `pop_nonce` from MUTUAL_HELLO. A MUTUAL_COMMIT_ACK receiver reads it (§5.4 steps 3 and 4). `mh-006` and `mh-007` carry it.
+- `input.self_pop_nonce_sent_in_hello_ack` is the target's `pop_nonce` from MUTUAL_HELLO_ACK. A MUTUAL_COMMIT receiver reads it (§5.3 steps 3 and 4). `mh-008` carries it.
+- In `mh-success-001` the `peer_a` and `peer_b` blocks each carry the key for their own side.
+- `__VALID_POP_SIG__` in a round-2 payload is the sender's signature over `sha256` of the decoded nonce. In `mh-006` and `mh-007` the stated nonce equals the payload `pop_nonce_echo`, so steps 3 and 4 pass and the fixture fails only at step 5.
 
 ### Revocation inputs (`issuer_revocation_list`, `revocation_snapshots`)
 
@@ -427,7 +445,7 @@ valid and invalid, are in [`reports/`](reports/).
 | Tier | Count | Required for v0.3 |
 |---|---|---|
 | `core` (`required_for_core`) | 94 | ✅ Yes |
-| `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (v0.1 runners only) |
+| `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (required of v0.1 runners only; a core runner may execute it, and its result gates nothing) |
 | `extension` — pinned-admission profile (RFC-AITP-0002 §3.4, `feature: aitp-pinned-admission`) | 8 | ❌ No (required of an implementation claiming the profile) |
 | `extension` — attestation verification (RFC-AITP-0005 §5.3, `feature: aitp-self-attestation`) | 3 | ❌ No (required of an implementation claiming the role) |
 | `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 8 | ❌ No |
