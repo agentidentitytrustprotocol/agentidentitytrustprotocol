@@ -171,6 +171,7 @@ docs:
 	@echo "  19. docs/non-goals.md"
 	@echo "  20. docs/ecosystem.md   (sibling repos: SDKs, verifier, playground, MCP)"
 	@echo "  21. docs/mcp-mapping.md (TCT next to MCP OAuth; non-normative)"
+	@echo "  22. docs/interop-event-1.md (interop event #1: test matrix, results, sign-up)"
 	@echo
 	@echo "Opt-in drafts (Draft normative text; NOT part of v0.3 core conformance):"
 	@echo "   - rfcs/RFC-AITP-0010-session-trust-bundle.md"

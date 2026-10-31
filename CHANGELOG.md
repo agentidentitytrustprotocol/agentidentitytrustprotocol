@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Interop event #1 plan
+
+**Change class.** Documentation only. No wire, schema, fixture or RFC change.
+
+- New `docs/interop-event-1.md`: the plan for a virtual, asynchronous, week-long interop event in February or March 2027, after the release candidate and the Internet-Draft submission. The week is to be announced. It holds the test matrix (every implementation against the hosted interop peer and against each other, limited to the operations each supports, so the verify-only implementations verify artifacts the others produce), the result template (conformance report version 1, no new format), and how to sign up, what to run and how results are published. Linked from the README reading order and `make docs`.
+
 ### Conformance errata from the aitp-verifier-go review input (#160)
 
 **Change class.** Conformance documentation and fixture-input errata. No RFC text, schema, error code, expected outcome, signed byte or known-answer vector changes. Rows 1, 3, 5 and 6 of #160 are left for their RC2.1 dispositions.
