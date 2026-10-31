@@ -6,15 +6,15 @@ AITP is pre-1.0 and has one maintainer. The four implementations that exist toda
 
 ## When
 
-**To be announced: the maintainer picks the week.**
+**Monday 9 November 2026, 00:00 UTC, to Sunday 15 November 2026, 23:59 UTC.**
 
-The week falls in **February or March 2027**. It comes after the release candidate is cut ([VERSIONING.md](../VERSIONING.md)) and after the Internet-Draft is submitted, so that participants test the text that is under review. The date will be announced on GitHub Discussions and on [agentidentitytrustprotocol.io](https://agentidentitytrustprotocol.io).
+The event runs on the current draft, before the release candidate. The core RFCs are still in public review until at least 2027-01-10 ([VERSIONING.md](../VERSIONING.md)), so results from this week feed straight into that review. A later event will repeat the matrix on the release candidate. The announcement goes on GitHub Discussions and on [agentidentitytrustprotocol.io](https://agentidentitytrustprotocol.io).
 
 ## Format
 
 - **Virtual and asynchronous.** There is no call to join and no time zone to match. Participants run the checks whenever they like during the week and post results as they go.
 - **One week**, Monday 00:00 UTC to Sunday 23:59 UTC.
-- **One spec commit.** The announcement names it: the release-candidate commit. Every run uses `schemas/conformance/` at that commit, and the report's `spec.commit` and `fixtures_dir_digest` prove it.
+- **One spec commit:** `8c6725bf33955748d0bec03684cae7d3b358d33a` on main (8 commits after `v0.3.4-draft`). Every run uses `schemas/conformance/` at that commit, and the report's `spec.commit` and `fixtures_dir_digest` prove it.
 - **Open to anyone.** A partial implementation is welcome, a verifier-only one included. It runs the rows of the matrix it supports and reports the rest as not run.
 
 ## The implementations and what each one does

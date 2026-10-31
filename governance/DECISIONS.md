@@ -658,3 +658,13 @@ patch-level, no new signatures). It deserves its own review rather than riding a
 - **Follow-up:** RFC-AITP-0001 §7 and README.md say "minor versions are expected to be backward compatible". Align them with this model at 1.0, or earlier as a clarification.
 - **Blast radius if wrong:** low before 1.0. No literal changes until Accepted.
 
+
+## 2026-10-31 — Interop event #1 runs now, on the draft (GV1.4)
+
+- **Status:** Decided.
+- **Decided by:** the maintainer.
+- **Context:** the event plan (docs/interop-event-1.md, #174) put the week in February or March 2027, after the release candidate and the Internet-Draft submission.
+- **Chosen:** run it on 9–15 November 2026 (Monday 00:00 UTC to Sunday 23:59 UTC) at spec commit `8c6725bf33955748d0bec03684cae7d3b358d33a`. Results feed the open core-RFC review. A later event repeats the matrix on the release candidate.
+- **Rejected:** waiting for the release candidate. There is no reason to delay. Running on the draft surfaces interop defects while the text can still change without an RC re-mint.
+- **Reversal trigger:** none. The RC event is additional, not a replacement.
+- **Blast radius if wrong:** low. Results at a pre-RC commit say so in each report's `spec.commit`.
