@@ -181,6 +181,7 @@ If you are new to AITP, read in this order:
 18. **[docs/ecosystem.md](docs/ecosystem.md)** — where the implementations, tools and services live (see [Ecosystem](#ecosystem) below).
 19. **[docs/conformance-badge.md](docs/conformance-badge.md)** — the conformance report a runner emits and the per-claim badge rules.
 20. **[docs/mcp-mapping.md](docs/mcp-mapping.md)** — presenting a TCT to an MCP server next to OAuth 2.1 (non-normative).
+21. **[docs/interop-event-1.md](docs/interop-event-1.md)** — the plan for interop event #1: the test matrix, the result template and how to take part.
 
 ---
 
