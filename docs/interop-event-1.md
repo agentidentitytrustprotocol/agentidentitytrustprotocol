@@ -87,7 +87,7 @@ python3 scripts/check-conformance-report.py conformance.json --fixtures-dir sche
 
 ### Signing up
 
-Reply to the event announcement in the [Announcements category of GitHub Discussions](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/discussions/categories/announcements). There is no issue template for the event, and you don't need to open an issue. Say:
+Reply to the event announcement, [Discussion #178](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/discussions/178). There is no issue template for the event, and you don't need to open an issue. Say:
 
 - the implementation's name, language and repository;
 - which roles it plays: issuer, handshake initiator, handshake responder, verifier;
