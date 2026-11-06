@@ -1,0 +1,81 @@
+{
+  "id": "del-009",
+  "rfc": "RFC-AITP-0006",
+  "status": "core",
+  "required_for_v0_1": false,
+  "required_for_core": true,
+  "feature": null,
+  "$comment": "Pins the single-hop reading of a stray `chain_hash` (#176 item 11, one-way door; see the draft PR). The token is otherwise del-001, validly signed by B, so the extra claim is the only defect under test. `aitp-delegation.schema.json` admits `chain_hash` without `chain`, because it describes both profiles, so the claims are schema-valid and the rejection comes from the core claim set.",
+  "description": "Same token as del-001, except that the delegation claims carry a `chain_hash` and no `chain`. `chain_hash` is an RFC-AITP-0011 claim, not part of the RFC-AITP-0006 §2 claim set, and this verifier has not opted into RFC-AITP-0011. An unknown claim outside `ext` MUST be rejected (RFC-AITP-0006 §2, RFC-AITP-0001 §7). The multi-hop guard of §4 does not apply, because no `chain` is present. Receivers MUST reject with UNKNOWN_FIELD.",
+  "tags": [
+    "failure",
+    "delegation",
+    "single-hop",
+    "unknown-field"
+  ],
+  "input": {
+    "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "delegation_token": "__JWS_DELEGATION__",
+    "delegation_token_claims": {
+      "ver": "aitp/0.3",
+      "iss": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+      "sub": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+      "aud": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+      "scope": [
+        "read_data"
+      ],
+      "exp": 1711903600,
+      "cnf": {
+        "jkt": "LlsmkXmHJuXWkRZLv_FKl_mprfIV5aYVnXqCgsebsdU"
+      },
+      "chain_hash": "n4bQgYhMfWWaL-qgxVrQFaO_TxsrC4Is0V1sFbDwCgg",
+      "voucher": "__JWS_GRANT_VOUCHER__",
+      "voucher_claims": {
+        "ver": "aitp/0.3",
+        "iss": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+        "sub": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+        "grants": [
+          "read_data",
+          "write_data"
+        ],
+        "iat": 1711900000,
+        "exp": 1711903600,
+        "src_jti": "550e8400-e29b-41d4-a716-446655440101"
+      }
+    },
+    "issuer_manifests": [
+      {
+        "version": "aitp/0.3",
+        "aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+        "display_name": "kat-keypair-002",
+        "identity_hint": {
+          "type": "pinned_key",
+          "subject": "kat-keypair-002",
+          "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+        },
+        "handshake_endpoint": "https://example.com/aitp/handshake",
+        "accepted_trust_anchors": [],
+        "accepted_identity_types": [
+          "pinned_key"
+        ],
+        "offered_capabilities": [
+          "read_data",
+          "write_data"
+        ],
+        "proof_of_possession": {
+          "challenge": "jsbiSyN23W3ZQQO9rU59nA",
+          "signature": "__VALID_POP_SIG__"
+        },
+        "published_at": 1711900000,
+        "expires_at": 1711986400,
+        "signature": "__VALID_MANIFEST_SIG__"
+      }
+    ],
+    "operation": "verify_delegation_token"
+  },
+  "expected": {
+    "outcome": "failure",
+    "error_code": "UNKNOWN_FIELD",
+    "rationale": "A core verifier knows only the RFC-AITP-0006 §2 claims. `chain_hash` without `chain` is a claim outside that set and outside `ext` (RFC-AITP-0011 §1.1: non-opted-in verifiers reject RFC-AITP-0011 claims under the strict-claims rule)."
+  }
+}

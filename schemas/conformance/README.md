@@ -444,7 +444,7 @@ valid and invalid, are in [`reports/`](reports/).
 
 | Tier | Count | Required for v0.3 |
 |---|---|---|
-| `core` (`required_for_core`) | 94 | ✅ Yes |
+| `core` (`required_for_core`) | 96 | ✅ Yes |
 | `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (required of v0.1 runners only; a core runner may execute it, and its result gates nothing) |
 | `extension` — pinned-admission profile (RFC-AITP-0002 §3.4, `feature: aitp-pinned-admission`) | 8 | ❌ No (required of an implementation claiming the profile) |
 | `extension` — attestation verification (RFC-AITP-0005 §5.3, `feature: aitp-self-attestation`) | 3 | ❌ No (required of an implementation claiming the role) |
@@ -453,7 +453,7 @@ valid and invalid, are in [`reports/`](reports/).
 | `draft` — A2A Agent Card binding (RFC-AITP-0014, `feature: aitp-a2a-agent-card`) | 6 | ❌ No |
 | `draft` — `spiffe` identity type (RFC-AITP-0002 §6, `feature: experimental-spiffe-identity`) | 7 | ❌ No |
 | `draft` — TCT renewal (RFC-AITP-0013, `feature: experimental-renewal`) | 12 | ❌ No |
-| **Total** | **145** | |
+| **Total** | **147** | |
 
 Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A conformance runner for the current revision, `aitp/0.3`, MUST execute every `required_for_core` core fixture (the key keeps its v0.2 name so existing runners keep working; for `aitp/0.3` it marks the core tier); `draft` and `extension` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
@@ -616,6 +616,8 @@ The rows marked *Pinned-admission* are `status: extension` under `feature: aitp-
 | `del-006` | Voucher issued to a different subject (`voucher.sub` ≠ outer `iss`) | failure: DELEGATION_INVALID_VOUCHER |
 | `del-007` | v0.2 sibling of del-004: claim-shaped token carrying a `chain` rejected structurally by core implementations | failure: DELEGATION_MULTIHOP_NOT_SUPPORTED |
 | `del-008` | Same token as `del-002`, but A's own deny list, supplied as a signed snapshot, fails signature verification and does not list `src_jti`. A's own list is local state, so the mode does not apply and it is never treated as absent (RFC-AITP-0006 §4 step 7) | failure: REVOCATION_SNAPSHOT_SIGNATURE_INVALID |
+| `del-009` | Same token as `del-001` plus a `chain_hash` claim and no `chain`; a core verifier rejects the RFC-AITP-0011 claim under the strict claim set (RFC-AITP-0006 §2) | failure: UNKNOWN_FIELD |
+| `del-010` | Same token as `del-001` plus a `jti` claim and no `chain` (RFC-AITP-0006 §2, RFC-AITP-0011 §1.1) | failure: UNKNOWN_FIELD |
 
 ### Multi-hop Delegation (RFC-AITP-0011, opt-in)
 

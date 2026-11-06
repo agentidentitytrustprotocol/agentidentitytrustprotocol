@@ -76,6 +76,13 @@ and decoded claims:
 
 The v0.1 `delegator` and `audience` fields (which v0.1 required to be equal) are collapsed into the single `aud` claim. The v0.1 `grant_proof` object is replaced by the `voucher` string. The canonical schema for the decoded claims is [`schemas/json/aitp-delegation.schema.json`](../schemas/json/aitp-delegation.schema.json).
 
+**RFC-AITP-0011 claims on a single-hop token.** `chain`, `chain_hash` and `jti` are claims of [RFC-AITP-0011](RFC-AITP-0011-multihop-delegation.md), not of this table. The schema admits them because it describes both profiles. A verifier that has not opted into RFC-AITP-0011 treats them as follows:
+
+- A token carrying `chain` is rejected with `DELEGATION_MULTIHOP_NOT_SUPPORTED` by the multi-hop guard (§4), whatever else it carries (`del-004`, `del-007`).
+- A token carrying `chain_hash` or `jti` without `chain` is rejected with `UNKNOWN_FIELD`, as for any claim outside this table and outside `ext` (`del-009`, `del-010`). RFC-AITP-0011 §1.1 already states this for `jti`.
+
+An issuer therefore MUST NOT put `chain_hash` on a single-hop token, and SHOULD put `jti` on one only when it intends the token to be extended into a chain under RFC-AITP-0011 (RFC-AITP-0011 §1.1).
+
 **Structural rejection.** A delegation token whose payload does not decode into a claims set matching this section (a missing REQUIRED claim, a claim of the wrong type, a value outside its grammar) is rejected with `DELEGATION_INVALID_SIGNATURE`, the delegation token's structural-rejection code. When the only defect is a claim outside this table and outside `ext`, the code is `UNKNOWN_FIELD` instead ([RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model)). A `chain` claim is not a structural defect for this purpose: it is rejected with `DELEGATION_MULTIHOP_NOT_SUPPORTED` (§4). The [registry's structural-rejection table](../registries/error-codes.md#structural-rejection) states the same mapping.
 
 ---

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### RFC-AITP-0006: `chain_hash` and `jti` on a single-hop delegation token (#176 item 11; owner decision pending)
+
+**Change class.** Clarification under the `aitp/0.3` freeze, with two new core fixtures. This drafts option A of the one-way door recorded in the PR: it states the outcome that the strict claim set of RFC-AITP-0006 §2 and RFC-AITP-0011 §1.1 already imply. No existing fixture outcome, schema or known-answer vector changes. RFC versions are set at RC2.1 (#157), not here.
+
+**Changes.**
+- RFC-AITP-0006 §2: a verifier not opted into RFC-AITP-0011 rejects a token carrying `chain` with `DELEGATION_MULTIHOP_NOT_SUPPORTED`, and one carrying `chain_hash` or `jti` without `chain` with `UNKNOWN_FIELD`. An issuer MUST NOT put `chain_hash` on a single-hop token.
+- New fixtures `del-009` (`chain_hash` only) and `del-010` (`jti` only), both `UNKNOWN_FIELD`. Conformance index: `core` 94 → 96, total 145 → 147.
+
 ### Core RFC text clarifications and errata from the review inputs (#176, #160 row 5)
 
 **Change class.** Clarifications and errata under the `aitp/0.3` freeze. No message, field, signing input, error code, check order, schema, fixture outcome or known-answer vector changes. Two errata move the prose to match what the pinned artifacts already did. RFC versions are set at RC2.1 (#157), not here.
