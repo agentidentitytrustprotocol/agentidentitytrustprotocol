@@ -631,7 +631,7 @@ These fixtures exercise the multi-hop delegation extension. Core implementations
 | `del-mh-004` | A hop's `jti` is in that hop issuer's deny list (RFC-AITP-0011 §6 per-hop revocation) | failure: DELEGATION_SOURCE_TCT_REVOKED |
 | `del-mh-005` | Same chain as del-mh-001, but `issuer_manifests` lists B and D and omits C, the issuer of `chain[1]`, so no supplied Manifest designates that hop's key (RFC-AITP-0011 §3 step 1) | failure: KEY_RESOLUTION_FAILED |
 | `del-mh-006` | Same chain as del-mh-004, but B's snapshot no longer lists `chain[0].jti` and its signature does not validate: the snapshot is discarded and absent, and under the default `fail_closed` the hop counts as revoked (RFC-AITP-0011 §6, RFC-AITP-0008 §1.5) | failure: DELEGATION_SOURCE_TCT_REVOKED |
-| `del-mh-007` | Opted-in verifier: del-009's single-hop token with `chain_hash` and no `chain` (RFC-AITP-0011 §5, verifier rule 3; session recommendation, not an owner ruling) | failure: DELEGATION_INVALID_SIGNATURE |
+| `del-mh-007` | Opted-in verifier: del-009's single-hop token with `chain_hash` and no `chain` (RFC-AITP-0011 §5, verifier rule 3) | failure: DELEGATION_INVALID_SIGNATURE |
 
 ### Session Trust Bundle (RFC-AITP-0010, opt-in)
 

@@ -11,10 +11,10 @@
 - New fixtures `del-009` (`chain_hash` only) and `del-010` (`jti` only), both `UNKNOWN_FIELD`. Conformance index: `core` 97 and 148 in total. `main` already had 95 core and 146 fixtures against a stated 94 and 145, and this corrects that too.
 - `governance/DECISIONS.md` records the owner decision.
 
-**Opted-in verifiers: session recommendation, not an owner ruling.** The ruling covers verifiers not opted into RFC-AITP-0011. For a verifier that has opted in, `chain_hash` is a known claim, so `UNKNOWN_FIELD` does not fit. This change drafts the recommendation as its own commit:
+**Opted-in verifiers: owner decision, 2026-11-06.** Ruled separately, on the session's recommendation. For a verifier that has opted in, `chain_hash` is a known claim, so `UNKNOWN_FIELD` does not fit:
 - RFC-AITP-0011 §5, verifier rule 3: a token carrying `chain_hash` while `chain` is absent or empty is rejected with `DELEGATION_INVALID_SIGNATURE`, the delegation token's structural-rejection code, which §1.1 already uses for a malformed `jti`. §1 notes the exception to "the rules below apply only when `chain` is non-empty".
 - New draft fixture `del-mh-007` (`feature: experimental-multihop-delegation`), del-009's input with that code. Conformance index: multi-hop drafts 7, total 149.
-- `governance/DECISIONS.md` records it as UNCONFIRMED.
+- `governance/DECISIONS.md` records the owner decision.
 
 ### Core RFC text clarifications and errata from the review inputs (#176, #160 row 5)
 
