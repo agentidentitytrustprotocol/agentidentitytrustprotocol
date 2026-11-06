@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### `VERSIONING.md`: what "additive identity types" allows on the frozen line (#176 item 18; owner decision pending)
+
+**Change class.** Clarification, text only. This drafts option B of the one-way door recorded in the PR: the Manifest's identity-type fields stay closed, and `VERSIONING.md` stops implying otherwise. No schema, fixture outcome or known-answer vector changes. RFC versions are set at RC2.1 (#157), not here.
+
+**Changes.**
+- `VERSIONING.md`, "Allowed", "Additive identity types": a new type can be registered and carried in the handshake `identity` descriptor. `accepted_identity_types` and `identity_hint.type` stay closed until 1.0, because opening them would turn rejected Manifests into accepted ones for updated verifiers only.
+- RFC-AITP-0003 §3.2: the `accepted_identity_types` set is closed for `aitp/0.3`; any other value is `MANIFEST_INVALID`.
+
 ### Interop event #1 plan
 
 **Change class.** Documentation only. No wire, schema, fixture or RFC change.
