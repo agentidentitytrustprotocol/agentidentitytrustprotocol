@@ -450,10 +450,10 @@ valid and invalid, are in [`reports/`](reports/).
 | `extension` — attestation verification (RFC-AITP-0005 §5.3, `feature: aitp-self-attestation`) | 3 | ❌ No (required of an implementation claiming the role) |
 | `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 8 | ❌ No |
 | `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 6 | ❌ No |
-| `draft` — A2A Agent Card binding (RFC-AITP-0014, `feature: aitp-a2a-agent-card`) | 6 | ❌ No |
+| `draft` — A2A Agent Card binding (RFC-AITP-0014, `feature: aitp-a2a-agent-card`) | 9 | ❌ No |
 | `draft` — `spiffe` identity type (RFC-AITP-0002 §6, `feature: experimental-spiffe-identity`) | 7 | ❌ No |
 | `draft` — TCT renewal (RFC-AITP-0013, `feature: experimental-renewal`) | 12 | ❌ No |
-| **Total** | **145** | |
+| **Total** | **148** | |
 
 Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A conformance runner for the current revision, `aitp/0.3`, MUST execute every `required_for_core` core fixture (the key keeps its v0.2 name so existing runners keep working; for `aitp/0.3` it marks the core tier); `draft` and `extension` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
@@ -657,6 +657,9 @@ These fixtures run the client-side binding of an A2A Agent Card to the agent's M
 | `a2a-004` | Card signature stipulated valid, Manifest unreachable; a Card signature does not replace the Manifest (§4.4) | failure: MANIFEST_NOT_FOUND |
 | `a2a-005` | Card shadowing: the selected interface URL is not in the Manifest's `rfc-aitp-0014.a2a_interfaces` (§4.2 step 5) | failure: IDENTITY_FAILED |
 | `a2a-006` | Card names the `ed25519:`-tagged form of the Manifest's legacy AID; the forms are equal (RFC-AITP-0001 §5.3) | success |
+| `a2a-007` | Selected interface is listed in the Manifest byte for byte but uses `http://`; a matched entry must be an HTTPS URL (§4.2 step 5, §4.1.1) | failure: IDENTITY_FAILED |
+| `a2a-008` | Card `params.manifestUrl` carries userinfo (`ops@`), so it is not an HTTPS URL (§4.2 step 2, §4.1.1) | failure: IDENTITY_FAILED |
+| `a2a-009` | Card `params.manifestUrl` has an uppercase hostname; hostname case is not grounds for rejection (§4.1.1) | success |
 
 ### TCT renewal (RFC-AITP-0013, opt-in)
 

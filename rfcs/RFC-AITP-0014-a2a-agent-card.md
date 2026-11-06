@@ -196,19 +196,32 @@ The matching Manifest lists the interface URL under the extension key of [§4.1]
 
 ### 4.1 The A2A interfaces Manifest key
 
-A server that offers this binding MUST publish, in its Manifest's `extensions`, the key `rfc-aitp-0014.a2a_interfaces` ([extension-key registry](../registries/extension-keys.md)). Its value is an array of strings, each the exact `url` of one AgentInterface at which the server accepts AITP-authenticated A2A requests. Each entry MUST be an HTTPS URL.
+A server that offers this binding MUST publish, in its Manifest's `extensions`, the key `rfc-aitp-0014.a2a_interfaces` ([extension-key registry](../registries/extension-keys.md)). Its value is an array of strings, each the exact `url` of one AgentInterface at which the server accepts AITP-authenticated A2A requests. Each entry MUST be an HTTPS URL ([§4.1.1](#411-https-url)).
 
 The key sits inside the signed Manifest body (RFC-AITP-0003 §6.1), so the list is covered by the server's own signature. Peers that do not implement this RFC ignore it, as they ignore every unknown key inside `extensions` (RFC-AITP-0001 §7). Adding it changes no Manifest outcome for them.
+
+#### 4.1.1 HTTPS URL
+
+In this RFC, a string is an **HTTPS URL** when all of the following hold:
+
+1. It begins with the eight characters `https://`, in lowercase.
+2. Its authority, the part after `https://` up to the first `/`, `?` or `#` or the end of the string, is not empty, and contains no `@` (no userinfo) and no `%` (no percent-encoding in the host).
+3. Every character of the string is in the range U+0021 to U+007E. There is no non-ASCII character, no white space and no control character.
+4. It contains no backslash (`\`).
+
+A client MUST NOT reject a string for the case of its hostname or for how an IPv6 literal is written, because URL parsers normalise both (fixture `a2a-009`). This definition decides whether a value is acceptable. It does not change any comparison: step 5 of [§4.2](#42-client-verification-order) still compares interface URLs byte for byte.
+
+The definition covers `params.manifestUrl` (§4.2 step 2) and the `rfc-aitp-0014.a2a_interfaces` entries (§4.1, §4.2 step 5). It does not cover the Manifest's `handshake_endpoint`. That field keeps the grammar of `aitp-manifest.schema.json` (`format: uri`, `^https://`, RFC-AITP-0003 §3) for every verifier, including a client of this binding. Applying the stricter definition to it would make a client of this binding refuse a Manifest that core verification accepts.
 
 ### 4.2 Client verification order
 
 Before it sends a TCT, a handshake message or any request credential to an A2A server under this binding, a client MUST perform the following steps in order. A failure at any step ends the procedure with the code given, and the client MUST NOT contact the server as an AITP peer.
 
 1. **Treat the Card as untrusted.** The Card is a pointer, wherever it came from (well-known URL, registry, configuration, or the A2A extended-card operation). No Card member is evidence of the server's identity.
-2. **Locate the extension.** Find the AgentExtension entries in `capabilities.extensions` whose `uri` is the URI of [§3.1](#31-the-aitp-extension-entry). There MUST be exactly one. Its `params` MUST be an object carrying `aid` (a string in the RFC-AITP-0001 §5.3 grammar), `manifestUrl` (an HTTPS URL) and `securityScheme` (a string naming a `securitySchemes` entry that is an `apiKeySecurityScheme` with `location` `"header"` and `name` `"x-aitp-tct"`). Any other result ⇒ `IDENTITY_FAILED`.
+2. **Locate the extension.** Find the AgentExtension entries in `capabilities.extensions` whose `uri` is the URI of [§3.1](#31-the-aitp-extension-entry). There MUST be exactly one. Its `params` MUST be an object carrying `aid` (a string in the RFC-AITP-0001 §5.3 grammar), `manifestUrl` (an HTTPS URL, [§4.1.1](#411-https-url); fixture `a2a-008`) and `securityScheme` (a string naming a `securitySchemes` entry that is an `apiKeySecurityScheme` with `location` `"header"` and `name` `"x-aitp-tct"`). Any other result ⇒ `IDENTITY_FAILED`.
 3. **Fetch and verify the Manifest.** Fetch the Manifest from `params.manifestUrl`. If it cannot be retrieved (non-2xx, DNS, TLS or network failure), the result is `MANIFEST_NOT_FOUND` (RFC-AITP-0003 §4.1). Verify it in the order of RFC-AITP-0003 §5, steps 1 to 5, with that section's codes (`MANIFEST_VERSION_UNKNOWN`, `MANIFEST_INVALID`, `UNKNOWN_FIELD`, `MANIFEST_EXPIRED`, `MANIFEST_POP_FAILED`, `MANIFEST_SIGNATURE_INVALID`). A client that already holds a verified, unexpired Manifest for `params.aid` MAY use it in place of a fetch.
 4. **Bind the AID.** `manifest.aid` MUST denote the same key as `params.aid`, compared by algorithm and key as RFC-AITP-0001 §5.3 requires (the legacy untagged form and the `ed25519:` tagged form of the same key are equal for this check; nothing else is). Otherwise ⇒ `IDENTITY_FAILED`. A client that pins the server's AID by configuration (an `expected_aid`, [docs/discovery.md](../docs/discovery.md)) MUST also check `manifest.aid` against the pin.
-5. **Bind the interface.** The `url` of the AgentInterface the client intends to call MUST appear, byte for byte, in the verified Manifest's `extensions["rfc-aitp-0014.a2a_interfaces"]`. If the key is absent, is not an array of strings, or does not contain that URL ⇒ `IDENTITY_FAILED`. The client MUST NOT send AITP credentials to an interface URL that this step has not accepted, even one listed in the same Card.
+5. **Bind the interface.** The `url` of the AgentInterface the client intends to call MUST appear, byte for byte, in the verified Manifest's `extensions["rfc-aitp-0014.a2a_interfaces"]`. If the key is absent, is not an array of strings, or does not contain that URL ⇒ `IDENTITY_FAILED`. A matched entry that is not an HTTPS URL ([§4.1.1](#411-https-url)) ⇒ `IDENTITY_FAILED` as well, even though it matches (fixture `a2a-007`): §5.1 forbids sending a TCT without TLS, and the byte-for-byte match alone would accept an `http` interface that the server itself listed. The client MUST NOT send AITP credentials to an interface URL that this step has not accepted, even one listed in the same Card.
 6. **Screen compatibility.** Run RFC-AITP-0003 §5 step 6 against the verified Manifest, with that step's codes (`INCOMPATIBLE_TRUST_ANCHORS`, `INCOMPATIBLE_IDENTITY_TYPE`).
 7. **Handshake.** Run the Mutual Handshake (RFC-AITP-0004) against `manifest.handshake_endpoint`. The client MUST NOT use a handshake endpoint taken from the Card, from `params`, or derived from the interface URL.
 
@@ -354,6 +367,9 @@ The fixtures are the `a2a-*` set in [`schemas/conformance/`](../schemas/conforma
 | `a2a-004` | A Card whose signature the client accepts, with the Manifest unreachable ⇒ `MANIFEST_NOT_FOUND` ([§4.4](#44-agent-card-signatures)). |
 | `a2a-005` | Interface URL not listed in the Manifest (card shadowing) ⇒ `IDENTITY_FAILED` ([§4.2](#42-client-verification-order) step 5). |
 | `a2a-006` | Card names the tagged form of the Manifest's legacy AID; the forms are equal for step 4 (RFC-AITP-0001 §5.3). |
+| `a2a-007` | The selected interface is listed in the Manifest but uses `http://` ⇒ `IDENTITY_FAILED` ([§4.2](#42-client-verification-order) step 5, [§4.1.1](#411-https-url)). |
+| `a2a-008` | `params.manifestUrl` carries userinfo, so it is not an HTTPS URL ⇒ `IDENTITY_FAILED` ([§4.2](#42-client-verification-order) step 2). |
+| `a2a-009` | `params.manifestUrl` has an uppercase hostname; hostname case is not grounds for rejection, so the binding succeeds ([§4.1.1](#411-https-url)). |
 
 Server-side TCT verification on A2A requests reuses the core `tct-*` fixtures, including the issuer-side set `tct-026` to `tct-029` of RFC-AITP-0005 §10.5; the A2A carriage adds no new verification outcome.
 
