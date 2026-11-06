@@ -5,7 +5,7 @@
   "required_for_v0_1": false,
   "required_for_core": true,
   "feature": null,
-  "$comment": "Companion to man-013 (owner decision of 2026-11-06 on #176 item 18). Every entry of `accepted_identity_types` is unrecognised: `did` and `x509` are Reserved rows of registries/identity-types.md. Under the rule the Manifest is valid, and its list accepts no type a verifier can present. `verify_manifest` takes no fetching-peer identity (PLACEHOLDERS.md, \"Operation key\"), so RFC-AITP-0003 §5 step 6 is not exercised and the expected outcome is success. A non-OIDC fetching peer screening this Manifest at §5 step 6 gets INCOMPATIBLE_IDENTITY_TYPE, as for an explicit `[]`. No fixture pins that screen, because no operation takes the fetching peer's identity. Before RC2.1 every verifier returned MANIFEST_INVALID for this Manifest.",
+  "$comment": "Companion to man-013 (owner decision of 2026-11-06 on #176 item 18). Every entry of `accepted_identity_types` is unrecognised: `did` and `x509` are Reserved rows of registries/identity-types.md. Under the rule the Manifest is valid, and its list accepts no type a verifier can present. `verify_manifest` takes no fetching-peer identity (PLACEHOLDERS.md, \"Operation key\"), so RFC-AITP-0003 §5 step 6 is not exercised and the expected outcome is success. Any fetching peer screening this Manifest at §5 step 6 gets INCOMPATIBLE_IDENTITY_TYPE (check 1), as for an explicit `[]`. No fixture pins that screen, because no operation takes the fetching peer's identity. Before RC2.1 every verifier returned MANIFEST_INVALID for this Manifest.",
   "description": "Manifest whose `accepted_identity_types` lists only types the verifier does not implement (`did`, `x509`). RFC-AITP-0003 §3.2: the list is open, so the Manifest is not MANIFEST_INVALID. Version, expiry, PoP and signature pass, so Manifest verification succeeds. The list accepts no identity type the verifier implements: at the §5 step 6 compatibility screen, which this operation does not run, it behaves as an explicit `[]`.",
   "tags": [
     "success",
@@ -48,6 +48,6 @@
   },
   "expected": {
     "outcome": "success",
-    "rationale": "Schema-valid (an entry is any non-empty string) and cryptographically valid, so `verify_manifest` succeeds. The unrecognised entries are ignored at RFC-AITP-0003 §5 step 6, which leaves no accepted type, so a non-OIDC fetching peer would get INCOMPATIBLE_IDENTITY_TYPE there. That screen needs the fetching peer's identity, which this operation does not take."
+    "rationale": "Schema-valid (an entry is any non-empty string) and cryptographically valid, so `verify_manifest` succeeds. The unrecognised entries are ignored at RFC-AITP-0003 §5 step 6, which leaves no accepted type, so any fetching peer would get INCOMPATIBLE_IDENTITY_TYPE there. That screen needs the fetching peer's identity, which this operation does not take."
   }
 }

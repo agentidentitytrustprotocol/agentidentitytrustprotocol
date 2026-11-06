@@ -704,3 +704,14 @@ patch-level, no new signatures). It deserves its own review rather than riding a
 - **Not changed:** the handshake `IdentityDescriptor.type` enum (`aitp-identity.schema.json`, mirrored in `aitp-mutual-handshake.schema.json`). Adding a type there is the "Schema refactors" row of `VERSIONING.md`, and an unimplemented type is `IDENTITY_FAILED` either way.
 - **Reversal trigger:** none before 1.0. Closing the hint type again would itself be a wire change.
 - **Blast radius if wrong:** low. A Manifest that used to be refused is accepted, and its handshakes still fail closed for verifiers that do not implement the type.
+
+## 2026-11-06 — RFC-AITP-0003 §5 step 6 checks every fetching peer's identity type (#176 item 22)
+
+- **Status:** Decided.
+- **Decided by:** the owner, on 2026-11-06. The session found the gap while reworking #176 item 18 and drafted the fix in #184.
+- **Context:** RFC-AITP-0003 §5 step 6 checked `accepted_identity_types` only for a non-OIDC fetching peer; an `oidc` fetching peer was screened on `accepted_trust_anchors` alone. RFC-AITP-0004 §5.1 step 8 checks every peer's type against the receiver's `accepted_identity_types` first (`mh-012`: an `oidc` peer against a `["pinned_key"]` receiver is `INCOMPATIBLE_IDENTITY_TYPE`). So an `oidc` peer passed discovery and was then refused at the handshake.
+- **Chosen:** step 6 runs check 1 (the type, for every fetching peer, `oidc` included, ⇒ `INCOMPATIBLE_IDENTITY_TYPE`) and then check 2 (trust-anchor overlap, `oidc` only, ⇒ `INCOMPATIBLE_TRUST_ANCHORS`), in step 8's order. With item 18's rule, a list of only unrecognised entries now gives `INCOMPATIBLE_IDENTITY_TYPE` for every fetching peer, `oidc` included.
+- **Reasoning:** both ends of one exchange apply the same rule to the same field. No handshake outcome changes, because step 8 already rejects the same pairs with the same code; discovery just reports it before a handshake is attempted. Classified as a clarification.
+- **No fixture:** `verify_manifest` takes no fetching-peer identity, so the discovery screen cannot be pinned with the current runner inputs. Adding a `self_identity_type` input would be a runner and adapter change on its own. `mh-012` pins the handshake side.
+- **Reversal trigger:** none before 1.0.
+- **Blast radius if wrong:** low. A fetching peer gives up at discovery on a pairing the handshake would refuse anyway.

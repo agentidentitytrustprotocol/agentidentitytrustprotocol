@@ -6,7 +6,7 @@
 
 **Change class.** Wire change, taken by owner decision as a one-way door at RC2.1 (#157). It is not a security fix. A Manifest whose `accepted_identity_types` lists a type outside `oidc`, `pinned_key` and `spiffe` was `MANIFEST_INVALID` at RFC-AITP-0003 §5 step 2 for every verifier, and is now schema-valid. No existing fixture or committed artifact changes its outcome: none lists such a type. No known-answer vector changes. RFC versions are set at RC2.1, not here.
 
-**Outcomes that change.** Only Manifests that list an unrecognised `accepted_identity_types` entry. Today every verifier rejects them with `MANIFEST_INVALID`. Under this change Manifest verification accepts them, and the fetching peer's §5 step 6 screen ignores the unrecognised entries: a list that still names the fetching peer's own type passes (`man-013`); a list of only unrecognised entries behaves as `[]`, so a non-OIDC fetching peer gets `INCOMPATIBLE_IDENTITY_TYPE` (`man-014` pins that the Manifest itself verifies). Every implementation that validates against the schema or keeps its own enum has to stop rejecting unknown entries.
+**Outcomes that change.** Only Manifests that list an unrecognised `accepted_identity_types` entry. Today every verifier rejects them with `MANIFEST_INVALID`. Under this change Manifest verification accepts them, and the fetching peer's §5 step 6 screen ignores the unrecognised entries: a list that still names the fetching peer's own type passes (`man-013`); a list of only unrecognised entries behaves as `[]`, so every fetching peer gets `INCOMPATIBLE_IDENTITY_TYPE` (`man-014` pins that the Manifest itself verifies). Every implementation that validates against the schema or keeps its own enum has to stop rejecting unknown entries.
 
 **Changes.**
 - `aitp-manifest.schema.json`: `accepted_identity_types` items are any non-empty string, still unique. The enum is removed.
@@ -22,6 +22,19 @@
 - RFC-AITP-0003 §3.1: the hint `type` is open, and the rule above. `VERSIONING.md` names the hint in the "Additive identity types" row.
 - New core fixture `man-015` (unrecognised hint type, success). Conformance README counts: 98 core, 149 in total.
 - `governance/DECISIONS.md` records the owner decision.
+
+### RFC-AITP-0003 §5 step 6 checks every fetching peer's identity type (#176 item 22; owner decision 2026-11-06)
+
+**Change class.** Clarification aligning RFC-AITP-0003 with RFC-AITP-0004, decided by the owner. The discovery screen checked `accepted_identity_types` only for a non-OIDC fetching peer, while the receiver's policy step (RFC-AITP-0004 §5.1 step 8, fixture `mh-012`) checks it for every peer. No schema constraint, fixture outcome or known-answer vector changes.
+
+**Outcomes that change.** Only the fetching peer's discovery decision, never the outcome of a handshake. An `oidc` fetching peer screening a Manifest whose `accepted_identity_types` omits `oidc` now stops at discovery with `INCOMPATIBLE_IDENTITY_TYPE`. Before, it passed on trust anchors alone and the publisher refused the handshake at step 8 with the same code. When the type is not accepted and the anchors do not overlap, discovery now reports `INCOMPATIBLE_IDENTITY_TYPE`, not `INCOMPATIBLE_TRUST_ANCHORS`, which is step 8's order.
+
+**Changes.**
+- RFC-AITP-0003 §5 step 6: check 1, the identity type for every fetching peer, `oidc` included; then check 2, trust-anchor overlap for an `oidc` fetching peer. §3.2's `accepted_identity_types` row no longer says the list is used only for non-OIDC peers.
+- `aitp-manifest.schema.json`: the `accepted_trust_anchors` description says so too. This is description text only.
+- `docs/discovery.md` step 8 mirrors it.
+- No fixture: `verify_manifest` takes no fetching-peer identity, and adding one would be a new runner input. `mh-012` already pins the handshake side.
+- `governance/DECISIONS.md` records it.
 
 ### Interop event #1 plan
 
