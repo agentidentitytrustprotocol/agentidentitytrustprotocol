@@ -11,13 +11,13 @@
 
 AITP v0.3 reserves the `extensions` field on protocol payloads for extension families: zero-knowledge proofs (ZK), Trusted Execution Environment attestations (TEE), and a selective-disclosure grant voucher (§4). This RFC pins the field names, the registration model, and the future milestones so that v0.3 implementations do not collide with future extensions.
 
-The contents of this RFC are **non-normative** for v0.3. They become normative in a future version.
+The contents of this RFC are **non-normative** for v0.3. They become normative in a future version. Where this RFC states a rule for the extension container itself (§1, §1.1, §5, §6), it restates [RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model) (unknown keys inside the namespace are ignored, an unknown member beside it is rejected with `UNKNOWN_FIELD`) and [RFC-AITP-0001 §9](RFC-AITP-0001-core.md#9-registry-hooks) (key naming). Those sections are normative and govern. The requirement keywords below carry their force from them, not from this RFC.
 
 ---
 
 ## 1. Extension Container
 
-Any AITP payload MAY carry an `extensions` object. Unknown extension keys MUST be ignored.
+Any AITP payload MAY carry an `extensions` object. Unknown extension keys MUST be ignored ([RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model), restated).
 
 ```json
 {
@@ -28,7 +28,7 @@ Any AITP payload MAY carry an `extensions` object. Unknown extension keys MUST b
 }
 ```
 
-Extensions are namespaced. Vendor-specific extensions SHOULD use reverse-domain notation under `extensions` (e.g. `extensions.com.example.feature`).
+Extensions are namespaced. Vendor-specific extensions SHOULD use reverse-domain notation under `extensions` (e.g. `extensions.com.example.feature`), as [RFC-AITP-0001 §9](RFC-AITP-0001-core.md#9-registry-hooks) recommends for experimental identifiers (restated).
 
 ### 1.1 The `ext` claim on compact-JWS artifacts
 

@@ -74,6 +74,8 @@ The canonical schema for the decoded claims object is [`schemas/json/aitp-tct.sc
 
 `jti`, `iss`, `sub`, `aud`, `iat`, `exp`, and `cnf` carry their registered [RFC 7519](https://datatracker.ietf.org/doc/html/rfc7519) / [RFC 7800](https://datatracker.ietf.org/doc/html/rfc7800) semantics. `ver`, `grants`, and `ext` are AITP private claims.
 
+**Structural rejection.** A TCT whose payload does not decode into a claims set matching this section (a missing REQUIRED claim, a claim of the wrong type, a value outside its grammar) is rejected with `TCT_SIGNATURE_INVALID`, the TCT's structural-rejection code. When the only defect is a claim outside this table and outside `ext`, the code is `UNKNOWN_FIELD` instead (§7.2 step 1). The [registry's structural-rejection table](../registries/error-codes.md#structural-rejection) states the same mapping and why the compact-JWS artifacts collapse it onto their signature code.
+
 ### 2.1 Mapping from the v0.1 TCT
 
 For implementers migrating from `aitp/0.1`:

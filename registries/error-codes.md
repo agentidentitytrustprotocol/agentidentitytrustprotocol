@@ -132,26 +132,26 @@ Returned by a verifier implementing the OPTIONAL one-way pinned-admission profil
 
 Returned in error envelopes during the four-message handshake.
 
-| Code | Meaning | spec_status |
-|---|---|---|
-| `INCOMPATIBLE_TRUST_ANCHORS` | No trust-anchor overlap. | core |
-| `INCOMPATIBLE_IDENTITY_TYPE` | Peer's identity type not in `accepted_identity_types`. | core |
-| `MANIFEST_INVALID` | Peer's Manifest failed schema validation. | core |
-| `MANIFEST_SIGNATURE_INVALID` | Peer's Manifest signature invalid. | core |
-| `MANIFEST_POP_FAILED` | Peer's Manifest PoP failed. | core |
-| `POP_VERIFICATION_FAILED` | Round-2 PoP signature failed. | core |
-| `NONCE_MISMATCH` | `pop_nonce_echo` mismatch. | core |
-| `PEER_MISMATCH` | `MUTUAL_HELLO_ACK` sender is not the AID the initiator addressed in MUTUAL_HELLO ([RFC-AITP-0004 §5.2](../rfcs/RFC-AITP-0004-mutual-handshake.md#52-on-receiving-mutual_hello_ack-a-verifies-b) step 3). | core |
-| `AUDIENCE_MISMATCH` | TCT `aud` ≠ self AID. | core |
-| `GRANT_OVERFLOW` | TCT grants exceed peer's `offered_capabilities`. | core |
-| `TCT_EXPIRED` | TCT already expired. | core |
-| `TCT_EXPIRES_AFTER_MANIFEST` | TCT `exp` exceeds issuer's Manifest `expires_at`. | core |
-| `TOKEN_ALG_MISMATCH` | Received TCT/voucher JWS `alg` not the AID-derived value. | core |
-| `TOKEN_TYP_MISMATCH` | Received TCT/voucher JWS `typ` not the expected value. | core |
-| `IDENTITY_FAILED` | Peer identity verification failed. | core |
-| `REPLAY_DETECTED` | Duplicate `message_id`. | core |
-| `TIMESTAMP_EXPIRED` | Envelope timestamp outside tolerance. | core |
-| `UNKNOWN_FIELD` | A handshake payload (or other signed object in the exchange) carried a member outside its schema and outside `extensions` ([RFC-AITP-0001 §7](../rfcs/RFC-AITP-0001-core.md#7-compatibility-model)). | core |
+| Code | Meaning | Retryable | spec_status |
+|---|---|---|---|
+| `INCOMPATIBLE_TRUST_ANCHORS` | No trust-anchor overlap. | false | core |
+| `INCOMPATIBLE_IDENTITY_TYPE` | Peer's identity type not in `accepted_identity_types`. | false | core |
+| `MANIFEST_INVALID` | Peer's Manifest failed schema validation. | false | core |
+| `MANIFEST_SIGNATURE_INVALID` | Peer's Manifest signature invalid. | false | core |
+| `MANIFEST_POP_FAILED` | Peer's Manifest PoP failed. | false | core |
+| `POP_VERIFICATION_FAILED` | Round-2 PoP signature failed. | false | core |
+| `NONCE_MISMATCH` | `pop_nonce_echo` mismatch. | false | core |
+| `PEER_MISMATCH` | `MUTUAL_HELLO_ACK` sender is not the AID the initiator addressed in MUTUAL_HELLO ([RFC-AITP-0004 §5.2](../rfcs/RFC-AITP-0004-mutual-handshake.md#52-on-receiving-mutual_hello_ack-a-verifies-b) step 3). | false | core |
+| `AUDIENCE_MISMATCH` | TCT `aud` ≠ self AID. | false | core |
+| `GRANT_OVERFLOW` | TCT grants exceed peer's `offered_capabilities`. | false | core |
+| `TCT_EXPIRED` | TCT already expired. | false | core |
+| `TCT_EXPIRES_AFTER_MANIFEST` | TCT `exp` exceeds issuer's Manifest `expires_at`. | false | core |
+| `TOKEN_ALG_MISMATCH` | Received TCT/voucher JWS `alg` not the AID-derived value. | false | core |
+| `TOKEN_TYP_MISMATCH` | Received TCT/voucher JWS `typ` not the expected value. | false | core |
+| `IDENTITY_FAILED` | Peer identity verification failed. | false | core |
+| `REPLAY_DETECTED` | Duplicate `message_id`. | false | core |
+| `TIMESTAMP_EXPIRED` | Envelope timestamp outside tolerance. | true | core |
+| `UNKNOWN_FIELD` | A handshake payload (or other signed object in the exchange) carried a member outside its schema and outside `extensions` ([RFC-AITP-0001 §7](../rfcs/RFC-AITP-0001-core.md#7-compatibility-model)). | false | core |
 
 ## Manifest-service codes
 
@@ -194,16 +194,16 @@ failure of the *snapshot* that lists tokens (issue #39).
 
 Delegation-layer codes carry the `DELEGATION_` prefix so they cannot be confused with the envelope-level or manifest-level codes that share the same root.
 
-| Code | Meaning | spec_status |
-|---|---|---|
-| `DELEGATION_AUDIENCE_MISMATCH` | `aud` ≠ verifier's AID. | core |
-| `DELEGATION_SCOPE_EXCEEDED` | `scope ⊄ voucher.grants`. | core |
-| `DELEGATION_INVALID_VOUCHER` | Embedded voucher JWS signature invalid, `voucher.iss` ≠ verifier's AID, or `voucher.sub` ≠ outer `iss`. **Renamed in v0.2** from `DELEGATION_INVALID_GRANT_PROOF` (the `grant_proof` reconstruction mechanism was removed by the JWS migration). | core |
-| `DELEGATION_SOURCE_TCT_REVOKED` | `voucher.src_jti` is in the issuing peer's deny list. | core |
-| `DELEGATION_INVALID_SIGNATURE` | Outer delegation JWS signature invalid, or self-delegation (`iss` == `sub`). | core |
-| `DELEGATION_EXPIRED` | Token or voucher expired, or `exp` > `voucher.exp`. | core |
-| `DELEGATION_POP_FAILED` | Proof-of-possession failed. | core |
-| `DELEGATION_MULTIHOP_NOT_SUPPORTED` | Multi-hop attempt detected (`chain` claim present without RFC-AITP-0011 opt-in). | core |
+| Code | Meaning | Retryable | spec_status |
+|---|---|---|---|
+| `DELEGATION_AUDIENCE_MISMATCH` | `aud` ≠ verifier's AID. | false | core |
+| `DELEGATION_SCOPE_EXCEEDED` | `scope ⊄ voucher.grants`. | false | core |
+| `DELEGATION_INVALID_VOUCHER` | Embedded voucher JWS signature invalid, `voucher.iss` ≠ verifier's AID, or `voucher.sub` ≠ outer `iss`. **Renamed in v0.2** from `DELEGATION_INVALID_GRANT_PROOF` (the `grant_proof` reconstruction mechanism was removed by the JWS migration). | false | core |
+| `DELEGATION_SOURCE_TCT_REVOKED` | `voucher.src_jti` is in the issuing peer's deny list. | false | core |
+| `DELEGATION_INVALID_SIGNATURE` | Outer delegation JWS signature invalid, or self-delegation (`iss` == `sub`). | false | core |
+| `DELEGATION_EXPIRED` | Token or voucher expired, or `exp` > `voucher.exp`. | false | core |
+| `DELEGATION_POP_FAILED` | Proof-of-possession failed. | false | core |
+| `DELEGATION_MULTIHOP_NOT_SUPPORTED` | Multi-hop attempt detected (`chain` claim present without RFC-AITP-0011 opt-in). | false | core |
 
 > **`DELEGATION_MULTIHOP_NOT_SUPPORTED` is a core code, not a draft code.** Implementations with default `max_hops = 0` MUST emit this code for any delegation token carrying a `chain` claim — rejecting multi-hop is the **required core behavior**, not an optional one. The code is distinct from the `draft` codes in the "Multi-hop delegation codes (RFC-AITP-0011, opt-in)" table below: those codes (`DELEGATION_HOP_LIMIT_EXCEEDED`, `DELEGATION_CHAIN_HASH_MISMATCH`) are emitted by implementations that have opted into multi-hop and are validating chain semantics. `DELEGATION_MULTIHOP_NOT_SUPPORTED` is the core *refusal* to even process the chain — a structural rejection before any per-hop verification. See [conformance fixture `del-004`](../schemas/conformance/del-004-multihop-rejected-v01.json) for the pinned v0.1-era behavior and its v0.2 sibling for the claim-shaped equivalent.
 
