@@ -215,6 +215,13 @@ re-mint either: a fresh signature would cover the changed `version`, and the
 fixture would no longer show that the version check runs before the signature
 check.
 
+`man-009` carries no Manifest placeholder: its `aid` is not a valid P-256
+key, so no signing key exists, and its `signature` and
+`proof_of_possession.signature` are literal values of the right shape. A runner
+MUST pass the Manifest through unchanged and MUST NOT require a signing key for
+a Manifest `aid` when the Manifest carries no placeholder. The fixture passes by
+rejecting at RFC-AITP-0003 §5 step 2, before either signature is reached.
+
 **Retired in v0.2** (used only by fixtures frozen in the v0.1 token
 shape, e.g. `del-004`): `__VALID_TCT_SIG__`,
 `__VALID_ISSUING_PEER_SIG__`, `__VALID_GRANT_PROOF_SIG__`. The v0.2
