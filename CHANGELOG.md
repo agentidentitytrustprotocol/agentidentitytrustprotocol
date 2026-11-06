@@ -17,11 +17,11 @@
 - New core fixtures `man-013` (unrecognised entry beside `oidc`, success) and `man-014` (only unrecognised entries, success). Conformance README: index rows, and the summary counts corrected to 97 core and 148 in total. `main` already had 95 core and 146 fixtures against a stated 94 and 145.
 - `governance/DECISIONS.md` records the owner decision.
 
-**`identity_hint.type`: session recommendation, not an owner ruling.** The owner ruled on `accepted_identity_types` only. This change also opens `identity_hint.type` in the same way, as its own commit so it can be dropped. Today every verifier returns `MANIFEST_INVALID` for a hint type outside the three registered ones; under this change the Manifest verifies, and a handshake that presents the type fails with `IDENTITY_FAILED` (RFC-AITP-0002 §5, RFC-AITP-0004 §5.1 step 6). Without it, an agent whose own type is new cannot publish a Manifest that any peer accepts, so the allowance in `VERSIONING.md` would cover listing a new type but not using one.
+**`identity_hint.type`: owner decision, 2026-11-06.** Ruled separately from `accepted_identity_types`, on the session's recommendation. `identity_hint.type` opens in the same way. Today every verifier returns `MANIFEST_INVALID` for a hint type outside the three registered ones; under this change the Manifest verifies, and a handshake that presents the type fails with `IDENTITY_FAILED` (RFC-AITP-0002 §5, RFC-AITP-0004 §5.1 step 6). Without it, an agent whose own type is new cannot publish a Manifest that any peer accepts, so the allowance in `VERSIONING.md` would cover listing a new type but not using one.
 - `aitp-manifest.schema.json`: `IdentityHint.type` is any non-empty string. The member rules for `oidc`, `pinned_key` and `spiffe` are unchanged and apply to those types only.
 - RFC-AITP-0003 §3.1: the hint `type` is open, and the rule above. `VERSIONING.md` names the hint in the "Additive identity types" row.
 - New core fixture `man-015` (unrecognised hint type, success). Conformance README counts: 98 core, 149 in total.
-- `governance/DECISIONS.md` records it as a recommendation pending the owner.
+- `governance/DECISIONS.md` records the owner decision.
 
 ### Interop event #1 plan
 

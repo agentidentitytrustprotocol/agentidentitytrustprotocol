@@ -687,20 +687,20 @@ patch-level, no new signatures). It deserves its own review rather than riding a
 - **Reasoning:** the owner preferred to fix the forward-compatibility defect on this line rather than carry a promise the schema did not keep. With the list closed, every identity type added before 1.0 would need the same wire change. No existing fixture or committed artifact lists an unregistered type, so no frozen fixture outcome and no known-answer vector moves.
 - **Relation to the S2.1 freeze (2026-10-24 entry):** that entry defers non-security wire changes found in review to 1.0. This decision is an owner-made exception for this one field, recorded with its classification as the freeze's "Who classifies" rule requires. It does not lift the freeze for anything else.
 - **Consequences:** every implementation that rejects unknown entries has to change to conform to RC2.1: today all of them return `MANIFEST_INVALID` for such a Manifest. Until they do, verifiers will disagree about the same Manifest.
-- **Not covered by this ruling:** `identity_hint.type`. See the next entry.
+- **`identity_hint.type`:** ruled separately the same day; see the next entry.
 - **Reversal trigger:** none before 1.0. Closing the list again would itself be a wire change.
 - **Blast radius if wrong:** low to medium. One field; a Manifest that used to be refused is accepted, and the type screen still fails closed for a fetching peer whose type is not listed.
 
 ## 2026-11-06 — Open `identity_hint.type` with `accepted_identity_types` (#176 item 18)
 
-- **Status:** UNCONFIRMED. Session recommendation, not an owner ruling. Drafted in #184 as its own commit so the owner can drop it.
-- **Decided by:** the session, pending the owner. The owner's 2026-11-06 ruling (entry above) covers `accepted_identity_types` only, and #176 item 18 says `identity_hint.type` needs its own ruling.
+- **Status:** CONFIRMED by the owner on 2026-11-06. Drafted by the session as its own commit in #184, then ruled on separately from `accepted_identity_types` (entry above), as #176 item 18 asked.
+- **Decided by:** the owner, taking the session's recommendation.
 - **Context:** the hint names the publisher's own identity type, and RFC-AITP-0004 §5.1 step 6 requires the handshake descriptor's `type` to equal it. With the hint closed, an agent whose own type is new cannot publish a Manifest that any `aitp/0.3` verifier accepts, so it cannot handshake at all, even with a peer that implements the type.
 - **Options:**
   1. Open the hint type the same way: any non-empty string, the per-type member rules apply to registered types only, and Manifest verification does not interpret an unrecognised type. A verifier that does not implement it rejects the agent's handshakes with `IDENTITY_FAILED` (RFC-AITP-0002 §5).
   2. Keep the hint closed until 1.0. A new type can then be listed in `accepted_identity_types` but not be any agent's own type.
-- **Recommended:** option 1. It is the only reading under which "Additive identity types" in `VERSIONING.md` lets a new type be used, not just listed. It adds no code: the unimplemented type fails where it is used, with the code RFC-AITP-0002 §5 already gives. Fixture `man-015` pins that the Manifest verifies.
+- **Chosen:** option 1. It is the only reading under which "Additive identity types" in `VERSIONING.md` lets a new type be used, not just listed. It adds no code: the unimplemented type fails where it is used, with the code RFC-AITP-0002 §5 already gives. Fixture `man-015` pins that the Manifest verifies.
 - **Outcomes that change:** a Manifest whose `identity_hint.type` is outside `oidc`, `pinned_key` and `spiffe` is `MANIFEST_INVALID` for every verifier today and verifies under option 1. No existing fixture or committed artifact has such a hint.
 - **Not changed:** the handshake `IdentityDescriptor.type` enum (`aitp-identity.schema.json`, mirrored in `aitp-mutual-handshake.schema.json`). Adding a type there is the "Schema refactors" row of `VERSIONING.md`, and an unimplemented type is `IDENTITY_FAILED` either way.
-- **Reversal trigger:** the owner chooses option 2. The commit and `man-015` are then dropped, and `VERSIONING.md` says a new type can be listed in a Manifest but not used as an agent's own type until 1.0.
+- **Reversal trigger:** none before 1.0. Closing the hint type again would itself be a wire change.
 - **Blast radius if wrong:** low. A Manifest that used to be refused is accepted, and its handshakes still fail closed for verifiers that do not implement the type.

@@ -490,7 +490,7 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | `man-007` | Manifest `identity_hint` has `type: "oidc"` and also carries `public_key`, which RFC-AITP-0003 §3.1 forbids | failure: MANIFEST_INVALID |
 | `man-013` | Manifest `accepted_identity_types` lists an unrecognised type (`x509`) beside `oidc`; the list is open and the entry is ignored (RFC-AITP-0003 §3.2, §5 step 6) | success |
 | `man-014` | Manifest `accepted_identity_types` lists only unrecognised types (`did`, `x509`); the Manifest verifies, and at the §5 step 6 screen the list accepts no type, as `[]` does | success |
-| `man-015` | Manifest `identity_hint.type` is an unrecognised type (`x509`); the hint type is open and Manifest verification does not interpret it (RFC-AITP-0003 §3.1; session recommendation, not an owner ruling) | success |
+| `man-015` | Manifest `identity_hint.type` is an unrecognised type (`x509`); the hint type is open and Manifest verification does not interpret it (RFC-AITP-0003 §3.1) | success |
 
 ### Mutual Handshake (RFC-AITP-0004)
 
