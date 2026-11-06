@@ -209,7 +209,7 @@ In this RFC, a string is an **HTTPS URL** when all of the following hold:
 3. Every character of the string is in the range U+0021 to U+007E. There is no non-ASCII character, no white space and no control character.
 4. It contains no backslash (`\`).
 
-A client MUST NOT reject a string for the case of its hostname or for how an IPv6 literal is written, because URL parsers normalise both (fixture `a2a-009`). This definition decides whether a value is acceptable. It does not change any comparison: step 5 of [§4.2](#42-client-verification-order) still compares interface URLs byte for byte.
+A client MUST NOT reject a string for the case of its hostname or for how an IPv6 literal is written, because URL parsers normalise both (fixture `a2a-009`). The rule against `%` in item 2 applies to IPv6 literals too: an [RFC 6874](https://datatracker.ietf.org/doc/html/rfc6874) zone identifier (`[fe80::1%25eth0]`) is not permitted, because a link-local address names an interface on one host and has no meaning in an endpoint published to other agents. This definition decides whether a value is acceptable. It does not change any comparison: step 5 of [§4.2](#42-client-verification-order) still compares interface URLs byte for byte.
 
 The definition covers `params.manifestUrl` (§4.2 step 2) and the `rfc-aitp-0014.a2a_interfaces` entries (§4.1, §4.2 step 5). It does not cover the Manifest's `handshake_endpoint`. That field keeps the grammar of `aitp-manifest.schema.json` (`format: uri`, `^https://`, RFC-AITP-0003 §3) for every verifier, including a client of this binding. Applying the stricter definition to it would make a client of this binding refuse a Manifest that core verification accepts.
 

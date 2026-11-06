@@ -7,7 +7,7 @@
 **Change class.** Clarification of an opt-in Draft RFC, with three new draft fixtures. No change to RFC-AITP-0001 to RFC-AITP-0009, to any schema, to an existing fixture outcome or to a known-answer vector. RFC versions are set at RC2.1 (#157), not here.
 
 **Changes.**
-- New RFC-AITP-0014 §4.1.1 defines an HTTPS URL. It begins with lowercase `https://`; its authority is non-empty, with no userinfo and no percent-encoding; every character is printable ASCII; it contains no backslash. Hostname case and IPv6 spelling are not grounds for rejection. The definition covers `params.manifestUrl` and the `a2a_interfaces` entries. It does not cover the Manifest's `handshake_endpoint`, which keeps the schema grammar for every verifier (#176 item 16).
+- New RFC-AITP-0014 §4.1.1 defines an HTTPS URL. It begins with lowercase `https://`; its authority is non-empty, with no userinfo and no percent-encoding; every character is printable ASCII; it contains no backslash. Hostname case and IPv6 spelling are not grounds for rejection, but an RFC 6874 zone identifier is not permitted. The definition covers `params.manifestUrl` and the `a2a_interfaces` entries. It does not cover the Manifest's `handshake_endpoint`, which keeps the schema grammar for every verifier (#176 item 16).
 - §4.2 step 5: a matched `a2a_interfaces` entry that is not an HTTPS URL ⇒ `IDENTITY_FAILED` (#176 item 15).
 - New fixtures `a2a-007` (an `http` interface listed and selected, `IDENTITY_FAILED`), `a2a-008` (a `manifestUrl` with userinfo, `IDENTITY_FAILED`) and `a2a-009` (an uppercase hostname, success), all `status: draft`, `feature: aitp-a2a-agent-card`. The fixture count goes from 145 to 148.
 
