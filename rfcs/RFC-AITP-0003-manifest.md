@@ -148,6 +148,12 @@ Before a peer uses a Manifest to initiate a handshake, it MUST verify the follow
    operator looking at keys and signing when the signature was never reached (see the
    [registry's structural-rejection table](../registries/error-codes.md#structural-rejection)).
    Then the **member-set check**: every member of the Manifest MUST be a field defined in §3 or sit inside `extensions`. Any unknown member outside `extensions` ⇒ `UNKNOWN_FIELD` ([RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model)); unknown keys *inside* `extensions` MUST be ignored. This structural check runs before the cryptographic steps below: a Manifest carrying an unknown member is rejected before any proof-of-possession or signature work is spent on it, and no unknown member survives into the JCS signing input to create the cross-implementation signature ambiguity RFC-AITP-0001 §7 describes.
+
+   Two cases of this step are pinned by fixtures. A schema validator alone does not report the first:
+   - `manifest.aid` matches the schema pattern but does not decode to a public key ([RFC-AITP-0001 §5.3](RFC-AITP-0001-core.md#53-agent-id-aid)), for example a `p256` value that is not a point on the curve. Decoding the key is part of this step, so this is `MANIFEST_INVALID`, not `MANIFEST_POP_FAILED` (fixture `man-009`).
+   - `signature` or `proof_of_possession.signature` carries an algorithm tag outside the registered set ([RFC-AITP-0001 §5.4.3](RFC-AITP-0001-core.md#543-algorithm-tagged-signature-wire-format-jcs-profile-only)). The schema pattern admits only `ed25519.`, `p256.` or no tag, so this is `MANIFEST_INVALID`, not `MANIFEST_SIGNATURE_INVALID` or `INVALID_SIGNATURE` (fixture `man-010`). A registered tag that does not match the algorithm of `manifest.aid` fails at step 4 or 5 instead.
+
+   Capability strings (`offered_capabilities`, `required_peer_capabilities`) are checked against the schema pattern as ECMA-262 reads it; the excluded characters are listed in the [capability registry](../registries/capabilities.md#naming) (fixtures `man-011`, `man-012`).
 3. **Expiry check** — `manifest.expires_at` MUST be in the future. Failure ⇒ `MANIFEST_EXPIRED` (fixtures `man-001`, `man-003`).
 4. **Proof-of-possession** — Verify `proof_of_possession.signature`:
 

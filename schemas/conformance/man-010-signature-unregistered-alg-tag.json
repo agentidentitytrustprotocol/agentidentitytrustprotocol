@@ -1,0 +1,50 @@
+{
+  "id": "man-010",
+  "rfc": "RFC-AITP-0003",
+  "status": "core",
+  "required_for_v0_1": false,
+  "required_for_core": true,
+  "feature": null,
+  "$comment": "Pins the code for a Manifest signature with an unregistered algorithm tag (#176 item 20). The PoP is minted normally, so the tag on `signature` is the only defect under test. The signature value is a literal: it is never verified.",
+  "description": "A Manifest whose `signature` carries the algorithm tag `rsa.`, which is not in the registered set (`ed25519`, `p256`; RFC-AITP-0001 §5.4.3). The schema pattern for the field admits only the registered tags, so RFC-AITP-0003 §5 step 2 rejects the Manifest as a grammar failure. Receivers MUST reject with MANIFEST_INVALID, not MANIFEST_SIGNATURE_INVALID or INVALID_SIGNATURE.",
+  "tags": [
+    "failure",
+    "manifest",
+    "structural",
+    "algorithm-tag"
+  ],
+  "input": {
+    "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "now": 1711900100,
+    "manifest": {
+      "version": "aitp/0.3",
+      "aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+      "handshake_endpoint": "https://b.agents.example.com/aitp/handshake",
+      "accepted_trust_anchors": [
+        "https://auth.example.com"
+      ],
+      "offered_capabilities": [
+        "macp.mode.task.v1"
+      ],
+      "required_peer_capabilities": [],
+      "proof_of_possession": {
+        "challenge": "E1P1xitRfiKsGDoeyKCI0w",
+        "signature": "__VALID_POP_SIG__"
+      },
+      "published_at": 1711900000,
+      "expires_at": 1711986400,
+      "identity_hint": {
+        "type": "oidc",
+        "issuer": "https://auth.example.com",
+        "subject": "agent-B"
+      },
+      "signature": "rsa.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    },
+    "operation": "verify_manifest"
+  },
+  "expected": {
+    "outcome": "failure",
+    "error_code": "MANIFEST_INVALID",
+    "rationale": "An unregistered algorithm tag fails the signature field's grammar, a structural defect (RFC-AITP-0001 §5.4.3, RFC-AITP-0003 §5 step 2). It is never KEY_RESOLUTION_FAILED."
+  }
+}

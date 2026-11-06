@@ -201,6 +201,8 @@ set. Identifier length is algorithm-specific:
 - `p256` — exactly **44 chars** (33 raw bytes; SEC1 compressed
   point per [SEC 1 §2.3.3](https://www.secg.org/sec1-v2.pdf)).
 
+An identifier of the right length and alphabet that does not decode to a public key — for `p256`, a value whose first byte is not `0x02` or `0x03` or whose x-coordinate is not on the curve; for `ed25519`, a value that is not a valid point encoding — is not a valid AID, and an artifact that carries it as a signing AID is rejected. For a Manifest the code is `MANIFEST_INVALID`, at the structural step ([RFC-AITP-0003 §5](RFC-AITP-0003-manifest.md#5-manifest-verification) step 2).
+
 > **Known-answer test.** Pinned (seed → public key → AID) vectors live at [`schemas/conformance/known-answer/keypairs.json`](../schemas/conformance/known-answer/keypairs.json). For example, the all-zero 32-byte seed produces public key `O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik` and AID `aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik`. Implementations MUST reproduce these values byte-for-byte.
 
 An AID is not trusted by itself. It MUST be bound to an identity via an [Identity Binding](RFC-AITP-0002-identity.md) before any trust decision is made. The relationship between an AID, its identity binding, and its Manifest is defined in RFC-AITP-0003.
@@ -403,11 +405,29 @@ reject in §5.4.7. Manifests MAY advertise
 which algorithms a peer is willing to accept via the
 `accepted_signature_algorithms` field (RFC-AITP-0003 §3.2).
 
-A verifier that encounters a signature whose algorithm tag it does
-not implement MUST reject with `INVALID_SIGNATURE`, never
-`KEY_RESOLUTION_FAILED`. "Algorithm not supported" is a
-signature-verification failure: the key may well be resolvable, but
-the signature cannot be checked. `KEY_RESOLUTION_FAILED` is reserved
+A signature whose algorithm tag is not in the registered set fails
+the field's grammar (step 2 above, and the pattern every
+JCS-profile signature field has in its schema). It is a structural
+rejection, with the code the
+[registry's structural-rejection table](../registries/error-codes.md#structural-rejection)
+gives the artifact carrying it: `INVALID_ENVELOPE` for an envelope
+or a handshake payload's `pop_signature`, `MANIFEST_INVALID` for a
+Manifest (RFC-AITP-0003 §5 step 2, fixture `man-010`),
+`REVOCATION_SNAPSHOT_INVALID` for a revocation snapshot. A registered
+tag that does not match the signing AID's algorithm (step 3 above),
+or a signature that does not verify, is a signature failure:
+`INVALID_SIGNATURE`, or the artifact's own signature code. Neither
+case is ever `KEY_RESOLUTION_FAILED`. "Algorithm not supported" is
+not a key-resolution failure: the key may well be resolvable, but
+the signature cannot be checked.
+
+> **Erratum.** Through `0.3.5-draft` this paragraph said a verifier
+> rejects a signature whose algorithm tag it does not implement with
+> `INVALID_SIGNATURE`. Both registered algorithms are REQUIRED, so the
+> only tags a verifier does not implement are unregistered ones, and
+> the schemas have always rejected those as a grammar failure. The
+> text now follows the schemas and the structural-rejection table. No
+> fixture asserted the old reading. `KEY_RESOLUTION_FAILED` is reserved
 for the distinct case where the issuer or peer key itself cannot be
 resolved (RFC-AITP-0007). The distinction is load-bearing because
 `KEY_RESOLUTION_FAILED` is retryable (§5.7) while `INVALID_SIGNATURE`
@@ -617,7 +637,7 @@ Verifiers MUST NOT reveal which specific policy check failed beyond the error co
 | `POP_CHALLENGE_INVALID` | Downstream `pop_challenge` envelope malformed, replayed, or expired | false |
 | `POP_RESPONSE_INVALID` | Downstream `pop_response` envelope or `pop_signature` failed verification | false |
 | `NONCE_MISMATCH` | `pop_nonce_echo` did not match the sent nonce | false |
-| `AUDIENCE_MISMATCH` | TCT `aud` ≠ self AID | false |
+| `AUDIENCE_MISMATCH` | TCT `aud` or `sub` ≠ self AID, or `cnf.jkt` not bound to `sub` | false |
 | `TOKEN_ALG_MISMATCH` | JWS `alg` is not the sole AID-derived value (§5.4.5) — includes `none` and unknown algorithms | false |
 | `TOKEN_TYP_MISMATCH` | JWS `typ` does not match the expected value for the verification context (§5.4.5) | false |
 

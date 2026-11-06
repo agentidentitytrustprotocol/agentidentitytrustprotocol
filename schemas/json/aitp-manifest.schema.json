@@ -61,7 +61,7 @@
           "items": {
             "type": "string",
             "minLength": 1,
-            "pattern": "^[^\\s]+$"
+            "pattern": "^[^\\t\\n\\u000b\\f\\r \\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000\\ufeff]+$"
           },
           "uniqueItems": true,
           "description": "Capabilities this agent is willing to grant to authenticated peers."
@@ -71,7 +71,7 @@
           "items": {
             "type": "string",
             "minLength": 1,
-            "pattern": "^[^\\s]+$"
+            "pattern": "^[^\\t\\n\\u000b\\f\\r \\u00a0\\u1680\\u2000-\\u200a\\u2028\\u2029\\u202f\\u205f\\u3000\\ufeff]+$"
           },
           "uniqueItems": true,
           "description": "Capabilities the peer MUST hold for this agent to accept a handshake. Empty means no prerequisites."

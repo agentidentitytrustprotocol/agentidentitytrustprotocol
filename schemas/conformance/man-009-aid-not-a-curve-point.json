@@ -1,0 +1,51 @@
+{
+  "id": "man-009",
+  "rfc": "RFC-AITP-0003",
+  "status": "core",
+  "required_for_v0_1": false,
+  "required_for_core": true,
+  "feature": null,
+  "$comment": "Pins the code for an AID that matches the grammar but does not decode to a key (#176 item 19). The `aid` is the SEC1 compressed encoding 0x02 || x with x = 1, which is not the x-coordinate of a point on P-256. Both signatures are literal dummies of the right shape: no key exists to mint them, and the fixture passes by rejecting before any signature is checked (see the README, \"Structural-rejection fixtures\").",
+  "description": "A Manifest whose `aid` is a 44-character `p256` identifier that is not a point on the curve. The value matches the schema pattern, but RFC-AITP-0001 §5.3 makes it an invalid AID, and RFC-AITP-0003 §5 step 2 decodes the key as part of the structural check. Receivers MUST reject with MANIFEST_INVALID, not MANIFEST_POP_FAILED or MANIFEST_SIGNATURE_INVALID.",
+  "tags": [
+    "failure",
+    "manifest",
+    "structural",
+    "p256",
+    "key-encoding"
+  ],
+  "input": {
+    "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "now": 1711900100,
+    "manifest": {
+      "version": "aitp/0.3",
+      "aid": "aid:pubkey:p256:AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB",
+      "handshake_endpoint": "https://b.agents.example.com/aitp/handshake",
+      "accepted_trust_anchors": [
+        "https://auth.example.com"
+      ],
+      "offered_capabilities": [
+        "macp.mode.task.v1"
+      ],
+      "required_peer_capabilities": [],
+      "proof_of_possession": {
+        "challenge": "E1P1xitRfiKsGDoeyKCI0w",
+        "signature": "p256.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      },
+      "published_at": 1711900000,
+      "expires_at": 1711986400,
+      "identity_hint": {
+        "type": "oidc",
+        "issuer": "https://auth.example.com",
+        "subject": "agent-B"
+      },
+      "signature": "p256.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    },
+    "operation": "verify_manifest"
+  },
+  "expected": {
+    "outcome": "failure",
+    "error_code": "MANIFEST_INVALID",
+    "rationale": "x = 1 gives x^3 - 3x + b, a quadratic non-residue mod p, so no y exists and the key cannot be loaded. Decoding `manifest.aid` is part of RFC-AITP-0003 §5 step 2, before the step 4 PoP check."
+  }
+}

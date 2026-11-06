@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Error codes for unstated cases, with fixtures (#176 items 13, 17, 19, 20, 21; #160 row 6)
+
+**Change class.** Clarifications and one erratum under the `aitp/0.3` freeze, with new fixtures. Each item names the code for a case the text left open, or settles prose toward the schema. No existing fixture's `id` or `expected` outcome changes, no signing input or known-answer vector changes, and the schema edit changes no validation outcome. RFC versions are set at RC2.1 (#157), not here.
+
+**Changes.**
+- RFC-AITP-0004 §5.3 and §5.4 step 5 and the §6 table: a peer TCT whose `sub` is not the receiver, or whose `cnf.jkt` is not the thumbprint of the key in `sub`, ⇒ `AUDIENCE_MISMATCH`. RFC-AITP-0005 §7.2 step 5 names the same code for `cnf.jkt`. This follows the RFC-AITP-0013 holder precedent (#160 row 6). New fixtures `mh-016` and `mh-017`.
+- RFC-AITP-0008 §1.5: an unknown member of the signed `revocation_list` body ⇒ `UNKNOWN_FIELD`; an extra member of the unsigned transport wrapper ⇒ `REVOCATION_SNAPSHOT_INVALID`, as the registry row says (#176 item 13). New fixture `rev-012`.
+- New fixture `man-008`: a `handshake_endpoint` outside the schema's `^https://` grammar ⇒ `MANIFEST_INVALID` (#176 item 17). No text change.
+- RFC-AITP-0001 §5.3 and RFC-AITP-0003 §5 step 2: an AID of the right length and alphabet that does not decode to a public key is not a valid AID; for a Manifest it is `MANIFEST_INVALID` at the structural step (#176 item 19). New fixture `man-009`, a `p256` AID that is not a point on the curve.
+- RFC-AITP-0001 §5.4.3, erratum, and RFC-AITP-0003 §5 step 2: a signature with an unregistered algorithm tag fails the field's grammar and takes the artifact's structural code (`MANIFEST_INVALID` for a Manifest). It is not `INVALID_SIGNATURE`, which the old text said and which the schemas never allowed (#176 item 20). New fixture `man-010`.
+- Capability strings: the seven `^[^\s]+$` patterns in the Manifest, handshake, TCT, grant voucher and delegation schemas now list the excluded code points explicitly. These are the ECMA-262 white-space and line-terminator set, so the outcome under the JSON Schema dialect is identical, and every other regex dialect now reads the patterns the same way. `registries/capabilities.md` lists the set (#176 item 21). New fixtures `man-011` (U+0085, accepted) and `man-012` (U+FEFF, `MANIFEST_INVALID`).
+- Conformance index: `core` 94 → 102, total 145 → 153.
+
 ### Core RFC text clarifications and errata from the review inputs (#176, #160 row 5)
 
 **Change class.** Clarifications and errata under the `aitp/0.3` freeze. No message, field, signing input, error code, check order, schema, fixture outcome or known-answer vector changes. Two errata move the prose to match what the pinned artifacts already did. RFC versions are set at RC2.1 (#157), not here.
