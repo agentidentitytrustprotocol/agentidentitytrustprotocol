@@ -155,12 +155,8 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": [
-            "oidc",
-            "pinned_key",
-            "spiffe"
-          ],
-          "description": "Identity mechanism. v0.3: oidc, pinned_key, spiffe (RFC-AITP-0002 \u00a76)."
+          "minLength": 1,
+          "description": "Identity mechanism. Registered in v0.3: oidc, pinned_key, spiffe (RFC-AITP-0002 \u00a76). Open: any non-empty string, so a Manifest whose hint names a type the verifier does not implement is not schema-invalid. The member rules below apply to the registered types only; a handshake that presents an unimplemented type fails with IDENTITY_FAILED (RFC-AITP-0003 \u00a73.1, RFC-AITP-0002 \u00a75)."
         },
         "issuer": {
           "type": "string",
