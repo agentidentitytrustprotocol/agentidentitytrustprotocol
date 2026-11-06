@@ -2,13 +2,20 @@
 
 ## Unreleased
 
-### `VERSIONING.md`: what "additive identity types" allows on the frozen line (#176 item 18; owner decision pending)
+### RFC-AITP-0003: `accepted_identity_types` is open; unrecognised entries are ignored (#176 item 18; owner decision 2026-11-06)
 
-**Change class.** Clarification, text only. This drafts option B of the one-way door recorded in the PR: the Manifest's identity-type fields stay closed, and `VERSIONING.md` stops implying otherwise. No schema, fixture outcome or known-answer vector changes. RFC versions are set at RC2.1 (#157), not here.
+**Change class.** Wire change, taken by owner decision as a one-way door at RC2.1 (#157). It is not a security fix. A Manifest whose `accepted_identity_types` lists a type outside `oidc`, `pinned_key` and `spiffe` was `MANIFEST_INVALID` at RFC-AITP-0003 §5 step 2 for every verifier, and is now schema-valid. No existing fixture or committed artifact changes its outcome: none lists such a type. No known-answer vector changes. RFC versions are set at RC2.1, not here.
+
+**Outcomes that change.** Only Manifests that list an unrecognised `accepted_identity_types` entry. Today every verifier rejects them with `MANIFEST_INVALID`. Under this change Manifest verification accepts them, and the fetching peer's §5 step 6 screen ignores the unrecognised entries: a list that still names the fetching peer's own type passes (`man-013`); a list of only unrecognised entries behaves as `[]`, so a non-OIDC fetching peer gets `INCOMPATIBLE_IDENTITY_TYPE` (`man-014` pins that the Manifest itself verifies). Every implementation that validates against the schema or keeps its own enum has to stop rejecting unknown entries.
 
 **Changes.**
-- `VERSIONING.md`, "Allowed", "Additive identity types": a new type can be registered and carried in the handshake `identity` descriptor. `accepted_identity_types` and `identity_hint.type` stay closed until 1.0, because opening them would turn rejected Manifests into accepted ones for updated verifiers only.
-- RFC-AITP-0003 §3.2: the `accepted_identity_types` set is closed for `aitp/0.3`; any other value is `MANIFEST_INVALID`.
+- `aitp-manifest.schema.json`: `accepted_identity_types` items are any non-empty string, still unique. The enum is removed.
+- RFC-AITP-0003 §3.2: the list is open; an unrecognised entry is inside the grammar and is ignored when screening. A publisher SHOULD list only types it implements. §5 step 6 states the rule for unrecognised entries, including the all-unrecognised case.
+- RFC-AITP-0004 §5.1 step 8: an entry in the receiver's own list that it does not implement has no effect, because a peer presenting that type has already failed step 6 with `IDENTITY_FAILED`.
+- `VERSIONING.md`, "Allowed", "Additive identity types": accurate again. A new type is rejected in the handshake descriptor with `IDENTITY_FAILED` and ignored in a Manifest's `accepted_identity_types`, and the row records that the list was opened once, by owner decision.
+- `docs/discovery.md` step 8 mirrors the rule.
+- New core fixtures `man-013` (unrecognised entry beside `oidc`, success) and `man-014` (only unrecognised entries, success). Conformance README: index rows, and the summary counts corrected to 97 core and 148 in total. `main` already had 95 core and 146 fixtures against a stated 94 and 145.
+- `governance/DECISIONS.md` records the owner decision.
 
 ### Interop event #1 plan
 

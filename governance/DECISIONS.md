@@ -668,3 +668,25 @@ patch-level, no new signatures). It deserves its own review rather than riding a
 - **Rejected:** waiting for the release candidate. There is no reason to delay. Running on the draft surfaces interop defects while the text can still change without an RC re-mint.
 - **Reversal trigger:** none. The RC event is additional, not a replacement.
 - **Blast radius if wrong:** low. Results at a pre-RC commit say so in each report's `spec.commit`.
+
+## 2026-11-06 — Open `accepted_identity_types` now; ignore unrecognised entries (#176 item 18)
+
+- **Status:** Decided.
+- **Decided by:** the owner, on 2026-11-06, as one of two one-way doors in the RC2.1 review dispositions (#157). The session drafted the text.
+- **Context:** `VERSIONING.md` allowed additive identity types on the frozen line because "no existing outcome moves". The Manifest schema closed `accepted_identity_types` to `oidc`, `pinned_key` and `spiffe`, and RFC-AITP-0003 §5 step 2 made any other entry `MANIFEST_INVALID`. So a Manifest listing a new type beside `oidc` was refused by every verifier, including peers that only need `oidc`, and a new type could never be advertised in a Manifest.
+- **Options:**
+  1. Open the list now and ignore unrecognised entries. A wire change: Manifests that every verifier rejects today become valid.
+  2. Keep the list closed on the `aitp/0.3` line, correct `VERSIONING.md`, and defer opening it to 1.0. Text only. This was the session's draft in #184.
+  3. Open the list as a security fix. It is not a security defect.
+- **Chosen:** option 1.
+  - `accepted_identity_types` entries are any non-empty string, unique. An unrecognised entry is inside the grammar, so it is not `MANIFEST_INVALID` (RFC-AITP-0003 §3.2).
+  - At RFC-AITP-0003 §5 step 6 the fetching peer ignores entries it does not recognise and checks its own type against the rest. A list of only unrecognised entries behaves as `[]`: a non-OIDC fetching peer gets `INCOMPATIBLE_IDENTITY_TYPE`. No new code.
+  - At RFC-AITP-0004 §5.1 step 8 an entry in the receiver's own list that it does not implement has no effect; a peer presenting that type has already failed step 6 with `IDENTITY_FAILED`.
+  - `VERSIONING.md` keeps "Additive identity types" in "Allowed", made accurate, and records that the list was opened once by this decision.
+  - Fixtures `man-013` (unrecognised entry beside `oidc`, success) and `man-014` (only unrecognised entries, success at Manifest verification), core tier.
+- **Reasoning:** the owner preferred to fix the forward-compatibility defect on this line rather than carry a promise the schema did not keep. With the list closed, every identity type added before 1.0 would need the same wire change. No existing fixture or committed artifact lists an unregistered type, so no frozen fixture outcome and no known-answer vector moves.
+- **Relation to the S2.1 freeze (2026-10-24 entry):** that entry defers non-security wire changes found in review to 1.0. This decision is an owner-made exception for this one field, recorded with its classification as the freeze's "Who classifies" rule requires. It does not lift the freeze for anything else.
+- **Consequences:** every implementation that rejects unknown entries has to change to conform to RC2.1: today all of them return `MANIFEST_INVALID` for such a Manifest. Until they do, verifiers will disagree about the same Manifest.
+- **Not covered by this ruling:** `identity_hint.type`. See the next entry.
+- **Reversal trigger:** none before 1.0. Closing the list again would itself be a wire change.
+- **Blast radius if wrong:** low to medium. One field; a Manifest that used to be refused is accepted, and the type screen still fails closed for a fetching peer whose type is not listed.

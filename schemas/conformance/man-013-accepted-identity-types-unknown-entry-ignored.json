@@ -1,0 +1,53 @@
+{
+  "id": "man-013",
+  "rfc": "RFC-AITP-0003",
+  "status": "core",
+  "required_for_v0_1": false,
+  "required_for_core": true,
+  "feature": null,
+  "$comment": "Pins the owner decision of 2026-11-06 on #176 item 18: `accepted_identity_types` is open. The body is man-005's without `extensions`, plus `accepted_identity_types: [\"oidc\", \"x509\"]`, so the unrecognised entry is the only thing under test. `x509` is a Reserved row of registries/identity-types.md that no `aitp/0.3` implementation implements. That is the realistic case: a type specified later, listed by a publisher that implements it, read by a verifier that does not. Before RC2.1 every verifier returned MANIFEST_INVALID for this Manifest, because the schema closed the list to `oidc`, `pinned_key` and `spiffe`.",
+  "description": "Manifest whose `accepted_identity_types` lists a type the verifier does not implement (`x509`) beside one it does (`oidc`). RFC-AITP-0003 §3.2: the list is open, so the unrecognised entry is inside the grammar and does not make the Manifest MANIFEST_INVALID at §5 step 2; at §5 step 6 the verifier ignores it. Version, expiry, PoP and signature all pass, so the Manifest verifies.",
+  "tags": [
+    "success",
+    "manifest",
+    "identity-type",
+    "forward-compatibility"
+  ],
+  "input": {
+    "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "now": 1711900100,
+    "manifest": {
+      "version": "aitp/0.3",
+      "aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+      "handshake_endpoint": "https://b.agents.example.com/aitp/handshake",
+      "accepted_trust_anchors": [
+        "https://auth.example.com"
+      ],
+      "offered_capabilities": [
+        "macp.mode.task.v1"
+      ],
+      "required_peer_capabilities": [],
+      "accepted_identity_types": [
+        "oidc",
+        "x509"
+      ],
+      "proof_of_possession": {
+        "challenge": "E1P1xitRfiKsGDoeyKCI0w",
+        "signature": "__VALID_POP_SIG__"
+      },
+      "published_at": 1711900000,
+      "expires_at": 1711986400,
+      "identity_hint": {
+        "type": "oidc",
+        "issuer": "https://auth.example.com",
+        "subject": "agent-B"
+      },
+      "signature": "__VALID_MANIFEST_SIG__"
+    },
+    "operation": "verify_manifest"
+  },
+  "expected": {
+    "outcome": "success",
+    "rationale": "The Manifest is schema-valid: an `accepted_identity_types` entry is any non-empty string. Version, expiry, proof-of-possession and signature pass, and the signing input covers `accepted_identity_types` as written, unrecognised entry included (RFC-AITP-0003 §6.1). `verify_manifest` runs no fetcher-side screen, and the unrecognised entry would not change that screen's outcome: it is ignored, and `oidc` is still listed (RFC-AITP-0003 §5 step 6)."
+  }
+}

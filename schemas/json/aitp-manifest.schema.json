@@ -80,14 +80,10 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": [
-              "oidc",
-              "pinned_key",
-              "spiffe"
-            ]
+            "minLength": 1
           },
           "uniqueItems": true,
-          "description": "Identity binding types this agent accepts from peers (RFC-AITP-0002). Default semantics per RFC-AITP-0003 §3.2: an absent field defaults to [\"oidc\"]; an explicitly empty [] means 'accept no identity type' (rejects every peer with INCOMPATIBLE_IDENTITY_TYPE — distinct from INCOMPATIBLE_TRUST_ANCHORS, which signals an OIDC trust-anchor overlap failure). Publishers SHOULD omit the field when the default is desired."
+          "description": "Identity binding types this agent accepts from peers (RFC-AITP-0002). Open: an entry is any non-empty string, so a Manifest that lists a type the verifier does not implement is not schema-invalid. A verifier ignores the entries it does not recognise when it screens the Manifest (RFC-AITP-0003 §3.2, §5 step 6). Default semantics per RFC-AITP-0003 §3.2: an absent field defaults to [\"oidc\"]; an explicitly empty [] means 'accept no identity type' (rejects every peer with INCOMPATIBLE_IDENTITY_TYPE — distinct from INCOMPATIBLE_TRUST_ANCHORS, which signals an OIDC trust-anchor overlap failure). Publishers SHOULD omit the field when the default is desired."
         },
         "accepted_signature_algorithms": {
           "type": "array",

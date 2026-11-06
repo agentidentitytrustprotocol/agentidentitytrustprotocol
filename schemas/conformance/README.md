@@ -444,7 +444,7 @@ valid and invalid, are in [`reports/`](reports/).
 
 | Tier | Count | Required for v0.3 |
 |---|---|---|
-| `core` (`required_for_core`) | 94 | ✅ Yes |
+| `core` (`required_for_core`) | 97 | ✅ Yes |
 | `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (required of v0.1 runners only; a core runner may execute it, and its result gates nothing) |
 | `extension` — pinned-admission profile (RFC-AITP-0002 §3.4, `feature: aitp-pinned-admission`) | 8 | ❌ No (required of an implementation claiming the profile) |
 | `extension` — attestation verification (RFC-AITP-0005 §5.3, `feature: aitp-self-attestation`) | 3 | ❌ No (required of an implementation claiming the role) |
@@ -453,7 +453,7 @@ valid and invalid, are in [`reports/`](reports/).
 | `draft` — A2A Agent Card binding (RFC-AITP-0014, `feature: aitp-a2a-agent-card`) | 6 | ❌ No |
 | `draft` — `spiffe` identity type (RFC-AITP-0002 §6, `feature: experimental-spiffe-identity`) | 7 | ❌ No |
 | `draft` — TCT renewal (RFC-AITP-0013, `feature: experimental-renewal`) | 12 | ❌ No |
-| **Total** | **145** | |
+| **Total** | **148** | |
 
 Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A conformance runner for the current revision, `aitp/0.3`, MUST execute every `required_for_core` core fixture (the key keeps its v0.2 name so existing runners keep working; for `aitp/0.3` it marks the core tier); `draft` and `extension` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
@@ -488,6 +488,8 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | `man-005` | Manifest body carries an unrecognized, vendor-namespaced key inside `extensions` — ignored | success |
 | `man-006` | Manifest missing the REQUIRED `handshake_endpoint` — structural rejection, not a signature failure | failure: MANIFEST_INVALID |
 | `man-007` | Manifest `identity_hint` has `type: "oidc"` and also carries `public_key`, which RFC-AITP-0003 §3.1 forbids | failure: MANIFEST_INVALID |
+| `man-013` | Manifest `accepted_identity_types` lists an unrecognised type (`x509`) beside `oidc`; the list is open and the entry is ignored (RFC-AITP-0003 §3.2, §5 step 6) | success |
+| `man-014` | Manifest `accepted_identity_types` lists only unrecognised types (`did`, `x509`); the Manifest verifies, and at the §5 step 6 screen the list accepts no type, as `[]` does | success |
 
 ### Mutual Handshake (RFC-AITP-0004)
 
