@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Conformance: fixture inputs from the aitp-verifier-go review (#160 rows 1 and 3)
+
+**Change class.** Clarification, plus a fixture-input erratum for `env-002`. No fixture `id` or `expected` outcome changes, and the known-answer vectors are untouched. Re-minting and the four-implementation re-run are batched into RC2.1 (#157), as decided on #160.
+
+**Changes.**
+- `ADAPTER.md`, `PLACEHOLDERS.md`: the step-1 object of `authorize_capability_invocation` (`tct-007`, `tct-026`) is a harness application request. Its `message_type` `capability_invocation` is outside the core message-types registry, and the step does not test the unregistered-`message_type` rule of RFC-AITP-0001 §5.2. The registry does not change.
+- `env-002`: the description cites RFC-AITP-0005 §10.1 item 4 instead of RFC-AITP-0004 §4. It says the TCT is presented back to its issuer, so `aud` is not `self_aid` by design, and that presenter authentication (RFC-AITP-0005 §10.5 item 3) is not exercised. The active TCT's `iat` moves from the future value `9999996399` to `__NOW_MINUS_3600__`. Expected outcome unchanged: `POLICY_VIOLATION`.
+
 ### Interop event #1 plan
 
 **Change class.** Documentation only. No wire, schema, fixture or RFC change.

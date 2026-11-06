@@ -250,6 +250,18 @@ precondition that fails SKIPs the fixture. No fixture in this directory uses
 The "Fixtures" column is a guide. The fixture's own `input.operation` is the
 authority.
 
+The step-1 object of `authorize_capability_invocation` (`tct-007`, `tct-026`)
+is a harness application request, not a core AITP message. Its
+`message_type` `capability_invocation` is outside the
+[message-types registry](../../registries/message-types.md) and the envelope
+schema's `enum`, and the step does not test the RFC-AITP-0001 §5.2 rule that
+rejects an unregistered `message_type` with `INVALID_ENVELOPE`. The adapter
+accepts this one value for this one operation, verifies the object's signature
+the same way as an envelope's (RFC-AITP-0001 §5.4), and hands its `payload`
+(`tct_jti`, `capability`) to the PoP-enforcement path under test. The core
+registry does not grow a `capability_invocation` row; an application's own
+invocation message travels inside its own protocol, outside AITP.
+
 In an `issue_presentation_challenge` step, the runner reads `result.pop_nonce`
 from a success response and substitutes it for `__ISSUED_NONCE_<n>__` in
 later steps, numbered from 1 within the sequence. A success response without

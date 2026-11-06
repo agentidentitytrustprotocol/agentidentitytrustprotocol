@@ -5,7 +5,8 @@
   "required_for_v0_1": false,
   "required_for_core": true,
   "feature": null,
-  "description": "Caller invokes a capability not present in the active TCT's `grants` claim. Receivers MUST reject with POLICY_VIOLATION (RFC-AITP-0004 §4). The check is local — no remote lookup is required. The active TCT is a valid v0.2 compact JWS (signature, expiry, audience all pass); only the grant intersection fails.",
+  "$comment": "Fixture-input erratum for #160 row 3. The active TCT is presented back to its issuer: `self_aid` is the TCT's `iss`, and `aud` = `sub` names the presenter, as RFC-AITP-0005 §10.5 expects, so `aud` is not `self_aid` by design. This fixture tests only the grant check (RFC-AITP-0005 §10.1 item 4, run as §10.5 item 6). §10.5 item 3, which establishes the presenter by downstream PoP or a channel binding, is not under test: the fixture supplies neither, and the `verify_envelope` operation runs only the grant check on `requested_capability` (ADAPTER.md). Through `0.3.4-draft` the claims had `iat` 9999996399, in the future; `iat` is now `__NOW_MINUS_3600__`, which the runner mints like every other placeholder. The expected outcome is unchanged.",
+  "description": "Caller invokes a capability not present in the active TCT's `grants` claim. Receivers MUST reject with POLICY_VIOLATION (RFC-AITP-0005 §10.1 item 4; registry POLICY_VIOLATION). The check is local; no remote lookup is required. The active TCT is a validly signed compact JWS whose issuer is the verifier (RFC-AITP-0005 §10.5); its signature and expiry pass, and only the grant check fails. Presenter authentication (§10.5 item 3) is not exercised by this fixture.",
   "tags": [
     "failure",
     "policy",
@@ -20,7 +21,7 @@
       "iss": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
       "sub": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
       "aud": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
-      "iat": 9999996399,
+      "iat": "__NOW_MINUS_3600__",
       "exp": 9999999999,
       "grants": [
         "macp.mode.task.v1"
