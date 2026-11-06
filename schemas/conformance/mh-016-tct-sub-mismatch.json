@@ -5,7 +5,7 @@
   "required_for_v0_1": false,
   "required_for_core": true,
   "feature": null,
-  "$comment": "The payload `tct` is a __JWS_TCT__ compact-JWS placeholder with a `tct_claims` sibling (minting input; stripped by the minter). The TCT is validly signed by its iss key, `aud` is the receiver and `cnf.jkt` is the thumbprint of the key in `sub`; the defect is purely the `sub` claim, which names another agent. Pins the code for the `sub` bullet of RFC-AITP-0004 §5.4 step 5, which named none through 0.3.5-draft (#160 row 6).",
+  "$comment": "The payload `tct` is a __JWS_TCT__ compact-JWS placeholder with a `tct_claims` sibling (minting input; stripped by the minter). The TCT is validly signed by its iss key, `aud` is the receiver and `cnf.jkt` is the receiver's own thumbprint (kat-keypair-001, jwk-thumbprints.json), so the token is bound to the receiver's key; the defect is the `sub` claim, which names another agent. Pins the code for the `sub` bullet of RFC-AITP-0004 §5.4 step 5, which named none through 0.3.5-draft (#160 row 6).",
   "description": "Peer-issued TCT delivered in MUTUAL_COMMIT_ACK names the receiver as `aud` but another agent as `sub`. RFC-AITP-0004 §5.4 step 5 requires `sub` to equal the receiver's own AID; the token was issued for someone else. The receiving peer MUST reject with AUDIENCE_MISMATCH. (RFC-AITP-0004 §5.4 step 5 and §6; RFC-AITP-0005 §2: `aud` MUST equal `sub`.)",
   "tags": [
     "security",
@@ -39,7 +39,7 @@
             "macp.mode.task.v1"
           ],
           "cnf": {
-            "jkt": "7vCfM5fZKv4XAX70cbWQHvi1HpigcfhrWpGiXK_4prI"
+            "jkt": "9ZP03Nu8GrXPAUkbKNxHOKBzxPX83SShgFkRNK-f2lw"
           }
         },
         "pop_signature": "__VALID_POP_SIG__",
@@ -52,6 +52,6 @@
   "expected": {
     "outcome": "failure",
     "error_code": "AUDIENCE_MISMATCH",
-    "rationale": "`sub` is checked before `aud` in RFC-AITP-0004 §5.4 step 5 and is not the receiver. `aud` is the receiver and `cnf.jkt` matches `sub`, so `sub` is the only defect under test."
+    "rationale": "`sub` is not the receiver, and `sub` is checked before `aud` in RFC-AITP-0004 §5.4 step 5. `aud` is the receiver and `cnf.jkt` is the receiver's own thumbprint, so a verifier that checks the key binding against its own key, or checks only `aud`, accepts the token; only the `sub` comparison rejects it. The step 5 `cnf.jkt` bullet compares against the key in `sub` and so also fails here, with the same code."
   }
 }

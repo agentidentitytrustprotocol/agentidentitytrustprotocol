@@ -201,7 +201,7 @@ set. Identifier length is algorithm-specific:
 - `p256` — exactly **44 chars** (33 raw bytes; SEC1 compressed
   point per [SEC 1 §2.3.3](https://www.secg.org/sec1-v2.pdf)).
 
-An identifier of the right length and alphabet that does not decode to a public key — for `p256`, a value whose first byte is not `0x02` or `0x03` or whose x-coordinate is not on the curve; for `ed25519`, a value that is not a valid point encoding — is not a valid AID, and an artifact that carries it as a signing AID is rejected. For a Manifest the code is `MANIFEST_INVALID`, at the structural step ([RFC-AITP-0003 §5](RFC-AITP-0003-manifest.md#5-manifest-verification) step 2).
+An identifier of the right length and alphabet that does not decode to a public key — for `p256`, a value whose first byte is not `0x02` or `0x03` or whose x-coordinate is not on the curve; for `ed25519`, a value on which the point decoding of [RFC 8032 §5.1.3](https://datatracker.ietf.org/doc/html/rfc8032#section-5.1.3) fails, because the encoded y-coordinate is not less than p = 2^255 − 19, because (y² − 1) / (d·y² + 1) has no square root modulo p, or because x = 0 while the sign bit is 1 — is not a valid AID, and an artifact that carries it as a signing AID is rejected. For a Manifest the code is `MANIFEST_INVALID`, at the structural step ([RFC-AITP-0003 §5](RFC-AITP-0003-manifest.md#5-manifest-verification) step 2; fixtures `man-009` for `p256`, `man-016` for `ed25519`). That decoding test is the whole of this rule. A key that decodes, including one of small order such as the identity, is a valid AID here, and the other checks of §5.4.7 stay at the signature step, with the signature code. Some libraries load an Ed25519 public key without decoding it and fail only when verifying, so an implementation using one MUST run the RFC 8032 §5.1.3 decoding itself to give this code.
 
 > **Known-answer test.** Pinned (seed → public key → AID) vectors live at [`schemas/conformance/known-answer/keypairs.json`](../schemas/conformance/known-answer/keypairs.json). For example, the all-zero 32-byte seed produces public key `O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik` and AID `aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik`. Implementations MUST reproduce these values byte-for-byte.
 
@@ -427,7 +427,9 @@ the signature cannot be checked.
 > only tags a verifier does not implement are unregistered ones, and
 > the schemas have always rejected those as a grammar failure. The
 > text now follows the schemas and the structural-rejection table. No
-> fixture asserted the old reading. `KEY_RESOLUTION_FAILED` is reserved
+> fixture asserted the old reading.
+
+`KEY_RESOLUTION_FAILED` is reserved
 for the distinct case where the issuer or peer key itself cannot be
 resolved (RFC-AITP-0007). The distinction is load-bearing because
 `KEY_RESOLUTION_FAILED` is retryable (§5.7) while `INVALID_SIGNATURE`
@@ -572,7 +574,8 @@ The compact JWS profile (§5.4.5) needs no such rule: `EdDSA` signs `ASCII(heade
 **Ed25519.** Verifiers MUST reject:
 
 - a signature whose `S` is not canonical (`S ≥ L`);
-- a public key or `R` that is not a canonical point encoding;
+- an `R` that is not a canonical point encoding;
+- a public key that is not a canonical point encoding. When the key is carried as an AID, an RFC 8032 §5.1.3 decoding failure is an invalid AID and is rejected before this step with the artifact's structural code (§5.3); this item covers any key that reaches the signature step undecoded;
 - a public key of small order (including the identity).
 
 Verifiers MUST use the cofactorless equation `[S]B = R + [k]A`. This is the "strict" verification profile (for example ed25519-dalek `verify_strict`). A verifier MAY additionally reject a small-order `R`, as `verify_strict` does; no conforming signer produces one, so the two behaviours do not diverge on honest input.

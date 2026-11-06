@@ -1,0 +1,51 @@
+{
+  "id": "man-016",
+  "rfc": "RFC-AITP-0003",
+  "status": "core",
+  "required_for_v0_1": false,
+  "required_for_core": true,
+  "feature": null,
+  "$comment": "Ed25519 sibling of man-009 (#176 item 19). The `aid` is the 32-byte little-endian encoding of y = 2. It is less than p, but (y^2 - 1) / (d*y^2 + 1) has no square root modulo p, so RFC 8032 §5.1.3 decoding fails at step 3. The value was chosen this way, not as y >= p, so that every RFC 8032 decoder rejects it. Some libraries (pyca/cryptography over OpenSSL, for example) load these bytes as a public key without decoding them and fail only at verification, which would give MANIFEST_POP_FAILED; RFC-AITP-0001 §5.3 requires the decoding itself. Both signatures are literal dummies of the right shape: no key exists to mint them, and the fixture passes by rejecting before any signature is checked (README, \"Structural-rejection fixtures\").",
+  "description": "A Manifest whose `aid` is a 43-character `ed25519` identifier on which RFC 8032 §5.1.3 point decoding fails. The value matches the schema pattern, but RFC-AITP-0001 §5.3 makes it an invalid AID, and RFC-AITP-0003 §5 step 2 decodes the key as part of the structural check. Receivers MUST reject with MANIFEST_INVALID, not MANIFEST_POP_FAILED or MANIFEST_SIGNATURE_INVALID.",
+  "tags": [
+    "failure",
+    "manifest",
+    "structural",
+    "ed25519",
+    "key-encoding"
+  ],
+  "input": {
+    "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "now": 1711900100,
+    "manifest": {
+      "version": "aitp/0.3",
+      "aid": "aid:pubkey:ed25519:AgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "handshake_endpoint": "https://b.agents.example.com/aitp/handshake",
+      "accepted_trust_anchors": [
+        "https://auth.example.com"
+      ],
+      "offered_capabilities": [
+        "macp.mode.task.v1"
+      ],
+      "required_peer_capabilities": [],
+      "proof_of_possession": {
+        "challenge": "E1P1xitRfiKsGDoeyKCI0w",
+        "signature": "ed25519.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      },
+      "published_at": 1711900000,
+      "expires_at": 1711986400,
+      "identity_hint": {
+        "type": "oidc",
+        "issuer": "https://auth.example.com",
+        "subject": "agent-B"
+      },
+      "signature": "ed25519.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    },
+    "operation": "verify_manifest"
+  },
+  "expected": {
+    "outcome": "failure",
+    "error_code": "MANIFEST_INVALID",
+    "rationale": "y = 2 is below p, and (y^2 - 1) / (d*y^2 + 1) mod p is a quadratic non-residue, so no x exists and the key cannot be decoded (RFC 8032 §5.1.3 step 3). Decoding `manifest.aid` is part of RFC-AITP-0003 §5 step 2, before the step 4 PoP check. A key that decodes but is of small order would instead pass step 2 and fail at the signature steps (RFC-AITP-0001 §5.4.7)."
+  }
+}

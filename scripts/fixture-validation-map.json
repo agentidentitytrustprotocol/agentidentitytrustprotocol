@@ -1124,6 +1124,16 @@
         }
       ]
     },
+    "man-016": {
+      "artifacts": [
+        {
+          "pointer": "/input/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
     "mh-001": {
       "artifacts": [],
       "no_artifacts": {
