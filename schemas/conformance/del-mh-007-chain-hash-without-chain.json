@@ -1,0 +1,81 @@
+{
+  "id": "del-mh-007",
+  "rfc": "RFC-AITP-0011",
+  "status": "draft",
+  "required_for_v0_1": false,
+  "required_for_core": false,
+  "feature": "experimental-multihop-delegation",
+  "$comment": "Opted-in counterpart of del-009 (#176 item 11 sub-question). The input is del-009's, byte for byte: del-001's single-hop token plus a `chain_hash` claim and no `chain`, minted by the runner as for del-009. The expected code is the session's recommendation, NOT an owner ruling: the owner ruled on the non-opted-in case (del-009, UNKNOWN_FIELD) only. If the owner picks another code, this fixture's `expected.error_code` and RFC-AITP-0011 §5 verifier rule 3 change together.",
+  "description": "A verifier that HAS opted into RFC-AITP-0011 receives a single-hop delegation token carrying `chain_hash` and no `chain`. For this verifier `chain_hash` is a known claim, so UNKNOWN_FIELD does not apply, but the token is not a chain and the claim commits to no hops. RFC-AITP-0011 §5, verifier rule 3: reject with DELEGATION_INVALID_SIGNATURE, the delegation token's structural-rejection code, as §1.1 does for a malformed `jti`.",
+  "tags": [
+    "failure",
+    "delegation",
+    "multi-hop",
+    "structural"
+  ],
+  "input": {
+    "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "delegation_token": "__JWS_DELEGATION__",
+    "delegation_token_claims": {
+      "ver": "aitp/0.3",
+      "iss": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+      "sub": "aid:pubkey:dqFZIESm5PURJlvKc6YE2QsFKdHfYCvjChmpJXZg0fU",
+      "aud": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+      "scope": [
+        "read_data"
+      ],
+      "exp": 1711903600,
+      "cnf": {
+        "jkt": "LlsmkXmHJuXWkRZLv_FKl_mprfIV5aYVnXqCgsebsdU"
+      },
+      "chain_hash": "n4bQgYhMfWWaL-qgxVrQFaO_TxsrC4Is0V1sFbDwCgg",
+      "voucher": "__JWS_GRANT_VOUCHER__",
+      "voucher_claims": {
+        "ver": "aitp/0.3",
+        "iss": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+        "sub": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+        "grants": [
+          "read_data",
+          "write_data"
+        ],
+        "iat": 1711900000,
+        "exp": 1711903600,
+        "src_jti": "550e8400-e29b-41d4-a716-446655440101"
+      }
+    },
+    "issuer_manifests": [
+      {
+        "version": "aitp/0.3",
+        "aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+        "display_name": "kat-keypair-002",
+        "identity_hint": {
+          "type": "pinned_key",
+          "subject": "kat-keypair-002",
+          "public_key": "A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+        },
+        "handshake_endpoint": "https://example.com/aitp/handshake",
+        "accepted_trust_anchors": [],
+        "accepted_identity_types": [
+          "pinned_key"
+        ],
+        "offered_capabilities": [
+          "read_data",
+          "write_data"
+        ],
+        "proof_of_possession": {
+          "challenge": "jsbiSyN23W3ZQQO9rU59nA",
+          "signature": "__VALID_POP_SIG__"
+        },
+        "published_at": 1711900000,
+        "expires_at": 1711986400,
+        "signature": "__VALID_MANIFEST_SIG__"
+      }
+    ],
+    "operation": "verify_delegation_token"
+  },
+  "expected": {
+    "outcome": "failure",
+    "error_code": "DELEGATION_INVALID_SIGNATURE",
+    "rationale": "Opted-in verifier: `chain_hash` without a non-empty `chain` is a structural defect of a known claim (RFC-AITP-0011 §5, verifier rule 3), rejected with the delegation token's structural-rejection code. A non-opted-in verifier rejects the same token with UNKNOWN_FIELD (del-009)."
+  }
+}
