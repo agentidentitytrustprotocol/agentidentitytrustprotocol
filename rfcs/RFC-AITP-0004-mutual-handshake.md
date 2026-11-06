@@ -454,11 +454,12 @@ B MUST:
      value, including `none`, ⇒ `TOKEN_ALG_MISMATCH`.
    - JWS signature valid under A's AID public key.
    - `ver` is `"aitp/0.3"`.
-   - `sub` equals B's AID.
-   - `aud` equals B's AID.
+   - `sub` equals B's AID. Violation ⇒ `AUDIENCE_MISMATCH`.
+   - `aud` equals B's AID. Violation ⇒ `AUDIENCE_MISMATCH`.
    - `exp` is in the future.
    - `cnf.jkt` equals the RFC 7638 thumbprint of the key encoded in
-     `sub` (RFC-AITP-0005 §3).
+     `sub` (RFC-AITP-0005 §3). Violation ⇒ `AUDIENCE_MISMATCH`: the
+     token is not bound to the receiver's key.
    - `tct.exp` ≤ A's Manifest `expires_at` — the
      verifier-side Manifest-expiry bound from
      [RFC-AITP-0005 §10.4](RFC-AITP-0005-tct.md#104-manifest-expiry-bound-conditional).
@@ -511,11 +512,12 @@ A MUST:
      value, including `none`, ⇒ `TOKEN_ALG_MISMATCH`.
    - JWS signature valid under B's AID public key.
    - `ver` is `"aitp/0.3"`.
-   - `sub` equals A's AID.
-   - `aud` equals A's AID.
+   - `sub` equals A's AID. Violation ⇒ `AUDIENCE_MISMATCH`.
+   - `aud` equals A's AID. Violation ⇒ `AUDIENCE_MISMATCH`.
    - `exp` is in the future.
    - `cnf.jkt` equals the RFC 7638 thumbprint of the key encoded in
-     `sub` (RFC-AITP-0005 §3).
+     `sub` (RFC-AITP-0005 §3). Violation ⇒ `AUDIENCE_MISMATCH`: the
+     token is not bound to the receiver's key.
    - `tct.exp` ≤ B's Manifest `expires_at` — the
      verifier-side Manifest-expiry bound from
      [RFC-AITP-0005 §10.4](RFC-AITP-0005-tct.md#104-manifest-expiry-bound-conditional).
@@ -567,6 +569,8 @@ A MUST:
 | Peer TCT header `typ` is not exactly `aitp-tct+jwt` (step §5.3 #5, §5.4 #5; RFC-AITP-0005 §7.2) | Either | `TOKEN_TYP_MISMATCH` |
 | Peer TCT header `alg` is not the sole AID-derived value, including `none` (step §5.3 #5, §5.4 #5; RFC-AITP-0001 §5.4.5) | Either | `TOKEN_ALG_MISMATCH` |
 | Peer TCT `aud` does not match self AID | Either | `AUDIENCE_MISMATCH` |
+| Peer TCT `sub` does not match self AID (step §5.3 #5, §5.4 #5) | Either | `AUDIENCE_MISMATCH` |
+| Peer TCT `cnf.jkt` is not the thumbprint of the key in `sub` (step §5.3 #5, §5.4 #5) | Either | `AUDIENCE_MISMATCH` |
 | Peer TCT grants exceed peer's `offered_capabilities` | Either | `GRANT_OVERFLOW` |
 | Grant intersection is empty | Issuing peer | `POLICY_VIOLATION` |
 | Received TCT lacks a capability listed in own `required_peer_capabilities` | Either | `INSUFFICIENT_GRANTS` |

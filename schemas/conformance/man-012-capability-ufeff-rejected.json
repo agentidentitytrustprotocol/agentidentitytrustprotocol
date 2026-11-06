@@ -1,0 +1,52 @@
+{
+  "id": "man-012",
+  "rfc": "RFC-AITP-0003",
+  "status": "core",
+  "required_for_v0_1": false,
+  "required_for_core": true,
+  "feature": null,
+  "$comment": "Negative half of the man-011/man-012 pair (#176 item 21). U+FEFF (ZERO WIDTH NO-BREAK SPACE) is white space under ECMA-262 and is rejected; some other regex dialects accept it. The second capability is written with a JSON escape so the code point is visible.",
+  "description": "A Manifest offering a capability string that contains U+FEFF. U+FEFF is in the excluded set of registries/capabilities.md, so the value is outside its grammar and RFC-AITP-0003 §5 step 2 rejects the Manifest. Receivers MUST reject with MANIFEST_INVALID.",
+  "tags": [
+    "failure",
+    "manifest",
+    "capability",
+    "schema",
+    "structural"
+  ],
+  "input": {
+    "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "now": 1711900100,
+    "manifest": {
+      "version": "aitp/0.3",
+      "aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+      "handshake_endpoint": "https://b.agents.example.com/aitp/handshake",
+      "accepted_trust_anchors": [
+        "https://auth.example.com"
+      ],
+      "offered_capabilities": [
+        "macp.mode.task.v1",
+        "com.example.zero\ufeffwidth"
+      ],
+      "required_peer_capabilities": [],
+      "proof_of_possession": {
+        "challenge": "E1P1xitRfiKsGDoeyKCI0w",
+        "signature": "__VALID_POP_SIG__"
+      },
+      "published_at": 1711900000,
+      "expires_at": 1711986400,
+      "identity_hint": {
+        "type": "oidc",
+        "issuer": "https://auth.example.com",
+        "subject": "agent-B"
+      },
+      "signature": "__VALID_MANIFEST_SIG__"
+    },
+    "operation": "verify_manifest"
+  },
+  "expected": {
+    "outcome": "failure",
+    "error_code": "MANIFEST_INVALID",
+    "rationale": "U+FEFF is ECMA-262 white space, excluded by the capability pattern. A verifier whose regex dialect does not count it as white space accepts this Manifest and is non-conformant."
+  }
+}

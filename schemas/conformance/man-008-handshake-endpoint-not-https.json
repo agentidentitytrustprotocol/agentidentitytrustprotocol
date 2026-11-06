@@ -1,0 +1,50 @@
+{
+  "id": "man-008",
+  "rfc": "RFC-AITP-0003",
+  "status": "core",
+  "required_for_v0_1": false,
+  "required_for_core": true,
+  "feature": null,
+  "$comment": "Grammar counterpart of man-006 (#176 item 17): man-006 covers a missing REQUIRED member, this one a value outside its grammar. Otherwise identical to man-005 without `extensions`, so the `http://` scheme is the only defect under test.",
+  "description": "A Manifest whose `handshake_endpoint` uses the `http` scheme. `aitp-manifest.schema.json` requires the value to match `^https://` (RFC-AITP-0003 §3), so RFC-AITP-0003 §5 step 2 rejects the Manifest before any proof-of-possession or signature work. Receivers MUST reject with MANIFEST_INVALID.",
+  "tags": [
+    "failure",
+    "manifest",
+    "schema",
+    "structural"
+  ],
+  "input": {
+    "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "now": 1711900100,
+    "manifest": {
+      "version": "aitp/0.3",
+      "aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+      "handshake_endpoint": "http://b.agents.example.com/aitp/handshake",
+      "accepted_trust_anchors": [
+        "https://auth.example.com"
+      ],
+      "offered_capabilities": [
+        "macp.mode.task.v1"
+      ],
+      "required_peer_capabilities": [],
+      "proof_of_possession": {
+        "challenge": "E1P1xitRfiKsGDoeyKCI0w",
+        "signature": "__VALID_POP_SIG__"
+      },
+      "published_at": 1711900000,
+      "expires_at": 1711986400,
+      "identity_hint": {
+        "type": "oidc",
+        "issuer": "https://auth.example.com",
+        "subject": "agent-B"
+      },
+      "signature": "__VALID_MANIFEST_SIG__"
+    },
+    "operation": "verify_manifest"
+  },
+  "expected": {
+    "outcome": "failure",
+    "error_code": "MANIFEST_INVALID",
+    "rationale": "A value outside its grammar is a structural defect (RFC-AITP-0003 §5 step 2; registry structural-rejection table). The Manifest is otherwise well-formed and unexpired."
+  }
+}

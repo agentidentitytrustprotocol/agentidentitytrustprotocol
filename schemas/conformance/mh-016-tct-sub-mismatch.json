@@ -1,0 +1,57 @@
+{
+  "id": "mh-016",
+  "rfc": "RFC-AITP-0004",
+  "status": "core",
+  "required_for_v0_1": false,
+  "required_for_core": true,
+  "feature": null,
+  "$comment": "The payload `tct` is a __JWS_TCT__ compact-JWS placeholder with a `tct_claims` sibling (minting input; stripped by the minter). The TCT is validly signed by its iss key, `aud` is the receiver and `cnf.jkt` is the receiver's own thumbprint (kat-keypair-001, jwk-thumbprints.json), so the token is bound to the receiver's key; the defect is the `sub` claim, which names another agent. Pins the code for the `sub` bullet of RFC-AITP-0004 §5.4 step 5, which named none through 0.3.5-draft (#160 row 6).",
+  "description": "Peer-issued TCT delivered in MUTUAL_COMMIT_ACK names the receiver as `aud` but another agent as `sub`. RFC-AITP-0004 §5.4 step 5 requires `sub` to equal the receiver's own AID; the token was issued for someone else. The receiving peer MUST reject with AUDIENCE_MISMATCH. (RFC-AITP-0004 §5.4 step 5 and §6; RFC-AITP-0005 §2: `aud` MUST equal `sub`.)",
+  "tags": [
+    "security",
+    "mutual-handshake",
+    "tct",
+    "confused-deputy"
+  ],
+  "input": {
+    "step": "initiator received MUTUAL_COMMIT_ACK",
+    "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "self_pop_nonce_sent_in_hello": "BpXqahnKymUSJhsuv8NC_Q",
+    "envelope": {
+      "version": "aitp/0.3",
+      "message_type": "mutual_commit_ack",
+      "message_id": "660e8400-e29b-41d4-a716-446655440121",
+      "timestamp": 1711900000,
+      "sender": {
+        "agent_id": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg"
+      },
+      "payload": {
+        "tct": "__JWS_TCT__",
+        "tct_claims": {
+          "ver": "aitp/0.3",
+          "jti": "660e8400-e29b-41d4-a716-446655440122",
+          "iss": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+          "sub": "aid:pubkey:JIrL26-eBQGW3nBL6i1odw5RkVDRA7WH2uLZytU92TA",
+          "aud": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+          "iat": 1711900250,
+          "exp": 1711903850,
+          "grants": [
+            "macp.mode.task.v1"
+          ],
+          "cnf": {
+            "jkt": "9ZP03Nu8GrXPAUkbKNxHOKBzxPX83SShgFkRNK-f2lw"
+          }
+        },
+        "pop_signature": "__VALID_POP_SIG__",
+        "pop_nonce_echo": "BpXqahnKymUSJhsuv8NC_Q"
+      },
+      "signature": "__VALID_ENVELOPE_SIG__"
+    },
+    "operation": "verify_handshake_payload"
+  },
+  "expected": {
+    "outcome": "failure",
+    "error_code": "AUDIENCE_MISMATCH",
+    "rationale": "`sub` is not the receiver, and `sub` is checked before `aud` in RFC-AITP-0004 §5.4 step 5. `aud` is the receiver and `cnf.jkt` is the receiver's own thumbprint, so a verifier that checks the key binding against its own key, or checks only `aud`, accepts the token; only the `sub` comparison rejects it. The step 5 `cnf.jkt` bullet compares against the key in `sub` and so also fails here, with the same code."
+  }
+}

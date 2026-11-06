@@ -1,0 +1,50 @@
+{
+  "id": "man-011",
+  "rfc": "RFC-AITP-0003",
+  "status": "core",
+  "required_for_v0_1": false,
+  "required_for_core": true,
+  "feature": null,
+  "$comment": "Positive half of the man-011/man-012 pair pinning the ECMA-262 reading of the capability pattern (#176 item 21). U+0085 (NEXT LINE) is not white space under ECMA-262 and is accepted; some other regex dialects treat it as white space. The second capability is written with a JSON escape so the code point is visible.",
+  "description": "A Manifest offering a capability string that contains U+0085. The capability pattern excludes exactly the ECMA-262 white-space and line-terminator code points listed in registries/capabilities.md, and U+0085 is not one of them. Verification MUST succeed.",
+  "tags": [
+    "success",
+    "manifest",
+    "capability",
+    "schema"
+  ],
+  "input": {
+    "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "now": 1711900100,
+    "manifest": {
+      "version": "aitp/0.3",
+      "aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+      "handshake_endpoint": "https://b.agents.example.com/aitp/handshake",
+      "accepted_trust_anchors": [
+        "https://auth.example.com"
+      ],
+      "offered_capabilities": [
+        "macp.mode.task.v1",
+        "com.example.next\u0085line"
+      ],
+      "required_peer_capabilities": [],
+      "proof_of_possession": {
+        "challenge": "E1P1xitRfiKsGDoeyKCI0w",
+        "signature": "__VALID_POP_SIG__"
+      },
+      "published_at": 1711900000,
+      "expires_at": 1711986400,
+      "identity_hint": {
+        "type": "oidc",
+        "issuer": "https://auth.example.com",
+        "subject": "agent-B"
+      },
+      "signature": "__VALID_MANIFEST_SIG__"
+    },
+    "operation": "verify_manifest"
+  },
+  "expected": {
+    "outcome": "success",
+    "rationale": "U+0085 is outside the excluded set, so the Manifest is schema-valid; version, PoP, signature and expiry all pass. A verifier whose regex dialect counts U+0085 as white space rejects this Manifest and is non-conformant."
+  }
+}

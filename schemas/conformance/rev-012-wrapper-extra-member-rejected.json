@@ -1,0 +1,47 @@
+{
+  "id": "rev-012",
+  "rfc": "RFC-AITP-0008",
+  "status": "core",
+  "required_for_v0_1": false,
+  "required_for_core": true,
+  "feature": null,
+  "$comment": "Wrapper counterpart of rev-005 (#176 item 13). rev-005 puts an unknown member in the signed inner `revocation_list` body (UNKNOWN_FIELD); this fixture puts one, `fetched_at`, in the unsigned transport wrapper beside `revocation_list` and `signature`. The inner body is rev-003's fresh, non-revoked shape, so the wrapper member is the only defect under test.",
+  "description": "Revocation snapshot whose transport wrapper carries a third member, `fetched_at`, beside `revocation_list` and `signature`. RFC-AITP-0008 §1.5 requires the wrapper to contain exactly those two members. The wrapper is unsigned and has no extension namespace, so the RFC-AITP-0001 §7 rule for a signed object's members does not apply to it. Receivers MUST reject with REVOCATION_SNAPSHOT_INVALID, not UNKNOWN_FIELD.",
+  "tags": [
+    "failure",
+    "revocation",
+    "schema",
+    "structural"
+  ],
+  "input": {
+    "policy": {
+      "fail_mode": "fail_closed",
+      "max_staleness_secs": 3600
+    },
+    "now": 1711900100,
+    "expected_issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "queried_jti": "550e8400-e29b-41d4-a716-446655440111",
+    "snapshot": {
+      "revocation_list": {
+        "version": "aitp/0.3",
+        "issuer": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+        "published_at": 1711900000,
+        "expires_at": 1711903600,
+        "entries": [
+          {
+            "jti": "550e8400-e29b-41d4-a716-446655440099",
+            "revoked_at": 1711899900
+          }
+        ]
+      },
+      "signature": "__VALID_A_SIG__",
+      "fetched_at": 1711900050
+    },
+    "operation": "verify_revocation_snapshot"
+  },
+  "expected": {
+    "outcome": "failure",
+    "error_code": "REVOCATION_SNAPSHOT_INVALID",
+    "rationale": "The wrapper MUST contain exactly `revocation_list` and `signature` (RFC-AITP-0008 §1.5; registry REVOCATION_SNAPSHOT_INVALID row). The signed inner body is unchanged from rev-003 and valid."
+  }
+}

@@ -1071,6 +1071,69 @@
         }
       ]
     },
+    "man-008": {
+      "artifacts": [
+        {
+          "pointer": "/input/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "invalid",
+          "wrap": "manifest",
+          "reason": "Deliberately schema-invalid: input.manifest.handshake_endpoint uses the `http` scheme, outside the schema's `^https://` pattern. The fixture asserts MANIFEST_INVALID, so schema rejection is the correct expected outcome."
+        }
+      ]
+    },
+    "man-009": {
+      "artifacts": [
+        {
+          "pointer": "/input/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "man-010": {
+      "artifacts": [
+        {
+          "pointer": "/input/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "invalid",
+          "wrap": "manifest",
+          "reason": "Deliberately schema-invalid: input.manifest.signature carries the unregistered algorithm tag `rsa.`, outside the signature pattern. The fixture asserts MANIFEST_INVALID, so schema rejection is the correct expected outcome."
+        }
+      ]
+    },
+    "man-011": {
+      "artifacts": [
+        {
+          "pointer": "/input/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
+    "man-012": {
+      "artifacts": [
+        {
+          "pointer": "/input/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "invalid",
+          "wrap": "manifest",
+          "reason": "Deliberately schema-invalid: an input.manifest.offered_capabilities entry contains U+FEFF, which the capability pattern excludes. The fixture asserts MANIFEST_INVALID, so schema rejection is the correct expected outcome."
+        }
+      ]
+    },
+    "man-016": {
+      "artifacts": [
+        {
+          "pointer": "/input/manifest",
+          "schema": "aitp-manifest.schema.json",
+          "expect": "valid",
+          "wrap": "manifest"
+        }
+      ]
+    },
     "mh-001": {
       "artifacts": [],
       "no_artifacts": {
@@ -1354,6 +1417,44 @@
         }
       ]
     },
+    "mh-016": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
+    "mh-017": {
+      "artifacts": [
+        {
+          "pointer": "/input/envelope",
+          "schema": "aitp-envelope.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload",
+          "schema": "aitp-mutual-handshake.schema.json",
+          "expect": "valid"
+        },
+        {
+          "pointer": "/input/envelope/payload/tct_claims",
+          "schema": "aitp-tct.schema.json",
+          "expect": "valid"
+        }
+      ]
+    },
     "mh-success-001": {
       "artifacts": [
         {
@@ -1492,6 +1593,16 @@
           "pointer": "/input/issuer_revocation_list/snapshot",
           "schema": "aitp-revocation-list.schema.json",
           "expect": "valid"
+        }
+      ]
+    },
+    "rev-012": {
+      "artifacts": [
+        {
+          "pointer": "/input/snapshot",
+          "schema": "aitp-revocation-list.schema.json",
+          "expect": "invalid",
+          "reason": "Deliberately schema-invalid: the input.snapshot transport wrapper carries `fetched_at` beside `revocation_list` and `signature`. The fixture asserts REVOCATION_SNAPSHOT_INVALID, so schema rejection is the correct expected outcome."
         }
       ]
     },

@@ -142,7 +142,7 @@ Returned in error envelopes during the four-message handshake.
 | `POP_VERIFICATION_FAILED` | Round-2 PoP signature failed. | false | core |
 | `NONCE_MISMATCH` | `pop_nonce_echo` mismatch. | false | core |
 | `PEER_MISMATCH` | `MUTUAL_HELLO_ACK` sender is not the AID the initiator addressed in MUTUAL_HELLO ([RFC-AITP-0004 §5.2](../rfcs/RFC-AITP-0004-mutual-handshake.md#52-on-receiving-mutual_hello_ack-a-verifies-b) step 3). | false | core |
-| `AUDIENCE_MISMATCH` | TCT `aud` ≠ self AID. | false | core |
+| `AUDIENCE_MISMATCH` | TCT `aud` or `sub` ≠ self AID, or `cnf.jkt` is not the thumbprint of the key in `sub` ([RFC-AITP-0004 §5.3](../rfcs/RFC-AITP-0004-mutual-handshake.md#53-on-receiving-mutual_commit-b-finalizes) step 5). | false | core |
 | `GRANT_OVERFLOW` | TCT grants exceed peer's `offered_capabilities`. | false | core |
 | `TCT_EXPIRED` | TCT already expired. | false | core |
 | `TCT_EXPIRES_AFTER_MANIFEST` | TCT `exp` exceeds issuer's Manifest `expires_at`. | false | core |
@@ -176,7 +176,7 @@ failure of the *snapshot* that lists tokens (issue #39).
 
 | Code | Meaning | Retryable | spec_status |
 |---|---|---|---|
-| `REVOCATION_SNAPSHOT_INVALID` | Revocation snapshot failed schema validation — the transport wrapper carried members other than `revocation_list` and `signature`, or the inner body has a missing/mistyped member. When the only defect is an unknown member outside `extensions`, use `UNKNOWN_FIELD` instead. | false | core |
+| `REVOCATION_SNAPSHOT_INVALID` | Revocation snapshot failed schema validation — the transport wrapper carried members other than `revocation_list` and `signature` (always this code: the wrapper is unsigned and has no extension namespace), or the inner body has a missing/mistyped member. When the inner body's only defect is an unknown member outside `extensions`, use `UNKNOWN_FIELD` instead ([RFC-AITP-0008 §1.5](../rfcs/RFC-AITP-0008-revocation.md#15-signed-revocation-response)). | false | core |
 | `REVOCATION_SNAPSHOT_SIGNATURE_INVALID` | Snapshot signature does not validate under the issuing peer's key, resolved from that peer's Manifest. Distinct from `TCT_SIGNATURE_INVALID`, which is about a token's own JWS. | false | core |
 
 > **Not to be confused with `TCT_REVOKED`.** A snapshot that is merely *stale* or

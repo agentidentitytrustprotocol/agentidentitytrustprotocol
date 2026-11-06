@@ -258,6 +258,11 @@ RFC-AITP-0005 §2.2 runs before signature verification and rejects with
 `TCT_SIGNATURE_INVALID`, the TCT's structural-rejection code
 ([`registries/error-codes.md`](../../registries/error-codes.md#structural-rejection)).
 
+`man-009` and `man-016` are structural-rejection fixtures in the same sense: their
+`aid` does not decode to a P-256 or Ed25519 key, so no key exists to mint their
+signatures, and both are literal values of the right shape that a
+conformant verifier never reaches (RFC-AITP-0003 §5 step 2).
+
 `tct-017` (ES256 high-S) carries a literal committed token, not a
 placeholder: a placeholder would be minted afresh by the runner's own
 signer, which normalizes S and so would produce a token that passes.
@@ -444,7 +449,7 @@ valid and invalid, are in [`reports/`](reports/).
 
 | Tier | Count | Required for v0.3 |
 |---|---|---|
-| `core` (`required_for_core`) | 94 | ✅ Yes |
+| `core` (`required_for_core`) | 104 | ✅ Yes |
 | `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (required of v0.1 runners only; a core runner may execute it, and its result gates nothing) |
 | `extension` — pinned-admission profile (RFC-AITP-0002 §3.4, `feature: aitp-pinned-admission`) | 8 | ❌ No (required of an implementation claiming the profile) |
 | `extension` — attestation verification (RFC-AITP-0005 §5.3, `feature: aitp-self-attestation`) | 3 | ❌ No (required of an implementation claiming the role) |
@@ -453,7 +458,7 @@ valid and invalid, are in [`reports/`](reports/).
 | `draft` — A2A Agent Card binding (RFC-AITP-0014, `feature: aitp-a2a-agent-card`) | 6 | ❌ No |
 | `draft` — `spiffe` identity type (RFC-AITP-0002 §6, `feature: experimental-spiffe-identity`) | 7 | ❌ No |
 | `draft` — TCT renewal (RFC-AITP-0013, `feature: experimental-renewal`) | 12 | ❌ No |
-| **Total** | **145** | |
+| **Total** | **155** | |
 
 Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A conformance runner for the current revision, `aitp/0.3`, MUST execute every `required_for_core` core fixture (the key keeps its v0.2 name so existing runners keep working; for `aitp/0.3` it marks the core tier); `draft` and `extension` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
@@ -488,6 +493,12 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | `man-005` | Manifest body carries an unrecognized, vendor-namespaced key inside `extensions` — ignored | success |
 | `man-006` | Manifest missing the REQUIRED `handshake_endpoint` — structural rejection, not a signature failure | failure: MANIFEST_INVALID |
 | `man-007` | Manifest `identity_hint` has `type: "oidc"` and also carries `public_key`, which RFC-AITP-0003 §3.1 forbids | failure: MANIFEST_INVALID |
+| `man-008` | Manifest `handshake_endpoint` uses `http://`, outside the schema's `^https://` grammar — structural rejection | failure: MANIFEST_INVALID |
+| `man-009` | Manifest `aid` is a `p256` identifier of the right length that is not a point on the curve (RFC-AITP-0001 §5.3; RFC-AITP-0003 §5 step 2). Literal signatures, never reached | failure: MANIFEST_INVALID |
+| `man-010` | Manifest `signature` carries the unregistered algorithm tag `rsa.` (RFC-AITP-0001 §5.4.3) — a grammar failure, not a signature failure | failure: MANIFEST_INVALID |
+| `man-011` | `offered_capabilities` entry contains U+0085, which the ECMA-262 capability pattern accepts (registries/capabilities.md) | success |
+| `man-012` | `offered_capabilities` entry contains U+FEFF, which the ECMA-262 capability pattern excludes | failure: MANIFEST_INVALID |
+| `man-016` | Manifest `aid` is an `ed25519` identifier of the right length on which RFC 8032 §5.1.3 decoding fails (y = 2, no square root); RFC-AITP-0001 §5.3, RFC-AITP-0003 §5 step 2 | failure: MANIFEST_INVALID |
 
 ### Mutual Handshake (RFC-AITP-0004)
 
@@ -509,6 +520,8 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | `mh-013` | Receiver accepts `["oidc", "pinned_key"]`; same valid `pinned_key` identity: the positive control for `mh-010` and `mh-011` | success |
 | `mh-014` | Receiver accepts `["oidc"]`; `pinned_key` proof over the wrong `pop_nonce` (id-006's envelope). Step 6 runs before step 8 | failure: IDENTITY_FAILED |
 | `mh-015` | Initiator addressed agentB (`peer_aid`); an otherwise valid MUTUAL_HELLO_ACK arrives from agentC (RFC-AITP-0004 §5.2 step 3) | failure: PEER_MISMATCH |
+| `mh-016` | Peer-issued TCT has `aud` = self but `sub` = another AID (RFC-AITP-0004 §5.4 step 5) | failure: AUDIENCE_MISMATCH |
+| `mh-017` | Peer-issued TCT has `sub` = `aud` = self, but `cnf.jkt` is the thumbprint of another key (RFC-AITP-0004 §5.4 step 5) | failure: AUDIENCE_MISMATCH |
 
 ### Identity Binding (RFC-AITP-0002)
 
@@ -603,6 +616,7 @@ The rows marked *Pinned-admission* are `status: extension` under `feature: aitp-
 | `rev-009` | Same stale snapshot as `rev-001`/`rev-002`, but under `fail_open` mode — allows the request, grants un-narrowed | success |
 | `rev-010` | Committed signed snapshot with `version` changed to an unknown value after signing; structural validation runs before the signature check, and this is the snapshot's unknown-version code | failure: REVOCATION_SNAPSHOT_INVALID |
 | `rev-011` | Fresh, correctly signed snapshot obtained for the TCT's issuer, but signed by a different AID (the committed kat-keypair-005-p256 snapshot); the TCT's `jti` is not listed. A snapshot is valid only for tokens its signer issued (RFC-AITP-0008 §1.5): it is discarded, and `fail_closed` applies. There is no third-party revocation authority in `aitp/0.3` | failure: TCT_REVOKED |
+| `rev-012` | Snapshot's unsigned transport wrapper carries a third member (`fetched_at`) beside `revocation_list` and `signature`; the inner body is valid (RFC-AITP-0008 §1.5) | failure: REVOCATION_SNAPSHOT_INVALID |
 
 ### Delegation (RFC-AITP-0006)
 
