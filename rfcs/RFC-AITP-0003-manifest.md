@@ -140,7 +140,7 @@ Manifests are also exchanged inline at the start of the Mutual Handshake (in the
 
 Before a peer uses a Manifest to initiate a handshake, it MUST verify the following in order:
 
-1. **Version check** — `manifest.version` MUST be `"aitp/0.3"` or a later version this implementation supports.
+1. **Version check** — `manifest.version` MUST be `"aitp/0.3"` or a later version this implementation supports. Failure ⇒ `MANIFEST_VERSION_UNKNOWN`, before any other check (fixture `man-002`).
 2. **Structural check** — the Manifest MUST validate against the canonical schema
    [`schemas/json/aitp-manifest.schema.json`](../schemas/json/aitp-manifest.schema.json): every REQUIRED member
    present, every member of the declared type, every value inside its grammar. Failure ⇒ `MANIFEST_INVALID`.
@@ -148,17 +148,17 @@ Before a peer uses a Manifest to initiate a handshake, it MUST verify the follow
    operator looking at keys and signing when the signature was never reached (see the
    [registry's structural-rejection table](../registries/error-codes.md#structural-rejection)).
    Then the **member-set check**: every member of the Manifest MUST be a field defined in §3 or sit inside `extensions`. Any unknown member outside `extensions` ⇒ `UNKNOWN_FIELD` ([RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model)); unknown keys *inside* `extensions` MUST be ignored. This structural check runs before the cryptographic steps below: a Manifest carrying an unknown member is rejected before any proof-of-possession or signature work is spent on it, and no unknown member survives into the JCS signing input to create the cross-implementation signature ambiguity RFC-AITP-0001 §7 describes.
-3. **Expiry check** — `manifest.expires_at` MUST be in the future.
+3. **Expiry check** — `manifest.expires_at` MUST be in the future. Failure ⇒ `MANIFEST_EXPIRED` (fixtures `man-001`, `man-003`).
 4. **Proof-of-possession** — Verify `proof_of_possession.signature`:
 
    ```
    expected_sig = base64url(sign(agent_private_key, sha256(base64url_decode(challenge))))
    ```
 
-   The hash input is the 16 raw bytes obtained by base64url-decoding `challenge` (not the ASCII bytes of the encoded form). Verification uses the public key encoded in `manifest.aid`.
+   The hash input is the 16 raw bytes obtained by base64url-decoding `challenge` (not the ASCII bytes of the encoded form). Verification uses the public key encoded in `manifest.aid`. Failure ⇒ `MANIFEST_POP_FAILED`.
 
    > **Note.** The pattern `sha256(base64url_decode(x))` appears in every PoP signing input in v0.3: Manifest PoP (here), handshake PoP (RFC-AITP-0004 §3), downstream TCT PoP (RFC-AITP-0005 §6.1), and the pinned-key identity proof input (RFC-AITP-0002 §3.1). Implementations that hash the ASCII string form instead of the decoded bytes will be internally consistent but will fail cross-implementation verification. Implementations SHOULD add a KAT cross-check that verifies a given (challenge → decoded → sha256 → signature) vector against all PoP code paths; the pinned `kat-manifest-pop-001` vector at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json) provides the reference inputs and outputs.
-5. **Manifest signature** — Verify `manifest.signature` using the public key from `manifest.aid` (see §6).
+5. **Manifest signature** — Verify `manifest.signature` using the public key from `manifest.aid` (see §6). Failure ⇒ `MANIFEST_SIGNATURE_INVALID`.
 6. **Identity-type and trust-anchor compatibility** — The fetching peer MUST screen the published Manifest against its own identity. Two cases, with **distinct error codes**:
    - If the fetching peer's identity is `oidc`, the published Manifest's `accepted_trust_anchors` MUST contain at least one issuer that matches an issuer in the fetching peer's own `trust_anchors` configuration. Failure ⇒ `INCOMPATIBLE_TRUST_ANCHORS`.
    - If the fetching peer's identity is `pinned_key` (or any non-OIDC type), the published Manifest's `accepted_identity_types` (default `["oidc"]` when absent) MUST include the fetching peer's identity type. `accepted_trust_anchors` is not consulted in this case — pinned-key identities are not minted by an OIDC issuer. Failure ⇒ `INCOMPATIBLE_IDENTITY_TYPE`.

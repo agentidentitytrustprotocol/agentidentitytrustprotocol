@@ -76,6 +76,8 @@ and decoded claims:
 
 The v0.1 `delegator` and `audience` fields (which v0.1 required to be equal) are collapsed into the single `aud` claim. The v0.1 `grant_proof` object is replaced by the `voucher` string. The canonical schema for the decoded claims is [`schemas/json/aitp-delegation.schema.json`](../schemas/json/aitp-delegation.schema.json).
 
+**Structural rejection.** A delegation token whose payload does not decode into a claims set matching this section (a missing REQUIRED claim, a claim of the wrong type, a value outside its grammar) is rejected with `DELEGATION_INVALID_SIGNATURE`, the delegation token's structural-rejection code. When the only defect is a claim outside this table and outside `ext`, the code is `UNKNOWN_FIELD` instead ([RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model)). A `chain` claim is not a structural defect for this purpose: it is rejected with `DELEGATION_MULTIHOP_NOT_SUPPORTED` (§4). The [registry's structural-rejection table](../registries/error-codes.md#structural-rejection) states the same mapping.
+
 ---
 
 ## 3. Issuance Flow

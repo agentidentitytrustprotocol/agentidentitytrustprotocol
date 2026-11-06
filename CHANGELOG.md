@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### Core RFC text clarifications and errata from the review inputs (#176, #160 row 5)
+
+**Change class.** Clarifications and errata under the `aitp/0.3` freeze. No message, field, signing input, error code, check order, schema, fixture outcome or known-answer vector changes. Two errata move the prose to match what the pinned artifacts already did. RFC versions are set at RC2.1 (#157), not here.
+
+**Changes.**
+- RFC-AITP-0004 §§3.1–3.4, erratum (#176 item 1): the `extensions` rows said the envelope signature covers `hex(sha256(payload_canonical_json))`, the retired `aitp/0.2` input. They now cite `sig_input_v2` over the whole envelope (RFC-AITP-0001 §5.4).
+- RFC-AITP-0004 §5.3 and §5.4 step 5, erratum (#160 row 5): `grants` are bounded by the issuer's `offered_capabilities`, as §4.1, the §6 table and `mh-007` already had it, with `GRANT_OVERFLOW` named.
+- RFC-AITP-0004 §1 principle 4 names `INCOMPATIBLE_IDENTITY_TYPE` beside `INCOMPATIBLE_TRUST_ANCHORS` (#176 item 4).
+- RFC-AITP-0008 §5: revocation-list responses MUST be signed, matching §1.5 (#176 item 2).
+- RFC-AITP-0001 §5.4.6 cites RFC-AITP-0013 §3.1 for the renewal PoP, not §5.4.2 (#176 item 3).
+- RFC-AITP-0003 §5 names the code for steps 1, 3, 4 and 5 inline (#176 item 5).
+- RFC-AITP-0009 §3.1 gains an editorial note recording the round-1 handshake bootstrap order of RFC-AITP-0004 §5.1 and §5.2 as the documented deviation (#176 item 6).
+- RFC-AITP-0001 §7 and §9 are the normative home of the extension-namespace and key-naming rules; the RFC-AITP-0012 abstract and §1 say they restate them (#176 item 7).
+- RFC-AITP-0002 §2.2: the Ed25519 canonical JWK input is 79 bytes, not 87 (#176 item 8).
+- `registries/error-codes.md`: the Mutual Handshake and Delegation tables gain a Retryable column. Every code is `false` except `TIMESTAMP_EXPIRED`, `true` as in the envelope table. RFC-AITP-0001 §5.7 lists `PEER_MISMATCH` and `INCOMPATIBLE_IDENTITY_TYPE` and states the delegation codes' value (#176 items 9, 10).
+- RFC-AITP-0001 §8: `application/aitp+json; version=0.3` is the registered name of the envelope format; the HTTP binding sends `application/json` (#176 item 12).
+- RFC-AITP-0005 §2 and RFC-AITP-0006 §2 state their artifact's structural-rejection code, `TCT_SIGNATURE_INVALID` and `DELEGATION_INVALID_SIGNATURE` (#176 item 14).
+
 ### Interop event #1 plan
 
 **Change class.** Documentation only. No wire, schema, fixture or RFC change.

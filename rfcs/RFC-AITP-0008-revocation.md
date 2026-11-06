@@ -291,7 +291,7 @@ This is an **issuer-side persistence** requirement and is not visible on the wir
 
 ## 5. Security Considerations
 
-- The issuing peer's `ListRevoked` endpoint is itself a trust surface; it MUST be served over HTTPS, and its responses SHOULD be signed by the issuing peer.
+- The issuing peer's `ListRevoked` endpoint is itself a trust surface; it MUST be served over HTTPS, and its responses MUST be signed by the issuing peer (§1.5).
 - `fail_open` trades security for availability and MUST NOT be the default for high-value operations.
 - Clock skew between the issuing peer and consuming peers reduces effective revocation latency. Implementations SHOULD use a monotonic clock when comparing `revoked_at`.
 - A compromised peer can stop honoring its own revocations. Defense in depth: high-value operations SHOULD use short TTLs (RFC-AITP-0005 §9.1) so that revocation latency is bounded by the TCT lifetime.

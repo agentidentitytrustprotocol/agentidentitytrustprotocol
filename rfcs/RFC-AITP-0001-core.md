@@ -536,7 +536,7 @@ it, and outer JCS signatures cover the string verbatim.
 
 #### 5.4.6 Signing primitive per algorithm (JCS profile and proofs)
 
-Every JCS-profile signature and every proof signature hashes its signing input exactly once with SHA-256, producing the 32-byte digest `d`. This covers the envelope (§5.4), Manifest ([RFC-AITP-0003 §6](RFC-AITP-0003-manifest.md)), Manifest PoP, handshake PoP, TCT PoP and renewal PoP (§5.4.2), revocation snapshot ([RFC-AITP-0008 §1.5](RFC-AITP-0008-revocation.md)), session bundle ([RFC-AITP-0010 §3](RFC-AITP-0010-session-trust-bundle.md)) and the pinned-key `proof` ([RFC-AITP-0002 §3.1](RFC-AITP-0002-identity.md)). `SIGN_alg` is then:
+Every JCS-profile signature and every proof signature hashes its signing input exactly once with SHA-256, producing the 32-byte digest `d`. This covers the envelope (§5.4), Manifest ([RFC-AITP-0003 §6](RFC-AITP-0003-manifest.md)), Manifest PoP, handshake PoP and TCT PoP (§5.4.2), the opt-in renewal PoP ([RFC-AITP-0013 §3.1](RFC-AITP-0013-tct-renewal-extension.md#31-renewal-pop-input), whose input is not a bare nonce and so is not a §5.4.2 site), revocation snapshot ([RFC-AITP-0008 §1.5](RFC-AITP-0008-revocation.md)), session bundle ([RFC-AITP-0010 §3](RFC-AITP-0010-session-trust-bundle.md)) and the pinned-key `proof` ([RFC-AITP-0002 §3.1](RFC-AITP-0002-identity.md)). `SIGN_alg` is then:
 
 - `ed25519`: PureEdDSA ([RFC 8032 §5.1.6](https://datatracker.ietf.org/doc/html/rfc8032#section-5.1.6)) with `d` as the message.
 - `p256`: ECDSA on P-256 ([FIPS 186-5](https://doi.org/10.6028/NIST.FIPS.186-5), section 6.4) with the hash step **already performed**. `d` is used directly as the hashed message (`e = d`) and MUST NOT be hashed again.
@@ -609,6 +609,8 @@ Verifiers MUST NOT reveal which specific policy check failed beyond the error co
 | `MANIFEST_POP_FAILED` | Peer's Manifest proof-of-possession failed | false |
 | `MANIFEST_VERSION_UNKNOWN` | Peer's Manifest `version` not supported | false |
 | `INCOMPATIBLE_TRUST_ANCHORS` | No trust-anchor overlap | false |
+| `INCOMPATIBLE_IDENTITY_TYPE` | Peer's identity type not in own `accepted_identity_types` | false |
+| `PEER_MISMATCH` | `MUTUAL_HELLO_ACK` sender is not the AID the initiator addressed | false |
 | `POP_VERIFICATION_FAILED` | Mutual-handshake PoP signature failed | false |
 | `REVOCATION_SNAPSHOT_INVALID` | Revocation snapshot failed schema validation | false |
 | `REVOCATION_SNAPSHOT_SIGNATURE_INVALID` | Revocation snapshot signature failed under the issuing peer's key | false |
@@ -619,7 +621,7 @@ Verifiers MUST NOT reveal which specific policy check failed beyond the error co
 | `TOKEN_ALG_MISMATCH` | JWS `alg` is not the sole AID-derived value (§5.4.5) — includes `none` and unknown algorithms | false |
 | `TOKEN_TYP_MISMATCH` | JWS `typ` does not match the expected value for the verification context (§5.4.5) | false |
 
-Mode-specific error codes are defined in their respective RFCs (mutual handshake in RFC-AITP-0004, delegation in RFC-AITP-0006). The full registry is maintained in [`registries/error-codes.md`](../registries/error-codes.md).
+Mode-specific error codes are defined in their respective RFCs (mutual handshake in RFC-AITP-0004, delegation in RFC-AITP-0006). Every RFC-AITP-0006 `DELEGATION_*` code is retryable `false`: presenting the same token again cannot succeed. The full registry is maintained in [`registries/error-codes.md`](../registries/error-codes.md).
 
 ---
 
@@ -642,7 +644,9 @@ AITP uses a layered compatibility model:
 
 Major protocol version mismatches are not compatible. Minor versions are expected to be backward compatible. Verifiers receiving an unknown `version` MUST respond with `UNKNOWN_VERSION`. On an envelope the `version` check comes first, before the member-set check (`UNKNOWN_FIELD`) and the signature check (`INVALID_SIGNATURE`); §5.4 gives the normative order.
 
-Unknown JSON fields outside explicit `extensions` namespaces MUST be rejected, with the error code `UNKNOWN_FIELD` ([registry](../registries/error-codes.md)). Signed AITP objects depend on canonical JCS representation; silently ignoring unknown fields would create signature ambiguity across implementations (one peer hashes the field in, another hashes it out, and the same wire bytes verify differently). Forward compatibility is provided exclusively through explicit `extensions` objects (see [RFC-AITP-0012](RFC-AITP-0012-extensions.md)) — every signed object reserves an `extensions` slot, and unknown keys *inside* `extensions` MUST be ignored, never rejected. The rule is asymmetric by design: an unknown member *beside* the namespace ⇒ reject with `UNKNOWN_FIELD`; an unknown key *inside* it ⇒ ignore. On the compact-JWS artifacts the namespace is the `ext` claim (§5.4.5; RFC-AITP-0005 §2) and the unknown member is an unknown *claim* in the decoded payload — same rule, same code.
+Unknown JSON fields outside explicit `extensions` namespaces MUST be rejected, with the error code `UNKNOWN_FIELD` ([registry](../registries/error-codes.md)). Signed AITP objects depend on canonical JCS representation; silently ignoring unknown fields would create signature ambiguity across implementations (one peer hashes the field in, another hashes it out, and the same wire bytes verify differently). Forward compatibility is provided exclusively through explicit `extensions` objects (see [RFC-AITP-0012](RFC-AITP-0012-extensions.md)) — every signed object reserves an `extensions` slot, and unknown keys *inside* `extensions` MUST be ignored, never rejected. The rule is asymmetric by design: an unknown member *beside* the namespace ⇒ reject with `UNKNOWN_FIELD`; an unknown key *inside* it ⇒ ignore. On the compact-JWS artifacts the namespace is the `ext` claim (§5.4.5; RFC-AITP-0005 §2) and the unknown member is an unknown *claim* in the decoded payload — same rule, same code. An ignored key neither causes a rejection nor feeds a trust decision; it stays part of the signed bytes. Keys inside the namespace are named per §9.
+
+This section is the normative statement of the extension-namespace rule. [RFC-AITP-0012](RFC-AITP-0012-extensions.md) restates it as informative guidance for the reserved extension families; where the two differ, this section governs.
 
 This check is not only stated here: each artifact RFC carries it as an explicit step in its own verification algorithm, positioned before the cryptographic steps so a malformed object is rejected before any signature verification is spent on it — the envelope check order in §5.4, RFC-AITP-0003 §5 step 2 (Manifest), RFC-AITP-0004 §5 step 2 of each of the four payload procedures (handshake), RFC-AITP-0005 §7.2 step 1 (TCT claims), RFC-AITP-0008 §1.5 (revocation snapshot), and RFC-AITP-0010 §5 (session bundle).
 
@@ -662,7 +666,7 @@ The `ListRevoked` row binds every peer that issues TCTs; a peer completing the M
 
 > **Other endpoints are deployment-defined in v0.3.** TCT verification (`Verify`), the administrative `Revoke` operation (RFC-AITP-0005 §11), and delegation verification (RFC-AITP-0006) are OPTIONAL operational surfaces. Peers that expose them MAY advertise their URLs in the Manifest's `extensions` namespace ([RFC-AITP-0012](RFC-AITP-0012-extensions.md)) using the keys registered in [`registries/extension-keys.md`](../registries/extension-keys.md); v0.3 does not require them. Concrete URL paths are deployment-defined for every endpoint except the well-known Manifest path, including the `ListRevoked` URL itself, which is located through its Manifest advertisement.
 
-Request and response bodies are AITP envelopes serialized as JSON with `Content-Type: application/json`; the `ListRevoked` response body is the signed revocation snapshot of RFC-AITP-0008 §1.5. The well-known Manifest endpoint, `handshake_endpoint`, and the advertised `ListRevoked` URL (the last for TCT issuers) are the only paths v0.3 normatively requires.
+Request and response bodies are AITP envelopes serialized as JSON with `Content-Type: application/json`. The [media-type registry](../registries/media-types.md) names the envelope's media type `application/aitp+json; version=0.3`; that is the registered name of the format, and the v0.3 HTTP binding does not send it as the `Content-Type` value. The `ListRevoked` response body is the signed revocation snapshot of RFC-AITP-0008 §1.5. The well-known Manifest endpoint, `handshake_endpoint`, and the advertised `ListRevoked` URL (the last for TCT issuers) are the only paths v0.3 normatively requires.
 
 Implementations MAY transport AITP messages over other framings (binary RPC, message bus, etc.) but MUST convert to canonical JSON before signing or verifying (§5.4.1). v0.3 does not standardize any non-JSON binding.
 
@@ -680,7 +684,7 @@ AITP maintains seven registries under [`registries/`](../registries/), indexed i
 - **media-types** — content types used in transport bindings
 - **message-types** — registered values for the envelope `message_type` (§5.2)
 
-New entries are added via the [RFC process](../governance/RFC-PROCESS.md). Experimental identifiers SHOULD use reverse-domain notation.
+New entries are added via the [RFC process](../governance/RFC-PROCESS.md). Experimental identifiers SHOULD use reverse-domain notation. This includes a vendor or experimental key inside `extensions` / `ext` (§7) that is not in the extension-key registry, for example `com.example.feature`. This is the one statement of the naming rule; RFC-AITP-0012 §1 restates it.
 
 ---
 

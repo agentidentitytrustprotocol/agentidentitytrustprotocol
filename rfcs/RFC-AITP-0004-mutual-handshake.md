@@ -29,7 +29,7 @@ The Mutual Handshake is governed by four normative principles. Architectural rat
 1. **Simultaneous presentation.** Both agents present identity in the same round trip. Either agent MAY initiate.
 2. **Symmetric trust output.** Both agents issue TCTs for each other. Neither agent is privileged by the protocol structure.
 3. **Peer-issued TCTs.** Each agent acts as its own verifier for the peer it is authenticating. The TCT `iss` claim is the authenticating agent's AID. Consumers of peer-issued TCTs validate them against the peer's AID public key (resolved from the peer's Manifest).
-4. **Graceful failure on incompatibility.** If trust-anchor overlap cannot be established, the handshake MUST fail with `INCOMPATIBLE_TRUST_ANCHORS`. Agents that cannot establish trust MUST NOT proceed with coordination.
+4. **Graceful failure on incompatibility.** If the peer's identity type is not one the receiver accepts, the handshake MUST fail with `INCOMPATIBLE_IDENTITY_TYPE`; if trust-anchor overlap cannot be established, it MUST fail with `INCOMPATIBLE_TRUST_ANCHORS` (§5.1 step 8 gives the order and when each applies). Agents that cannot establish trust MUST NOT proceed with coordination.
 
 ---
 
@@ -99,6 +99,8 @@ Handshake envelopes and payloads remain JCS-profile signed (RFC-AITP-0001 §5.4.
 
 > **PoP signing input (§§3.3, 3.4, 5.3, 5.4).** Throughout this RFC, `sha256(<nonce>)` denotes the SHA-256 hash of the **raw bytes obtained by base64url-decoding the nonce string** — never the ASCII bytes of the base64url form. This matches the convention used by the pinned-key proof input (RFC-AITP-0002 §3.1) and downstream PoP (RFC-AITP-0005 §6.1). The unified rule covering all four PoP sites lives in [RFC-AITP-0001 §5.4.2](RFC-AITP-0001-core.md#542-pop-signing-input-convention). Implementations that hash the base64url string itself are non-conformant.
 
+> **Erratum.** Through `0.3.5-draft`, the `extensions` rows of §§3.1–3.4 said the envelope signature covers `hex(sha256(payload_canonical_json))`. That is the `aitp/0.2` input, retired by issue #87. The envelope signature is computed over `sig_input_v2`, as RFC-AITP-0001 §5.4 defines and governs. The pinned envelope examples and fixtures have always used `sig_input_v2`, so no pinned byte changes. An implementation that followed the old row text computes the retired input and MUST switch to `sig_input_v2` to interoperate.
+
 ### 3.1 MUTUAL_HELLO
 
 Sent by the initiating agent (A) to the target agent (B).
@@ -144,7 +146,7 @@ Sent by the initiating agent (A) to the target agent (B).
 | `manifest` | object | REQUIRED | A's Agent Manifest (RFC-AITP-0003), inline. |
 | `requested_grants` | array of string | REQUIRED | Capabilities A is requesting from B. |
 | `pop_nonce` | string | REQUIRED | Random 128-bit value, encoded as exactly 22 chars of unpadded base64url (RFC-AITP-0001 §5.4). B MUST sign over this in MUTUAL_COMMIT_ACK to prove key possession. |
-| `extensions` | object | OPTIONAL | Extension namespace per [RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model) and [RFC-AITP-0012](RFC-AITP-0012-extensions.md). Unknown keys *inside* `extensions` MUST be ignored; unknown fields *outside* it are rejected with `UNKNOWN_FIELD` (§5). It is an ordinary member of this payload object: the envelope signature covers `hex(sha256(payload_canonical_json))` ([RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature)), so any member present when the payload is canonicalized — including `extensions` — is covered by the signature, and because absent and empty (`{}`) canonicalize differently, an implementation MUST NOT substitute one for the other when computing `payload_canonical_json`. |
+| `extensions` | object | OPTIONAL | Extension namespace per [RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model) and [RFC-AITP-0012](RFC-AITP-0012-extensions.md). Unknown keys *inside* `extensions` MUST be ignored; unknown fields *outside* it are rejected with `UNKNOWN_FIELD` (§5). It is an ordinary member of this payload object: the envelope signature covers the whole envelope except `signature`, this payload included, through `sig_input_v2` ([RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature)), so any member present when the envelope is canonicalized — including `extensions` — is covered by the signature, and because absent and empty (`{}`) canonicalize differently, an implementation MUST NOT substitute one for the other when computing `sig_input_v2`. |
 
 ### 3.2 MUTUAL_HELLO_ACK
 
@@ -178,7 +180,7 @@ Sent by the target agent (B) in response to MUTUAL_HELLO.
 | `requested_grants` | array of string | REQUIRED | Capabilities B is requesting from A. |
 | `pop_nonce` | string | REQUIRED | B's nonce. A MUST sign over this in MUTUAL_COMMIT. |
 | `pop_nonce_echo` | string | REQUIRED | MUST equal A's `pop_nonce` from MUTUAL_HELLO. Binds round 2 to round 1. |
-| `extensions` | object | OPTIONAL | Extension namespace per [RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model) and [RFC-AITP-0012](RFC-AITP-0012-extensions.md). Unknown keys *inside* `extensions` MUST be ignored; unknown fields *outside* it are rejected with `UNKNOWN_FIELD` (§5). It is an ordinary member of this payload object: the envelope signature covers `hex(sha256(payload_canonical_json))` ([RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature)), so any member present when the payload is canonicalized — including `extensions` — is covered by the signature, and because absent and empty (`{}`) canonicalize differently, an implementation MUST NOT substitute one for the other when computing `payload_canonical_json`. |
+| `extensions` | object | OPTIONAL | Extension namespace per [RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model) and [RFC-AITP-0012](RFC-AITP-0012-extensions.md). Unknown keys *inside* `extensions` MUST be ignored; unknown fields *outside* it are rejected with `UNKNOWN_FIELD` (§5). It is an ordinary member of this payload object: the envelope signature covers the whole envelope except `signature`, this payload included, through `sig_input_v2` ([RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature)), so any member present when the envelope is canonicalized — including `extensions` — is covered by the signature, and because absent and empty (`{}`) canonicalize differently, an implementation MUST NOT substitute one for the other when computing `sig_input_v2`. |
 
 ### 3.3 MUTUAL_COMMIT
 
@@ -203,7 +205,7 @@ Sent by the initiating agent (A) after verifying B's MUTUAL_HELLO_ACK.
 | `grant_voucher` | string | OPTIONAL | The companion grant voucher (RFC-AITP-0005 §8), minted by A at TCT issuance time, as an opaque compact JWS string with header `typ` `aitp-grant+jwt`. A MAY omit it when its policy forbids B from delegating; without it B cannot delegate (RFC-AITP-0006). Embedded verbatim. |
 | `pop_signature` | string | REQUIRED | `base64url(sign(A_private_key, sha256(B_pop_nonce)))`. Proves A holds the key for its AID. |
 | `pop_nonce_echo` | string | REQUIRED | MUST equal B's `pop_nonce` from MUTUAL_HELLO_ACK. |
-| `extensions` | object | OPTIONAL | Extension namespace per [RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model) and [RFC-AITP-0012](RFC-AITP-0012-extensions.md). Unknown keys *inside* `extensions` MUST be ignored; unknown fields *outside* it are rejected with `UNKNOWN_FIELD` (§5). It is an ordinary member of this payload object: the envelope signature covers `hex(sha256(payload_canonical_json))` ([RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature)), so any member present when the payload is canonicalized — including `extensions` — is covered by the signature, and because absent and empty (`{}`) canonicalize differently, an implementation MUST NOT substitute one for the other when computing `payload_canonical_json`. |
+| `extensions` | object | OPTIONAL | Extension namespace per [RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model) and [RFC-AITP-0012](RFC-AITP-0012-extensions.md). Unknown keys *inside* `extensions` MUST be ignored; unknown fields *outside* it are rejected with `UNKNOWN_FIELD` (§5). It is an ordinary member of this payload object: the envelope signature covers the whole envelope except `signature`, this payload included, through `sig_input_v2` ([RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature)), so any member present when the envelope is canonicalized — including `extensions` — is covered by the signature, and because absent and empty (`{}`) canonicalize differently, an implementation MUST NOT substitute one for the other when computing `sig_input_v2`. |
 
 ### 3.4 MUTUAL_COMMIT_ACK
 
@@ -228,7 +230,7 @@ Sent by the target agent (B) to complete the handshake.
 | `grant_voucher` | string | OPTIONAL | The companion grant voucher (RFC-AITP-0005 §8), minted by B at TCT issuance time, as an opaque compact JWS string with header `typ` `aitp-grant+jwt`. B MAY omit it when its policy forbids A from delegating. Embedded verbatim. |
 | `pop_signature` | string | REQUIRED | `base64url(sign(B_private_key, sha256(A_pop_nonce)))`. |
 | `pop_nonce_echo` | string | REQUIRED | MUST equal A's `pop_nonce` from MUTUAL_HELLO. |
-| `extensions` | object | OPTIONAL | Extension namespace per [RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model) and [RFC-AITP-0012](RFC-AITP-0012-extensions.md). Unknown keys *inside* `extensions` MUST be ignored; unknown fields *outside* it are rejected with `UNKNOWN_FIELD` (§5). It is an ordinary member of this payload object: the envelope signature covers `hex(sha256(payload_canonical_json))` ([RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature)), so any member present when the payload is canonicalized — including `extensions` — is covered by the signature, and because absent and empty (`{}`) canonicalize differently, an implementation MUST NOT substitute one for the other when computing `payload_canonical_json`. |
+| `extensions` | object | OPTIONAL | Extension namespace per [RFC-AITP-0001 §7](RFC-AITP-0001-core.md#7-compatibility-model) and [RFC-AITP-0012](RFC-AITP-0012-extensions.md). Unknown keys *inside* `extensions` MUST be ignored; unknown fields *outside* it are rejected with `UNKNOWN_FIELD` (§5). It is an ordinary member of this payload object: the envelope signature covers the whole envelope except `signature`, this payload included, through `sig_input_v2` ([RFC-AITP-0001 §5.4](RFC-AITP-0001-core.md#54-signature)), so any member present when the envelope is canonicalized — including `extensions` — is covered by the signature, and because absent and empty (`{}`) canonicalize differently, an implementation MUST NOT substitute one for the other when computing `sig_input_v2`. |
 
 ---
 
@@ -463,7 +465,9 @@ B MUST:
      B has A's Manifest from round 1 (cached), so this conditional
      check is required at handshake time. Violation ⇒
      `TCT_EXPIRES_AFTER_MANIFEST`.
-   - `grants` are a subset of B's `offered_capabilities`.
+   - `grants` are a subset of A's `offered_capabilities`, the issuer's
+     (§4.1), from A's Manifest verified in round 1. Violation ⇒
+     `GRANT_OVERFLOW`.
    - Every capability in B's own `required_peer_capabilities` (from B's
      Manifest, RFC-AITP-0003 §3.2) is present in the TCT's `grants`.
      Missing required capability ⇒ `INSUFFICIENT_GRANTS`.
@@ -518,7 +522,17 @@ A MUST:
      A has B's Manifest from round 1 (cached), so this conditional
      check is required at handshake time. Violation ⇒
      `TCT_EXPIRES_AFTER_MANIFEST`.
-   - `grants` are a subset of A's `offered_capabilities`.
+   - `grants` are a subset of B's `offered_capabilities`, the issuer's
+     (§4.1), from B's Manifest verified in round 1. Violation ⇒
+     `GRANT_OVERFLOW`.
+
+   > **Erratum (§5.3 and §5.4 step 5).** Through `0.3.5-draft`, these
+   > bullets bounded `grants` by the receiver's own
+   > `offered_capabilities` ("B's" in §5.3, "A's" in §5.4). §4.1, the §6
+   > table, the `GRANT_OVERFLOW` registry row and fixture `mh-007` have
+   > always bounded them by the issuer's, so no fixture or pinned byte
+   > changes. An implementation that followed the old text and checks
+   > against its own `offered_capabilities` MUST switch to the issuer's.
 6. **Verify peer-capability requirements.** A's own Manifest declares
    `required_peer_capabilities` (RFC-AITP-0003 §3.2). Every capability in
    that list MUST appear in the TCT's `grants` — i.e. B has granted A
