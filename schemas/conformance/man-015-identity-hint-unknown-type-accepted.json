@@ -1,0 +1,48 @@
+{
+  "id": "man-015",
+  "rfc": "RFC-AITP-0003",
+  "status": "core",
+  "required_for_v0_1": false,
+  "required_for_core": true,
+  "feature": null,
+  "$comment": "Pins the owner decision of 2026-11-06 on `identity_hint.type` (#176 item 18), ruled separately from `accepted_identity_types` (man-013, man-014). The body is man-005's without `extensions`, with `identity_hint.type` set to `example-type`, which is in no row of registries/identity-types.md, so a verifier that admits only the registered and Reserved names fails this fixture. The hint carries only `type` and `subject`, so no member rule of a registered type applies. Before RC2.1 every verifier returned MANIFEST_INVALID for this Manifest.",
+  "description": "Manifest whose `identity_hint.type` is a type the verifier does not implement (`example-type`). RFC-AITP-0003 §3.1: the hint type is open, the member rules for `oidc`, `pinned_key` and `spiffe` apply only to those types, and Manifest verification does not interpret the hint. Version, expiry, PoP and signature pass, so the Manifest verifies. A handshake from this agent would present `example-type` in `payload.identity` and fail at RFC-AITP-0004 §5.1 step 6 with IDENTITY_FAILED for a verifier that does not implement it (RFC-AITP-0002 §5).",
+  "tags": [
+    "success",
+    "manifest",
+    "identity-type",
+    "forward-compatibility"
+  ],
+  "input": {
+    "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "now": 1711900100,
+    "manifest": {
+      "version": "aitp/0.3",
+      "aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+      "handshake_endpoint": "https://b.agents.example.com/aitp/handshake",
+      "accepted_trust_anchors": [
+        "https://auth.example.com"
+      ],
+      "offered_capabilities": [
+        "macp.mode.task.v1"
+      ],
+      "required_peer_capabilities": [],
+      "proof_of_possession": {
+        "challenge": "E1P1xitRfiKsGDoeyKCI0w",
+        "signature": "__VALID_POP_SIG__"
+      },
+      "published_at": 1711900000,
+      "expires_at": 1711986400,
+      "identity_hint": {
+        "type": "example-type",
+        "subject": "agent-B"
+      },
+      "signature": "__VALID_MANIFEST_SIG__"
+    },
+    "operation": "verify_manifest"
+  },
+  "expected": {
+    "outcome": "success",
+    "rationale": "Schema-valid under the open hint type, and cryptographically valid, so `verify_manifest` succeeds. The hint is static metadata and Manifest verification does not verify an identity proof (RFC-AITP-0003 §5). An unimplemented identity type is rejected where it is used, in the handshake descriptor, with IDENTITY_FAILED (RFC-AITP-0002 §5; RFC-AITP-0004 §5.1 step 6)."
+  }
+}

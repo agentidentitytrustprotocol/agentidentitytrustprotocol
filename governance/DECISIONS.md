@@ -391,6 +391,7 @@ patch-level, no new signatures). It deserves its own review rather than riding a
   wire change ships under `SECURITY.md` as a new `aitp/0.3.x` tag with an advisory and a strict
   cutover, and the freeze otherwise stands. Nothing else lifts it before 1.0. A dual-accept
   window for such a fix is reconsidered only once real deployments exist.
+- **Exceptions recorded:** 2026-11-06, `accepted_identity_types` and `identity_hint.type` (#176 item 18), by owner decision; see the 2026-11-06 entries below.
 - **Blast radius if wrong:** medium. The freeze binds the project, not code: if it proves too
   tight, the cost is wire changes waiting for 1.0, not broken implementations.
 
@@ -668,3 +669,50 @@ patch-level, no new signatures). It deserves its own review rather than riding a
 - **Rejected:** waiting for the release candidate. There is no reason to delay. Running on the draft surfaces interop defects while the text can still change without an RC re-mint.
 - **Reversal trigger:** none. The RC event is additional, not a replacement.
 - **Blast radius if wrong:** low. Results at a pre-RC commit say so in each report's `spec.commit`.
+
+## 2026-11-06 — Open `accepted_identity_types` now; ignore unrecognised entries (#176 item 18)
+
+- **Status:** Decided.
+- **Decided by:** the owner, on 2026-11-06, as one of two one-way doors in the RC2.1 review dispositions (#157). The session drafted the text.
+- **Context:** `VERSIONING.md` allowed additive identity types on the frozen line because "no existing outcome moves". The Manifest schema closed `accepted_identity_types` to `oidc`, `pinned_key` and `spiffe`, and RFC-AITP-0003 §5 step 2 made any other entry `MANIFEST_INVALID`. So a Manifest listing a new type beside `oidc` was refused by every verifier, including peers that only need `oidc`, and a new type could never be advertised in a Manifest.
+- **Options:**
+  1. Open the list now and ignore unrecognised entries. A wire change: Manifests that every verifier rejects today become valid.
+  2. Keep the list closed on the `aitp/0.3` line, correct `VERSIONING.md`, and defer opening it to 1.0. Text only. This was the session's draft in #184.
+  3. Open the list as a security fix. It is not a security defect.
+- **Chosen:** option 1.
+  - `accepted_identity_types` entries are any non-empty string, unique. An unrecognised entry is inside the grammar, so it is not `MANIFEST_INVALID` (RFC-AITP-0003 §3.2).
+  - At RFC-AITP-0003 §5 step 6 the fetching peer ignores entries it does not recognise and checks its own type against the rest. A list of only unrecognised entries behaves as `[]`: every fetching peer gets `INCOMPATIBLE_IDENTITY_TYPE`. No new code.
+  - At RFC-AITP-0004 §5.1 step 8 an entry in the receiver's own list that it does not implement has no effect; a peer presenting that type has already failed step 6 with `IDENTITY_FAILED`.
+  - `VERSIONING.md` keeps "Additive identity types" in "Allowed", made accurate, and records that the list was opened once by this decision.
+  - Fixtures, core tier: `man-013` (unrecognised entries beside `oidc`, success) and `man-014` (only unrecognised entries, success at Manifest verification) on the Manifest side; `mh-018` (receiver list `["oidc", "example-type"]`, `oidc` peer, success) and `mh-019` (receiver list `["did", "example-type"]`, `oidc` peer, `INCOMPATIBLE_IDENTITY_TYPE`) on the receiver side. Each uses `example-type`, which is in no registry row, so a verifier that admits only the registered and Reserved names fails them. Only the fetcher-side screen of RFC-AITP-0003 §5 step 6 is unpinned, because no operation takes the fetching peer's identity.
+- **Reasoning:** the owner preferred to fix the forward-compatibility defect on this line rather than carry a promise the schema did not keep. With the list closed, every identity type added before 1.0 would need the same wire change. No existing fixture or committed artifact lists an unregistered type, so no frozen fixture outcome and no known-answer vector moves.
+- **Relation to the S2.1 freeze (2026-10-24 entry):** that entry defers non-security wire changes found in review to 1.0. This decision is an owner-made exception for this one field, recorded with its classification as the freeze's "Who classifies" rule requires. It does not lift the freeze for anything else.
+- **Consequences:** every implementation that rejects unknown entries has to change to conform to RC2.1: today all of them return `MANIFEST_INVALID` for such a Manifest. Until they do, verifiers will disagree about the same Manifest.
+- **`identity_hint.type`:** ruled separately the same day; see the next entry.
+- **Reversal trigger:** none before 1.0. Closing the list again would itself be a wire change.
+- **Blast radius if wrong:** low to medium. One field; a Manifest that used to be refused is accepted, and the type screen still fails closed for a fetching peer whose type is not listed.
+
+## 2026-11-06 — Open `identity_hint.type` with `accepted_identity_types` (#176 item 18)
+
+- **Status:** CONFIRMED by the owner on 2026-11-06. Drafted by the session as its own commit in #184, then ruled on separately from `accepted_identity_types` (entry above), as #176 item 18 asked.
+- **Decided by:** the owner, taking the session's recommendation.
+- **Context:** the hint names the publisher's own identity type, and RFC-AITP-0004 §5.1 step 6 requires the handshake descriptor's `type` to equal it. With the hint closed, an agent whose own type is new cannot publish a Manifest that any `aitp/0.3` verifier accepts, so it cannot handshake at all, even with a peer that implements the type.
+- **Options:**
+  1. Open the hint type the same way: any non-empty string, the per-type member rules apply to registered types only, and Manifest verification does not interpret an unrecognised type. A verifier that does not implement it rejects the agent's handshakes with `IDENTITY_FAILED` (RFC-AITP-0002 §5).
+  2. Keep the hint closed until 1.0. A new type can then be listed in `accepted_identity_types` but not be any agent's own type.
+- **Chosen:** option 1. It is the only reading under which "Additive identity types" in `VERSIONING.md` lets a new type be used, not just listed. It adds no code: the unimplemented type fails where it is used, with the code RFC-AITP-0002 §5 already gives. Fixture `man-015` pins that the Manifest verifies.
+- **Outcomes that change:** a Manifest whose `identity_hint.type` is outside `oidc`, `pinned_key` and `spiffe` is `MANIFEST_INVALID` for every verifier today and verifies under option 1. No existing fixture or committed artifact has such a hint.
+- **Not changed:** the handshake `IdentityDescriptor.type` enum (`aitp-identity.schema.json`, mirrored in `aitp-mutual-handshake.schema.json`). Adding a type there is the "Schema refactors" row of `VERSIONING.md`, and an unimplemented type is `IDENTITY_FAILED` either way.
+- **Reversal trigger:** none before 1.0. Closing the hint type again would itself be a wire change.
+- **Blast radius if wrong:** low. A Manifest that used to be refused is accepted, and its handshakes still fail closed for verifiers that do not implement the type.
+
+## 2026-11-06 — RFC-AITP-0003 §5 step 6 checks every fetching peer's identity type (#176 item 22)
+
+- **Status:** Decided.
+- **Decided by:** the owner, on 2026-11-06. The session found the gap while reworking #176 item 18 and drafted the fix in #184.
+- **Context:** RFC-AITP-0003 §5 step 6 checked `accepted_identity_types` only for a non-OIDC fetching peer; an `oidc` fetching peer was screened on `accepted_trust_anchors` alone. RFC-AITP-0004 §5.1 step 8 checks every peer's type against the receiver's `accepted_identity_types` first (`mh-012`: an `oidc` peer against a `["pinned_key"]` receiver is `INCOMPATIBLE_IDENTITY_TYPE`). So an `oidc` peer passed discovery and was then refused at the handshake.
+- **Chosen:** step 6 runs check 1 (the type, for every fetching peer, `oidc` included, ⇒ `INCOMPATIBLE_IDENTITY_TYPE`) and then check 2 (trust-anchor overlap, `oidc` only, ⇒ `INCOMPATIBLE_TRUST_ANCHORS`), in step 8's order. With item 18's rule, a list of only unrecognised entries now gives `INCOMPATIBLE_IDENTITY_TYPE` for every fetching peer, `oidc` included.
+- **Reasoning:** both ends of one exchange apply the same rule to the same field. No handshake outcome changes, because step 8 already rejects the same pairs; discovery just stops before a handshake is attempted. The code can differ in one case: when the type is not accepted and the anchors do not overlap, discovery reports `INCOMPATIBLE_IDENTITY_TYPE` in step 8's order, while the receiver may report `INCOMPATIBLE_TRUST_ANCHORS` early under RFC-AITP-0004 §5.1 step 6 check 2. Discovery does not, because it fetches no key material. Classified as a clarification.
+- **Fixtures:** only the fetcher side is unpinnable: `verify_manifest` takes no fetching-peer identity, and adding a `self_identity_type` input would be a runner and adapter change on its own. The receiver side is pinned by `mh-012` (an `oidc` peer against `["pinned_key"]`) and, for unrecognised entries, by `mh-018` and `mh-019`.
+- **Reversal trigger:** none before 1.0.
+- **Blast radius if wrong:** low. A fetching peer gives up at discovery on a pairing the handshake would refuse anyway.

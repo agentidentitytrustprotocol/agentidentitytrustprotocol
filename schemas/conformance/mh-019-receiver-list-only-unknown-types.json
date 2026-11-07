@@ -1,0 +1,80 @@
+{
+  "id": "mh-019",
+  "rfc": "RFC-AITP-0004",
+  "status": "core",
+  "required_for_v0_1": false,
+  "required_for_core": true,
+  "feature": null,
+  "$comment": "Receiver side of the owner decision of 2026-11-06 on #176 item 18. The envelope, `__VALID_JWT__` minting and `self_trust_anchors` are mh-012's, so steps 1 to 7 of RFC-AITP-0004 §5.1 pass and the step 8 trust-anchor check would pass. Only `self_accepted_identity_types` differs: `[\"did\", \"example-type\"]`, a Reserved name and a name in no registry row. This is the receiver-side counterpart of man-014, whose fetcher-side screen no operation can pin.",
+  "description": "The receiver's own `accepted_identity_types` lists only types it does not implement (`did`, `example-type`), and the initiator presents a valid `oidc` identity from an issuer the receiver trusts. The list accepts no type. Step 8 MUST reject with INCOMPATIBLE_IDENTITY_TYPE.",
+  "tags": [
+    "failure",
+    "mutual-handshake",
+    "policy",
+    "identity-type",
+    "oidc"
+  ],
+  "input": {
+    "step": "received MUTUAL_HELLO from peer",
+    "self_aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+    "self_accepted_identity_types": [
+      "did",
+      "example-type"
+    ],
+    "self_trust_anchors": [
+      "https://auth.openai.com"
+    ],
+    "envelope": {
+      "version": "aitp/0.3",
+      "message_type": "mutual_hello",
+      "message_id": "660e8400-e29b-41d4-a716-446655440112",
+      "timestamp": 1711900000,
+      "sender": {
+        "agent_id": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik"
+      },
+      "payload": {
+        "identity": {
+          "type": "oidc",
+          "issuer": "https://auth.openai.com",
+          "subject": "agent-A",
+          "proof": "__VALID_JWT__"
+        },
+        "manifest": {
+          "version": "aitp/0.3",
+          "aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+          "handshake_endpoint": "https://a.agents.example.com/aitp/handshake",
+          "accepted_trust_anchors": [
+            "https://auth.openai.com"
+          ],
+          "offered_capabilities": [
+            "macp.mode.task.v1"
+          ],
+          "required_peer_capabilities": [],
+          "proof_of_possession": {
+            "challenge": "E1P1xitRfiKsGDoeyKCI0w",
+            "signature": "__VALID_POP_SIG__"
+          },
+          "published_at": 1711899000,
+          "expires_at": 1711985400,
+          "identity_hint": {
+            "type": "oidc",
+            "issuer": "https://auth.openai.com",
+            "subject": "agent-A"
+          },
+          "signature": "__VALID_MANIFEST_SIG__"
+        },
+        "requested_grants": [
+          "macp.mode.task.v1"
+        ],
+        "pop_nonce": "bWgtMDEyLW9pZGMtcGluMQ"
+      },
+      "signature": "__VALID_ENVELOPE_SIG__"
+    },
+    "operation": "verify_handshake_payload"
+  },
+  "expected": {
+    "outcome": "failure",
+    "error_code": "INCOMPATIBLE_IDENTITY_TYPE",
+    "rationale": "Neither entry is a type the receiver implements, so both are ignored and the list accepts no type, as an explicit `[]` does (RFC-AITP-0003 §3.2, §5 step 6; RFC-AITP-0004 §5.1 step 8). A verifier that falls back to the default `[\"oidc\"]` when it recognises no entry accepts the peer and fails this fixture; the default applies only when the field is absent."
+  }
+}

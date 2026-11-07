@@ -1,0 +1,53 @@
+{
+  "id": "man-014",
+  "rfc": "RFC-AITP-0003",
+  "status": "core",
+  "required_for_v0_1": false,
+  "required_for_core": true,
+  "feature": null,
+  "$comment": "Companion to man-013 (owner decision of 2026-11-06 on #176 item 18). Every entry of `accepted_identity_types` is unrecognised: `did` is a Reserved row of registries/identity-types.md and `example-type` is in no row of registries/identity-types.md, so a verifier that admits only the registered and Reserved names fails this fixture. Under the rule the Manifest is valid, and its list accepts no type a verifier can present. `verify_manifest` takes no fetching-peer identity (PLACEHOLDERS.md, \"Operation key\"), so RFC-AITP-0003 §5 step 6 is not exercised and the expected outcome is success. Any fetching peer screening this Manifest at §5 step 6 gets INCOMPATIBLE_IDENTITY_TYPE (check 1), as for an explicit `[]`. No fixture pins that fetcher-side screen, because no operation takes the fetching peer's identity; `mh-019` pins the receiver-side counterpart at RFC-AITP-0004 §5.1 step 8. Before RC2.1 every verifier returned MANIFEST_INVALID for this Manifest.",
+  "description": "Manifest whose `accepted_identity_types` lists only types the verifier does not implement (`did`, `example-type`). RFC-AITP-0003 §3.2: the list is open, so the Manifest is not MANIFEST_INVALID. Version, expiry, PoP and signature pass, so Manifest verification succeeds. The list accepts no identity type the verifier implements: at the §5 step 6 compatibility screen, which this operation does not run, it behaves as an explicit `[]`.",
+  "tags": [
+    "success",
+    "manifest",
+    "identity-type",
+    "forward-compatibility"
+  ],
+  "input": {
+    "self_aid": "aid:pubkey:O2onvM62pC1io6jQKm8Nc2UyFXcd4kOmOsBIoYtZ2ik",
+    "now": 1711900100,
+    "manifest": {
+      "version": "aitp/0.3",
+      "aid": "aid:pubkey:A6EHv_POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg",
+      "handshake_endpoint": "https://b.agents.example.com/aitp/handshake",
+      "accepted_trust_anchors": [
+        "https://auth.example.com"
+      ],
+      "offered_capabilities": [
+        "macp.mode.task.v1"
+      ],
+      "required_peer_capabilities": [],
+      "accepted_identity_types": [
+        "did",
+        "example-type"
+      ],
+      "proof_of_possession": {
+        "challenge": "E1P1xitRfiKsGDoeyKCI0w",
+        "signature": "__VALID_POP_SIG__"
+      },
+      "published_at": 1711900000,
+      "expires_at": 1711986400,
+      "identity_hint": {
+        "type": "oidc",
+        "issuer": "https://auth.example.com",
+        "subject": "agent-B"
+      },
+      "signature": "__VALID_MANIFEST_SIG__"
+    },
+    "operation": "verify_manifest"
+  },
+  "expected": {
+    "outcome": "success",
+    "rationale": "Schema-valid (an entry is any non-empty string) and cryptographically valid, so `verify_manifest` succeeds. The unrecognised entries are ignored at RFC-AITP-0003 §5 step 6, which leaves no accepted type, so any fetching peer would get INCOMPATIBLE_IDENTITY_TYPE there. That screen needs the fetching peer's identity, which this operation does not take."
+  }
+}

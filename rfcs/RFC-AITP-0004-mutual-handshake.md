@@ -375,7 +375,10 @@ B MUST:
      own `accepted_identity_types` (default `["oidc"]` when absent).
      Failure ⇒ `INCOMPATIBLE_IDENTITY_TYPE` — not
      `INCOMPATIBLE_TRUST_ANCHORS`. This is the case where, for example,
-     A presents `pinned_key` but B accepts only `oidc`.
+     A presents `pinned_key` but B accepts only `oidc`. An entry in
+     B's list that B does not implement has no effect here: a peer
+     that presents such a type has already failed step 6 with
+     `IDENTITY_FAILED` (RFC-AITP-0002 §5).
    - **Trust-anchor overlap** (OIDC only). When `A.identity.type ==
      "oidc"`, A's identity `issuer` MUST appear in B's
      `trust_anchors`. Failure ⇒ `INCOMPATIBLE_TRUST_ANCHORS`. A

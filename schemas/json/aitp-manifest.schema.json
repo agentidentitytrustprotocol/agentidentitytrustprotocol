@@ -54,7 +54,7 @@
             "format": "uri"
           },
           "uniqueItems": true,
-          "description": "OIDC issuer URIs this agent accepts from peers. For an `oidc` peer, the peer's identity issuer MUST appear here for the handshake to proceed (RFC-AITP-0003 §5 step 6). Not consulted for a `pinned_key` (or other non-OIDC) peer — compatibility for those is instead governed by `accepted_identity_types` — so an empty array here is valid and does not by itself reject every peer."
+          "description": "OIDC issuer URIs this agent accepts from peers. For an `oidc` peer, the peer's identity issuer MUST appear here for the handshake to proceed (RFC-AITP-0003 §5 step 6). Not consulted for a `pinned_key` (or other non-OIDC) peer, so an empty array here is valid and does not by itself reject every peer. Every peer's identity type, `oidc` included, is first checked against `accepted_identity_types` (RFC-AITP-0003 §5 step 6, check 1)."
         },
         "offered_capabilities": {
           "type": "array",
@@ -80,14 +80,10 @@
           "type": "array",
           "items": {
             "type": "string",
-            "enum": [
-              "oidc",
-              "pinned_key",
-              "spiffe"
-            ]
+            "minLength": 1
           },
           "uniqueItems": true,
-          "description": "Identity binding types this agent accepts from peers (RFC-AITP-0002). Default semantics per RFC-AITP-0003 §3.2: an absent field defaults to [\"oidc\"]; an explicitly empty [] means 'accept no identity type' (rejects every peer with INCOMPATIBLE_IDENTITY_TYPE — distinct from INCOMPATIBLE_TRUST_ANCHORS, which signals an OIDC trust-anchor overlap failure). Publishers SHOULD omit the field when the default is desired."
+          "description": "Identity binding types this agent accepts from peers (RFC-AITP-0002). Open: an entry is any non-empty string, so a Manifest that lists a type the verifier does not implement is not schema-invalid. A verifier ignores the entries it does not recognise when it screens the Manifest (RFC-AITP-0003 §3.2, §5 step 6). Default semantics per RFC-AITP-0003 §3.2: an absent field defaults to [\"oidc\"]; an explicitly empty [] means 'accept no identity type' (rejects every peer with INCOMPATIBLE_IDENTITY_TYPE — distinct from INCOMPATIBLE_TRUST_ANCHORS, which signals an OIDC trust-anchor overlap failure). Publishers SHOULD omit the field when the default is desired."
         },
         "accepted_signature_algorithms": {
           "type": "array",
@@ -159,12 +155,8 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": [
-            "oidc",
-            "pinned_key",
-            "spiffe"
-          ],
-          "description": "Identity mechanism. v0.3: oidc, pinned_key, spiffe (RFC-AITP-0002 \u00a76)."
+          "minLength": 1,
+          "description": "Identity mechanism. Registered in v0.3: oidc, pinned_key, spiffe (RFC-AITP-0002 \u00a76). Open: any non-empty string, so a Manifest whose hint names a type the verifier does not implement is not schema-invalid. The member rules below apply to the registered types only; a handshake that presents an unimplemented type fails with IDENTITY_FAILED (RFC-AITP-0003 \u00a73.1, RFC-AITP-0002 \u00a75)."
         },
         "issuer": {
           "type": "string",
