@@ -8,7 +8,7 @@ AITP is pre-1.0 and has one maintainer. The four implementations that exist toda
 
 **Monday 9 November 2026, 00:00 UTC, to Sunday 15 November 2026, 23:59 UTC.**
 
-The event runs on the current draft, before the release candidate. The core RFCs are still in public review until at least 2027-01-10 ([VERSIONING.md](../VERSIONING.md)), so results from this week feed straight into that review. A later event will repeat the matrix on the release candidate. The announcement goes on GitHub Discussions and on [agentidentitytrustprotocol.io](https://agentidentitytrustprotocol.io).
+The event runs on the current draft, before the release candidate. The core RFCs are still in public review, with promotion to the release candidate planned for 16 November 2026 ([VERSIONING.md](../VERSIONING.md)), so results from this week feed straight into that review. A later event will repeat the matrix on the release candidate. The announcement goes on GitHub Discussions and on [agentidentitytrustprotocol.io](https://agentidentitytrustprotocol.io).
 
 ## Format
 

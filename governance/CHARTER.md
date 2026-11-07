@@ -30,9 +30,9 @@ The Core Team is responsible for:
 
 The Core Team operates by **rough consensus**. When consensus cannot be reached, the Core Team votes; ties default to the status quo.
 
-Until a Core Team is seated, the repository maintainer (the AITP project lead) acts in its place for editorial and registry matters; substantive (normative) RFCs SHOULD wait for a seated Core Team or a public review period of at least 30 days. Once seated, the Core Team roster will be tracked in a separate file under `governance/` so membership changes do not require a charter amendment.
+Until a Core Team is seated, the repository maintainer (the AITP project lead) acts in its place for editorial and registry matters; substantive (normative) RFCs SHOULD wait for a seated Core Team or a public review period of at least 14 days at each stage gate. Once seated, the Core Team roster will be tracked in a separate file under `governance/` so membership changes do not require a charter amendment.
 
-The substitute in force until seating (the maintainer shepherds every RFC, and each stage gate waits for a public review of at least 30 days) is recorded in [DECISIONS.md](DECISIONS.md) and summarised in [RFC-PROCESS.md § Stages](RFC-PROCESS.md#stages).
+The substitute in force until seating (the maintainer shepherds every RFC and decides at each stage gate, and each stage gate waits for a public review of at least 14 days) is recorded in [DECISIONS.md](DECISIONS.md) and summarised in [RFC-PROCESS.md § Stages](RFC-PROCESS.md#stages).
 
 ---
 

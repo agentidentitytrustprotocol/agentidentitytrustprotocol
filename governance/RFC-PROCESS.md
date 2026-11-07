@@ -70,16 +70,16 @@ Reserved → Planned → Idea → Draft → Review → Release Candidate → Fin
 - Core team triages and assigns a shepherd
 - Shepherd is responsible for driving the RFC to resolution
 - **Before a Core Team is seated** ([CHARTER.md § Core Team](CHARTER.md#core-team)):
-  - the repository maintainer is the shepherd for every RFC;
+  - the repository maintainer is the shepherd for every RFC and makes the
+    decision at each stage gate, including the FCP vote;
   - an RFC leaves Review, Release Candidate or FCP only after a public review
-    of at least 30 days at that stage, which replaces the 14-day minimum above
-    and FCP's 7-day window;
+    of at least 14 days at that stage, which replaces FCP's 7-day window;
   - each window is announced in a pinned Discussions thread with its open and
     close dates. Comments go there or on the RFC's pull request;
   - a Core Team seated during a window takes over the decision at the gate,
     but the window is not restarted.
 
-  The rule, its first window (closing no earlier than 2027-01-10) and the goal
+  The rule, the planned dates for RFC-AITP-0001 to RFC-AITP-0009 and the goal
   for seating are in [DECISIONS.md](DECISIONS.md).
 - `**Status:**` reads `Community Standards Track (Review)`
 
@@ -99,7 +99,8 @@ Reserved → Planned → Idea → Draft → Review → Release Candidate → Fin
   - at least one implementation passes the core conformance tier
 
 **Final Comment Period (FCP)**
-- Announced with a 7-day window
+- Announced with a 7-day window (14 days before a Core Team is seated; see
+  Review above)
 - No new substantive changes during FCP
 - Core team votes
 - `**Status:**` reads `Community Standards Track (Final Comment Period)`

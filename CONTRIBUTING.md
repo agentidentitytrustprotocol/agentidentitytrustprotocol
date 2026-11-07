@@ -41,15 +41,18 @@ Breaking changes require:
 
 Until a Core Team is seated, the maintainer acts in its place
 ([`governance/CHARTER.md` § Core Team](governance/CHARTER.md#core-team)) and
-shepherds every RFC. A normative RFC leaves Review, Release Candidate or Final
-Comment Period only after a public review of at least 30 days at that stage
+shepherds every RFC, making the decision at each stage gate. A normative RFC
+leaves Review, Release Candidate or Final Comment Period only after a public
+review of at least 14 days at that stage
 ([RFC-PROCESS.md § Stages](governance/RFC-PROCESS.md#stages)). Each window is
 announced in a pinned
 [Discussions](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/discussions)
 thread with its open and close dates; comment there or on the RFC's pull
 request. The first window, the review of the `aitp/0.3` core RFCs
-(RFC-AITP-0001 to RFC-AITP-0009), opened on 2026-10-24 and closes no earlier
-than 2027-01-10. Its thread is
+(RFC-AITP-0001 to RFC-AITP-0009), opened on 2026-10-24 and meets its 14 days on
+2026-11-07. Promotion to Release Candidate is planned for 2026-11-16, the
+Release Candidate window closes no earlier than 2026-11-30, and the Final
+Comment Period window runs at least 14 days after that. The thread is
 [Public review: aitp/0.3](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/discussions/117).
 Each window ends with a disposition record that accounts for every comment and
 every change made during it
