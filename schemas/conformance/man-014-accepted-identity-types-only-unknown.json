@@ -5,8 +5,8 @@
   "required_for_v0_1": false,
   "required_for_core": true,
   "feature": null,
-  "$comment": "Companion to man-013 (owner decision of 2026-11-06 on #176 item 18). Every entry of `accepted_identity_types` is unrecognised: `did` and `x509` are Reserved rows of registries/identity-types.md. Under the rule the Manifest is valid, and its list accepts no type a verifier can present. `verify_manifest` takes no fetching-peer identity (PLACEHOLDERS.md, \"Operation key\"), so RFC-AITP-0003 §5 step 6 is not exercised and the expected outcome is success. Any fetching peer screening this Manifest at §5 step 6 gets INCOMPATIBLE_IDENTITY_TYPE (check 1), as for an explicit `[]`. No fixture pins that screen, because no operation takes the fetching peer's identity. Before RC2.1 every verifier returned MANIFEST_INVALID for this Manifest.",
-  "description": "Manifest whose `accepted_identity_types` lists only types the verifier does not implement (`did`, `x509`). RFC-AITP-0003 §3.2: the list is open, so the Manifest is not MANIFEST_INVALID. Version, expiry, PoP and signature pass, so Manifest verification succeeds. The list accepts no identity type the verifier implements: at the §5 step 6 compatibility screen, which this operation does not run, it behaves as an explicit `[]`.",
+  "$comment": "Companion to man-013 (owner decision of 2026-11-06 on #176 item 18). Every entry of `accepted_identity_types` is unrecognised: `did` is a Reserved row of registries/identity-types.md and `example-type` is in no row of registries/identity-types.md, so a verifier that admits only the registered and Reserved names fails this fixture. Under the rule the Manifest is valid, and its list accepts no type a verifier can present. `verify_manifest` takes no fetching-peer identity (PLACEHOLDERS.md, \"Operation key\"), so RFC-AITP-0003 §5 step 6 is not exercised and the expected outcome is success. Any fetching peer screening this Manifest at §5 step 6 gets INCOMPATIBLE_IDENTITY_TYPE (check 1), as for an explicit `[]`. No fixture pins that fetcher-side screen, because no operation takes the fetching peer's identity; `mh-019` pins the receiver-side counterpart at RFC-AITP-0004 §5.1 step 8. Before RC2.1 every verifier returned MANIFEST_INVALID for this Manifest.",
+  "description": "Manifest whose `accepted_identity_types` lists only types the verifier does not implement (`did`, `example-type`). RFC-AITP-0003 §3.2: the list is open, so the Manifest is not MANIFEST_INVALID. Version, expiry, PoP and signature pass, so Manifest verification succeeds. The list accepts no identity type the verifier implements: at the §5 step 6 compatibility screen, which this operation does not run, it behaves as an explicit `[]`.",
   "tags": [
     "success",
     "manifest",
@@ -29,7 +29,7 @@
       "required_peer_capabilities": [],
       "accepted_identity_types": [
         "did",
-        "x509"
+        "example-type"
       ],
       "proof_of_possession": {
         "challenge": "E1P1xitRfiKsGDoeyKCI0w",

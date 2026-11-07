@@ -161,7 +161,7 @@ An `mh-*` fixture that receives a MUTUAL_HELLO runs RFC-AITP-0004 §5.1 through 
 - When `self_accepted_identity_types` is absent, the receiver runs with the default `["oidc"]`. The runner MUST NOT configure accepted types of its own, and MUST NOT add the type the payload presents (`mh-011` tests exactly this).
 - The runner applies that default before the request reaches the adapter: for an `mh-*` fixture with `verify_handshake_payload` it sends `self_accepted_identity_types`, set to `["oidc"]` when the fixture omits it ([ADAPTER.md, "Request"](ADAPTER.md#request)). Whether step 8 runs therefore follows from the fixture family, not from whether the fixture states the key: every `mh-*` fixture that receives a MUTUAL_HELLO runs it, and an `id-*` fixture does not (below).
 - The sender's Manifest may carry its own `accepted_identity_types`. That is the sender's policy for its peers, and step 8 does not read it.
-- `mh-010` to `mh-014` use these keys. The earlier `mh-*` fixtures that reach step 8 present `oidc`, which the default accepts, and `mh-009` presents `pinned_key` but fails at step 6. So the default changes none of their outcomes.
+- `mh-010` to `mh-014`, `mh-018` and `mh-019` use these keys. The earlier `mh-*` fixtures that reach step 8 present `oidc`, which the default accepts, and `mh-009` presents `pinned_key` but fails at step 6. So the default changes none of their outcomes.
 
 ### Initiator's intended peer (`peer_aid`)
 
@@ -444,7 +444,7 @@ valid and invalid, are in [`reports/`](reports/).
 
 | Tier | Count | Required for v0.3 |
 |---|---|---|
-| `core` (`required_for_core`) | 98 | ✅ Yes |
+| `core` (`required_for_core`) | 100 | ✅ Yes |
 | `core` (frozen in the v0.1 shape: `del-004`) | 1 | ❌ No (required of v0.1 runners only; a core runner may execute it, and its result gates nothing) |
 | `extension` — pinned-admission profile (RFC-AITP-0002 §3.4, `feature: aitp-pinned-admission`) | 8 | ❌ No (required of an implementation claiming the profile) |
 | `extension` — attestation verification (RFC-AITP-0005 §5.3, `feature: aitp-self-attestation`) | 3 | ❌ No (required of an implementation claiming the role) |
@@ -453,7 +453,7 @@ valid and invalid, are in [`reports/`](reports/).
 | `draft` — A2A Agent Card binding (RFC-AITP-0014, `feature: aitp-a2a-agent-card`) | 6 | ❌ No |
 | `draft` — `spiffe` identity type (RFC-AITP-0002 §6, `feature: experimental-spiffe-identity`) | 7 | ❌ No |
 | `draft` — TCT renewal (RFC-AITP-0013, `feature: experimental-renewal`) | 12 | ❌ No |
-| **Total** | **149** | |
+| **Total** | **151** | |
 
 Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A conformance runner for the current revision, `aitp/0.3`, MUST execute every `required_for_core` core fixture (the key keeps its v0.2 name so existing runners keep working; for `aitp/0.3` it marks the core tier); `draft` and `extension` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
@@ -488,9 +488,9 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | `man-005` | Manifest body carries an unrecognized, vendor-namespaced key inside `extensions` — ignored | success |
 | `man-006` | Manifest missing the REQUIRED `handshake_endpoint` — structural rejection, not a signature failure | failure: MANIFEST_INVALID |
 | `man-007` | Manifest `identity_hint` has `type: "oidc"` and also carries `public_key`, which RFC-AITP-0003 §3.1 forbids | failure: MANIFEST_INVALID |
-| `man-013` | Manifest `accepted_identity_types` lists an unrecognised type (`x509`) beside `oidc`; the list is open and the entry is ignored (RFC-AITP-0003 §3.2, §5 step 6) | success |
-| `man-014` | Manifest `accepted_identity_types` lists only unrecognised types (`did`, `x509`); the Manifest verifies, and at the §5 step 6 screen the list accepts no type, as `[]` does | success |
-| `man-015` | Manifest `identity_hint.type` is an unrecognised type (`x509`); the hint type is open and Manifest verification does not interpret it (RFC-AITP-0003 §3.1) | success |
+| `man-013` | Manifest `accepted_identity_types` lists unrecognised types (`x509`, `example-type`) beside `oidc`; the list is open and the entry is ignored (RFC-AITP-0003 §3.2, §5 step 6) | success |
+| `man-014` | Manifest `accepted_identity_types` lists only unrecognised types (`did`, `example-type`); the Manifest verifies, and at the §5 step 6 screen the list accepts no type, as `[]` does | success |
+| `man-015` | Manifest `identity_hint.type` is an unrecognised type (`example-type`); the hint type is open and Manifest verification does not interpret it (RFC-AITP-0003 §3.1) | success |
 
 ### Mutual Handshake (RFC-AITP-0004)
 
@@ -512,6 +512,8 @@ Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata 
 | `mh-013` | Receiver accepts `["oidc", "pinned_key"]`; same valid `pinned_key` identity: the positive control for `mh-010` and `mh-011` | success |
 | `mh-014` | Receiver accepts `["oidc"]`; `pinned_key` proof over the wrong `pop_nonce` (id-006's envelope). Step 6 runs before step 8 | failure: IDENTITY_FAILED |
 | `mh-015` | Initiator addressed agentB (`peer_aid`); an otherwise valid MUTUAL_HELLO_ACK arrives from agentC (RFC-AITP-0004 §5.2 step 3) | failure: PEER_MISMATCH |
+| `mh-018` | Receiver accepts `["oidc", "example-type"]`; valid `oidc` identity from a trusted issuer. The unrecognised entry has no effect (RFC-AITP-0004 §5.1 step 8) | success |
+| `mh-019` | Receiver accepts `["did", "example-type"]`, none of which it implements; valid `oidc` identity. The list accepts no type, and the `["oidc"]` default does not apply | failure: INCOMPATIBLE_IDENTITY_TYPE |
 
 ### Identity Binding (RFC-AITP-0002)
 

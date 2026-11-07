@@ -14,27 +14,30 @@
 - RFC-AITP-0004 §5.1 step 8: an entry in the receiver's own list that it does not implement has no effect, because a peer presenting that type has already failed step 6 with `IDENTITY_FAILED`.
 - `VERSIONING.md`, "Allowed", "Additive identity types": accurate again. A new type is rejected in the handshake descriptor with `IDENTITY_FAILED` and ignored in a Manifest's `accepted_identity_types`, and the row records that the list was opened once, by owner decision.
 - `docs/discovery.md` step 8 mirrors the rule.
-- New core fixtures `man-013` (unrecognised entry beside `oidc`, success) and `man-014` (only unrecognised entries, success). Conformance README: index rows, and the summary counts corrected to 97 core and 148 in total. `main` already had 95 core and 146 fixtures against a stated 94 and 145.
+- New core fixtures on the Manifest side, `man-013` (unrecognised entries beside `oidc`, success) and `man-014` (only unrecognised entries, success), and on the receiver side, `mh-018` (receiver list `["oidc", "example-type"]`, `oidc` peer, success) and `mh-019` (receiver list `["did", "example-type"]`, `oidc` peer, `INCOMPATIBLE_IDENTITY_TYPE`, which catches a receiver that falls back to `["oidc"]`). Each uses `example-type`, a name in no registry row, so admitting only the registered and Reserved names does not pass them.
 - `governance/DECISIONS.md` records the owner decision.
 
 **`identity_hint.type`: owner decision, 2026-11-06.** Ruled separately from `accepted_identity_types`, on the session's recommendation. `identity_hint.type` opens in the same way. Today every verifier returns `MANIFEST_INVALID` for a hint type outside the three registered ones; under this change the Manifest verifies, and a handshake that presents the type fails with `IDENTITY_FAILED` (RFC-AITP-0002 §5, RFC-AITP-0004 §5.1 step 6). Without it, an agent whose own type is new cannot publish a Manifest that any peer accepts, so the allowance in `VERSIONING.md` would cover listing a new type but not using one.
 - `aitp-manifest.schema.json`: `IdentityHint.type` is any non-empty string. The member rules for `oidc`, `pinned_key` and `spiffe` are unchanged and apply to those types only.
 - RFC-AITP-0003 §3.1: the hint `type` is open, and the rule above. `VERSIONING.md` names the hint in the "Additive identity types" row.
-- New core fixture `man-015` (unrecognised hint type, success). Conformance README counts: 98 core, 149 in total.
+- New core fixture `man-015` (unrecognised hint type `example-type`, success).
 - `governance/DECISIONS.md` records the owner decision.
 
 ### RFC-AITP-0003 §5 step 6 checks every fetching peer's identity type (#176 item 22; owner decision 2026-11-06)
 
 **Change class.** Clarification aligning RFC-AITP-0003 with RFC-AITP-0004, decided by the owner. The discovery screen checked `accepted_identity_types` only for a non-OIDC fetching peer, while the receiver's policy step (RFC-AITP-0004 §5.1 step 8, fixture `mh-012`) checks it for every peer. No schema constraint, fixture outcome or known-answer vector changes.
 
-**Outcomes that change.** Only the fetching peer's discovery decision, never the outcome of a handshake. An `oidc` fetching peer screening a Manifest whose `accepted_identity_types` omits `oidc` now stops at discovery with `INCOMPATIBLE_IDENTITY_TYPE`. Before, it passed on trust anchors alone and the publisher refused the handshake at step 8 with the same code. When the type is not accepted and the anchors do not overlap, discovery now reports `INCOMPATIBLE_IDENTITY_TYPE`, not `INCOMPATIBLE_TRUST_ANCHORS`, which is step 8's order.
+**Outcomes that change.** Only the fetching peer's discovery decision, never the outcome of a handshake. An `oidc` fetching peer screening a Manifest whose `accepted_identity_types` omits `oidc` now stops at discovery with `INCOMPATIBLE_IDENTITY_TYPE`. Before, it passed on trust anchors alone and the publisher refused the handshake at step 8 with that code. When the type is not accepted and the anchors do not overlap, discovery now reports `INCOMPATIBLE_IDENTITY_TYPE`, not `INCOMPATIBLE_TRUST_ANCHORS`, in step 8's order. The receiver may instead report `INCOMPATIBLE_TRUST_ANCHORS` early under RFC-AITP-0004 §5.1 step 6 check 2; discovery does not, because it fetches no key material.
 
 **Changes.**
 - RFC-AITP-0003 §5 step 6: check 1, the identity type for every fetching peer, `oidc` included; then check 2, trust-anchor overlap for an `oidc` fetching peer. §3.2's `accepted_identity_types` row no longer says the list is used only for non-OIDC peers.
 - `aitp-manifest.schema.json`: the `accepted_trust_anchors` description says so too. This is description text only.
 - `docs/discovery.md` step 8 mirrors it.
-- No fixture: `verify_manifest` takes no fetching-peer identity, and adding one would be a new runner input. `mh-012` already pins the handshake side.
+- Fixtures: only the fetcher side is unpinnable, because `verify_manifest` takes no fetching-peer identity and adding one would be a new runner input. `mh-012`, `mh-018` and `mh-019` pin the receiver side.
+- `docs/GLOSSARY.md`: the `accepted_identity_types`, `accepted_trust_anchors` and `identity_hint` entries describe the open list, the open hint type and the screen of every fetching peer.
 - `governance/DECISIONS.md` records it.
+
+**Conformance index (all three entries above).** `core` 100, 151 in total. `main` had 95 core and 146 fixtures against a stated 94 and 145, and this corrects that too.
 
 ### Interop event #1 plan
 

@@ -5,8 +5,8 @@
   "required_for_v0_1": false,
   "required_for_core": true,
   "feature": null,
-  "$comment": "Pins the owner decision of 2026-11-06 on #176 item 18: `accepted_identity_types` is open. The body is man-005's without `extensions`, plus `accepted_identity_types: [\"oidc\", \"x509\"]`, so the unrecognised entry is the only thing under test. `x509` is a Reserved row of registries/identity-types.md that no `aitp/0.3` implementation implements. That is the realistic case: a type specified later, listed by a publisher that implements it, read by a verifier that does not. Before RC2.1 every verifier returned MANIFEST_INVALID for this Manifest, because the schema closed the list to `oidc`, `pinned_key` and `spiffe`.",
-  "description": "Manifest whose `accepted_identity_types` lists a type the verifier does not implement (`x509`) beside one it does (`oidc`). RFC-AITP-0003 §3.2: the list is open, so the unrecognised entry is inside the grammar and does not make the Manifest MANIFEST_INVALID at §5 step 2; at §5 step 6 the verifier ignores it. Version, expiry, PoP and signature all pass, so the Manifest verifies.",
+  "$comment": "Pins the owner decision of 2026-11-06 on #176 item 18: `accepted_identity_types` is open. The body is man-005's without `extensions`, plus `accepted_identity_types: [\"oidc\", \"x509\", \"example-type\"]`, so the unrecognised entries are the only thing under test. `x509` is a Reserved row of registries/identity-types.md that no `aitp/0.3` implementation implements; `example-type` is in no row of registries/identity-types.md, so a verifier that admits only the registered and Reserved names fails this fixture. That is the realistic case: a type specified later, listed by a publisher that implements it, read by a verifier that does not. Before RC2.1 every verifier returned MANIFEST_INVALID for this Manifest, because the schema closed the list to `oidc`, `pinned_key` and `spiffe`.",
+  "description": "Manifest whose `accepted_identity_types` lists types the verifier does not implement (`x509`, Reserved, and `example-type`, unregistered) beside one it does (`oidc`). RFC-AITP-0003 §3.2: the list is open, so the unrecognised entries are inside the grammar and does not make the Manifest MANIFEST_INVALID at §5 step 2; at §5 step 6 the verifier ignores them. Version, expiry, PoP and signature all pass, so the Manifest verifies.",
   "tags": [
     "success",
     "manifest",
@@ -29,7 +29,8 @@
       "required_peer_capabilities": [],
       "accepted_identity_types": [
         "oidc",
-        "x509"
+        "x509",
+        "example-type"
       ],
       "proof_of_possession": {
         "challenge": "E1P1xitRfiKsGDoeyKCI0w",
@@ -48,6 +49,6 @@
   },
   "expected": {
     "outcome": "success",
-    "rationale": "The Manifest is schema-valid: an `accepted_identity_types` entry is any non-empty string. Version, expiry, proof-of-possession and signature pass, and the signing input covers `accepted_identity_types` as written, unrecognised entry included (RFC-AITP-0003 §6.1). `verify_manifest` runs no fetcher-side screen, and the unrecognised entry would not change that screen's outcome: it is ignored, and `oidc` is still listed (RFC-AITP-0003 §5 step 6)."
+    "rationale": "The Manifest is schema-valid: an `accepted_identity_types` entry is any non-empty string. Version, expiry, proof-of-possession and signature pass, and the signing input covers `accepted_identity_types` as written, unrecognised entries included (RFC-AITP-0003 §6.1). `verify_manifest` runs no fetcher-side screen, and the unrecognised entries would not change that screen's outcome: they are ignored, and `oidc` is still listed (RFC-AITP-0003 §5 step 6)."
   }
 }
