@@ -8,13 +8,15 @@
 
 **Changes.**
 - RFC-AITP-0006 §2: a verifier not opted into RFC-AITP-0011 rejects a token carrying `chain` with `DELEGATION_MULTIHOP_NOT_SUPPORTED`, and one carrying `chain_hash` or `jti` without `chain` with `UNKNOWN_FIELD`. An issuer MUST NOT put `chain_hash` on a single-hop token.
-- New fixtures `del-009` (`chain_hash` only) and `del-010` (`jti` only), both `UNKNOWN_FIELD`. Conformance index: `core` 97 and 148 in total. `main` already had 95 core and 146 fixtures against a stated 94 and 145, and this corrects that too.
+- New fixtures `del-009` (`chain_hash` only) and `del-010` (`jti` only), both `UNKNOWN_FIELD`.
 - `governance/DECISIONS.md` records the owner decision.
 
 **Opted-in verifiers: owner decision, 2026-11-06.** Ruled separately, on the session's recommendation. For a verifier that has opted in, `chain_hash` is a known claim, so `UNKNOWN_FIELD` does not fit:
-- RFC-AITP-0011 §5, verifier rule 3: a token carrying `chain_hash` while `chain` is absent or empty is rejected with `DELEGATION_INVALID_SIGNATURE`, the delegation token's structural-rejection code, which §1.1 already uses for a malformed `jti`. §1 notes the exception to "the rules below apply only when `chain` is non-empty".
-- New draft fixture `del-mh-007` (`feature: experimental-multihop-delegation`), del-009's input with that code. Conformance index: multi-hop drafts 7, total 149.
+- RFC-AITP-0011 §5, new verifier rule 1, which runs before `chain_hash` is recomputed: a token carrying `chain_hash` while `chain` is absent is rejected with `DELEGATION_INVALID_SIGNATURE`, the delegation token's structural-rejection code, which §1.1 already uses for a malformed `jti`. §1 notes the exception to "the rules below apply only when `chain` is non-empty".
+- New draft fixtures (`feature: experimental-multihop-delegation`): `del-mh-007`, del-009's input with that code, and `del-mh-008`, del-010's input, accepted as RFC-AITP-0011 §1.1 requires.
 - `governance/DECISIONS.md` records the owner decision.
+
+**Conformance index.** `core` 97, multi-hop drafts 8, 150 in total. `main` had 95 core and 146 fixtures against a stated 94 and 145, and this corrects that too.
 
 ### Core RFC text clarifications and errata from the review inputs (#176, #160 row 5)
 

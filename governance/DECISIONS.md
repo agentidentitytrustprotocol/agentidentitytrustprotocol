@@ -680,7 +680,12 @@ patch-level, no new signatures). It deserves its own review rather than riding a
   3. `chain_hash` without `chain` is `DELEGATION_MULTIHOP_NOT_SUPPORTED`; `jti` is accepted and ignored.
 - **Chosen:** option 1. RFC-AITP-0006 §2 states it; an issuer MUST NOT put `chain_hash` on a single-hop token. Core fixtures `del-009` (`chain_hash`) and `del-010` (`jti`), both `UNKNOWN_FIELD`.
 - **Reasoning:** it adds no rule, gives both claims the same treatment, and is the safer direction to be wrong in: loosening later accepts tokens that were rejected, while tightening later would break tokens issuers already mint.
-- **Consequences:** aitp-verifier-py has to start rejecting both tokens; aitp-rs has to change its code from `INVALID_ENVELOPE` to `UNKNOWN_FIELD`. aitp-verifier-go and aitp-verifier-ts were not checked. No existing fixture outcome moves.
+- **Consequences:** what the sibling implementations do today (2026-11-06), and what each changes in its own repo after RC2.1 merges:
+  - aitp-verifier-ts returns `UNKNOWN_FIELD` for both tokens (`src/verify/delegation.ts:20`, `:108-109`). No change.
+  - aitp-verifier-go returns `DELEGATION_INVALID_SIGNATURE` for `chain_hash` and accepts a `jti` (`verify/delegation.go:261-267`). Both change to `UNKNOWN_FIELD` in its core path.
+  - aitp-rs core returns `INVALID_ENVELOPE` for both. Both change to `UNKNOWN_FIELD`.
+  - aitp-verifier-py accepts both. Both change to `UNKNOWN_FIELD`.
+  No existing fixture outcome moves.
 - **Opted-in verifiers:** ruled separately the same day; see the next entry.
 - **Reversal trigger:** 1.0, if review prefers option 2 or 3.
 - **Blast radius if wrong:** low. Two core fixtures; a token that carries a claim no core verifier checks is refused.
@@ -689,11 +694,12 @@ patch-level, no new signatures). It deserves its own review rather than riding a
 
 - **Status:** CONFIRMED by the owner on 2026-11-06. Drafted by the session in #183 as its own commit, then ruled on separately from the non-opted-in case (entry above).
 - **Decided by:** the owner, taking the session's recommendation.
-- **Context:** RFC-AITP-0011 §1.1 makes an opted-in verifier accept an optional `jti` on any delegation token, and §5 rejects a non-empty `chain` with no `chain_hash`. Neither says what an opted-in verifier does with `chain_hash` when `chain` is absent or empty. For that verifier `chain_hash` is a known claim, so `UNKNOWN_FIELD` does not fit.
+- **Context:** RFC-AITP-0011 §1.1 makes an opted-in verifier accept an optional `jti` on any delegation token, and §5 rejects a non-empty `chain` with no `chain_hash`. Neither says what an opted-in verifier does with `chain_hash` when `chain` is absent. For that verifier `chain_hash` is a known claim, so `UNKNOWN_FIELD` does not fit.
 - **Options:**
   1. `DELEGATION_INVALID_SIGNATURE`, the delegation token's structural-rejection code, which §1.1 already uses for a malformed `jti`.
   2. `DELEGATION_CHAIN_HASH_MISMATCH`: treat the claim as a commitment to an empty chain that cannot match.
   3. Accept and ignore the claim.
-- **Chosen:** option 1. RFC-AITP-0011 §5, verifier rule 3, and draft fixture `del-mh-007`. The token is not a chain, so it is a structural defect, not a failed recomputation. Option 2 would make the code depend on how an implementation recomputes over an empty array. Option 3 would let a single-hop token carry a commitment no verifier checks.
-- **Reversal trigger:** review of RFC-AITP-0011 before it leaves Draft prefers option 2 or 3. `del-mh-007`'s `expected.error_code` and §5 rule 3 then change together; RFC-AITP-0011 is opt-in, so no core fixture moves.
+- **Chosen:** option 1. RFC-AITP-0011 §5, verifier rule 1, which runs before `chain_hash` is recomputed, and draft fixture `del-mh-007`. Draft fixture `del-mh-008` pins the §1.1 counterpart: an opted-in verifier accepts a single-hop token with a `jti`. The token is not a chain, so it is a structural defect, not a failed recomputation. Option 2 would make the code depend on how an implementation recomputes over an empty array. Option 3 would let a single-hop token carry a commitment no verifier checks.
+- **Reversal trigger:** review of RFC-AITP-0011 before it leaves Draft prefers option 2 or 3. `del-mh-007`'s `expected.error_code` and §5 rule 1 then change together; RFC-AITP-0011 is opt-in, so no core fixture moves.
+- **Consequences:** aitp-rs's experimental path accepts a lone `chain_hash` (`crates/aitp-experimental/src/delegation/verifier.rs:156-170`; `verify_single_hop` never reads the claim) and changes to `DELEGATION_INVALID_SIGNATURE` in its own repo after RC2.1 merges. The other implementations were not checked for their opted-in behaviour.
 - **Blast radius if wrong:** low. One draft fixture behind `feature: experimental-multihop-delegation`.

@@ -449,11 +449,11 @@ valid and invalid, are in [`reports/`](reports/).
 | `extension` — pinned-admission profile (RFC-AITP-0002 §3.4, `feature: aitp-pinned-admission`) | 8 | ❌ No (required of an implementation claiming the profile) |
 | `extension` — attestation verification (RFC-AITP-0005 §5.3, `feature: aitp-self-attestation`) | 3 | ❌ No (required of an implementation claiming the role) |
 | `draft` — session bundle (RFC-AITP-0010, `feature: experimental-session-bundle`) | 8 | ❌ No |
-| `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 7 | ❌ No |
+| `draft` — multi-hop delegation (RFC-AITP-0011, `feature: experimental-multihop-delegation`) | 8 | ❌ No |
 | `draft` — A2A Agent Card binding (RFC-AITP-0014, `feature: aitp-a2a-agent-card`) | 6 | ❌ No |
 | `draft` — `spiffe` identity type (RFC-AITP-0002 §6, `feature: experimental-spiffe-identity`) | 7 | ❌ No |
 | `draft` — TCT renewal (RFC-AITP-0013, `feature: experimental-renewal`) | 12 | ❌ No |
-| **Total** | **149** | |
+| **Total** | **150** | |
 
 Counts are sourced from the `status` / `required_for_v0_N` / `feature` metadata block on each fixture file. A conformance runner for the current revision, `aitp/0.3`, MUST execute every `required_for_core` core fixture (the key keeps its v0.2 name so existing runners keep working; for `aitp/0.3` it marks the core tier); `draft` and `extension` fixtures MUST be SKIPped unless the runner has been explicitly opted into the named `feature` (see the enforcement rules above).
 
@@ -631,7 +631,8 @@ These fixtures exercise the multi-hop delegation extension. Core implementations
 | `del-mh-004` | A hop's `jti` is in that hop issuer's deny list (RFC-AITP-0011 §6 per-hop revocation) | failure: DELEGATION_SOURCE_TCT_REVOKED |
 | `del-mh-005` | Same chain as del-mh-001, but `issuer_manifests` lists B and D and omits C, the issuer of `chain[1]`, so no supplied Manifest designates that hop's key (RFC-AITP-0011 §3 step 1) | failure: KEY_RESOLUTION_FAILED |
 | `del-mh-006` | Same chain as del-mh-004, but B's snapshot no longer lists `chain[0].jti` and its signature does not validate: the snapshot is discarded and absent, and under the default `fail_closed` the hop counts as revoked (RFC-AITP-0011 §6, RFC-AITP-0008 §1.5) | failure: DELEGATION_SOURCE_TCT_REVOKED |
-| `del-mh-007` | Opted-in verifier: del-009's single-hop token with `chain_hash` and no `chain` (RFC-AITP-0011 §5, verifier rule 3) | failure: DELEGATION_INVALID_SIGNATURE |
+| `del-mh-007` | Opted-in verifier: del-009's single-hop token with `chain_hash` and no `chain` (RFC-AITP-0011 §5, verifier rule 1) | failure: DELEGATION_INVALID_SIGNATURE |
+| `del-mh-008` | Opted-in verifier: del-010's single-hop token with a `jti` and no `chain` (RFC-AITP-0011 §1.1) | success |
 
 ### Session Trust Bundle (RFC-AITP-0010, opt-in)
 

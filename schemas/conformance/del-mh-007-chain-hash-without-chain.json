@@ -6,7 +6,7 @@
   "required_for_core": false,
   "feature": "experimental-multihop-delegation",
   "$comment": "Opted-in counterpart of del-009 (#176 item 11; owner decision of 2026-11-06 for opted-in verifiers). The input is del-009's, byte for byte: del-001's single-hop token plus a `chain_hash` claim and no `chain`, minted by the runner as for del-009. A non-opted-in verifier rejects the same token with UNKNOWN_FIELD (del-009).",
-  "description": "A verifier that HAS opted into RFC-AITP-0011 receives a single-hop delegation token carrying `chain_hash` and no `chain`. For this verifier `chain_hash` is a known claim, so UNKNOWN_FIELD does not apply, but the token is not a chain and the claim commits to no hops. RFC-AITP-0011 §5, verifier rule 3: reject with DELEGATION_INVALID_SIGNATURE, the delegation token's structural-rejection code, as §1.1 does for a malformed `jti`.",
+  "description": "A verifier that HAS opted into RFC-AITP-0011 receives a single-hop delegation token carrying `chain_hash` and no `chain`. For this verifier `chain_hash` is a known claim, so UNKNOWN_FIELD does not apply, but the token is not a chain and the claim commits to no hops. RFC-AITP-0011 §5, verifier rule 1: reject with DELEGATION_INVALID_SIGNATURE, the delegation token's structural-rejection code, as §1.1 does for a malformed `jti`.",
   "tags": [
     "failure",
     "delegation",
@@ -76,6 +76,6 @@
   "expected": {
     "outcome": "failure",
     "error_code": "DELEGATION_INVALID_SIGNATURE",
-    "rationale": "Opted-in verifier: `chain_hash` without a non-empty `chain` is a structural defect of a known claim (RFC-AITP-0011 §5, verifier rule 3), rejected with the delegation token's structural-rejection code. A non-opted-in verifier rejects the same token with UNKNOWN_FIELD (del-009)."
+    "rationale": "Opted-in verifier: `chain_hash` without `chain` is a structural defect of a known claim (RFC-AITP-0011 §5, verifier rule 1), rejected with the delegation token's structural-rejection code. A non-opted-in verifier rejects the same token with UNKNOWN_FIELD (del-009)."
   }
 }

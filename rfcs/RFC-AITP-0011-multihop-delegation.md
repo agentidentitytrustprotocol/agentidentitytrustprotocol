@@ -55,7 +55,7 @@ A multi-hop delegation token is a delegation compact JWS per [RFC-AITP-0006 §2]
 | `chain_hash` | REQUIRED if `chain` is non-empty | Digest-array commitment over the chain (§5). Bound under the outer JWS signature like every other claim. |
 | `jti` | REQUIRED on every hop of a chain | UUID v4 in the [RFC-AITP-0005 §2.2](RFC-AITP-0005-tct.md#22-identifier-layout-jti) layout, unique per hop, minted by the hop's issuer; the hop's revocation handle (§6). |
 
-A delegation token without `chain` (or with `chain == []`) is a single-hop delegation and follows RFC-AITP-0006 verification verbatim. The rules below apply only when `chain` is non-empty, with one exception: a single-hop token that carries `chain_hash` is rejected under §5, verifier rule 3.
+A delegation token without `chain` (or with `chain == []`) is a single-hop delegation and follows RFC-AITP-0006 verification verbatim. The rules below apply only when `chain` is non-empty, with one exception: a single-hop token that carries `chain_hash` is rejected under §5, verifier rule 1.
 
 ### 1.1 What each chain entry is
 
@@ -162,11 +162,11 @@ Precisely:
 
 The digests are over the chain *strings*, so the commitment covers every hop's full content — header, claims, and signature — not merely an identifier. `chain_hash` is a claim in the outer token's payload and is therefore bound under the final delegator's signature.
 
-A verifier MUST:
+A verifier MUST, in this order:
 
-1. Recompute `chain_hash` from the received `chain` array.
-2. Reject with `DELEGATION_CHAIN_HASH_MISMATCH` if the recomputed value differs from the `chain_hash` claim, or if `chain` is non-empty and `chain_hash` is absent.
-3. Reject with `DELEGATION_INVALID_SIGNATURE`, the delegation token's structural-rejection code ([`registries/error-codes.md`](../registries/error-codes.md#structural-rejection)), a token that carries `chain_hash` while `chain` is absent or empty. Such a token is not a chain, so there is nothing to recompute, and the claim commits to no hops. The code is the one §1.1 uses for a malformed `jti` (fixture `del-mh-007`). A verifier that has not opted into this RFC rejects the same token with `UNKNOWN_FIELD` instead ([RFC-AITP-0006 §2](RFC-AITP-0006-delegation.md#2-delegation-token), fixture `del-009`).
+1. Before recomputing anything, reject with `DELEGATION_INVALID_SIGNATURE`, the delegation token's structural-rejection code ([`registries/error-codes.md`](../registries/error-codes.md#structural-rejection)), a token that carries `chain_hash` while `chain` is absent. Such a token is not a chain, so there is nothing to recompute, and the claim commits to no hops. (`chain: []` never reaches this rule: the schema requires at least one entry.) The code is the one §1.1 uses for a malformed `jti` (fixture `del-mh-007`). A verifier that has not opted into this RFC rejects the same token with `UNKNOWN_FIELD` instead ([RFC-AITP-0006 §2](RFC-AITP-0006-delegation.md#2-delegation-token), fixture `del-009`).
+2. Recompute `chain_hash` from the received `chain` array.
+3. Reject with `DELEGATION_CHAIN_HASH_MISMATCH` if the recomputed value differs from the `chain_hash` claim, or if `chain` is non-empty and `chain_hash` is absent.
 
 Removing, reordering, or substituting any entry changes its digest position in the array, which changes the hash. Truncating the chain (dropping a restrictive hop so a verifier roots the remaining entries differently) is likewise detected. The outer signature already covers the `chain` claim verbatim; `chain_hash` is deliberate defense-in-depth — a single order-sensitive commitment that survives implementations which compare chain arrays carelessly, and a stable identifier for audit logging of a specific chain.
 
@@ -211,7 +211,8 @@ Conformance fixtures for multi-hop live under `schemas/conformance/del-mh-*.json
 - [`del-mh-002-scope-inflation.json`](../schemas/conformance/del-mh-002-scope-inflation.json) — adjacent-pair scope check (every signature valid; the outer token's scope re-adds a capability `chain[0]` did not delegate).
 - [`del-mh-003-chain-hash-mismatch.json`](../schemas/conformance/del-mh-003-chain-hash-mismatch.json) — truncation defense (`chain_hash` claim tampered relative to the carried chain).
 - [`del-mh-004-revoked-hop.json`](../schemas/conformance/del-mh-004-revoked-hop.json) — per-hop revocation (`chain[0].jti` is in `chain[0]`'s issuer's deny list).
-- [`del-mh-007-chain-hash-without-chain.json`](../schemas/conformance/del-mh-007-chain-hash-without-chain.json) — a single-hop token carrying `chain_hash` and no `chain` (§5, verifier rule 3).
+- [`del-mh-007-chain-hash-without-chain.json`](../schemas/conformance/del-mh-007-chain-hash-without-chain.json) — a single-hop token carrying `chain_hash` and no `chain` (§5, verifier rule 1).
+- [`del-mh-008-single-hop-jti-accepted.json`](../schemas/conformance/del-mh-008-single-hop-jti-accepted.json) — a single-hop token carrying an optional `jti` and no `chain`, accepted by an opted-in verifier (§1.1).
 
 KAT vectors `kat-multihop-chain-001` (fixed-seed chain: pinned compact JWS strings for each hop, plus the expected `chain_hash`) and `kat-multihop-truncation-001` (`chain_hash` reference recomputation) live at [`schemas/conformance/known-answer/jcs-sha256.json`](../schemas/conformance/known-answer/jcs-sha256.json). Both vectors are **re-specified for `aitp/0.2`** against the digest-array `chain_hash` form of §5 (the JCS+SHA-256 step now operates on the array of per-entry digests, not on `source_tct_jti` lists); the v0.1 reconstruction-based vectors do not survive.
 
