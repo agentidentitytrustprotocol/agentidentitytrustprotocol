@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Review gates: 14 days at every stage
+
+**Change class.** Governance only. No RFC text, wire, schema, fixture or known-answer change.
+
+- `governance/DECISIONS.md` records the owner's 2026-11-06 decision, which supersedes the 2026-10-24 30-day entry (kept in place, marked superseded). At each of Review, Release Candidate and FCP, an RFC leaves only after a public review of at least 14 days at that stage, announced in a pinned Discussion with its open and close dates. This replaces the 30-day rule and FCP's 7-day window.
+- While no Core Team is seated, the maintainer is the shepherd and makes the gate decision, including the FCP vote. Seating two consenting non-owner Core Team members stays a goal and no longer blocks FCP. A Core Team seated during a window takes over at that gate without restarting it.
+- The Release Candidate content gates are unchanged: every required KAT, a complete fixture set, and at least one implementation passing the core tier against the RC text.
+- Planned dates for RFC-AITP-0001 to RFC-AITP-0009: Review opened 2026-10-24 and meets 14 days on 2026-11-07; Release Candidate planned for 2026-11-16, after interop event #1, together with draft PRs #180 to #185; the RC window closes no earlier than 2026-11-30; the FCP window closes no earlier than 14 days after it opens, so `Accepted` is around 2026-12-14 at the earliest.
+- `governance/CHARTER.md` § Core Team is amended to match: the review that stands in for a seated Core Team is now 14 days at each stage gate. With no Core Team to vote, the maintainer makes the amendment in its place; this entry announces it (§ Amendments).
+- `governance/RFC-PROCESS.md`, `CONTRIBUTING.md`, `VERSIONING.md` (v1.0 criterion 1), `README.md`, `rfcs/README.md` and `docs/interop-event-1.md` now state the 14-day rule and the new dates instead of 2027-01-10.
+
 ### Interop event #1 plan
 
 **Change class.** Documentation only. No wire, schema, fixture or RFC change.

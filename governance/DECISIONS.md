@@ -258,6 +258,11 @@ patch-level, no new signatures). It deserves its own review rather than riding a
 
 ## 2026-10-24 — No Core Team yet: the maintainer shepherds, and every stage gate waits 30 days in public (S2.2, OQ-8)
 
+- **Superseded 2026-11-06:** by
+  [Every stage gate waits 14 days in public](#2026-11-06--every-stage-gate-waits-14-days-in-public-the-maintainer-decides-until-a-core-team-is-seated-supersedes-s22-oq-8).
+  The 30-day rule, the 2027-01-10 close and the "seated before FCP" condition below no longer
+  apply. The text is kept as it was decided.
+
 - **Decided by:** the owner (OQ-8, 2026-10-24), taking the plan's recommended default.
 - **Context:** RFC-PROCESS.md assigns a Core Team shepherd at Review and a Core Team vote at
   FCP. No Core Team is seated. `CHARTER.md` § Core Team lets the maintainer act in its place for
@@ -668,3 +673,59 @@ patch-level, no new signatures). It deserves its own review rather than riding a
 - **Rejected:** waiting for the release candidate. There is no reason to delay. Running on the draft surfaces interop defects while the text can still change without an RC re-mint.
 - **Reversal trigger:** none. The RC event is additional, not a replacement.
 - **Blast radius if wrong:** low. Results at a pre-RC commit say so in each report's `spec.commit`.
+
+---
+
+## 2026-11-06 — Every stage gate waits 14 days in public; the maintainer decides until a Core Team is seated (supersedes S2.2, OQ-8)
+
+- **Decided by:** the owner, 2026-11-06.
+- **Context:** the 2026-10-24 entry above set a public review of at least 30 days at each of
+  Review, Release Candidate and FCP, held the first window open until 2027-01-10, and wanted two
+  Core Team members seated before any core RFC entered FCP. That puts `Accepted` for
+  RFC-AITP-0001 to RFC-AITP-0009 in 2027 at the earliest. The review thread
+  ([Discussion #117](https://github.com/agentidentitytrustprotocol/agentidentitytrustprotocol/discussions/117))
+  has had one comment since it opened on 2026-10-24. No Core Team is seated.
+- **Options:**
+  1. Keep 30 days at every gate, with the first window closing no earlier than 2027-01-10.
+  2. Return to the original timings in `RFC-PROCESS.md`: 14 days at Review, no window at Release
+     Candidate, 7 days at FCP.
+  3. 14 days at every gate: Review, Release Candidate and FCP.
+  4. Accept now, with no further windows.
+- **Chosen:** option 3.
+  - At each of Review, Release Candidate and FCP, an RFC leaves only after a public review of at
+    least 14 days at that stage. This replaces the 30-day rule and FCP's 7-day window.
+  - Each window is still announced in a pinned Discussions thread on this repository with its
+    open and close dates. Comments go there or on the RFC's pull request.
+  - While no Core Team is seated, the maintainer (the owner) is the shepherd and makes the gate
+    decision, including the FCP vote.
+  - The Core Team goal stays: two consenting Core Team members other than the owner, seated
+    under `CHARTER.md` § Joining the Core Team. It no longer blocks FCP. A Core Team seated
+    during a window takes over the decision at that gate, and the window is not restarted.
+  - The Release Candidate content gates in `RFC-PROCESS.md` are unchanged: every required KAT
+    present, the fixture set complete, and at least one implementation passing the core tier
+    against the RC text.
+  - `CHARTER.md` § Core Team named 30 days as the review that stands in for a seated Core Team.
+    It now names 14 days at each stage gate. With no Core Team to vote, the maintainer makes this
+    amendment in its place, and the CHANGELOG announces it (`CHARTER.md` § Amendments).
+  - Planned dates for RFC-AITP-0001 to RFC-AITP-0009:
+    - Review opened 2026-10-24 (#119). Its 14 days are met on 2026-11-07.
+    - Promotion to Release Candidate is planned for 2026-11-16, after interop event #1 closes on
+      15 November. It lands together with draft PRs #180 to #185.
+    - The Release Candidate window closes no earlier than 2026-11-30. FCP opens only once an
+      implementation passes the core tier against the RC text.
+    - The FCP window closes no earlier than 14 days after it opens, so `Accepted` is around
+      2026-12-14 at the earliest.
+- **Reasoning:** the owner wants v1 sooner. 14 days still gives outside reviewers a public window
+  at every gate, which option 2 does not at Release Candidate and option 4 does not at all. The
+  30-day windows were sized for review traffic that has not appeared: the review thread had one
+  comment.
+- **Consequences:** outside review is shorter at every gate. FCP is decided by the sole
+  maintainer, not by a Core Team vote, so `Accepted` records one person's decision after a public
+  window. `RFC-PROCESS.md` (Review stage), `CONTRIBUTING.md` (Review windows), `CHARTER.md`
+  § Core Team and `VERSIONING.md` (v1.0 criterion 1) state the new rule.
+- **Reversal trigger:** substantive review feedback that needs more time than the open window
+  gives, which moves that gate's close date out with a dated note in this file; or a Core Team
+  being seated, which then shepherds and votes as the process says.
+- **Blast radius if wrong:** medium. A defect found after `Accepted` costs a new RFC revision
+  instead of an `rc.N` fix. The rule changes no RFC text, and the other v1.0 criteria in
+  `VERSIONING.md`, including 90 days with no wire change on the RC line, still apply.
